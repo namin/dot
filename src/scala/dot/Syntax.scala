@@ -1,10 +1,16 @@
 package scala.dot
 
-trait Syntax  { 
-// <TODO inherited from frescala library>
+trait BindingSyntax {
+  type ContainsBinders[T]
+  
   type \\[T]
+  def \\[T: ContainsBinders](n: Name, body: T): \\[T]
+  
   type Name
-// </TODO>  
+  def Name(n: String): Name
+}
+
+trait Syntax extends BindingSyntax  { 
   
   abstract class Level {
     type Classifies <: Level
@@ -16,19 +22,37 @@ trait Syntax  {
     abstract class AbstractType extends Type    
     abstract class Term extends Level { type Classifies = Nothing }
   }  
+
+  object Label {
+    trait IsConcrete[T <: Level] {val result: Boolean}
+    implicit object concreteClassType extends IsConcrete[Levels.ClassType] { val result = true}
+    def notConcrete[T <: Level] = new IsConcrete[T] { val result = false}
+    def implicitlyDefault[T](default: T)(implicit v: T=default):T = v
+
+    def isConcrete[T <: Level] = implicitlyDefault[IsConcrete[T]](notConcrete).result
+
+    trait LabelBuilder[T <: Level] extends (String => Label[T])
+    def defaultLabelBuilder[T <: Level] = new LabelBuilder[T]{def apply(n: String) = new Label(n)}
+    implicit object concreteClassTypeLabelBuilder extends LabelBuilder[Levels.ClassType] { 
+      val labels = new scala.collection.mutable.HashMap[String, Label[Levels.ClassType]]
+      def apply(n: String) = {
+        assert(!labels.isDefinedAt(n))
+        labels cached (n, new Label[Levels.ClassType](n))
+      }
+    }
+
+    def apply[T <: Level](name: String)(implicit b: LabelBuilder[T] = defaultLabelBuilder[T]) = b(name)
+  }
   
-  trait IsConcrete[T <: Level] {val result: Boolean}
-  implicit object concreteClassType extends IsConcrete[Levels.ClassType] { val result = true}
-  def notConcrete[T <: Level] = new IsConcrete[T] { val result = false}
-  def implicitlyDefault[T](default: T)(implicit v: T=default):T = v
-  class Label[+T <: Level] {
-    def isConcrete = implicitlyDefault[IsConcrete[T]](notConcrete).result
+  class Label[+T <: Level](name: String) {
+    def isConcrete = Label.isConcrete[T]
   }
 
   type MemDefs[E <: Entity] = List[(Label[E#Level], E)]
   // heterogeneous list of member declarations, each entry consists of
   // the member's label (one level below L) and its classifier (at level L)
-  type MemDecls = List[(Label[E#Level#Classifies], E) forSome {type E <: Entity}]
+  type MemDecl = (Label[E#Level#Classifies], E) forSome {type E <: Entity}
+  type MemDecls = List[MemDecl]
   
   class Entity {
     type Level <: Syntax.this.Level
@@ -48,7 +72,9 @@ trait Syntax  {
       case class Fun(tpe: Type, body: \\[Term]) extends Value
   
     case class App(fun: Term, arg: Term) extends Term
-    case class New(tpe: Type, args: \\[MemDefs[Value]]) extends Term
+    case class New(tpe: Type, args_scope: \\[(MemDefs[Value], Term)]) extends Term {
+      assert(tpe.isConcrete)
+    }
     case class Sel(tgt: Term, label: Label[Levels.Term]) extends Term {
       override def isPath = tgt.isPath
     }
@@ -60,7 +86,8 @@ trait Syntax  {
   }
   
   object Types {
-    case class Sel(tgt: Type, label: Label[Levels.Type]) extends Type {
+    case class Sel(tgt: Term, label: Label[Levels.Type]) extends Type {
+      assert(tgt.isPath)
       override def isConcrete = label.isConcrete
     }
     case class Refine(parent: Type, decls: \\[MemDecls]) extends Type {
@@ -81,4 +108,8 @@ trait Syntax  {
     type Level = Levels.TypeBounds
   }
 
+
+  implicit val termHasBinders: ContainsBinders[Term]
+  implicit val meh: ContainsBinders[(MemDefs[Terms.Value], Term)]
+  implicit val meh2: ContainsBinders[List[MemDecl]]
 }
