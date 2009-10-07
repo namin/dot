@@ -1,17 +1,7 @@
 package scala.dot
+import scala.util.binding.frescala
 
-trait BindingSyntax {
-  type ContainsBinders[T]
-  
-  type \\[T]
-  def \\[T: ContainsBinders](n: Name, body: T): \\[T]
-  
-  type Name
-  def Name(n: String): Name
-}
-
-trait Syntax extends BindingSyntax  { 
-  
+trait Syntax extends BindingSyntax { 
   abstract class Level {
     type Classifies <: Level
   }
@@ -107,9 +97,11 @@ trait Syntax extends BindingSyntax  {
   case class TypeBounds(lo: Type, hi: Type) extends Entity {
     type Level = Levels.TypeBounds
   }
+}
 
-
+trait BindingSyntax extends frescala.BindingSyntax { self: Syntax =>  
   implicit val termHasBinders: ContainsBinders[Term]
-  implicit val meh: ContainsBinders[(MemDefs[Terms.Value], Term)]
-  implicit val meh2: ContainsBinders[List[MemDecl]]
+  implicit def labelHasBinders[T <: Level]: ContainsBinders[Label[T]]
+  implicit val valueHasBinders: ContainsBinders[Terms.Value]
+  implicit val memDeclHasBinders: ContainsBinders[MemDecl]
 }

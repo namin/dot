@@ -2,24 +2,12 @@ package scala.dot
 
 import scala.util.parsing.combinator.syntactical.StdTokenParsers
 import scala.util.parsing.combinator.lexical.StdLexical
-import scala.util.parsing.combinator.{Parsers, ImplicitConversions}
+import scala.util.parsing.combinator.ImplicitConversions
 import scala.collection.immutable._
 
-trait BindingParsers extends Parsers with BindingSyntax {
-  type BindingParser <: BindingParserCore
-  def BindingParser(env: Map[String, Name]): BindingParser
-  class BindingParserCore(env: Map[String, Name]) {
-    type BindResult = (BindingParser, Name)
-    def bind(nameParser: Parser[String]): Parser[BindResult] = nameParser ^^ {name => val n=Name(name); (BindingParser(env(name)=n), n)}
-    def bound(nameParser: Parser[String]): Parser[Name]  = nameParser ^? env
-    def under[T : ContainsBinders](binder: BindResult)(p: BindingParser => Parser[T]): Parser[\\[T]] = {
-      val (ctx, n) = binder
-      p(ctx) ^^ (\\(n, _))
-    }
-  }
-}
+import scala.util.binding.frescala
 
-trait Parsing extends StdTokenParsers with BindingParsers with Syntax with ImplicitConversions {
+trait Parsing extends StdTokenParsers with frescala.BindingParsers with Syntax with ImplicitConversions {
   type Tokens = StdLexical; val lexical = new StdLexical
   lexical.delimiters ++= List("\\",".",":","=","{","}","(", ")","=>",";","&","|","..")
   lexical.reserved ++= List("val", "new", "type", "trait","Any","Nothing")
