@@ -7,7 +7,7 @@ import scala.collection.immutable._
 
 import scala.util.binding.frescala
 
-trait Parsing extends StdTokenParsers with frescala.BindingParsers with Syntax with ImplicitConversions {
+trait Parsing extends StdTokenParsers with frescala.BindingParsers with NominalBindingSyntax with ImplicitConversions {
   type Tokens = StdLexical; val lexical = new StdLexical
   lexical.delimiters ++= List("\\",".",":","=","{","}","(", ")","=>",";","&","|","..")
   lexical.reserved ++= List("val", "new", "type", "trait","Any","Nothing")
@@ -23,8 +23,8 @@ trait Parsing extends StdTokenParsers with frescala.BindingParsers with Syntax w
 
     def labelV: Parser[Label[Levels.Term]] = "val" ~> labelRef[Levels.Term]
     def labelRef[L <: Level]: Parser[Label[L]] = ident ^^ Label[L]
-    def valMems: Parser[MemDefs[Value]] = repsep((labelV <~ "=") ~ value ^^ {case l ~ v => (l, v)}, ";")
-    def ctor: Parser[(MemDefs[Value], Term)] = ("{" ~> valMems <~ "}") ~ (";" ~> term)  ^^ {case ms ~ sc => (ms, sc)}
+    def valMems: Parser[Members.Defs[Value]] = repsep((labelV <~ "=") ~ value ^^ {case l ~ v => Members.Def[Terms.Value](l, v)}, ";")
+    def ctor: Parser[(Members.Defs[Value], Term)] = ("{" ~> valMems <~ "}") ~ (";" ~> term)  ^^ {case ms ~ sc => (ms, sc)}
 
     def term: Parser[Term] = 
       ( value
@@ -35,13 +35,12 @@ trait Parsing extends StdTokenParsers with frescala.BindingParsers with Syntax w
     
     def path: Parser[Term] = term ^? {case p if p.isPath => p}
 
-  //type MemDecl = (Label[E#Level#Classifies], E) forSome {type E <: Entity}
-    def memDecl = 
-      ( (("type" ~> labelRef[Levels.Type] <~ ":") ~ typeBounds).^^[MemDecl] {case l ~ cls => (l, cls).asInstanceOf[MemDecl]} //XXX
-      | (("val" ~> labelRef[Levels.Term] <~ ":") ~ tpe).^^[MemDecl] {case l ~ cls => (l, cls).asInstanceOf[MemDecl]} //XXX
+    def memDecl: Parser[Members.Decl[Entity]] =
+      ( (("type" ~> labelRef[Levels.Type] <~ ":") ~ typeBounds) ^^ {case l ~ cls => Members.Decl[TypeBounds](l, cls)}
+      | (("val" ~> labelRef[Levels.Term] <~ ":") ~ tpe) ^^ {case l ~ cls => Members.Decl[Type](l, cls)}
       )
-    def memDecls = repsep(memDecl, ";") 
-    def refinement: Parser[\\[MemDecls]] = "{" ~> bind(ident) >> {x => "=>" ~> under(x)(_.memDecls) <~ "}"}
+    def memDecls: Parser[Members.Decls] = repsep(memDecl, ";")
+    def refinement: Parser[\\[Members.Decls]] = "{" ~> bind(ident) >> {x => "=>" ~> under[Members.Decls](x)(_.memDecls) <~ "}"}
     def tpe: Parser[Type] = 
       ( (path <~ ".") ~ labelRef[Levels.Type] ^^ {case tgt ~ l => TSel(tgt, l)}
       | chainl1(tpe, refinement, success(Refine(_, _)))

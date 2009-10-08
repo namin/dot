@@ -3,7 +3,7 @@ package scala.util.binding.frescala
 import scala.util.parsing.combinator.Parsers
 import scala.collection.immutable.Map
 
-trait BindingParsers extends Parsers with BindingSyntaxCore {
+trait BindingParsers extends Parsers with AbstractBindingSyntax {
   type BindingParser <: BindingParserCore
   def BindingParser(env: Map[String, Name]): BindingParser
   

@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="Scala SDK">
+    <CLASSES>
+      <root url="jar:///Users/adriaan/Library/Application Support/IntelliJIDEA90/Scala/lib/scala-library.jar!/" />
+      <root url="jar:///Users/adriaan/Library/Application Support/IntelliJIDEA90/Scala/lib/scala-compiler.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
