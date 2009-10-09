@@ -55,29 +55,24 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
       )("memDecl")
     lazy val memDecls: P[Members.Decls] = repsep[Members.Decl[Entity]](memDecl, ";")
 
-
-    lazy val tpe0: P[Type] =
-      l(tsel
-      | top
-      | bot
-      ) ("tpe0")
-    lazy val tsel = l((path <~ ".") ~ labelRef[Levels.Type] ^^ {case tgt ~ l => TSel(tgt, l)}       )("tsel")
-    lazy val top = l("Any" ^^^ Top                                                                  )("top")
-    lazy val bot = l("Nothing" ^^^ Bottom                                                           )("bot")
-
     lazy val tpe: P[Type] =
     l(trfn
     | tarr
     | tand
     | tor
-    | tpe0
+    | tsel
+    | top
+    | bot
     ) ("tpe")
 
-    lazy val trfn = l(chainl1(tpe0, refinement, success(Refine(_, _)))                                )("trfn")
-    lazy val refinement: P[\\[Members.Decls]] = l("{" ~> bind(ident) >> {x => "=>" ~> under[Members.Decls](x)(_.memDecls) <~ "}"})("refineMent")    
-    lazy val tarr = l(chainl1(tpe0, tpe, "=>" ^^^ (FunT(_, _)))                                            )("tarr")
-    lazy val tand = l(chainl1(tpe0, tpe, "&" ^^^ (Intersect(_, _)))                                        )("tand")
-    lazy val tor = l(chainl1(tpe0, tpe, "|" ^^^ (Union(_, _)))                                            )("tor")
+    lazy val trfn = l(chainl1(tpe, refinement, success(Refine(_, _)))                                )("trfn")
+      lazy val refinement: P[\\[Members.Decls]] = l("{" ~> bind(ident) >> {x => "=>" ~> under[Members.Decls](x)(_.memDecls) <~ "}"})("refineMent")
+    lazy val tarr = l(chainl1(tpe, tpe, "=>" ^^^ (FunT(_, _)))                                            )("tarr")
+    lazy val tand = l(chainl1(tpe, tpe, "&" ^^^ (Intersect(_, _)))                                        )("tand")
+    lazy val tor = l(chainl1(tpe, tpe, "|" ^^^ (Union(_, _)))                                            )("tor")
+    lazy val tsel = l((path <~ ".") ~ labelRef[Levels.Type] ^^ {case tgt ~ l => TSel(tgt, l)}       )("tsel")
+    lazy val top = l("Any" ^^^ Top                                                                  )("top")
+    lazy val bot = l("Nothing" ^^^ Bottom                                                           )("bot")
 
     lazy val typeBounds: P[TypeBounds] = l((tpe <~ "..") ~ tpe ^^ {case lo ~ hi => TypeBounds(lo, hi)})("typeBounds")
   }
