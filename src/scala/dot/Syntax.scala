@@ -37,6 +37,7 @@ trait Syntax extends AbstractBindingSyntax {
   
   class Label[+T <: Level](name: String) {
     def isConcrete = Label.isConcrete[T]
+    override def toString = "Label=" + name                                  
   }
 
   class Entity {
@@ -74,6 +75,8 @@ trait Syntax extends AbstractBindingSyntax {
     case class Sel(tgt: Term, label: Label[Levels.Term]) extends Term {
       override def isPath = tgt.isPath
     }
+
+    case object Unit extends Value
 
 //    object IdMap extends Map { def apply(tm: Term) = tm }
 //    abstract class Map(tpMap: Types.Map = Types.IdMap,

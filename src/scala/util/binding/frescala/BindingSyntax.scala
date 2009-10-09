@@ -107,6 +107,8 @@ trait NominalBindingSyntax extends AbstractBindingSyntax {
     
     // meh
     override def equals(o: Any): Boolean = o match { case other: \\[T] => equals(other) case _ => false}
+
+    override def toString() : String = binder + "." + body    
   }
 }
 
