@@ -35,11 +35,15 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
       )
 
     lazy val term: P[Term] =
+      l( chainl1(term0, term, success(App(_: Term, _: Term)))
+       | chainl1(term0, labelRef[Levels.Term], "." ^^^ (Sel(_, _)))
+       | term0
+       ) ("term")
+
+    lazy val term0: P[Term] =
       l( value
-      | "val" ~> bind(ident) >> {x => ("=" ~> "new" ~> tpe) ~ under(x)(_.ctor)} ^? {case tpe ~ args_scope if tpe.isConcrete => New(tpe, args_scope)}
-      | chainl1(term, success(App(_: Term, _: Term)))
-      | chainl1(term, labelRef[Levels.Term], "." ^^^ (Sel(_, _)))
-      )  ("term")
+      |  "val" ~> bind(ident) >> {x => ("=" ~> "new" ~> tpe) ~ under(x)(_.ctor)} ^? {case tpe ~ args_scope if tpe.isConcrete => New(tpe, args_scope)}
+      )  ("term0")
     
     lazy val path: P[Term] = term ^? {case p if p.isPath => p}
 
@@ -56,23 +60,20 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
     lazy val memDecls: P[Members.Decls] = repsep[Members.Decl[Entity]](memDecl, ";")
 
     lazy val tpe: P[Type] =
-    l(trfn
-    | tarr
-    | tand
-    | tor
-    | tsel
-    | top
-    | bot
-    ) ("tpe")
+    l(l(chainl1(tpe0, refinement, success(Refine(_, _)))                                )("trfn")
+     | l(chainl1(tpe0, tpe, "=>" ^^^ (FunT(_, _)))                                            )("tarr")
+     | l(chainl1(tpe0, tpe, "&" ^^^ (Intersect(_, _)))                                        )("tand")
+     | l(chainl1(tpe0, tpe, "|" ^^^ (Union(_, _)))                                            )("tor")
+     | tpe0
+     )("tpe")
 
-    lazy val trfn = l(chainl1(tpe, refinement, success(Refine(_, _)))                                )("trfn")
-      lazy val refinement: P[\\[Members.Decls]] = l("{" ~> bind(ident) >> {x => "=>" ~> under[Members.Decls](x)(_.memDecls) <~ "}"})("refineMent")
-    lazy val tarr = l(chainl1(tpe, tpe, "=>" ^^^ (FunT(_, _)))                                            )("tarr")
-    lazy val tand = l(chainl1(tpe, tpe, "&" ^^^ (Intersect(_, _)))                                        )("tand")
-    lazy val tor = l(chainl1(tpe, tpe, "|" ^^^ (Union(_, _)))                                            )("tor")
-    lazy val tsel = l((path <~ ".") ~ labelRef[Levels.Type] ^^ {case tgt ~ l => TSel(tgt, l)}       )("tsel")
-    lazy val top = l("Any" ^^^ Top                                                                  )("top")
-    lazy val bot = l("Nothing" ^^^ Bottom                                                           )("bot")
+    lazy val tpe0: P[Type] =
+    l(l((path <~ ".") ~ labelRef[Levels.Type] ^^ {case tgt ~ l => TSel(tgt, l)}       )("tsel")
+     | l("Any" ^^^ Top                                                                  )("top")
+     | l("Nothing" ^^^ Bottom                                                           )("bot")
+     )("tpe0")
+
+    lazy val refinement: P[\\[Members.Decls]] = l("{" ~> bind(ident) >> {x => "=>" ~> under[Members.Decls](x)(_.memDecls) <~ "}"})("refineMent")
 
     lazy val typeBounds: P[TypeBounds] = l((tpe <~ "..") ~ tpe ^^ {case lo ~ hi => TypeBounds(lo, hi)})("typeBounds")
   }
@@ -82,5 +83,5 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
 
  object TestParser extends Parsing with Application  {
   def parse(in: String) = phrase(Parser.term)(new lexical.Scanner(in))
-  println(parse("val x = new Any{ self => type foo : Any..Any }{};x")) //"val x = new Any{};x"
+  println(parse("val x = new Any{ self => type foo : Any..Any; val meh: self.foo }{val meh=x};x")) //"val x = new Any{};x"
  }
