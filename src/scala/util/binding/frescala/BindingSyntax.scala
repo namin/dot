@@ -12,11 +12,18 @@ trait AbstractBindingSyntax {
   }
 
   type \\[T] <: Scoped[T]
-  def \\[T: ContainsBinders](n: Name, body: T): \\[T]
+  val \\ : ScopedCompanion
+  trait ScopedCompanion {
+    def apply[T: ContainsBinders](binder: Name, body: T): \\[T]
+    def unapply[T: ContainsBinders](scrutinee: \\[T]): Option[(Name, T)]
+  }
   
   type Name
-  def Name(n: String): Name
-  
+  val Name : NameCompanion
+  trait NameCompanion {
+    def apply(s: String): Name
+  }
+
   implicit def listBinders[T: ContainsBinders]: ContainsBinders[List[T]]
   implicit def pairBinders[T: ContainsBinders, U: ContainsBinders]: ContainsBinders[(T, U)]
 }
@@ -48,8 +55,8 @@ trait NominalBindingSyntax extends AbstractBindingSyntax {
     def fresh(a: Name) = self._1.fresh(a) && self._2.fresh(a)
   }
 
-  object Name {
-    var nextId = 0
+  object Name extends NameCompanion {
+    private var nextId = 0
     def apply(s: String) = new Name(s)
   }
 
@@ -72,7 +79,7 @@ trait NominalBindingSyntax extends AbstractBindingSyntax {
     override def toString = friendlyName + "$" + id
   }
 
-  object \\ {
+  object \\ extends ScopedCompanion {
     def apply[T: ContainsBinders](binder: Name, body: T) = new \\[T](binder, body)
     def unapply[T: ContainsBinders](scrutinee: \\[T]): Option[(Name, T)] = Some(scrutinee unabs)
   }
