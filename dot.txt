@@ -1,1 +1,7 @@
-val root = new Any { rootThis => } {}; ()
+val root = new Any { rootThis => 
+  type unit: (Any => rootThis.Unit)..(Any => rootThis.Unit)
+}
+{
+  val unit = \(x: Any) => (val u = new root.Unit{}; u)
+};
+()

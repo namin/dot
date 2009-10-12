@@ -1,7 +1,7 @@
 package scala.util.binding.frescala
 
 trait AbstractBindingSyntax {
-  type ContainsBinders[T]
+  type ContainsBinders[T] 
 
   trait Scoped[T] { self: \\[T] =>
     def unabs: (Name, T)
@@ -11,14 +11,14 @@ trait AbstractBindingSyntax {
     }
   }
 
-  type \\[T] <: Scoped[T]
+  type \\[T] <: Scoped[T] { def prettyPrint : String }
   val \\ : ScopedCompanion
   trait ScopedCompanion {
     def apply[T: ContainsBinders](binder: Name, body: T): \\[T]
     def unapply[T: ContainsBinders](scrutinee: \\[T]): Option[(Name, T)]
   }
   
-  type Name
+  type Name <: { def prettyPrint: String }
   val Name : NameCompanion
   trait NameCompanion {
     def apply(s: String): Name
@@ -62,7 +62,7 @@ trait NominalBindingSyntax extends AbstractBindingSyntax {
 
   // represents a binder, friendlyName is only used for toString
   class Name(friendlyName: String) extends Nominal[Name] {
-    def \\[T: ContainsBinders](body: T): \\[T] = new \\(this, body)
+    def \\[T : ContainsBinders](body: T): \\[T] = new \\(this, body)
 
     def genFresh: Name = Name(friendlyName)
 
@@ -77,6 +77,7 @@ trait NominalBindingSyntax extends AbstractBindingSyntax {
 
     private val id = {Name.nextId; Name.nextId +=1 }
     override def toString = friendlyName + "$" + id
+		def prettyPrint = toString
   }
 
   object \\ extends ScopedCompanion {
@@ -109,6 +110,8 @@ trait NominalBindingSyntax extends AbstractBindingSyntax {
     override def equals(o: Any): Boolean = o match { case other: \\[T] => equals(other) case _ => false}
 
     override def toString() : String = binder + "." + body    
+		// def prettyPrint = binder.prettyPrint + "." + body.prettyPrint
+		def prettyPrint = toString
   }
 }
 

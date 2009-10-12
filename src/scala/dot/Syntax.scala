@@ -37,14 +37,16 @@ trait Syntax extends AbstractBindingSyntax {
   
   class Label[+T <: Level](name: String) {
     def isConcrete = Label.isConcrete[T]
-    override def toString = "Label=" + name                                  
+    override def toString = "Label=" + name            
+    def prettyPrint = name
   }
 
-  class Entity {
+  abstract class Entity {
     type Level <: Syntax.this.Level
+		def prettyPrint: String
   }
   
-  class Term extends Entity {
+  abstract class Term extends Entity {
     type Level = Levels.Term
     
     def isPath = false
@@ -52,7 +54,9 @@ trait Syntax extends AbstractBindingSyntax {
 
   object Members {
     // the member's label (one level below L) and its classifier (at level L)
-    case class Decl[+E <: Entity](l: Label[E#Level#Classifies], cls: E)
+    case class Decl[+E <: Entity](l: Label[E#Level#Classifies], cls: E) {
+			def prettyPrint = l.prettyPrint + ": " + cls.prettyPrint
+		}
     // heterogeneous list of member declarations, each entry consists of
     type Decls = List[Decl[Entity]] // existential types aren't ready for prime time, I would say
     // -- try replacing Entity by E forSome {type E <: Entity} and see the whole project explode
@@ -62,21 +66,31 @@ trait Syntax extends AbstractBindingSyntax {
   }
 
   object Terms {
-    class Value extends Term
+    abstract class Value extends Term 
+
       case class Var(name: Name) extends Value {
         override def isPath = true
+				override def prettyPrint = name.prettyPrint
       }
-      case class Fun(tpe: Type, body: \\[Term]) extends Value
+      case class Fun(tpe: Type, body: \\[Term]) extends Value {
+				override def prettyPrint = "λ" + body.prettyPrint 
+			}
   
-    case class App(fun: Term, arg: Term) extends Term
+    case class App(fun: Term, arg: Term) extends Term {
+			 override def prettyPrint = fun.prettyPrint + "⋅" + arg.prettyPrint
+		}
     case class New(tpe: Type, args_scope: \\[(Members.Defs[Terms.Value], Term)]) extends Term {
-      assert(tpe.isConcrete)
+      // assert(tpe.isConcrete)
+			override def prettyPrint = "new " + tpe.prettyPrint + args_scope.prettyPrint
     }
     case class Sel(tgt: Term, label: Label[Levels.Term]) extends Term {
       override def isPath = tgt.isPath
+			override def prettyPrint = tgt.prettyPrint + "." + label.prettyPrint
     }
 
-    case object Unit extends Value
+    case object Unit extends Value {
+			override def prettyPrint = "()"
+		}
 
 //    object IdMap extends Map { def apply(tm: Term) = tm }
 //    abstract class Map(tpMap: Types.Map = Types.IdMap,
@@ -93,7 +107,7 @@ trait Syntax extends AbstractBindingSyntax {
 //    }
   }
   
-  class Type extends Entity {
+  abstract class Type extends Entity {
     type Level = Levels.Type
     def isConcrete = false
   }
@@ -102,23 +116,33 @@ trait Syntax extends AbstractBindingSyntax {
     case class Sel(tgt: Term, label: Label[Levels.Type]) extends Type {
       assert(tgt.isPath)
       override def isConcrete = label.isConcrete
+			override def prettyPrint = tgt.prettyPrint + "." + label.prettyPrint
     }
     
     case class Refine(parent: Type, decls: \\[Members.Decls]) extends Type {
       override def isConcrete = parent.isConcrete
+			override def prettyPrint = parent.prettyPrint + " { " + decls.prettyPrint + " }"
     }
     
-    case class Fun(from: Type, to: Type) extends Type
+    case class Fun(from: Type, to: Type) extends Type {
+			override def prettyPrint = from.prettyPrint + " → " + to.prettyPrint
+		}
     
     case class Intersect(a: Type, b: Type) extends Type {
       override def isConcrete = a.isConcrete && b.isConcrete
+			override def prettyPrint = a.prettyPrint + " ∧ " + b.prettyPrint
     }
-    case class Union(a: Type, b: Type) extends Type
+    case class Union(a: Type, b: Type) extends Type {
+			override def prettyPrint = a.prettyPrint + " ∨ " + b.prettyPrint
+		}
     
     case object Top extends Type {
       override def isConcrete = true
+			override def prettyPrint = "Top"
     }
-    case object Bottom extends Type
+    case object Bottom extends Type {
+			override def prettyPrint = "⊥"
+		}
 
 //    object IdMap extends Map { def apply(tm: Term) = tm }
 //    abstract class Map(tmMap: Terms.Map = Terms.IdMap,
@@ -140,6 +164,7 @@ trait Syntax extends AbstractBindingSyntax {
   
   case class TypeBounds(lo: Type, hi: Type) extends Entity {
     type Level = Levels.TypeBounds
+		override def prettyPrint = lo.prettyPrint + ".." + hi.prettyPrint
   }
 }
 
