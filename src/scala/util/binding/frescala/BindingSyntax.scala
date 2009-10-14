@@ -11,14 +11,14 @@ trait AbstractBindingSyntax {
     }
   }
 
-  type \\[T] <: Scoped[T] { def prettyPrint : String }
+  type \\[T] <: Scoped[T] 
   val \\ : ScopedCompanion
   trait ScopedCompanion {
     def apply[T: ContainsBinders](binder: Name, body: T): \\[T]
     def unapply[T: ContainsBinders](scrutinee: \\[T]): Option[(Name, T)]
   }
   
-  type Name <: { def prettyPrint: String }
+  type Name <: { def getFriendlyName: String }
   val Name : NameCompanion
   trait NameCompanion {
     def apply(s: String): Name
@@ -77,7 +77,7 @@ trait NominalBindingSyntax extends AbstractBindingSyntax {
 
     private val id = {Name.nextId; Name.nextId +=1 }
     override def toString = friendlyName + "$" + id
-		def prettyPrint = toString
+		def getFriendlyName = friendlyName
   }
 
   object \\ extends ScopedCompanion {
@@ -111,7 +111,7 @@ trait NominalBindingSyntax extends AbstractBindingSyntax {
 
     override def toString() : String = binder + "." + body    
 		// def prettyPrint = binder.prettyPrint + "." + body.prettyPrint
-		def prettyPrint = toString
+//		def prettyPrint = toString
   }
 }
 

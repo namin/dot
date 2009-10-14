@@ -23,27 +23,31 @@ trait Syntax extends AbstractBindingSyntax {
     def isConcrete[T <: Level] = implicitlyDefault[IsConcrete[T]](notConcrete).result
 
     trait LabelBuilder[T <: Level] extends (String => Label[T])
-    def defaultLabelBuilder[T <: Level] = new LabelBuilder[T]{def apply(n: String) = new Label(n)}
-    implicit object concreteClassTypeLabelBuilder extends LabelBuilder[Levels.ClassType] { 
-      val labels = new scala.collection.mutable.HashMap[String, Label[Levels.ClassType]]
-      def apply(n: String) = {
-        assert(!labels.isDefinedAt(n))
-        labels cached (n, new Label[Levels.ClassType](n))
-      }
-    }
+    // def defaultLabelBuilder[T <: Level] = new LabelBuilder[T]{def apply(n: String) = new Label(n)}
+    // implicit object concreteClassTypeLabelBuilder extends LabelBuilder[Levels.ClassType] { 
+    //   val labels = new scala.collection.mutable.HashMap[String, Label[Levels.ClassType]]
+    //   def apply(n: String) = {
+    //     assert(!labels.isDefinedAt(n))
+    //     labels cached (n, new Label[Levels.ClassType](n))
+    //   }
+    // }
 
-    def apply[T <: Level](name: String)(implicit b: LabelBuilder[T] = defaultLabelBuilder[T]) = b(name)
+    // def apply[T <: Level](name: String)(implicit b: LabelBuilder[T] = defaultLabelBuilder[T]) = b(name)
   }
   
-  class Label[+T <: Level](name: String) {
+  abstract class Label[+T <: Level](val name: String) {
     def isConcrete = Label.isConcrete[T]
-    override def toString = "Label=" + name            
-    def prettyPrint = name
   }
+
+	case class TypeLabel(override val name: String) extends Label[Levels.Type](name) {
+			def apply(name: String) = new TypeLabel(name)
+	}
+	case class TermLabel(override val name: String) extends Label[Levels.Term](name) {
+		 	def apply(name: String) = new TermLabel(name)		
+	}
 
   abstract class Entity {
     type Level <: Syntax.this.Level
-		def prettyPrint: String
   }
   
   abstract class Term extends Entity {
@@ -54,15 +58,20 @@ trait Syntax extends AbstractBindingSyntax {
 
   object Members {
     // the member's label (one level below L) and its classifier (at level L)
-    case class Decl[+E <: Entity](l: Label[E#Level#Classifies], cls: E) {
-			def prettyPrint = l.prettyPrint + ": " + cls.prettyPrint
-		}
+    sealed abstract class Decl[+L <: Level, +E <: Entity](val l: Label[L], val cls: E) 
+    // abstract case class Decl[+E <: Entity](l: Label[E#Level#Classifies], cls: E) 
+
+		case class TypeBoundsDecl(override val l: TypeLabel, override val cls: TypeBounds) extends Decl[Levels.Type, TypeBounds](l, cls)
+		case class TypeDecl(override val l: TermLabel, override val cls: Type) extends Decl[Levels.Term, Type](l, cls)
+
     // heterogeneous list of member declarations, each entry consists of
-    type Decls = List[Decl[Entity]] // existential types aren't ready for prime time, I would say
+		type Decls = List[Decl[Level, Entity]] // existential types aren't ready for prime time, I would say
     // -- try replacing Entity by E forSome {type E <: Entity} and see the whole project explode
   
-    case class Def[+E <: Entity](l: Label[E#Level], rhs: E)
-    type Defs[E <: Entity] = List[Def[E]]
+    abstract class Def[+E <: Entity](val l: Label[E#Level], val rhs: E)
+		case class ValueDef(override val l: TermLabel, override val rhs: Term) extends Def[Term](l, rhs)
+
+    type ValDefs = List[ValueDef]
   }
 
   object Terms {
@@ -70,27 +79,18 @@ trait Syntax extends AbstractBindingSyntax {
 
       case class Var(name: Name) extends Value {
         override def isPath = true
-				override def prettyPrint = name.prettyPrint
       }
-      case class Fun(tpe: Type, body: \\[Term]) extends Value {
-				override def prettyPrint = "λ" + body.prettyPrint 
-			}
-  
-    case class App(fun: Term, arg: Term) extends Term {
-			 override def prettyPrint = fun.prettyPrint + "⋅" + arg.prettyPrint
-		}
-    case class New(tpe: Type, args_scope: \\[(Members.Defs[Terms.Value], Term)]) extends Term {
-      // assert(tpe.isConcrete)
-			override def prettyPrint = "new " + tpe.prettyPrint + args_scope.prettyPrint
-    }
-    case class Sel(tgt: Term, label: Label[Levels.Term]) extends Term {
-      override def isPath = tgt.isPath
-			override def prettyPrint = tgt.prettyPrint + "." + label.prettyPrint
-    }
+      case class Fun(tpe: Type, body: \\[Term]) extends Value
 
-    case object Unit extends Value {
-			override def prettyPrint = "()"
-		}
+    	case object Unit extends Value   
+
+    case class App(fun: Term, arg: Term) extends Term 
+    case class New(tpe: Type, args_scope: \\[(Members.ValDefs, Term)]) extends Term {
+      // assert(tpe.isConcrete)
+    }
+    case class Sel(tgt: Term, label: TermLabel) extends Term {
+      override def isPath = tgt.isPath
+    }
 
 //    object IdMap extends Map { def apply(tm: Term) = tm }
 //    abstract class Map(tpMap: Types.Map = Types.IdMap,
@@ -113,36 +113,27 @@ trait Syntax extends AbstractBindingSyntax {
   }
   
   object Types {
-    case class Sel(tgt: Term, label: Label[Levels.Type]) extends Type {
+    case class Sel(tgt: Term, label: TypeLabel) extends Type {
       assert(tgt.isPath)
       override def isConcrete = label.isConcrete
-			override def prettyPrint = tgt.prettyPrint + "." + label.prettyPrint
     }
     
     case class Refine(parent: Type, decls: \\[Members.Decls]) extends Type {
       override def isConcrete = parent.isConcrete
-			override def prettyPrint = parent.prettyPrint + " { " + decls.prettyPrint + " }"
     }
     
-    case class Fun(from: Type, to: Type) extends Type {
-			override def prettyPrint = from.prettyPrint + " → " + to.prettyPrint
-		}
+    case class Fun(from: Type, to: Type) extends Type 
     
     case class Intersect(a: Type, b: Type) extends Type {
       override def isConcrete = a.isConcrete && b.isConcrete
-			override def prettyPrint = a.prettyPrint + " ∧ " + b.prettyPrint
     }
     case class Union(a: Type, b: Type) extends Type {
-			override def prettyPrint = a.prettyPrint + " ∨ " + b.prettyPrint
 		}
     
     case object Top extends Type {
       override def isConcrete = true
-			override def prettyPrint = "Top"
     }
-    case object Bottom extends Type {
-			override def prettyPrint = "⊥"
-		}
+    case object Bottom extends Type 
 
 //    object IdMap extends Map { def apply(tm: Term) = tm }
 //    abstract class Map(tmMap: Terms.Map = Terms.IdMap,
@@ -164,11 +155,11 @@ trait Syntax extends AbstractBindingSyntax {
   
   case class TypeBounds(lo: Type, hi: Type) extends Entity {
     type Level = Levels.TypeBounds
-		override def prettyPrint = lo.prettyPrint + ".." + hi.prettyPrint
   }
 }
 
 trait NominalBindingSyntax extends Syntax with frescala.NominalBindingSyntax { self: Syntax =>
+	
   implicit val termHasBinders: ContainsBinders[Term] = (tm: Term) => new Nominal[Term] {
     def swap(a: Name, b: Name): Term = { import Terms._// use Terms.Map
       tm match {
@@ -177,6 +168,7 @@ trait NominalBindingSyntax extends Syntax with frescala.NominalBindingSyntax { s
         case App(fun, arg) => App(fun swap(a,b), arg swap(a,b))
         case New(tpe, args_scope) => New(tpe swap(a,b), args_scope swap(a,b))
         case Sel(tgt, l) => Sel(tgt swap(a,b),  l swap(a,b))
+				case Terms.Unit => Terms.Unit
       }
     }
 
@@ -187,6 +179,7 @@ trait NominalBindingSyntax extends Syntax with frescala.NominalBindingSyntax { s
         case App(fun, arg) => fun.fresh(a) && arg.fresh(a)
         case New(tpe, args_scope) => tpe.fresh(a) && args_scope.fresh(a)
         case Sel(tgt, l) => tgt.fresh(a) && l.fresh(a)
+				case Terms.Unit => true
       }
     }
   }
@@ -233,7 +226,10 @@ trait NominalBindingSyntax extends Syntax with frescala.NominalBindingSyntax { s
     }
   }
 
-  implicit def labelHasBinders[T <: Level]: ContainsBinders[Label[T]] = AtomicIsNominal[Label[T]](_)
+	implicit def termLabelHasBinders: ContainsBinders[TermLabel] = AtomicIsNominal[TermLabel](_)
+	implicit def typeLabelHasBinders: ContainsBinders[TypeLabel] = AtomicIsNominal[TypeLabel](_)
+
+//  implicit def labelHasBinders[T <: Level, L <: Label[T]]: ContainsBinders[L] = AtomicIsNominal[L](_)
 
   implicit val valueHasBinders: ContainsBinders[Terms.Value] = (tm: Terms.Value) => new Nominal[Terms.Value] {
     import Terms._// use Terms.Map
@@ -262,35 +258,78 @@ trait NominalBindingSyntax extends Syntax with frescala.NominalBindingSyntax { s
 //    type Defs[E <: Entity] = List[Def[E]]
 //  }
 
-  implicit def memDeclHasBinders[E <: Entity]: ContainsBinders[Members.Decl[E]] = (mem: Members.Decl[E]) => new Nominal[Members.Decl[E]] {
+
+
+	// implicit def typeBoundsDeclHasBinders: ContainsBinders[Members.TypeBoundsDecl] = 
+	// 	(decl: Members.TypeBoundsDecl) => new Nominal[Members.TypeBoundsDecl] {
+	//     import Members._// use Members.Map
+	//     def swap(a: Name, b: Name) = TypeBoundsDecl(decl.l.swap(a, b), decl.cls.swap(a, b))
+	//     def fresh(a: Name): Boolean = decl.l.fresh(a) && decl.cls.fresh(a)
+	// 	}
+	// 
+	// implicit def typeDeclHasBinders: ContainsBinders[Members.TypeDecl] = 
+	// 	(decl: Members.TypeDecl) => new Nominal[Members.TypeDecl] {
+	//     import Members._// use Members.Map
+	//     def swap(a: Name, b: Name) = TypeDecl(decl.l.swap(a, b), decl.cls.swap(a, b))
+	//     def fresh(a: Name): Boolean = decl.l.fresh(a) && decl.cls.fresh(a)
+	// 	}
+
+
+	// NOTE: are doing pattern matching here, because a refinement contains a set of type or type bounds declarations,
+	// and each of those needs to be convertable to a Nominal
+  implicit def memDeclHasBinders: ContainsBinders[Members.Decl[Level, Entity]] = (mem: Members.Decl[Level, Entity]) => new Nominal[Members.Decl[Level, Entity]] {
     import Members._// use Members.Map
-    def swap(a: Name, b: Name): Decl[E] = {
+    def swap(a: Name, b: Name): Members.Decl[Level, Entity] = {
       mem match {
-        case d: Decl[TypeBounds] => Decl[TypeBounds](d.l swap(a,b), d.cls swap(a,b)).asInstanceOf[Decl[E]] //XXX
-        case d: Decl[Type] => Decl[Type](d.l swap(a,b), d.cls swap(a,b)).asInstanceOf[Decl[E]] //XXX
+        case TypeBoundsDecl(l, cls) => TypeBoundsDecl(l.swap(a,b), cls.swap(a,b))
+        case TypeDecl(l, cls) => TypeDecl(l swap(a,b), cls swap(a,b))
       }
     }
 
     def fresh(a: Name): Boolean = {
       mem match {
-        case d: Decl[TypeBounds] => d.l.fresh(a) && d.cls.fresh(a)
-        case d: Decl[Type] => d.l.fresh(a) && d.cls.fresh(a)
+        case TypeBoundsDecl(l, cls) => l.fresh(a) && cls.fresh(a)
+        case TypeDecl(l, cls) => l.fresh(a) && cls.fresh(a)
       }
     }
-  }
+	}
 
-  implicit def memDefHasBinders[E <: Entity]: ContainsBinders[Members.Def[E]] = (mem: Members.Def[E]) => new Nominal[Members.Def[E]] {
+  // implicit def memDeclHasBinders[E <: Entity]: ContainsBinders[Members.Decl[E]] = (mem: Members.Decl[E]) => new Nominal[Members.Decl[E]] {
+  //   import Members._// use Members.Map
+  //   def swap(a: Name, b: Name): Decl[E] = {
+  //     mem match {
+  //       case d: Decl[TypeBounds] => TypeBoundsDecl(d.l swap(a,b), d.cls swap(a,b)).asInstanceOf[Decl[E]] //XXX
+  //       case d: Decl[Type] => TypeDecl(d.l swap(a,b), d.cls swap(a,b)).asInstanceOf[Decl[E]] //XXX
+  //     }
+  //   }
+
+  implicit def memDefHasBinders: ContainsBinders[Members.ValueDef] = (mem: Members.ValueDef) => new Nominal[Members.ValueDef] {
     import Members._// use Members.Map
-    def swap(a: Name, b: Name): Def[E] = {
+    def swap(a: Name, b: Name): ValueDef = {
       mem match {
-        case d: Def[Term] => Def[Term](d.l swap(a,b), d.rhs swap(a,b)).asInstanceOf[Def[E]] //XXX
+        case ValueDef(l, rhs) => ValueDef(l swap(a,b), rhs swap(a,b))
       }
     }
 
     def fresh(a: Name): Boolean = {
       mem match {
-        case d: Def[Term] => d.l.fresh(a) && d.rhs.fresh(a)
+        case ValueDef(l, rhs) => l.fresh(a) && rhs.fresh(a)
       }
     }
   }
+
+  // implicit def memDefHasBindersT: ContainsBinders[Members.Def[]] = (mem: Members.Def[_]) => new Nominal[Members.Def[_]] {
+  //   import Members._// use Members.Map
+  //   def swap(a: Name, b: Name): Def[_] = {
+  //     mem match {
+  //       case ValueDef(l, rhs) => ValueDef(l swap(a,b), rhs swap(a,b))
+  //     }
+  //   }
+  // 
+  //   def fresh(a: Name): Boolean = {
+  //     mem match {
+  //       case ValueDef(l, rhs) => l.fresh(a) && rhs.fresh(a)
+  //     }
+  //   }
+  // }
 }

@@ -1,7 +1,11 @@
-val root = new Any { rootThis => 
-  type unit: (Any => rootThis.Unit)..(Any => rootThis.Unit)
-}
-{
-  val unit = \(x: Any) => (val u = new root.Unit{}; u)
-};
-()
+val root = new Any { rootThis =>
+  val unit: Any => rootThis.Unit
+} 
+{ 
+  val false = \(u: root.Unit) => (
+    val ff = new root.Boolean { this=> } {
+      val ifNat = \(t: root.Unit => root.Nat) => \(e: root.Unit => root.Nat) => e (root.unit)
+    };
+    ff
+  )
+}; ()
