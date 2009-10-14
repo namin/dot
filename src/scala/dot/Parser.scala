@@ -81,7 +81,7 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
      )("tpe")
  
     lazy val tpe0: P[Type] =
-    l(l((path <~ ".") ~ labelRef[Levels.Type] ^^ {case tgt ~ l => TSel(tgt, l)} )("tsel")
+    l(l(path ^^ {case Terms.Sel(tgt, TermLabel(l)) => TSel(tgt, TypeLabel(l))} )("tsel")
      | l("Any" ^^^ Top )("top")
      | l("Nothing" ^^^ Bottom )("bot")
      )("tpe0")
