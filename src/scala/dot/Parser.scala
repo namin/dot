@@ -7,20 +7,20 @@ import scala.collection.immutable._
 import scala.util.binding.frescala
 import util.parsing.combinator.{PackratParsers, ImplicitConversions}
  
-class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratParsers with NominalBindingSyntax with ImplicitConversions {
+class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratParsers with NominalBindingSyntax with ImplicitConversions { 
 	theParser =>
 	
   type Tokens = StdLexical; val lexical = new StdLexical
   lexical.delimiters ++= List("\\",".",":","=","{","}","(", ")","=>",";","&","|","..","()")
-  lexical.reserved ++= List("val", "new", "type", "trait","Any","Nothing")
+  lexical.reserved ++= List("val", "new", "type", "trait","Any","Nothing", "app")
  
   type P[T] = PackratParser[T]
 
   val logging = true;
 
   private var indent = ""
-  def l[T](p: => P[T])(name: String): P[T] = Parser{ in =>
-   if (logging) println(indent +"trying "+ name +" at:\n"+ in.pos.longString)
+  def l[T](p: => Parser[T])(name: String): P[T] = Parser{ in =>
+   	if (logging) println(indent +"trying "+ name) // +" at:\n"+ in.pos)
     val old = indent; indent += " "
     val r = p(in)
     indent = old
@@ -39,24 +39,44 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
  
   def BindingParser(env: Map[String, Name]): BindingParser = new BindingParser(env)
   class BindingParser(env: Map[String, Name]) extends BindingParserCore(env) {
+
     lazy val value: P[Value] =
-      ( bound(ident) ^^ {case x => Var(x)}
-      | "\\" ~> "(" ~> bind(ident) >> {x => (":" ~> tpe <~ ")" <~ "=>") ~ under(x)(_.term)} ^^ {case tpe ~ body => Fun(tpe, body) }
-      | "()" ^^^ Unit
+      ( 
+				l (bound(ident) ^^ {case x => Var(x)}) ("var")
+      | l("\\" ~> "(" ~> bind(ident) >> {x => (":" ~> tpe <~ ")" <~ "=>") ~ under(x)(_.term)} ^^ {case tpe ~ body => Fun(tpe, body) }) ("fun")
+      | l ("()" ^^^ Unit) ("unit")
       ) 
- 
-    lazy val term: P[Term] =
-      l( chainl2(term0, term, success(App(_: Term, _: Term)))
-       | chainl2(term0, termLabelRef, "." ^^^ (Sel(_, _)))
-       | "(" ~> term <~")"
-       | term0
-       ) ("term")
- 
-    lazy val term0: P[Term] = (
-				l( value ) ("value")
-      | l ("val" ~> bind(ident) >> {x => ("=" ~> "new" ~> tpe) ~ under[(Members.ValDefs, Term)](x)(_.ctor)(pairBinders(listBinders(memDefHasBinders), termHasBinders))} ^^ {case tpe ~ args_scope /*if tpe.isConcrete*/ => New(tpe, args_scope)}) ("ctor" ) 
+
+		//  
+		//     lazy val term: P[Term] = (
+		//       l( "(" ~> term <~")" ) ("paren")
+		// 	 | l((term ~ term) ^^ { case a ~ b => App(a,b) } ) ("app")
+		//        | l (chainl2(term0, termLabelRef, "." ^^^ (Sel(_, _)))) ("sel")
+		//        | l (term0) ("term0")
+		// )
+		//  
+		//     lazy val term0: P[Term] = (
+		// 		l( value ) ("value")
+		//       | l ("val" ~> bind(ident) >> {x => ("=" ~> "new" ~> tpe) ~! under[(Members.ValDefs, Term)](x)(_.ctor)} ^^ {case tpe ~ args_scope /*if tpe.isConcrete*/ => New(tpe, args_scope)}) ("new-expr" ) 
+		// )
+
+		lazy val app: P[Term] = (
+			 l ((term ~ ("(" ~> term <~ ")")) ^^ { case a ~ b => App(a,b) } ) ("app")					
 		)
-    
+			
+		lazy val selection: P[Term] = (
+			l (chainl2(term, termLabelRef, "." ^^^ (Sel(_, _)))) ("sel")	       
+		)
+    		
+		lazy val term: P[Term] = (
+  		   l( "(" ~> term <~")" ) ("paren")
+			 | selection
+//			 | l (chainl2(term, termLabelRef, "." ^^^ (Sel(_, _)))) ("sel")
+			 | app
+       | l ("val" ~> bind(ident) >> {x => ("=" ~> "new" ~> tpe) ~! under[(Members.ValDefs, Term)](x)(_.ctor)} ^^ {case tpe ~ args_scope /*if tpe.isConcrete*/ => New(tpe, args_scope)}) ("new-expr" ) 
+			 | l (value) ("value")		
+		)
+ 
     lazy val path: P[Term] = term //^? {case p if p.isPath => p}
  
     lazy val ctor: P[(Members.ValDefs, Term)] = ("{" ~> valMems <~ "}") ~ (";" ~> term) ^^ {case ms ~ sc => (ms, sc)}
@@ -76,10 +96,10 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
 //    lazy val memDecls: P[List[Members.Decl[Level, Entity]]] = repsep[Members.Decl[Entity, Level]](memDecl, ";")
 
     lazy val memDecl: P[Members.Decl[Level, Entity]] =
-			l((("type" ~> typeLabelRef <~ "=") ~ typeSugar) ^^ {case l ~ cls => Members.TypeBoundsDecl(l, cls)}
-      | (("type" ~> typeLabelRef <~ ":") ~ typeBounds) ^^ {case l ~ cls => Members.TypeBoundsDecl(l, cls)}
+			l((("type" ~> typeLabelRef <~ "=") ~! typeSugar) ^^ {case l ~ cls => Members.TypeBoundsDecl(l, cls)}
+      | (("type" ~> typeLabelRef <~ ":") ~! typeBounds) ^^ {case l ~ cls => Members.TypeBoundsDecl(l, cls)}
 //			| (( "type" ~> labelRef[Levels.Type] <~ "=" ~ typeSugar) ^^ { case bound => Members.Decl[TypeBounds](bound, bound)})
-      | (("val" ~> termLabelRef <~ ":") ~ tpe) ^^ {case l ~ cls => Members.TypeDecl(l, cls)}
+      | (("val" ~> termLabelRef <~ ":") ~! tpe) ^^ {case l ~ cls => Members.TypeDecl(l, cls)}
       )("memDecl")
 
     lazy val memDecls: P[Members.Decls] = repsep[Members.Decl[Level, Entity]](memDecl, ";")
@@ -89,7 +109,8 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
 		// lazy val typeDecls = repsep(typeDecl, ";")
  
     lazy val tpe: P[Type] =
-    l( l(chainl2(tpe0, refinement, success(Refine(_, _))) )("trefine")
+    l( "(" ~> tpe <~")"
+		 | l(chainl2(tpe0, refinement, success(Refine(_, _))) )("trefine")
      | l(chainl2(tpe0, tpe, "=>" ^^^ (FunT(_, _))) )("tfun")
      | l(chainl2(tpe0, tpe, "&" ^^^ (Intersect(_, _))) )("tand")
      | l(chainl2(tpe0, tpe, "|" ^^^ (Union(_, _))) )("tor")
@@ -97,10 +118,10 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
      )("tpe")
  
     lazy val tpe0: P[Type] =
-    l(l(path ^^ {case Terms.Sel(tgt, TermLabel(l)) => TSel(tgt, TypeLabel(l))} )("tsel")
+     l(l(path ^^ {case Terms.Sel(tgt, TermLabel(l)) => TSel(tgt, TypeLabel(l))} )("tsel")
+//     l(l((path <~ ".") ~ typeLabelRef ^^ {case tgt ~ l => TSel(tgt, l)} )("tsel")
      | l("Any" ^^^ Top )("top")
      | l("Nothing" ^^^ Bottom )("bot")
-     | "(" ~> tpe <~")"
      )("tpe0")
  
     lazy val refinement: P[\\[Members.Decls]] = 

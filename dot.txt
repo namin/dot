@@ -1,11 +1,9 @@
 val root = new Any { rootThis =>
-  val unit: Any => rootThis.Unit
 } 
-{ 
-  val false = \(u: root.Unit) => (
-    val ff = new root.Boolean { this=> } {
-      val ifNat = \(t: root.Unit => root.Nat) => \(e: root.Unit => root.Nat) => e (root.unit)
-    };
-    ff
-  )
-}; ()
+{
+  val add2 = \(n1: root.Nat) =>\(n2: root.Nat) =>
+    (n1.isZero(root.unit).ifNat
+     (\(u: root.Unit) => n2)
+     (\(u: root.Unit) => root.add2(n1.pred(root.unit)) (n2.succ(root.unit))))
+};
+()
