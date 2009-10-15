@@ -109,8 +109,7 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
 		// lazy val typeDecls = repsep(typeDecl, ";")
  
     lazy val tpe: P[Type] =
-    l( "(" ~> tpe <~")"
-		 | l(chainl2(tpe0, refinement, success(Refine(_, _))) )("trefine")
+    l( l(chainl2(tpe0, refinement, success(Refine(_, _))) )("trefine")
      | l(chainl2(tpe0, tpe, "=>" ^^^ (FunT(_, _))) )("tfun")
      | l(chainl2(tpe0, tpe, "&" ^^^ (Intersect(_, _))) )("tand")
      | l(chainl2(tpe0, tpe, "|" ^^^ (Union(_, _))) )("tor")
@@ -118,7 +117,8 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
      )("tpe")
  
     lazy val tpe0: P[Type] =
-     l(l(path ^^ {case Terms.Sel(tgt, TermLabel(l)) => TSel(tgt, TypeLabel(l))} )("tsel")
+     l( l("(" ~> tpe <~")") ("tparen")
+		 | l(path ^^ {case Terms.Sel(tgt, TermLabel(l)) => TSel(tgt, TypeLabel(l))} )("tsel")
 //     l(l((path <~ ".") ~ typeLabelRef ^^ {case tgt ~ l => TSel(tgt, l)} )("tsel")
      | l("Any" ^^^ Top )("top")
      | l("Nothing" ^^^ Bottom )("bot")
