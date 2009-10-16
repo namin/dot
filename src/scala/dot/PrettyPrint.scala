@@ -19,7 +19,7 @@ trait PrettyPrinting
 	}
 
 	implicit def prettyPrintName(name: Name) = new PrettyPrintable {	
-		def prettyPrint = name.getFriendlyName
+		def prettyPrint = name.toString
 	}
 				
 	// for context bound

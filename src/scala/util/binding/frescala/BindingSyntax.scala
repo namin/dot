@@ -74,7 +74,7 @@ trait NominalBindingSyntax extends AbstractBindingSyntax {
       case _ => false
     }
 
-    private val id = {Name.nextId; Name.nextId +=1 }
+    private val id: Int = {val r = Name.nextId; Name.nextId +=1; r }
     override def toString = friendlyName + "$" + id
 		def getFriendlyName = friendlyName
   }

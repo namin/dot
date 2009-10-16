@@ -7,23 +7,27 @@ trait Evaluation extends NominalBindingSyntax with PrettyPrinting {
   import Types.{Sel=>TSel, Fun=>FunT, _}
 	import scala.collection.immutable.ListMap
 	
-	def eval(term: Term): Term = evalAll(term, new ListMap)	
+	def eval(term: Term): Term = {
+		val result = evalAll(term, new ListMap)	
+		println("map: " + result._2)
+		result._1
+	}
 	
-	def evalAll(term: Term, store: Store): Term = {			
+	def evalAll(term: Term, store: Store): (Term, Store) = {			
 		try {
 			val (term2, store2) = eval1(term, store) 
 			evalAll(term2, store2)
 		} catch {
-			case NoRuleApplies => term
-			case NotFound => printlnTab("Not found"); term
+			case NoRuleApplies => (term, store)
+			case NotFound => printlnTab("Not found"); (term, store)
 		}
 	}
 	
 	def termSubsTop(value: Value, binder: \\[Term]): Term = {
 //		printlnTab("Substituting " + value.prettyPrint + "\n in " + binder.prettyPrint)
 		
-		val tuple: (Name, Term) = binder.unabs
-		subs(tuple._1, value, tuple._2)
+		val (fresh, term) = binder.unabs
+		subs(fresh, value, term)
 	}
 	
 	// substitute variable with value within expr
@@ -38,14 +42,12 @@ trait Evaluation extends NominalBindingSyntax with PrettyPrinting {
 			case Terms.Unit => Terms.Unit
 			case App(fun, arg) => App(subs(variable, value, fun), subs(variable, value, arg))
 			case New(tpe, args_scope) => {			
-				val inside = args_scope.unabs
-				val argTerm = inside._2._2 // term following the new expression
-				val argDefs = inside._2._1 // definitions val x = t
+				val \\(fresh, (argDefs, argTerm)) = args_scope
 				
 				// map terms within the value definitions to a new list of value definitions with the substitution
 				// applied to the right-hand-side 
 				val newArgDefs = argDefs.map( (df: ValueDef) => ValueDef(df.l, subs(variable, value, df.rhs).asInstanceOf[Value]))
-				val newArgsScope = new \\[(Members.ValDefs, Term)](inside._1, (newArgDefs, subs(variable, value, argTerm)))
+				val newArgsScope = new \\[(Members.ValDefs, Term)](fresh, (newArgDefs, subs(variable, value, argTerm)))
 				New(typeSubs(variable, value, tpe), newArgsScope)
 			}
 			case Sel(tgt, label) => Sel(subs(variable, value, tgt), label)
@@ -76,7 +78,10 @@ trait Evaluation extends NominalBindingSyntax with PrettyPrinting {
 		}
 	}
 
-	class Constructor(val typ: Type, val defs: ValDefs)
+	class Constructor(val typ: Type, val defs: ValDefs) {
+		 override def toString = typ.prettyPrint + " -- " + defs.prettyPrint
+	}
+	
 	type Store = Map[Name, Constructor]
 	
 	case object NoRuleApplies extends Throwable
@@ -91,21 +96,25 @@ trait Evaluation extends NominalBindingSyntax with PrettyPrinting {
 	def eval1(term: Term, store: Store): (Term, Store) = {	
 		val old: String = indent
 		indent += "  "
+
+		println("--------")
+		printlnTab(term.prettyPrint)
+		println("--------")
 		
 		val result = term match {
 			case App(fun, arg) => 
 				fun match {
 					case Fun(tpe, body) => arg match {
 						case v: Value => 
-							printlnTab("app(fun, value)")
+							// printlnTab("app(fun, value)")
 							(termSubsTop(v, body), store)
 						case _ => 
-							printlnTab("app(fun, not value): " + arg.prettyPrint)
+							// printlnTab("app(fun, not value): " + arg.prettyPrint)
 							val result = eval1(arg, store)
 							(App(fun, result._1), result._2)
 					}
 					case _ => 
-						printlnTab("app(not fun, not value)")
+						// printlnTab("app(not fun, not value)")
 						val result = eval1(fun, store)		
 						(App(result._1, arg), result._2)
 				}
@@ -113,10 +122,10 @@ trait Evaluation extends NominalBindingSyntax with PrettyPrinting {
 			case New(tpe, args_scope) => 
 				printlnTab("New")
 			
-				val binder = args_scope.unabs
-				val defsPlusTerm = binder._2 
-				val newStore = store + ((binder._1, new Constructor(tpe, defsPlusTerm._1)))
-				(defsPlusTerm._2, newStore)
+				val \\(freshName, (defs, nestedTerm)) = args_scope
+				val newStore = store + ((freshName, new Constructor(tpe, defs)))
+				println("adding to store: " + freshName)
+				(nestedTerm, newStore)
 			
 			case Sel(tgt, label) => 
 				printlnTab(term.prettyPrint)
@@ -148,4 +157,5 @@ trait Evaluation extends NominalBindingSyntax with PrettyPrinting {
 			case None => throw NotFound
 		}
 	}
+	
 }
