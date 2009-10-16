@@ -69,7 +69,7 @@ trait Syntax extends AbstractBindingSyntax {
     // -- try replacing Entity by E forSome {type E <: Entity} and see the whole project explode
   
     abstract class Def[+E <: Entity](val l: Label[E#Level], val rhs: E)
-		case class ValueDef(override val l: TermLabel, override val rhs: Term) extends Def[Term](l, rhs)
+		case class ValueDef(override val l: TermLabel, override val rhs: Terms.Value) extends Def[Term](l, rhs)
 
     type ValDefs = List[ValueDef]
   }
@@ -239,7 +239,7 @@ trait NominalBindingSyntax extends Syntax with frescala.NominalBindingSyntax { s
         case Fun(tpe, body) => Fun(tpe swap(a,b), body swap(a,b))
       }
     }
-
+  
     def fresh(a: Name): Boolean = {
       tm match {
         case Var(n) => n fresh(a)
@@ -307,13 +307,13 @@ trait NominalBindingSyntax extends Syntax with frescala.NominalBindingSyntax { s
     import Members._// use Members.Map
     def swap(a: Name, b: Name): ValueDef = {
       mem match {
-        case ValueDef(l, rhs) => ValueDef(l swap(a,b), rhs swap(a,b))
+        case ValueDef(l, rhs) => ValueDef(l swap(a,b), valueHasBinders(rhs) swap(a,b))
       }
     }
 
     def fresh(a: Name): Boolean = {
       mem match {
-        case ValueDef(l, rhs) => l.fresh(a) && rhs.fresh(a)
+        case ValueDef(l, rhs) => l.fresh(a) && valueHasBinders(rhs).fresh(a)
       }
     }
   }

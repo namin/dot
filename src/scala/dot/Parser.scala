@@ -16,7 +16,7 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
  
   type P[T] = PackratParser[T]
 
-  val logging = true;
+  val logging = false;
 
   private var indent = ""
   def l[T](p: => Parser[T])(name: String): P[T] = Parser{ in =>
@@ -60,10 +60,14 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
 		//       | l ("val" ~> bind(ident) >> {x => ("=" ~> "new" ~> tpe) ~! under[(Members.ValDefs, Term)](x)(_.ctor)} ^^ {case tpe ~ args_scope /*if tpe.isConcrete*/ => New(tpe, args_scope)}) ("new-expr" ) 
 		// )
 
+		// app MUST be pulled out as its own lazy vals, due to the fact that "app" and "sel" both
+		// have the same left recursive term
 		lazy val app: P[Term] = (
 			 l ((term ~ ("(" ~> term <~ ")")) ^^ { case a ~ b => App(a,b) } ) ("app")					
 		)
-			
+		
+		// selection MUST be pulled out as its own lazy vals, due to the fact that "app" and "sel" both
+		// have the same left recursive term			
 		lazy val selection: P[Term] = (
 			l (chainl2(term, termLabelRef, "." ^^^ (Sel(_, _)))) ("sel")	       
 		)
@@ -134,11 +138,12 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
   
   object Parser extends BindingParser(HashMap.empty)
 }
- 
-object TestParser extends Parsing with PrettyPrinting with Application {
-  def parse(in: String) = phrase(Parser.term)(new lexical.Scanner(in))
 
-  import scala.io.Source
+
+object TestParser extends Parsing with PrettyPrinting with Application with Evaluation {
+	import scala.io.Source;
+
+  def parse(in: String) = phrase(Parser.term)(new lexical.Scanner(in))
 
   val source = Source.fromPath("../dot.txt")
   val lines = source.getLines().mkString
@@ -147,4 +152,9 @@ object TestParser extends Parsing with PrettyPrinting with Application {
 	val result = parse(lines).get;
 	println(result);
   println(result.prettyPrint)
+
+	println("-----\nEvaluation:")
+	
+	val evalResult = eval(result)
+	println("------\n" + evalResult.prettyPrint)
 }

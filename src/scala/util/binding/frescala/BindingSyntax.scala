@@ -66,7 +66,6 @@ trait NominalBindingSyntax extends AbstractBindingSyntax {
 
     def genFresh: Name = Name(friendlyName)
 
-
     def swap(a: Name, b: Name) = if(this eq a) b else if(this eq b) a else this
     def fresh(a: Name) = this ne a
 

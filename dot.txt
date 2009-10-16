@@ -40,16 +40,16 @@ val root = new Any { rootThis =>
 
   val zero = \(u: root.Unit) => (
     val zz = new root.Nat { this=> }{ 
-      val isZero = \(u: root.Unit) => root.false(root.unit);
+      val isZero = \(u: root.Unit) => root.true(root.unit);
       val succ = \(u: root.Unit) => root.successor(zz);
-      val pred = \(u: root.Unit) => ()
+      val pred = \(u: root.Unit) => root.error(u)
     };
     zz
   );
 
   val successor = \(n: root.Nat) => (
     val ss = new root.Nat {this=>}{
-      val isZero = \(u: root.Unit) => root.true(root.unit);
+      val isZero = \(u: root.Unit) => root.false(root.unit);
       val succ = \(u: root.Unit) => root.successor(ss);
       val pred = \(u: root.Unit) => n;
       val add = \(other: root.Nat) => root.add2 (other) (ss)
@@ -62,6 +62,7 @@ val root = new Any { rootThis =>
      (\(u: root.Unit) => n2)
      (\(u: root.Unit) => root.add2(n1.pred(root.unit)) (n2.succ(root.unit)));
 
-  val error = \(u: root.Unit) => root.error(u)		
+  val error = \(u: root.Unit) => root.error(u)
 };
-()
+
+root.zero(root.unit).succ(root.unit).succ(root.unit).succ(root.unit)
