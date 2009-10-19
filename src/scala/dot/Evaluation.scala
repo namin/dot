@@ -33,7 +33,7 @@ trait Evaluation extends NominalBindingSyntax with PrettyPrinting {
 	// substitute variable with value within expr
 	def subs(variable: Name, value: Value, expr: Term): Term = {
 		expr match {
-			case Var(varName) => if (varName eq variable) expr else expr
+			case Var(varName) => if (varName == variable) value else expr
 			case Fun(tpe, body) => {
 				val inside = body.unabs
 				val newBody = \\[Term](body.unabs._1, subs(variable, value, body.unabs._2))

@@ -25,18 +25,18 @@ trait PrettyPrinting
 	// for context bound
 	type PrettyPrintableFn[P] = P => PrettyPrintable
 		
-	implicit def prettyPrintBinder[P : PrettyPrintableFn](binder: \\[P]) = new PrettyPrintable {
-		def prettyPrint = {
-			val insides = binder.unabs
-			insides._2.prettyPrint
-		}		
-	}
+	// implicit def prettyPrintBinder[P : PrettyPrintableFn](binder: \\[P]) = new PrettyPrintable {
+	// 	def prettyPrint = {
+	// 		val insides = binder.unabs
+	// 		insides._2.prettyPrint
+	// 	}		
+	// }
 	
-	def getBinderName[T](binder: \\[T]) = {
-//		println("Binder is: " + binder)
-		val n: Name = binder.unabs._1
-		n.prettyPrint
-	} 
+// 	def getBinderName[T](binder: \\[T]) = {
+// //		println("Binder is: " + binder)
+// 		val n: Name = binder.unabs._1
+// 		n.prettyPrint
+// 	} 
 	
 	implicit def prettyPrintList[T : PrettyPrintableFn](list: List[T]) = new PrettyPrintable {
 		def prettyPrint = {
@@ -59,7 +59,8 @@ trait PrettyPrinting
 		def prettyPrint = typ match { 
 			case Sel(tgt: Term, label: Label[Levels.Type]) => tgt.prettyPrint + "." + label.name
 			case Refine(parent: Type, decls: \\[Members.Decls]) => 
-				parent.prettyPrint + "{ " + getBinderName(decls) + " => \n" + decls.prettyPrint + "} " // (prettyPrintBinder(decls)(prettyPrintList))
+				val (name, body) = decls.unabs
+				parent.prettyPrint + "{ " + name.prettyPrint + " => \n" + body.prettyPrint + "} " // (prettyPrintBinder(decls)(prettyPrintList))
 			case Fun(from, to) => "(" + from.prettyPrint + " => " + to.prettyPrint + ")"
 			case Intersect(a, b) => a.prettyPrint + " & " + b.prettyPrint
 			case Union(a, b) => a.prettyPrint + " | " + b.prettyPrint
@@ -82,11 +83,14 @@ trait PrettyPrinting
 	implicit def prettyPrintTerm(term: Term) : PrettyPrintable = new PrettyPrintable {
 		def prettyPrint = term match { 
 			case Terms.New(tpe, args_scope)	=> 
-				"val " + getBinderName(args_scope) + " = new " + tpe.prettyPrint + "\n" + args_scope.prettyPrint
+				val (freshName, body) = args_scope.unabs
+				"val " + freshName.prettyPrint + " = new " + tpe.prettyPrint + "\n" + body.prettyPrint
 			case Terms.Var(n) => n.prettyPrint
 			case Terms.App(fn, arg) => fn.prettyPrint + "(" + arg.prettyPrint + ")"
 			case Terms.Unit => "()"
-			case Terms.Fun(typ, body) => "(" + getBinderName(body) + ": " + typ.prettyPrint + ") => " + body.prettyPrint  //prettyPrintBinder(body)(prettyPrintTerm(_)).prettyPrint 
+			case Terms.Fun(typ, body) => 
+				val (name, funBody) = body.unabs
+				"(" + name.prettyPrint + ": " + typ.prettyPrint + ") => " + funBody.prettyPrint  //prettyPrintBinder(body)(prettyPrintTerm(_)).prettyPrint 
 			case Terms.Sel(term, label) => "(" + term.prettyPrint + ")." + label.name 
 		}
 	}

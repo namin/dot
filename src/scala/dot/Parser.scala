@@ -12,7 +12,7 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
 	
   type Tokens = StdLexical; val lexical = new StdLexical
   lexical.delimiters ++= List("\\",".",":","=","{","}","(", ")","=>",";","&","|","..","()")
-  lexical.reserved ++= List("val", "new", "type", "trait","Any","Nothing", "app")
+  lexical.reserved ++= List("val", "new", "type", "trait","Any","Nothing")
  
   type P[T] = PackratParser[T]
 
@@ -89,7 +89,7 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
 		def termLabelRef: P[TermLabel] = ident ^^ TermLabel
 		def typeLabelRef: P[TypeLabel] = ident ^^ TypeLabel
 
-    lazy val valMems: P[Members.ValDefs] = repsep[Members.ValueDef]((labelV <~ "=") ~ value ^^ {case l ~ v => Members.ValueDef(l, v)}, ";")
+    lazy val valMems: P[Members.ValDefs] = repsep[Members.ValueDef]((labelV <~ "=") ~ value ^^ {case l ~ v => Members.ValueDef(l, v)}, ";") // <~ ";"
  
 		// lazy val valDecl: P[Members.TypeDecl] = 
 		//       l( (("val" ~> termLabelRef <~ ":") ~ tpe) ^^ {case l ~ cls => Members.TypeDecl(l, cls)} )("valDecl")
