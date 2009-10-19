@@ -18,7 +18,7 @@ trait AbstractBindingSyntax {
     def unapply[T: ContainsBinders](scrutinee: \\[T]): Option[(Name, T)]
   }
   
-  type Name <: { def getFriendlyName: String }
+  type Name 
   val Name : NameCompanion
   trait NameCompanion {
     def apply(s: String): Name
@@ -76,7 +76,6 @@ trait NominalBindingSyntax extends AbstractBindingSyntax {
 
     private val id: Int = {val r = Name.nextId; Name.nextId +=1; r }
     override def toString = friendlyName + "$" + id
-		def getFriendlyName = friendlyName
   }
 
   object \\ extends ScopedCompanion {
