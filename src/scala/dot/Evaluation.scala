@@ -24,19 +24,20 @@ trait Evaluation extends NominalBindingSyntax with PrettyPrinting {
 	}
 	
 	def termSubsTop(value: Value, binder: \\[Term]): Term = {
-//		printlnTab("Substituting " + value.prettyPrint + "\n in " + binder.prettyPrint)
-		
 		val (fresh, term) = binder.unabs
-		subs(fresh, value, term)
+		val result = subs(fresh, value, term)
+		result
 	}
 	
 	// substitute variable with value within expr
 	def subs(variable: Name, value: Value, expr: Term): Term = {
-		expr match {
+		// printlnTab("Substituting " + value.prettyPrint + " for " + variable.prettyPrint + " in " + expr.prettyPrint)
+
+		val result = expr match {
 			case Var(varName) => if (varName == variable) value else expr
 			case Fun(tpe, body) => {
-				val inside = body.unabs
-				val newBody = \\[Term](body.unabs._1, subs(variable, value, body.unabs._2))
+				val (fresh, funBody) = body.unabs
+				val newBody = \\[Term](fresh, subs(variable, value, funBody))
 				Fun(typeSubs(variable, value, tpe), newBody)
 			}
 			case Terms.Unit => Terms.Unit
@@ -52,6 +53,9 @@ trait Evaluation extends NominalBindingSyntax with PrettyPrinting {
 			}
 			case Sel(tgt, label) => Sel(subs(variable, value, tgt), label)
 		}
+		
+		printlnTab("Result: " + result.prettyPrint)
+		result
 	}
 	
 	// substitute variable with value within Type
@@ -67,8 +71,8 @@ trait Evaluation extends NominalBindingSyntax with PrettyPrinting {
 							case TypeDecl(label, decltype) => TypeDecl(label, typeSubs(variable, value, decltype))
 						}
 						
-				val binding = decls.unabs					
-				Refine(typeSubs(variable, value, parent), new \\(binding._1, binding._2.map(mapFn)))		
+				val (fresh, newBody) = decls.unabs					
+				Refine(typeSubs(variable, value, parent), new \\(fresh, newBody.map(mapFn)))		
 			}
 			
 			case FunT(from, to) => FunT(typeSubs(variable, value, from), typeSubs(variable, value, to))
