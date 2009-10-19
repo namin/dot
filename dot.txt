@@ -1,15 +1,15 @@
 val root = new Any { rootThis =>
-  type Unit = Any;
+  trait Unit extends Any;
   val unit: Any => rootThis.Unit;
 
-  type Boolean = Any { this =>
+  trait Boolean extends Any { this =>
     val ifNat: ((rootThis.Unit => rootThis.Nat) => 
                (rootThis.Unit => rootThis.Nat) => rootThis.Nat)
   };
   val false: rootThis.Unit => rootThis.Boolean;
   val true: rootThis.Unit => rootThis.Boolean;
 
-  type Nat = Any { this =>
+  trait Nat extends Any { this =>
     val isZero: rootThis.Unit => rootThis.Boolean;
     val pred: rootThis.Unit => rootThis.Nat;
     val succ: rootThis.Unit => rootThis.Nat;
@@ -26,21 +26,21 @@ val root = new Any { rootThis =>
 
   val false = \(u: root.Unit) => (
     val ff = new root.Boolean { this=> } {
-      val ifNat = \(t: root.Unit => root.Nat) => \(e: root.Unit => root.Nat) => e (root.unit)
+      val ifNat = \(t: root.Unit => root.Nat) => \(e: root.Unit => root.Nat) => e ()
     };
     ff
   );
 
   val true = \(u: root.Unit) => (
     val tt = new root.Boolean {this => } {
-      val ifNat = \(t: root.Unit => root.Nat) => \(e: root.Unit => root.Nat) => t(root.unit)
+      val ifNat = \(t: root.Unit => root.Nat) => \(e: root.Unit => root.Nat) => t()
     };
     tt
   );
 
   val zero = \(u: root.Unit) => (
     val zz = new root.Nat { this=> }{ 
-      val isZero = \(u: root.Unit) => root.true(root.unit);
+      val isZero = \(u: root.Unit) => root.true();
       val succ = \(u: root.Unit) => root.successor(zz);
       val pred = \(u: root.Unit) => root.error(u)
     };
@@ -49,7 +49,7 @@ val root = new Any { rootThis =>
 
   val successor = \(n: root.Nat) => (
     val ss = new root.Nat {this=>}{
-      val isZero = \(u: root.Unit) => root.false(root.unit);
+      val isZero = \(u: root.Unit) => root.false();
       val succ = \(u: root.Unit) => root.successor(ss);
       val pred = \(u: root.Unit) => n;
       val add = \(other: root.Nat) => root.add2 (other) (ss)
@@ -58,11 +58,11 @@ val root = new Any { rootThis =>
   );
 	
   val add2 = \(n1: root.Nat) => \(n2: root.Nat) =>
-    n1.isZero(root.unit).ifNat
+    n1.isZero().ifNat
      (\(u: root.Unit) => n2)
-     (\(u: root.Unit) => root.add2(n1.pred(root.unit)) (n2.succ(root.unit)));
+     (\(u: root.Unit) => root.add2(n1.pred()) (n2.succ()));
 
   val error = \(u: root.Unit) => root.error(u)
 };
 
-root.zero(root.unit).succ(root.unit).succ(root.unit).succ(root.unit)
+(root.add2(root.zero().succ().succ()) (root.zero().succ())).pred().pred().pred().isZero()

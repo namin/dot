@@ -12,7 +12,7 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
 	
   type Tokens = StdLexical; val lexical = new StdLexical
   lexical.delimiters ++= List("\\",".",":","=","{","}","(", ")","=>",";","&","|","..","()")
-  lexical.reserved ++= List("val", "new", "type", "trait","Any","Nothing")
+  lexical.reserved ++= List("val", "new", "type", "trait", "Any", "Nothing", "extends")
  
   type P[T] = PackratParser[T]
 
@@ -25,7 +25,7 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
     val r = p(in)
     indent = old
 
-    if (logging) println(indent+name +" --> "+ r)
+    if (logging) println(indent + name +" --> "+ r)
     r
   }
 
@@ -60,20 +60,22 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
 		//       | l ("val" ~> bind(ident) >> {x => ("=" ~> "new" ~> tpe) ~! under[(Members.ValDefs, Term)](x)(_.ctor)} ^^ {case tpe ~ args_scope /*if tpe.isConcrete*/ => New(tpe, args_scope)}) ("new-expr" ) 
 		// )
 
-		// app MUST be pulled out as its own lazy vals, due to the fact that "app" and "sel" both
+		// app MUST be pulled out as its own lazy val, due to the fact that "app" and "sel" both
 		// have the same left recursive term
 		lazy val app: P[Term] = (
 			 l ((term ~ ("(" ~> term <~ ")")) ^^ { case a ~ b => App(a,b) } ) ("app")					
+			 | (term <~ "()") ^^ (App(_, Terms.Unit))
 		)
 		
-		// selection MUST be pulled out as its own lazy vals, due to the fact that "app" and "sel" both
+		// selection MUST be pulled out as its own lazy val, due to the fact that "app" and "sel" both
 		// have the same left recursive term			
 		lazy val selection: P[Term] = (
 			l (chainl2(term, termLabelRef, "." ^^^ (Sel(_, _)))) ("sel")	       
 		)
     		
 		lazy val term: P[Term] = (
-  		   l( "(" ~> term <~")" ) ("paren")
+				"()" ^^^ Unit
+  		 |  l( "(" ~> term <~")" ) ("paren")
 			 | selection
 //			 | l (chainl2(term, termLabelRef, "." ^^^ (Sel(_, _)))) ("sel")
 			 | app
@@ -87,21 +89,17 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
  
     lazy val labelV: P[TermLabel] = "val" ~> termLabelRef
 		def termLabelRef: P[TermLabel] = ident ^^ TermLabel
-		def typeLabelRef: P[TypeLabel] = ident ^^ TypeLabel
+		def typeLabelRef: P[TypeLabel] = ident ^^ TypeLabel.concreteTypeLabel
+		def abstractTypeLabelRef: P[TypeLabel] = ident ^^ TypeLabel.abstractTypeLabel	
 
     lazy val valMems: P[Members.ValDefs] = repsep[Members.ValueDef]((labelV <~ "=") ~ value ^^ {case l ~ v => Members.ValueDef(l, v)}, ";") // <~ ";"
  
-		// lazy val valDecl: P[Members.TypeDecl] = 
-		//       l( (("val" ~> termLabelRef <~ ":") ~ tpe) ^^ {case l ~ cls => Members.TypeDecl(l, cls)} )("valDecl")
-		// 
-		//     lazy val typeDecl: P[Members.TypeBoundsDecl] =
-		//       l( (("type" ~> typeLabelRef <~ ":") ~ typeBounds) ^^ {case l ~ cls => Members.TypeBoundsDecl(l, cls)})("typeDecl")
-
-//    lazy val memDecls: P[List[Members.Decl[Level, Entity]]] = repsep[Members.Decl[Entity, Level]](memDecl, ";")
-
+		// todo: de-sugaring is done here, ideally it would be done in a separate phase
+		// currently done for "type L = T" and "trait L extends T" syntax 
     lazy val memDecl: P[Members.Decl[Level, Entity]] =
-			l((("type" ~> typeLabelRef <~ "=") ~! typeSugar) ^^ {case l ~ cls => Members.TypeBoundsDecl(l, cls)}
-      | (("type" ~> typeLabelRef <~ ":") ~! typeBounds) ^^ {case l ~ cls => Members.TypeBoundsDecl(l, cls)}
+			l((("type" ~> abstractTypeLabelRef <~ "=") ~! typeSugar) ^^ {case l ~ cls => Members.TypeBoundsDecl(l, cls)}
+      | (("type" ~> abstractTypeLabelRef <~ ":") ~! typeBounds) ^^ {case l ~ cls => Members.TypeBoundsDecl(l, cls)}
+			| (("trait" ~> typeLabelRef <~ "extends") ~! typeSugar) ^^ { case l ~ cls => Members.TypeBoundsDecl(l, cls) }
 //			| (( "type" ~> labelRef[Levels.Type] <~ "=" ~ typeSugar) ^^ { case bound => Members.Decl[TypeBounds](bound, bound)})
       | (("val" ~> termLabelRef <~ ":") ~! tpe) ^^ {case l ~ cls => Members.TypeDecl(l, cls)}
       )("memDecl")
@@ -122,7 +120,7 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
  
     lazy val tpe0: P[Type] =
      l( l("(" ~> tpe <~")") ("tparen")
-		 | l(path ^^ {case Terms.Sel(tgt, TermLabel(l)) => TSel(tgt, TypeLabel(l))} )("tsel")
+		 | l(path ^^ {case Terms.Sel(tgt, TermLabel(l)) => TSel(tgt, TypeLabel(l, true))} )("tsel")
 //     l(l((path <~ ".") ~ typeLabelRef ^^ {case tgt ~ l => TSel(tgt, l)} )("tsel")
      | l("Any" ^^^ Top )("top")
      | l("Nothing" ^^^ Bottom )("bot")

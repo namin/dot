@@ -39,11 +39,18 @@ trait Syntax extends AbstractBindingSyntax {
     def isConcrete = Label.isConcrete[T]
   }
 
-	case class TypeLabel(override val name: String) extends Label[Levels.Type](name) {
-			def apply(name: String) = new TypeLabel(name)
+	object TypeLabel {
+		def concreteTypeLabel(name: String) = TypeLabel(name, true)
+		def abstractTypeLabel(name: String) = TypeLabel(name, false)
 	}
+
+	case class TypeLabel(override val name: String, val concrete: Boolean) extends Label[Levels.Type](name) {
+			def apply(name: String) = TypeLabel(name, false)
+			override def isConcrete = concrete
+	}
+	
 	case class TermLabel(override val name: String) extends Label[Levels.Term](name) {
-		 	def apply(name: String) = new TermLabel(name)		
+		 	def apply(name: String) = TermLabel(name)		
 	}
 
   abstract class Entity {
@@ -86,7 +93,7 @@ trait Syntax extends AbstractBindingSyntax {
 
     case class App(fun: Term, arg: Term) extends Term 
     case class New(tpe: Type, args_scope: \\[(Members.ValDefs, Term)]) extends Term {
-      // assert(tpe.isConcrete)
+      assert(tpe.isConcrete)
     }
     case class Sel(tgt: Term, label: TermLabel) extends Term {
       override def isPath = tgt.isPath
@@ -128,6 +135,7 @@ trait Syntax extends AbstractBindingSyntax {
       override def isConcrete = a.isConcrete && b.isConcrete
     }
     case class Union(a: Type, b: Type) extends Type {
+      override def isConcrete = a.isConcrete && b.isConcrete
 		}
     
     case object Top extends Type {
