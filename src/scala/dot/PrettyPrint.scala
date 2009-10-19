@@ -2,7 +2,7 @@ package scala.dot
 
 trait PrettyPrinting 
 {	
-	this: Syntax =>
+	this: NominalBindingSyntax =>
 	
 	trait PrettyPrintable {
 		def prettyPrint: String
@@ -58,9 +58,8 @@ trait PrettyPrinting
 		import Types._
 		def prettyPrint = typ match { 
 			case Sel(tgt: Term, label: Label[Levels.Type]) => tgt.prettyPrint + "." + label.name
-			case Refine(parent: Type, decls: \\[Members.Decls]) => 
-				val (name, body) = decls.unabs
-				parent.prettyPrint + "{ " + name.prettyPrint + " => \n" + body.prettyPrint + "} " // (prettyPrintBinder(decls)(prettyPrintList))
+			case Refine(parent: Type, \\(name, decls)) => 
+				parent.prettyPrint + "{ " + name.prettyPrint + " => \n" + decls.prettyPrint + "} " // (prettyPrintBinder(decls)(prettyPrintList))
 			case Fun(from, to) => "(" + from.prettyPrint + " => " + to.prettyPrint + ")"
 			case Intersect(a, b) => a.prettyPrint + " & " + b.prettyPrint
 			case Union(a, b) => a.prettyPrint + " | " + b.prettyPrint
