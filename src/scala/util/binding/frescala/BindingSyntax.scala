@@ -93,9 +93,9 @@ trait NominalBindingSyntax extends AbstractBindingSyntax {
 // equality where caller may supply how to check equality of subterms
 // needed in typer monad (when we want equality to force meta-variables instead of simply comparing them)
 // to allow this, shouldn't implement Eq[\\[T]] directly
-//    def gequals[E[x] <: Eq[x]](other: \\[T])(implicit neq: Name => E[Name], beq: T => E[T]): Boolean =
-//      (binder === other.binder) && (body === other.body) ||  // TODO: unchecked!
-//      (other.body.fresh(binder) && (body === other.body.swap(binder, other.binder)))
+    def gequals[E[x] <: Equality[x]](other: \\[T])(implicit neq: Name => E[Name], beq: T => E[T]): Boolean =
+      (binder === other.binder) && (body === other.body) ||  // TODO: unchecked!
+      (other.body.fresh(binder) && (body === other.body.swap(binder, other.binder)))
     
     def swap(a: Name, b: Name) = \\(binder swap(a, b), body swap(a, b)) // boilerplate
     def fresh(a: Name) = if(a eq binder) true else body fresh (a)
