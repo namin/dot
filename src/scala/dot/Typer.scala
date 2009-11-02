@@ -13,7 +13,7 @@ import util.Equalities
  * To change this template use File | Settings | File Templates.
  */
 
-class Typer extends StandardTyperMonad with TyperSyntax {
+class Typer extends StandardTyperMonad with TyperSyntax with NominalBindingSyntax {
   import Terms._
   import Types.{Sel=>TSel, Fun=>FunT, _}
   import Members._

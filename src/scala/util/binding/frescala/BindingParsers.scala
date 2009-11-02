@@ -10,7 +10,10 @@ trait BindingParsers extends Parsers with AbstractBindingSyntax {
   class BindingParserCore(env: Map[String, Name]) {
     type BindResult = (BindingParser, Name)
     
-    def bind(nameParser: Parser[String]): Parser[BindResult] = nameParser ^^ {name => val n=Name(name); (BindingParser(env(name)=n), n)}
+    def bind(nameParser: Parser[String]): Parser[BindResult] = nameParser ^^ {name =>
+      val n=Name(name)
+      (BindingParser(env.updated(name, n)), n)
+    }
     
     def bound(nameParser: Parser[String]): Parser[Name]  = nameParser ^?(env, {name => "Unbound variable: "+name})
     

@@ -94,10 +94,8 @@ trait PrettyPrinting
 		}
 	}
 		
-	implicit def prettyPrintDef[P <: Entity : PrettyPrintableFn](defn: Members.Def[P]) = new PrettyPrintable {
-		def prettyPrint = {
-			"val " + defn.l.name + " = " + defn.rhs.prettyPrint
-		}
+	implicit def prettyPrintDef[P <: Entity : PrettyPrintableFn](defn: Members.Def[P]): PrettyPrintable = new PrettyPrintable {
+		def prettyPrint = "val " + defn.l.name + " = " + defn.rhs.prettyPrint
 	}
 	
 //	implicit def prettyPrintValDef(defn: Members.Def)
