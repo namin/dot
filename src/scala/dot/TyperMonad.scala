@@ -2,11 +2,13 @@ package scala.dot
 import scala.util.binding.frescala.AbstractBindingSyntax
 
 import scala.util.monads._
+import util.Equalities
+import collection.immutable.HashMap
 
 trait TyperMonad extends AbstractBindingSyntax {
   // results of the monad
   sealed abstract class Result[A] extends Monad[A, Result] {
-    object meta extends MonadCompanion[Result]{
+    object companion extends MonadCompanion[Result]{
       implicit def result[A](x: A) = Success(x)
     }
     def filter(pred: A => Boolean): Result[A]     
@@ -28,12 +30,12 @@ trait TyperMonad extends AbstractBindingSyntax {
     def mapOutZero[M[_], B](f: A => M[B])(z: Result[B] => M[B]): M[B] = z(Failure[B](msg))
   }
     
-  object TyperMonad extends MonadCompanion {
-    def apply[A](f: From => To[A]): TyperMonad[A] = new TyperMonad{def apply(from: From) = f(from)}
+  object TyperMonad extends MonadCompanion[TyperMonad] {
+    def apply[A](f: From => To[A]) = new TyperMonad[A]{def apply(from: From) = f(from)}
     
     // inject x into the monad
-    def result[A](x: A) = TyperMonad{_ mapEnvTo(_y => Success(x))}
-    def results[A](x: Iterable[A]): TyperMonad[A] = TyperMonad{ case From(st, env) => To(Stream.fromIterator(x.elements) map {x => (st, Success(x))})}
+    implicit def result[A](x: A) = TyperMonad{_ mapEnvTo(_y => Success(x))}
+    def results[A](x: Iterable[A]): TyperMonad[A] = TyperMonad{ case From(st, env) => To(x.toStream map {x => (st, Success(x))})}
     def fail[A](msg: String) = TyperMonad{_ mapEnvTo(_y => Failure[A](msg))}
 
     def check(p: => Boolean) = result() filter(x => p)
@@ -49,8 +51,9 @@ trait TyperMonad extends AbstractBindingSyntax {
   def initEnv: Env
 
   trait TyperMonad[A] extends (From => To[A]) with Monad[A, TyperMonad] {
-    val meta = TyperMonad ; import meta._
-  
+    val companion = TyperMonad ; import companion._
+
+    // TODO: add support for withFilter
     def filter(pred: A => Boolean): TyperMonad[A] = TyperMonad{x => this(x) filterRes(pred)}
       
     // chains this computation with the next one
@@ -71,7 +74,7 @@ trait TyperMonad extends AbstractBindingSyntax {
     def mapStateTo[A](next: State => State, f: State => Result[A]) = {val n = next(st); To(n, f(n))}
   }
   
-  def To[A](st: State, r: Result[A]): To[A] = To(Stream.fromIterator(List((st, r)).elements))
+  def To[A](st: State, r: Result[A]): To[A] = To(Stream((st, r)))
   case class To[A](tos: Stream[(State, Result[A])]) { // next state and result
     def filterRes(pred: A => Boolean) = mapRes(_.filter(pred))
 
@@ -90,82 +93,113 @@ trait TyperMonad extends AbstractBindingSyntax {
 
 }
 
-
-/*
-
-  trait Equality[T] {
-	  def ===(a: T): Boolean
-  }
-
-  // deep equality that also does unification of MetaVar's 
-  trait CheckingEquality[A] extends Equality[A] {
-    def ===(other: A): Boolean
-  }
-  
-  implicit def OptionCEq[T : CheckingEquality](self: Option[T]): CheckingEquality[Option[T]] = new CheckingEquality[Option[T]] {
-    def ===(other: Option[T]): Boolean = (for( s <- self; o <- other) yield s === o) getOrElse(true)
-  }
-
-  implicit def NameCEq(self: Name): CheckingEquality[Name] = new CheckingEquality[Name] {
-    def ===(other: Name): Boolean = self == other
-  }
-  
-  implicit def AbsCEq[T : CheckingEquality](x: \\[T]): CheckingEquality[\\[T]] = new CheckingEquality[\\[T]] {
-    def ===(a: \\[T]): Boolean = x.gequals[CheckingEquality](a)
-  }
-
+trait MetaVariables extends AbstractBindingSyntax with TyperMonad with Equalities {
   // facilities for bidirectional type checking (logic programming, really)
-  abstract class Expected[A : CheckingEquality] {
+  abstract class Expected[A : ChecksEquality] {
+    protected var res: Option[A] = None
+
     def :=(tp: A): TyperMonad[Unit]
     def unary_! : TyperMonad[A]
+
+    def toMetaVar[To: MetaVarOf[A]#To]: To = MetaVar(res)
   }
 
-  def Infer[A : CheckingEquality](n: String): Infer[A] = new Infer[A](n: String)
-  class Infer[A : CheckingEquality](val name: String) extends Expected[A] {
-    private var tp: Option[A] = None 
-    def :=(tp: A): TyperMonad[Unit] = TyperMonad.result(this.tp=Some(tp))
-    def unary_! = tp map {TyperMonad.result(_)} getOrElse TyperMonad.fail("inference of "+name+" failed")
+  object Infer {
+    def apply[A : ChecksEquality](n: String): Infer[A] = new Infer[A](n)
   }
-  
-  case class Check[A : CheckingEquality](val tp: A) extends Expected[A] {
-    def :=(tp: A): TyperMonad[Unit] = 
-      if(this.tp === tp) {
-        println("check: "+this.tp+" == "+tp)
-        TyperMonad.result(()) 
+  class Infer[A : ChecksEquality](val name: String) extends Expected[A] {
+    def :=(o: A): TyperMonad[Unit] = TyperMonad.result(res=Some(o))
+    def unary_! = res map {TyperMonad.result(_)} getOrElse TyperMonad.fail("could not infer "+name)
+  }
+
+  object Check {
+    def apply[A : ChecksEquality](proto: A): Check[A] = new Check[A](proto)
+  }
+  class Check[A : ChecksEquality](val proto: A) extends Expected[A] {
+    res = Some(proto)
+
+    def :=(o: A): TyperMonad[Unit] =
+      if(proto === o) {
+        println("check: "+ proto +" == "+ o)
+        TyperMonad.result(())
       } else {
-        println("check: "+this.tp+" != "+tp)
-        TyperMonad.fail("type checking failed") 
+        println("check: "+ proto +" != "+ o)
+        TyperMonad.fail("type checking failed")
       }
-    def unary_! = TyperMonad.result(tp)
+
+    def unary_! = TyperMonad.result(proto)
   }
-  
+
+  abstract class MetaVarBuilder[-From, +To](protoName: String) extends (Option[From] => To) {
+    protected[this] def make(n: String): (To with MetaVar[From])
+
+    private[this] def make: (To with MetaVar[From]) = make(freshName(protoName))
+
+    private var id = 0
+    private def genId = {id = id + 1; id-1}
+    def freshName(n: String) = n+"$"+genId
+    def apply(proto: Option[From]): To = {
+      val res = make
+      res.v = proto
+      res
+    }
+  }
+  trait MetaVarOf[A] { type To[to] = MetaVarBuilder[A, to]}
+  object MetaVar {
+    def apply[A, To: MetaVarOf[A]#To](x: Option[A]): To = implicitly[MetaVarBuilder[A, To]].apply(x)
+  }
   // meta variable used by the type checker
-  trait MetaVar[T] extends CheckingEquality[T] { self: T with MetaVar[T] =>
+  trait MetaVar[T] extends Equality[T] { self: T with MetaVar[T] =>
     val name: String
-    var v: Option[T]
-    
+    private[MetaVariables] var v: Option[T] = None
+
     def swap(a: Name, b: Name) = this
     def fresh(a: Name) = true
     def supp = List()
-    
+
     // if this variable unifies with o, return Some(o)  -- TODO: use dependent method type Option[o.type]
-    def unifies(o: T): Option[T]
-    
+    // TODO: switch to filter/withFilter-based scheme
+    def unifies(o: T): Option[T] = Some(o)
+
     def unify(o: T): Boolean = {
-      assert(v.isEmpty)
+      assert(v.isEmpty) // or unify silently when o == v.get ?
       println("unified "+this+" to "+o)
       v = unifies(o)
       !v.isEmpty
     }
-    
+
     def unary_! = v map {TyperMonad.result(_)} getOrElse TyperMonad.fail("meta variable "+name+" not set")
-    
+
     // if set, check against that -- if not set, unify with o and return true
-    override def ===(o: T) = // v map{_ === o} getOrElse(unify(o))
-      v match { 
-        case Some(v) => !unifies(v).isEmpty
-        case None => unify(o) 
-      }  
-    
-  }  
-*/
+    final override def ===(o: T) = // v map{_ === o} getOrElse(unify(o))
+      v match {
+        case Some(v) => unifies(v).isDefined
+        case None => unify(o)
+      }
+
+  }
+}
+
+trait StandardTyperMonad extends TyperMonad {
+  type Type
+  
+  type State = Unit
+  val initState = ()
+
+  // gamma, maps Name to Type
+  type Env = Map[Name, Type]
+  lazy val initEnv: Env = HashMap()
+
+  def assume[A](vr: Name, tp: Type)(in: TyperMonad[A]): TyperMonad[A] = TyperMonad{x =>
+    in(x mapEnv {_ + (vr -> tp)})
+  }
+
+  def getGamma: TyperMonad[Env] = TyperMonad{_ mapEnvTo(x => Success(x)) }
+
+  def lookup(n: Name): TyperMonad[Type] = getGamma >>= {
+    _.get(n) match {
+    case Some(t) => println("lu"+t); TyperMonad.result(t)
+    case None => TyperMonad.fail("")
+    }
+  }
+}

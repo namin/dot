@@ -1,5 +1,7 @@
 package scala.util.binding.frescala
 
+import util.Equalities
+
 trait AbstractBindingSyntax {
   type ContainsBinders[T] 
 
@@ -28,7 +30,7 @@ trait AbstractBindingSyntax {
   implicit def pairBinders[T: ContainsBinders, U: ContainsBinders]: ContainsBinders[(T, U)]
 }
 
-trait NominalBindingSyntax extends AbstractBindingSyntax {
+trait NominalBindingSyntax extends AbstractBindingSyntax with Equalities {
   type ContainsBinders[T] = T => Nominal[T]
 
   trait Nominal[Self] {
@@ -61,7 +63,7 @@ trait NominalBindingSyntax extends AbstractBindingSyntax {
   }
 
   // represents a binder, friendlyName is only used for toString
-  class Name(friendlyName: String) extends Nominal[Name] {
+  class Name(friendlyName: String) extends Nominal[Name] with Equality[Name] {
     def \\[T : ContainsBinders](body: T): \\[T] = new \\(this, body)
 
     def genFresh: Name = Name(friendlyName)
@@ -69,7 +71,8 @@ trait NominalBindingSyntax extends AbstractBindingSyntax {
     def swap(a: Name, b: Name) = if(this eq a) b else if(this eq b) a else this
     def fresh(a: Name) = this ne a
 
-    override def equals(o: Any): Boolean = o match {
+    final def ===(other: Name): Boolean = this eq other
+    final override def equals(o: Any): Boolean = o match {
       case o : AnyRef => this eq o
       case _ => false
     }
@@ -83,29 +86,37 @@ trait NominalBindingSyntax extends AbstractBindingSyntax {
     def unapply[T: ContainsBinders](scrutinee: \\[T]): Option[(Name, T)] = Some(scrutinee unabs)
   }
 
+  implicit def scopedEq[T](self: \\[T])(implicit beq: T => Equality[T]): Equality[\\[T]] = new Equality[\\[T]] {
+    def ===(other: \\[T]): Boolean = self.gequals(other)(beq)
+  }
+
   class \\[T : ContainsBinders](private val binder: Name, private val body: T) extends Nominal[\\[T]] with Scoped[T] {
     def unabs: (Name, T) = {
       val newBinder = binder genFresh;
       
       (newBinder, body swap (binder, newBinder))
     }
-        
+
+    def swap(a: Name, b: Name) = \\(binder swap(a, b), body swap(a, b)) // boilerplate
+    def fresh(a: Name) = if(a eq binder) true else body fresh (a)
+
+
 // equality where caller may supply how to check equality of subterms
 // needed in typer monad (when we want equality to force meta-variables instead of simply comparing them)
 // to allow this, shouldn't implement Eq[\\[T]] directly
-    def gequals[E[x] <: Equality[x]](other: \\[T])(implicit neq: Name => E[Name], beq: T => E[T]): Boolean =
+    def gequals[E[x] <: Equality[x]](other: \\[T])(implicit beq: T => E[T]): Boolean =
       (binder === other.binder) && (body === other.body) ||  // TODO: unchecked!
       (other.body.fresh(binder) && (body === other.body.swap(binder, other.binder)))
-    
-    def swap(a: Name, b: Name) = \\(binder swap(a, b), body swap(a, b)) // boilerplate
-    def fresh(a: Name) = if(a eq binder) true else body fresh (a)
 
     def equals(other: \\[T]): Boolean =
       (binder == other.binder && body == other.body) ||  // TODO: unchecked!
       (other.body.fresh(binder) && body == other.body.swap(binder, other.binder))
     
     // meh
-    override def equals(o: Any): Boolean = o match { case other: \\[T] => equals(other) case _ => false}
+    override def equals(o: Any): Boolean = o match {
+      case other: \\[_] => equals(other.asInstanceOf[\\[T]]) 
+      case _ => false
+    }
 
     override def toString() : String = binder + "." + body    
 		// def prettyPrint = binder.prettyPrint + "." + body.prettyPrint

@@ -200,8 +200,8 @@ trait NominalBindingSyntax extends Syntax with frescala.NominalBindingSyntax { s
          case Sel(tgt, label) => Sel(tgt swap(a,b), label swap(a,b))
          case Refine(parent, decls) => Refine(parent swap(a,b), decls swap(a,b))
          case Fun(from, to) => Fun(from swap(a,b), to swap(a,b))
-         case Intersect(tp1, tp2) => Intersect(tp2 swap(a,b), tp2 swap(a,b))
-         case Union(tp1, tp2) => Union(tp2 swap(a,b), tp2 swap(a,b))
+         case Intersect(tp1, tp2) => Intersect(tp1 swap(a,b), tp2 swap(a,b))
+         case Union(tp1, tp2) => Union(tp1 swap(a,b), tp2 swap(a,b))
          case Top    => Top
          case Bottom => Bottom
       }
@@ -212,8 +212,8 @@ trait NominalBindingSyntax extends Syntax with frescala.NominalBindingSyntax { s
          case Sel(tgt, label) =>  tgt.fresh(a) && label.fresh(a)
          case Refine(parent, decls) => parent.fresh(a) && decls.fresh(a)
          case Fun(from, to) => from.fresh(a) && to.fresh(a)
-         case Intersect(tp1, tp2) => tp2.fresh(a) && tp2.fresh(a)
-         case Union(tp1, tp2) => tp2.fresh(a) && tp2.fresh(a)
+         case Intersect(tp1, tp2) => tp1.fresh(a) && tp2.fresh(a)
+         case Union(tp1, tp2) => tp1.fresh(a) && tp2.fresh(a)
          case Top    => true
          case Bottom => true
       }
