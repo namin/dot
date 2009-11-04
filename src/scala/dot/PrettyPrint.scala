@@ -43,7 +43,19 @@ trait PrettyPrinting
 			list.map(_.prettyPrint).mkString(";\n")
 		}
 	}
-	
+
+  implicit def prettyPrintDecls(ds: Members.Decls) = new PrettyPrintable {
+    def prettyPrint = {
+      ds.decls prettyPrint
+    }
+  }
+
+  implicit def prettyPrintDecls(ds: Members.ValDefs) = new PrettyPrintable {
+    def prettyPrint = {
+      ds.defs prettyPrint
+    }
+  }
+
 	// implicit def prettyPrintLabel(l: Label[Level]) = new PrettyPrintable {
 	// 	def prettyPrint = l.name
 	// }
@@ -75,7 +87,7 @@ trait PrettyPrinting
 	 	new PrettyPrintable {
 			def prettyPrint = {
 //				defs.map((x : Terms.Value) => prettyPrintTerm(x).prettyPrint) + " - " + t.prettyPrint
-				"{ " + prettyPrintList(pair._1)(prettyPrintDef).prettyPrint + " };\n" + pair._2.prettyPrint
+				"{ " + pair._1.prettyPrint + " };\n" + pair._2.prettyPrint
 			}
 	}
 

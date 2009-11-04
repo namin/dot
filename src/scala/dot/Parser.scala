@@ -92,7 +92,7 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
 		def typeLabelRef: P[TypeLabel] = ident ^^ TypeLabel.concreteTypeLabel
 		def abstractTypeLabelRef: P[TypeLabel] = ident ^^ TypeLabel.abstractTypeLabel	
 
-    lazy val valMems: P[Members.ValDefs] = repsep[Members.ValueDef]((labelV <~ "=") ~ value ^^ {case l ~ v => Members.ValueDef(l, v)}, ";") // <~ ";"
+    lazy val valMems: P[Members.ValDefs] = repsep[Members.ValueDef]((labelV <~ "=") ~ value ^^ {case l ~ v => Members.ValueDef(l, v)}, ";") ^^ {Members.ValDefs(_)} // <~ ";"
  
 		// todo: de-sugaring is done here, ideally it would be done in a separate phase
 		// currently done for "type L = T" and "trait L extends T" syntax 
@@ -104,7 +104,7 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
       | (("val" ~> termLabelRef <~ ":") ~! tpe) ^^ {case l ~ cls => Members.TypeDecl(l, cls)}
       )("memDecl")
 
-    lazy val memDecls: P[Members.Decls] = repsep[Members.Decl[Level, Entity]](memDecl, ";")
+    lazy val memDecls: P[Members.Decls] = repsep[Members.Decl[Level, Entity]](memDecl, ";") ^^ {Members.Decls(_)}
 		
 
 		// lazy val valDecls = repsep(valDecl, ";")		

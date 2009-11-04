@@ -22,17 +22,25 @@ trait Substitution extends NominalBindingSyntax {
   import Types.{Sel=>TSel, Fun=>FunT, _}
 
   // XXX TODO: can implicit resolution and type inference be improved so that we don't need this specialised version of scopedIsSubstable?
-  implicit def s[T](in: \\[T])(implicit wSubs: T => Substable[Term, T], wNom: T => Nominal[T]): Substable[Term, \\[T]] = scopedIsSubstable[T, Term, T](in)
+  implicit def scopedIsTermSubstable[T](in: \\[T])(implicit wSubs: T => Substable[Term, T], wNom: T => Nominal[T]): Substable[Term, \\[T]] = scopedIsSubstable[T, Term, T](in)
+  implicit def listIsTermSubstable[T: Substable[Term, T]#From](in: List[T]): Substable[Term, List[T]] = listIsSubstable[T, Term, T](in)
+
   implicit def termIsSubstable(in: Term): Substable[Term, Term] = new Substable[Term, Term] {
 	  def subst(from: Name, to: Term): Term = /*log(*/in match {
 			case Var(`from`) => to
       case Var(_) => in
 			case Fun(tpe, b) => Fun(tpe subst(from, to), b subst(from, to))
-			case Terms.Unit => Terms.Unit
 			case App(fun, arg) => App(fun subst(from, to), arg subst(from, to))
 			case New(tpe, args_scope) => New(tpe subst(from, to), args_scope subst(from, to))
       case Sel(tgt, label) => Sel(tgt subst(from, to), label)
+      case Unit => Unit
 		}//)("Substituting " + to.prettyPrint + " for " + from.prettyPrint + " in " + in.prettyPrint)
+  }
+
+  implicit def valueDefsIsSubstable(in: ValDefs): Substable[Term, ValDefs] = new Substable[Term, ValDefs] {
+	  def subst(from: Name, to: Term): ValDefs = in match {
+      case ValDefs(defs) => ValDefs(defs subst(from, to)) // TODO: can substitution ever change these?? subst(from, to))
+    }
   }
 
   implicit def valueDefIsSubstable(in: ValueDef): Substable[Term, ValueDef] = new Substable[Term, ValueDef] {
@@ -51,6 +59,12 @@ trait Substitution extends NominalBindingSyntax {
       case Top => Top
       case Bottom => Bottom
 		}
+  }
+
+  implicit def declsIsSubstable(in: Decls): Substable[Term, Decls] = new Substable[Term, Decls] {
+	  def subst(from: Name, to: Term): Decls = in match {
+      case Decls(decls) => Decls(decls subst(from, to))
+    }
   }
 
   implicit def declIsSubstable(in: Decl[Level, Entity]): Substable[Term, Decl[Level, Entity]] = new Substable[Term, Decl[Level, Entity]] {

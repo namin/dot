@@ -53,7 +53,7 @@ trait Syntax extends AbstractBindingSyntax {
 		 	def apply(name: String) = TermLabel(name)		
 	}
 
-  abstract class Entity {
+  sealed abstract class Entity {
     type Level <: Syntax.this.Level
   }
   
@@ -72,13 +72,13 @@ trait Syntax extends AbstractBindingSyntax {
 		case class TypeDecl(override val l: TermLabel, override val cls: Type) extends Decl[Levels.Term, Type](l, cls)
 
     // heterogeneous list of member declarations, each entry consists of
-		type Decls = List[Decl[Level, Entity]] // existential types aren't ready for prime time, I would say
+		case class Decls(decls: List[Decl[Level, Entity]]) // existential types aren't ready for prime time, I would say
     // -- try replacing Entity by E forSome {type E <: Entity} and see the whole project explode
   
     abstract class Def[+E <: Entity](val l: Label[E#Level], val rhs: E)
 		case class ValueDef(override val l: TermLabel, override val rhs: Terms.Value) extends Def[Term](l, rhs)
 
-    type ValDefs = List[ValueDef]
+    case class ValDefs(defs: List[ValueDef])
   }
 
   object Terms {
@@ -322,6 +322,36 @@ trait NominalBindingSyntax extends Syntax with frescala.NominalBindingSyntax { s
     def fresh(a: Name): Boolean = {
       mem match {
         case ValueDef(l, rhs) => l.fresh(a) && valueHasBinders(rhs).fresh(a)
+      }
+    }
+  }
+
+  implicit def declsHasBinders: ContainsBinders[Members.Decls] = (ds: Members.Decls) => new Nominal[Members.Decls] {
+    import Members._// use Members.Map
+    def swap(a: Name, b: Name): Decls = {
+      ds match {
+        case Decls(ds) => Decls(ds swap(a,b))
+      }
+    }
+
+    def fresh(a: Name): Boolean = {
+      ds match {
+        case Decls(ds) => ds.fresh(a)
+      }
+    }
+  }
+
+  implicit def valDefsHasBinders: ContainsBinders[Members.ValDefs] = (ds: Members.ValDefs) => new Nominal[Members.ValDefs] {
+    import Members._// use Members.Map
+    def swap(a: Name, b: Name): ValDefs = {
+      ds match {
+        case ValDefs(ds) => ValDefs(ds swap(a,b))
+      }
+    }
+
+    def fresh(a: Name): Boolean = {
+      ds match {
+        case ValDefs(ds) => ds.fresh(a)
       }
     }
   }
