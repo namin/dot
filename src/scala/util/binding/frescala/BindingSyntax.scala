@@ -17,7 +17,7 @@ trait AbstractBindingSyntax {
   val \\ : ScopedCompanion
   trait ScopedCompanion {
     def apply[T: ContainsBinders](binder: Name, body: T): \\[T]
-    def unapply[T: ContainsBinders](scrutinee: \\[T]): Option[(Name, T)]
+    def unapply[T](scrutinee: \\[T]): Option[(Name, T)]
   }
   
   type Name 
@@ -28,6 +28,20 @@ trait AbstractBindingSyntax {
 
   implicit def listBinders[T: ContainsBinders]: ContainsBinders[List[T]]
   implicit def pairBinders[T: ContainsBinders, U: ContainsBinders]: ContainsBinders[(T, U)]
+
+  trait Substable[To, Res] {
+    type From[T] = T => Substable[To, Res] // for use as context-bound
+    def subst(from: Name, to: To): Res
+  }
+
+  // TODO: generalize similar to collect
+  implicit def listIsSubstable[T: Substable[To, Res]#From, To, Res](in: List[T]): Substable[To, List[Res]] = new Substable[To, List[Res]] {
+    def subst(from: Name, to: To): List[Res] = in map (_.subst(from, to))
+  }
+
+  implicit def pairIsSubstable[A: Substable[To, A2]#From, B: Substable[To, B2]#From, To, A2, B2](in: (A, B)): Substable[To, (A2, B2)] = new Substable[To, (A2, B2)] {
+    def subst(from: Name, to: To): (A2, B2) = (in._1 subst(from, to), in._2 subst(from, to))
+  }
 }
 
 trait NominalBindingSyntax extends AbstractBindingSyntax with Equalities {
@@ -83,7 +97,7 @@ trait NominalBindingSyntax extends AbstractBindingSyntax with Equalities {
 
   object \\ extends ScopedCompanion {
     def apply[T: ContainsBinders](binder: Name, body: T) = new \\[T](binder, body)
-    def unapply[T: ContainsBinders](scrutinee: \\[T]): Option[(Name, T)] = Some(scrutinee unabs)
+    def unapply[T](scrutinee: \\[T]): Option[(Name, T)] = Some(scrutinee unabs)
   }
 
   implicit def scopedEq[T](self: \\[T])(implicit beq: T => Equality[T]): Equality[\\[T]] = new Equality[\\[T]] {
@@ -121,6 +135,13 @@ trait NominalBindingSyntax extends AbstractBindingSyntax with Equalities {
     override def toString() : String = binder + "." + body    
 		// def prettyPrint = binder.prettyPrint + "." + body.prettyPrint
 //		def prettyPrint = toString
+  }
+
+  implicit def scopedIsSubstable[T: Substable[To, Res]#From, To, Res: ContainsBinders](in: \\[T]): Substable[To, \\[Res]] = new Substable[To, \\[Res]] {
+    def subst(from: Name, to: To): \\[Res] = {
+      val \\(z, b) = in
+      \\(z, b subst(from, to))
+    }
   }
 }
 

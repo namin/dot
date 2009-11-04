@@ -1,6 +1,6 @@
 package scala.dot
 
-trait Evaluation extends NominalBindingSyntax with PrettyPrinting {
+trait Evaluation extends NominalBindingSyntax with PrettyPrinting with Substitution {
 
 	import Terms._
 	import Members._
@@ -25,62 +25,10 @@ trait Evaluation extends NominalBindingSyntax with PrettyPrinting {
 	
 	def termSubsTop(value: Value, binder: \\[Term]): Term = {
 		val (fresh, term) = binder.unabs
-		val result = subs(fresh, value, term)
+		val result = term subst(fresh, value)
 		result
 	}
-	
-	// substitute variable with value within expr
-	def subs(variable: Name, value: Value, expr: Term): Term = {
-		// printlnTab("Substituting " + value.prettyPrint + " for " + variable.prettyPrint + " in " + expr.prettyPrint)
 
-		val result = expr match {
-			case Var(varName) => if (varName == variable) value else expr
-			case Fun(tpe, body) => {
-				val (fresh, funBody) = body.unabs
-				val newBody = \\[Term](fresh, subs(variable, value, funBody))
-				Fun(typeSubs(variable, value, tpe), newBody)
-			}
-			case Terms.Unit => Terms.Unit
-			case App(fun, arg) => App(subs(variable, value, fun), subs(variable, value, arg))
-			case New(tpe, args_scope) => {			
-				val \\(fresh, (argDefs, argTerm)) = args_scope
-				
-				// map terms within the value definitions to a new list of value definitions with the substitution
-				// applied to the right-hand-side 
-				val newArgDefs = argDefs.map( (df: ValueDef) => ValueDef(df.l, subs(variable, value, df.rhs).asInstanceOf[Value]))
-				val newArgsScope = new \\[(Members.ValDefs, Term)](fresh, (newArgDefs, subs(variable, value, argTerm)))
-				New(typeSubs(variable, value, tpe), newArgsScope)
-			}
-			case Sel(tgt, label) => Sel(subs(variable, value, tgt), label)
-		}
-		
-		printlnTab("Result: " + result.prettyPrint)
-		result
-	}
-	
-	// substitute variable with value within Type
-	def typeSubs(variable: Name, value: Value, typ: Type): Type = {
-		typ match {
-			case TSel(tgt, label) => TSel(subs(variable, value, tgt), label)
-
-			case Refine(parent, decls) => {
-				val mapFn = (d: Decl[Level, Entity]) => 
-						d match {
-							case TypeBoundsDecl(label, bounds) => 
-								TypeBoundsDecl(label, TypeBounds(typeSubs(variable, value, bounds.lo), typeSubs(variable, value, bounds.hi)))
-							case TypeDecl(label, decltype) => TypeDecl(label, typeSubs(variable, value, decltype))
-						}
-						
-				val (fresh, newBody) = decls.unabs					
-				Refine(typeSubs(variable, value, parent), new \\(fresh, newBody.map(mapFn)))		
-			}
-			
-			case FunT(from, to) => FunT(typeSubs(variable, value, from), typeSubs(variable, value, to))
-			case Intersect(a, b) => Intersect(typeSubs(variable, value, a), typeSubs(variable, value, b))
-			case Union(a, b) => Union(typeSubs(variable, value, a), typeSubs(variable, value, b))
-			case _ => typ
-		}
-	}
 
 	class Constructor(val typ: Type, val defs: ValDefs) {
 		 override def toString = typ.prettyPrint + " -- " + defs.prettyPrint
