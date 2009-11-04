@@ -26,8 +26,8 @@ trait AbstractBindingSyntax {
     def apply(s: String): Name
   }
 
-  implicit def listBinders[T: ContainsBinders]: ContainsBinders[List[T]]
-  implicit def pairBinders[T: ContainsBinders, U: ContainsBinders]: ContainsBinders[(T, U)]
+//  implicit def listBinders[T: ContainsBinders]: ContainsBinders[List[T]]
+//  implicit def pairBinders[T: ContainsBinders, U: ContainsBinders]: ContainsBinders[(T, U)]
 
   trait Substable[To, Res] {
     type From[T] = T => Substable[To, Res] // for use as context-bound
@@ -61,12 +61,12 @@ trait NominalBindingSyntax extends AbstractBindingSyntax with Equalities {
   implicit val StringIsNominal = AtomicIsNominal[String](_)
   implicit val UnitIsNominal = AtomicIsNominal[Unit](_)
 
-  implicit def listBinders[T : ContainsBinders]: ContainsBinders[List[T]] = (self: List[T]) => new Nominal[List[T]] {
+  implicit def listBinders[T : ContainsBinders](self: List[T]) = new Nominal[List[T]] {
     def swap(a: Name, b: Name) = self map (_.swap(a, b))
     def fresh(a: Name) = self forall (_.fresh(a))
   }
 
-  implicit def pairBinders[T : ContainsBinders, U: ContainsBinders]: ContainsBinders[(T, U)] = (self: (T, U)) => new Nominal[(T, U)] {
+  implicit def pairBinders[T : ContainsBinders, U: ContainsBinders](self: (T, U)) = new Nominal[(T, U)] {
     def swap(a: Name, b: Name) = (self._1.swap(a, b), self._2.swap(a, b)) // TODO: would be cool if we could do this generically for all Tuples (using HList-like approach)
     def fresh(a: Name) = self._1.fresh(a) && self._2.fresh(a)
   }
@@ -100,10 +100,6 @@ trait NominalBindingSyntax extends AbstractBindingSyntax with Equalities {
     def unapply[T](scrutinee: \\[T]): Option[(Name, T)] = Some(scrutinee unabs)
   }
 
-  implicit def scopedEq[T](self: \\[T])(implicit beq: T => Equality[T]): Equality[\\[T]] = new Equality[\\[T]] {
-    def ===(other: \\[T]): Boolean = self.gequals(other)(beq)
-  }
-
   class \\[T : ContainsBinders](private val binder: Name, private val body: T) extends Nominal[\\[T]] with Scoped[T] {
     def unabs: (Name, T) = {
       val newBinder = binder genFresh;
@@ -132,9 +128,11 @@ trait NominalBindingSyntax extends AbstractBindingSyntax with Equalities {
       case _ => false
     }
 
-    override def toString() : String = binder + "." + body    
-		// def prettyPrint = binder.prettyPrint + "." + body.prettyPrint
-//		def prettyPrint = toString
+    override def toString() : String = binder + " \\\\ " + body
+  }
+
+  implicit def scopedEq[T](self: \\[T])(implicit beq: T => Equality[T]): Equality[\\[T]] = new Equality[\\[T]] {
+    def ===(other: \\[T]): Boolean = self.gequals(other)(beq)
   }
 
   implicit def scopedIsSubstable[T: Substable[To, Res]#From, To, Res: ContainsBinders](in: \\[T]): Substable[To, \\[Res]] = new Substable[To, \\[Res]] {

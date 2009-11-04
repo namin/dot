@@ -131,9 +131,9 @@ trait MetaVariables extends AbstractBindingSyntax with TyperMonad with Equalitie
   }
 
   abstract class MetaVarBuilder[-From, +To](protoName: String) extends (Option[From] => To) {
-    protected[this] def make(n: String): (To with MetaVar[From])
+    protected[this] def apply(n: String): (To with MetaVar[From])
 
-    private[this] def make: (To with MetaVar[From]) = make(freshName(protoName))
+    private[this] def make: (To with MetaVar[From]) = apply(freshName(protoName))
 
     private var id = 0
     private def genId = {id = id + 1; id-1}
@@ -149,13 +149,9 @@ trait MetaVariables extends AbstractBindingSyntax with TyperMonad with Equalitie
     def apply[A, To: MetaVarOf[A]#To](x: Option[A]): To = implicitly[MetaVarBuilder[A, To]].apply(x)
   }
   // meta variable used by the type checker
-  trait MetaVar[T] extends Equality[T] { self: T with MetaVar[T] =>
+  trait MetaVar[T] extends Equality[T] { //self: T with MetaVar[T] =>
     val name: String
     private[MetaVariables] var v: Option[T] = None
-
-    def swap(a: Name, b: Name) = this
-    def fresh(a: Name) = true
-    def supp = List()
 
     // if this variable unifies with o, return Some(o)  -- TODO: use dependent method type Option[o.type]
     // TODO: switch to filter/withFilter-based scheme
@@ -180,6 +176,29 @@ trait MetaVariables extends AbstractBindingSyntax with TyperMonad with Equalitie
   }
 }
 
+trait MetaVariablesNominal extends MetaVariables with util.binding.frescala.NominalBindingSyntax {
+  implicit def MetaVarNominal[T](mv: MetaVar[T]): Nominal[MetaVar[T]] = new Nominal[MetaVar[T]] {
+    def swap(a: Name, b: Name) = mv // okay because fresh always returns false
+    def fresh(a: Name) = false // we can't alpha-rename the meta-variable to ensure `a` is not bound
+  }
+
+  object MetaScoped {
+    def apply[MT <: MetaVar[T] with T, T : ContainsBinders](name: String, body: MT) = new MetaScoped[MT, T](name, body)
+  }
+  class MetaScoped[MT <: MetaVar[T] with T, T : ContainsBinders](val name: String, body: MT) extends {val binder: Name = new Name(name)} with \\[T](binder, body) with MetaVar[\\[T]] {
+    // do not generate fresh names when going under binder (unifies relies on this)
+    override def unabs: (Name, T) = (binder, body)
+
+    override def unifies(o: \\[T]): Option[\\[T]] = {
+      val \\(zo, bo) = o
+
+      // freshness check is needed: binder should be fresh everywhere, so if it isn't in bo (it's a metavar), swapping does not make sense
+      if(bo fresh(binder)) body.unifies(bo swap(zo, binder)) map {b: T => \\(binder, b)}
+      else None
+    }
+  }
+
+}
 trait StandardTyperMonad extends TyperMonad {
   type Type
   
