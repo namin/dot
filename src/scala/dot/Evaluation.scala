@@ -30,7 +30,7 @@ trait Evaluation extends NominalBindingSyntax with PrettyPrinting with Substitut
 	}
 
 
-	class Constructor(val typ: Type, val defs: ValDefs) {
+	case class Constructor(val typ: Type, val defs: ValDefs) {
 		 override def toString = typ.prettyPrint + " -- " + defs.prettyPrint
 	}
 	
@@ -99,11 +99,11 @@ trait Evaluation extends NominalBindingSyntax with PrettyPrinting with Substitut
 	
 	def termSel(varName: Name, label: Label[Level], store: Store): Value = {
 		store.get(varName) match {
-			case Some(cons) => 
-				cons.defs.find( (v: ValueDef) => v.l == label) match {
+			case Some(Constructor(_, ValDefs(defs))) =>
+				defs.find( (v: ValueDef) => v.l == label) match {
 					case Some(value) => value.rhs
 					case None => 
-						printlnTab("Not found: " + label + " in: " + cons.defs)
+						printlnTab("Not found: " + label + " in: " + defs)
 						throw NotFound
 				}
 			case None => throw NotFound
