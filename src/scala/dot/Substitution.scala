@@ -67,8 +67,8 @@ trait Substitution extends NominalBindingSyntax {
     }
   }
 
-  implicit def declIsSubstable(in: Decl[Level, Entity]): Substable[Term, Decl[Level, Entity]] = new Substable[Term, Decl[Level, Entity]] {
-	  def subst(from: Name, to: Term): Decl[Level, Entity] = in match {
+  implicit def declIsSubstable(in: Dcl): Substable[Term, Dcl] = new Substable[Term, Dcl] {
+	  def subst(from: Name, to: Term): Dcl = in match {
       case TypeBoundsDecl(label, bounds) => TypeBoundsDecl(label, bounds subst(from, to))
       case TypeDecl(label, tp) => TypeDecl(label, tp subst(from, to))
     }

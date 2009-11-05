@@ -96,7 +96,7 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
  
 		// todo: de-sugaring is done here, ideally it would be done in a separate phase
 		// currently done for "type L = T" and "trait L extends T" syntax 
-    lazy val memDecl: P[Members.Decl[Level, Entity]] =
+    lazy val memDecl: P[Members.Dcl] =
 			l((("type" ~> abstractTypeLabelRef <~ "=") ~! typeSugar) ^^ {case l ~ cls => Members.TypeBoundsDecl(l, cls)}
       | (("type" ~> abstractTypeLabelRef <~ ":") ~! typeBounds) ^^ {case l ~ cls => Members.TypeBoundsDecl(l, cls)}
 			| (("trait" ~> typeLabelRef <~ "extends") ~! typeSugar) ^^ { case l ~ cls => Members.TypeBoundsDecl(l, cls) }
@@ -104,7 +104,7 @@ class Parsing extends StdTokenParsers with frescala.BindingParsers with PackratP
       | (("val" ~> termLabelRef <~ ":") ~! tpe) ^^ {case l ~ cls => Members.TypeDecl(l, cls)}
       )("memDecl")
 
-    lazy val memDecls: P[Members.Decls] = repsep[Members.Decl[Level, Entity]](memDecl, ";") ^^ {Members.Decls(_)}
+    lazy val memDecls: P[Members.Decls] = repsep[Members.Dcl](memDecl, ";") ^^ {Members.Decls(_)}
 		
 
 		// lazy val valDecls = repsep(valDecl, ";")		

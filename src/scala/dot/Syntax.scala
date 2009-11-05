@@ -64,6 +64,9 @@ trait Syntax extends AbstractBindingSyntax {
   }
 
   object Members {
+    type Dcl = Decl[Level, Entity]
+    def Dcl(l: Label[Level], e: Entity) = new Decl(l, e)
+
     // the member's label (one level below L) and its classifier (at level L)
     sealed abstract class Decl[+L <: Level, +E <: Entity](val l: Label[L], val cls: E) 
     // abstract case class Decl[+E <: Entity](l: Label[E#Level#Classifies], cls: E) 
@@ -72,7 +75,7 @@ trait Syntax extends AbstractBindingSyntax {
 		case class TypeDecl(override val l: TermLabel, override val cls: Type) extends Decl[Levels.Term, Type](l, cls)
 
     // heterogeneous list of member declarations, each entry consists of
-		case class Decls(decls: List[Decl[Level, Entity]]) // existential types aren't ready for prime time, I would say
+		case class Decls(decls: List[Dcl]) // existential types aren't ready for prime time, I would say
     // -- try replacing Entity by E forSome {type E <: Entity} and see the whole project explode
   
     abstract class Def[+E <: Entity](val l: Label[E#Level], val rhs: E)
@@ -285,9 +288,9 @@ trait NominalBindingSyntax extends Syntax with frescala.NominalBindingSyntax { s
 
 	// NOTE: are doing pattern matching here, because a refinement contains a set of type or type bounds declarations,
 	// and each of those needs to be convertable to a Nominal
-  implicit def memDeclHasBinders: ContainsBinders[Members.Decl[Level, Entity]] = (mem: Members.Decl[Level, Entity]) => new Nominal[Members.Decl[Level, Entity]] {
+  implicit def memDeclHasBinders: ContainsBinders[Members.Dcl] = (mem: Members.Dcl) => new Nominal[Members.Dcl] {
     import Members._// use Members.Map
-    def swap(a: Name, b: Name): Members.Decl[Level, Entity] = {
+    def swap(a: Name, b: Name): Members.Dcl = {
       mem match {
         case TypeBoundsDecl(l, cls) => TypeBoundsDecl(l.swap(a,b), cls.swap(a,b))
         case TypeDecl(l, cls) => TypeDecl(l swap(a,b), cls swap(a,b))

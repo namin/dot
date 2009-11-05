@@ -199,7 +199,7 @@ trait MetaVariablesNominal extends MetaVariables with util.binding.frescala.Nomi
   }
 
 }
-trait StandardTyperMonad extends TyperMonad {
+trait StandardTyperMonad extends TyperMonad with MetaVariables {
   type Type
   
   type State = Unit
@@ -208,6 +208,15 @@ trait StandardTyperMonad extends TyperMonad {
   // gamma, maps Name to Type
   type Env = Map[Name, Type]
   lazy val initEnv: Env = HashMap()
+
+  def under[A, T](scoped: \\[T], tp: Type)(in: (Name, T) => TyperMonad[A]): TyperMonad[A]
+    = for(\\(x, b) <- TyperMonad.result(scoped); res <- assume(x, tp)(in(x,b))) yield res
+
+  def force[A, T](meta: MetaVar[T] with T)(in: T => TyperMonad[A]): TyperMonad[T]
+    = for(_ <- in(meta); res <- !meta) yield res
+
+  def force[A, T](meta: Expected[T])(in: Expected[T] => TyperMonad[A]): TyperMonad[T]
+    = for(_ <- in(meta); res <- !meta) yield res
 
   def assume[A](vr: Name, tp: Type)(in: TyperMonad[A]): TyperMonad[A] = TyperMonad{x =>
     in(x mapEnv {_ + (vr -> tp)})
