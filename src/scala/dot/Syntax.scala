@@ -65,7 +65,6 @@ trait Syntax extends AbstractBindingSyntax {
 
   object Members {
     type Dcl = Decl[Level, Entity]
-    def Dcl(l: Label[Level], e: Entity) = new Decl(l, e)
 
     // the member's label (one level below L) and its classifier (at level L)
     sealed abstract class Decl[+L <: Level, +E <: Entity](val l: Label[L], val cls: E) 

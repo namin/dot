@@ -24,7 +24,7 @@ class Typer extends StandardTyperMonad with TyperSyntax with NominalBindingSynta
     case Var(x) => for(
         tp <- lookup(x);
         _  <- wf(pt);
-        _  <- <:<(tp, pt)) yield ()
+        _  <- <:<(Check(tp), pt)) yield ()
     // Sel
     case Sel(t, l) => for(
         _  <- hasMem(t, l, pt)) yield ()
@@ -39,7 +39,7 @@ class Typer extends StandardTyperMonad with TyperSyntax with NominalBindingSynta
         tr  = Infer[Type]("tr");
         _   <- fresh(x, tr);
         _   <- assume(x, ta)(ofT(b, tr));
-        _   <- <:<(FunT(ta, tr.toMetaVar(MetaType)), pt);
+        _   <- <:<(Check(FunT(ta, tr.toMetaVar(MetaType))), pt);
         _   <- wf(pt)) yield ()
     // New
     case New(tc, \\(x, (args, b))) => for( // parsing has already checked tc is a class type
@@ -97,25 +97,26 @@ class Typer extends StandardTyperMonad with TyperSyntax with NominalBindingSynta
   }
 
   def meet(ds1: Decls, ds2: Decls): Decls = Decls(
-     ds1.decls.map{d1 => (ds2.find{d2 => d1.l === d2.l} map {d12 => merge(d1, d12).head}) getOrElse d1} ++
-     ds2.decls.filterNot{d2 => ds1.exists{d1 => d1.l === d2.l}}
+     ds1.decls.map{d1 => (ds2.decls.find{d2 => d1.l === d2.l} map {d12 => merge(d1, d12).head}) getOrElse d1} ++
+     ds2.decls.filterNot{d2 => ds1.decls.exists{d1 => d1.l === d2.l}}
     )
 
   def classTypeMemberOf(p: Term, lc: TypeLabel): TyperMonad[Type] =
-    force(MetaType)(t => memberOf(p, Check(TypeDecl(lc, TypeBounds(Bottom, t)))))
+    force(MetaType("hi"))(t => memberOf(p, Check(TypeBoundsDecl(lc, TypeBounds(Bottom, t)))))
 
   def expand(x: Name, tp: Type): TyperMonad[Decls] = tp match {
     case Refine(ClassType(tc), \\(z, decls)) =>       // Rfn-expands
       for(decls2 <- expand(z, tc))
         yield meet(decls, decls2) swap(z, x)
     case TSel(Path(p), ClassLabel(lc)) =>             // Tsel-expands
-      for(tp <- classTypeMemberOf(p, lc))
-         yield expand(x, tp)
+      for(tp <- classTypeMemberOf(p, lc);
+          res <- expand(x, tp))
+         yield res
     case Top =>                                       // Top-expands
       Decls(List())
     case Intersect(ClassType(tc1), ClassType(tc2)) => // Intersect-expands
-      for(ds1 <- expand(z, tc1);
-          ds2 <- expand(z, tc2))
+      for(ds1 <- expand(x, tc1);
+          ds2 <- expand(x, tc2))
           yield meet(ds1, ds2)
   }
 
@@ -209,14 +210,14 @@ trait TyperSyntax extends MetaVariablesNominal with Syntax {
   }
 
   implicit object MetaTypeLabel extends MetaVarBuilder[TypeLabel, MetaTypeLabel]("metaTpL") {
-    def apply(n: String) = new MetaTypeLabel(n)
+    def apply(n: String) = new MetaTypeLabel(n, false) //TODO: shouldn't hardwire false here?
   }
-  class MetaTypeLabel(override val name: String) extends TypeLabel with MetaVar[TypeLabel]
+  class MetaTypeLabel(override val name: String, c: Boolean) extends TypeLabel(name, c) with MetaVar[TypeLabel]
 
   implicit object MetaTermLabel extends MetaVarBuilder[TermLabel, MetaTermLabel]("metaTmL") {
     def apply(n: String) = new MetaTermLabel(n)
   }
-  class MetaTermLabel(override val name: String) extends TermLabel with MetaVar[TermLabel]
+  class MetaTermLabel(override val name: String) extends TermLabel(name) with MetaVar[TermLabel]
 
   implicit object MetaType extends MetaVarBuilder[Type, MetaType]("metaTp") {
     def apply(n: String) = new MetaType(n)
