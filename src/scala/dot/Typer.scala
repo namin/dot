@@ -1,6 +1,6 @@
 package scala.dot
 
-import collection.immutable.{Map, HashMap}
+import collection.immutable.{Map, HashMap, Set}
 
 import scala.util.binding.frescala.AbstractBindingSyntax
 import scala.util.Equalities
@@ -12,19 +12,29 @@ import scala.util.Equalities
  * Time: 10:46:51 AM
  * To change this template use File | Settings | File Templates.
  */
+trait Constraints extends StandardTyperMonad with  TyperSyntax {
+  type State = Set[Constraint]
+  val initState = Set()
 
-class Typer extends StandardTyperMonad with TyperSyntax with NominalBindingSyntax with Substitution {
+  def addConstraint(c: Constraint): TyperMonad[()] =
+
+  implicit def constrainExpected(tp1: Expected[Type]) = new {def <:<(tp2: Expected[Type]): Constraint = new SubtypeConstraint(tp1, tp2) }
+
+  class Constraint
+  case class SubtypeConstraint(tv1: Expected[Type], tv2: Expected[Type]) extends Constraint
+}
+
+class Typer extends StandardTyperMonad with Constraints with TyperSyntax with NominalBindingSyntax with Substitution {
   import Terms._
   import Types.{Sel=>TSel, Fun=>FunT, _}
   import Members._
-  import TyperMonad.{result, results, fail}
-  
+  import TyperMonad._
+
+
   def ofT(tm: Term, pt: Expected[Type]): TyperMonad[Unit] = tm match {
     // Var
     case Var(x) => for(
-        tp <- lookup(x);
-        _  <- wf(pt);
-        _  <- <:<(Check(tp), pt)) yield ()
+        _  <- pt := lookup(x)) yield ()
     // Sel
     case Sel(t, l) => for(
         _  <- hasMem(t, l, pt)) yield ()
@@ -37,9 +47,10 @@ class Typer extends StandardTyperMonad with TyperSyntax with NominalBindingSynta
     case Fun(ta, \\(x, b)) => for(
         _   <- wf(Check(ta));
         tr  = Infer[Type]("tr");
-        _   <- fresh(x, tr);
         _   <- assume(x, ta)(ofT(b, tr));
-        _   <- <:<(Check(FunT(ta, tr.toMetaVar(MetaType))), pt);
+        tr  <- !tr;
+        _   <- fresh(x, tr);
+        _   <- pt := FunT(ta, tr.toMetaVar(MetaType));
         _   <- wf(pt)) yield ()
     // New
     case New(tc, \\(x, (args, b))) => for( // parsing has already checked tc is a class type
@@ -50,17 +61,24 @@ class Typer extends StandardTyperMonad with TyperSyntax with NominalBindingSynta
                   _     <- fresh(x, pt);
                   _     <- ofT(b, pt)) yield ()}) yield ()
   }
+
+
   // decls = L_i: S_i..U_i, l_j : V_j
   // args = l_j = v_j
   // check: G |- S_i <: U_i
   //        G |- v_j : V_j
-  def wfCtorMems(decls: Decls, args: ValDefs): TyperMonad[Unit]
-    = result(()) // TODO
+  def wfCtorMems(ds: Decls, args: ValDefs): TyperMonad[Unit]
+    = forall(ds.decls){
+        case TypeBoundsDecl(l, TypeBounds(s, u)) =>
+          <:<(Check(s), Check(u))
+        case TypeDecl(l, tp) =>
+          for(a <- exactlyOne(args.defs find {_.l === l});
+              _ <- ofT(a.rhs, tp)) yield ()
+      }
 
   // for nom = Check(cb) check that x is fresh in nom
   // for nom = Infer(_)  record that nom must only be unified with something in which x is fresh
   def fresh[T: ContainsBinders](x: Name, nom: Expected[T]) = result(())   // TODO
-
 
   def hasMem(tgt: Term, l: TermLabel, pt: Expected[Type]): TyperMonad[Unit]
     = memberOf(tgt, Check[Dcl](TypeDecl(l, pt.toMetaVar(MetaType)))) // XXX TODO: why must we pass MetaType explicitly?
@@ -122,7 +140,10 @@ class Typer extends StandardTyperMonad with TyperSyntax with NominalBindingSynta
 
   // for pt = Check(tp2) check that tp1 is a subtype of pt
   // for pt = Infer(_)   subsume tp1 to tp2 so that pt can be unified with tp2
-  def <:<(tp1: Expected[Type], tp2: Expected[Type]): TyperMonad[Unit] = (
+  def <:<(tp1: Expected[Type], tp2: Expected[Type]): TyperMonad[Unit] =
+      if(tp1.unknown || tp2.unknown) {
+        addConstraint(tp1 <:< tp2)
+      } else (
       // Refl
       for(_  <- tp1 := tp2.toMetaVar(MetaType)) yield ()) ++ (
       // <:-FunT

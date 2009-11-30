@@ -4,6 +4,7 @@ import scala.util.binding.frescala.AbstractBindingSyntax
 import scala.util.monads._
 import util.Equalities
 import collection.immutable.HashMap
+import collection.Traversable
 
 trait TyperMonad extends AbstractBindingSyntax {
   // results of the monad
@@ -39,6 +40,16 @@ trait TyperMonad extends AbstractBindingSyntax {
     def fail[A](msg: String) = TyperMonad{_ mapEnvTo(_y => Failure[A](msg))}
 
     def check(p: => Boolean) = result() filter(x => p)
+
+    // chain the computations yielded by f(x) for all x in xs, so that, if f(x) is a failure for some x in xs,
+    // the computation produced by forall fails; the computation succeeds iff, for all x in xs, f(x) succeeds
+    def forall[T](xs: Traversable[T])(f: T => TyperMonad[()]): TyperMonad[()] =
+      (xs map f).foldLeft(result(())){(acc, fx) => acc >>= {_ => fx}}
+
+
+    def exactlyOne[T](xs: Traversable[T], err: String="required exactly 1 element"): TyperMonad[T] =
+      if(xs.length == 1) result(xs.head)
+      else fail(err)
   }
 
   
@@ -102,6 +113,8 @@ trait MetaVariables extends AbstractBindingSyntax with TyperMonad with Equalitie
     def unary_! : TyperMonad[A]
 
     def toMetaVar[To: MetaVarOf[A]#To]: To = MetaVar(res)
+
+    def unknown: Boolean = res.isEmpty
   }
 
   object Infer {
@@ -202,9 +215,6 @@ trait MetaVariablesNominal extends MetaVariables with util.binding.frescala.Nomi
 trait StandardTyperMonad extends TyperMonad with MetaVariables {
   type Type
   
-  type State = Unit
-  val initState = ()
-
   // gamma, maps Name to Type
   type Env = Map[Name, Type]
   lazy val initEnv: Env = HashMap()
