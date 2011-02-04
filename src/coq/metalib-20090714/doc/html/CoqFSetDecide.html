@@ -1,0 +1,1174 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<link href="coqdoc.css" rel="stylesheet" type="text/css"/>
+<title>CoqFSetDecide</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library CoqFSetDecide</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+Includes minor tweaks (mostly bug fixes?) by Brian Aydemir. 
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+This file implements a decision procedure for a certain
+    class of propositions involving finite sets.  
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#">Decidable</a></span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.DecidableTypeEx.html#">DecidableTypeEx</a></span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.FSetFacts.html#">FSetFacts</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+First, a version for Weak Sets in functorial presentation 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="module"><a name="WDecide_fun">WDecide_fun</a></span> (<span class="id" type="var">E</span> : <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.DecidableType.html#">DecidableType</a></span>)(<span class="id" type="keyword">Import</span> <span class="id" type="var">M</span> : <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.FSetInterface.html#">WSfun</a></span> <span class="id" type="module"><a class="idref" href="CoqFSetDecide.html#">E</a></span>).<br/>
+&nbsp;<span class="id" type="keyword">Module</span> <span class="id" type="module"><a name="F">F</a></span> := <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.FSetFacts.html#">FSetFacts.WFacts_fun</a></span> <span class="id" type="module"><a class="idref" href="CoqFSetDecide.html#">E</a></span> <span class="id" type="module"><a class="idref" href="CoqFSetDecide.html#">M</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab21"></a><h1 class="section">Overview</h1>
+
+    This functor defines the tactic <span class="inlinecode"><span class="id" type="var">fsetdec</span></span>, which will
+    solve any valid goal of the form
+<pre>
+    forall s1 ... sn,
+    forall x1 ... xm,
+    P1 -&gt; ... -&gt; Pk -&gt; P
+</pre>
+
+<br/><br/>
+    where <span class="inlinecode"><span class="id" type="var">P</span></span>'s are defined by the grammar:
+<pre>
+
+P ::=
+| Q
+| Empty F
+| Subset F F'
+| Equal F F'
+
+Q ::=
+| E.eq X X'
+| In X F
+| Q /\ Q'
+| Q \/ Q'
+| Q -&gt; Q'
+| Q &lt;-&gt; Q'
+| ~ Q
+| True
+| False
+
+F ::=
+| S
+| empty
+| singleton X
+| add X F
+| remove X F
+| union F F'
+| inter F F'
+| diff F F'
+
+X ::= x1 | ... | xm
+S ::= s1 | ... | sn
+
+</pre>
+
+<br/><br/>
+The tactic will also work on some goals that vary slightly from
+the above form:
+
+<ul>
+<li> The variables and hypotheses may be mixed in any order and may
+  have already been introduced into the context.  Moreover,
+  there may be additional, unrelated hypotheses mixed in (these
+  will be ignored).
+
+</li>
+<li> A conjunction of hypotheses will be handled as easily as
+  separate hypotheses, i.e., <span class="inlinecode"><span class="id" type="var">P1</span> /\ <span class="id" type="var">P2</span> -&gt; <span class="id" type="var">P</span></span> can be solved iff
+  <span class="inlinecode"><span class="id" type="var">P1</span> -&gt; <span class="id" type="var">P2</span> -&gt; <span class="id" type="var">P</span></span> can be solved.
+
+</li>
+<li> <span class="inlinecode"><span class="id" type="var">fsetdec</span></span> should solve any goal if the FSet-related hypotheses
+  are contradictory.
+
+</li>
+<li> <span class="inlinecode"><span class="id" type="var">fsetdec</span></span> will first perform any necessary zeta and beta
+  reductions and will invoke <span class="inlinecode"><span class="id" type="tactic">subst</span></span> to eliminate any Coq
+  equalities between finite sets or their elements.
+
+</li>
+<li> If <span class="inlinecode"><span class="id" type="var">E.eq</span></span> is convertible with Coq's equality, it will not
+  matter which one is used in the hypotheses or conclusion.
+
+</li>
+<li> The tactic can solve goals where the finite sets or set
+  elements are expressed by Coq terms that are more complicated
+  than variables.  However, non-local definitions are not
+  expanded, and Coq equalities between non-variable terms are
+  not used.  For example, this goal will be solved:
+<pre>
+    forall (f : t -&gt; t),
+    forall (g : elt -&gt; elt),
+    forall (s1 s2 : t),
+    forall (x1 x2 : elt),
+    Equal s1 (f s2) -&gt;
+    E.eq x1 (g (g x2)) -&gt;
+    In x1 s1 -&gt;
+    In (g (g x2)) (f s2)
+</pre>
+
+</li>
+</ul>
+
+<br/><br/>
+  This one will not be solved:
+<pre>
+    forall (f : t -&gt; t),
+    forall (g : elt -&gt; elt),
+    forall (s1 s2 : t),
+    forall (x1 x2 : elt),
+    Equal s1 (f s2) -&gt;
+    E.eq x1 (g x2) -&gt;
+    In x1 s1 -&gt;
+    g x2 = g (g x2) -&gt;
+    In (g (g x2)) (f s2)
+</pre>
+
+<br/><br/>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab22"></a><h1 class="section">Facts and Tactics for Propositional Logic</h1>
+
+      These lemmas and tactics are in a module so that they do
+      not affect the namespace if you import the enclosing
+      module <span class="inlinecode"><span class="id" type="var">Decide</span></span>. 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Module</span> <span class="id" type="module"><a name="FSetLogicalFacts">FSetLogicalFacts</a></span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Export</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#">Decidable</a></span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Export</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Setoids.Setoid.html#">Setoid</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab23"></a><h2 class="section">Lemmas and Tactics About Decidable Propositions</h2>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab24"></a><h2 class="section">Propositional Equivalences Involving Negation</h2>
+
+        These are all written with the unfolded form of
+        negation, since I am not sure if setoid rewriting will
+        always perform conversion. 
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab25"></a><h2 class="section">Tactics for Negations</h2>
+
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span> "fold" "any" "not" :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">fold</span> (~ <span class="id" type="var">P</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">fold</span> (~ <span class="id" type="var">P</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">push</span> <span class="id" type="var">not</span> <span class="id" type="keyword">using</span> <span class="id" type="var">db</span></span> will pushes all negations to the
+        leaves of propositions in the goal, using the lemmas in
+        <span class="inlinecode"><span class="id" type="var">db</span></span> to assist in checking the decidability of the
+        propositions involved.  If <span class="inlinecode"><span class="id" type="keyword">using</span> <span class="id" type="var">db</span></span> is omitted, then
+        <span class="inlinecode"><span class="id" type="var">core</span></span> will be used.  Additional versions are provided
+        to manipulate the hypotheses or the hypotheses and goal
+        together.
+
+<br/><br/>
+        XXX: This tactic and the similar subsequent ones should
+        have been defined using <span class="inlinecode"><span class="id" type="var">autorewrite</span></span>. However, dealing
+        with multiples rewrite sites and side-conditions is 
+        done more cleverly with the following explicit 
+        analysis of goals. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Ltac</span> <span class="id" type="var">or_not_l_iff</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> <span class="id" type="var">tac</span> := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#or_not_l_iff_1">or_not_l_iff_1</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="tactic">by</span> <span class="id" type="var">tac</span>) || <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#or_not_l_iff_2">or_not_l_iff_2</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="tactic">by</span> <span class="id" type="var">tac</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Ltac</span> <span class="id" type="var">or_not_r_iff</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> <span class="id" type="var">tac</span> := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#or_not_r_iff_1">or_not_r_iff_1</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="tactic">by</span> <span class="id" type="var">tac</span>) || <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#or_not_r_iff_2">or_not_r_iff_2</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="tactic">by</span> <span class="id" type="var">tac</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Ltac</span> <span class="id" type="var">or_not_l_iff_in</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> <span class="id" type="var">H</span> <span class="id" type="var">tac</span> := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#or_not_l_iff_1">or_not_l_iff_1</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span> <span class="id" type="tactic">by</span> <span class="id" type="var">tac</span>) || <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#or_not_l_iff_2">or_not_l_iff_2</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span> <span class="id" type="tactic">by</span> <span class="id" type="var">tac</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Ltac</span> <span class="id" type="var">or_not_r_iff_in</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> <span class="id" type="var">H</span> <span class="id" type="var">tac</span> := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#or_not_r_iff_1">or_not_r_iff_1</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span> <span class="id" type="tactic">by</span> <span class="id" type="var">tac</span>) || <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#or_not_r_iff_2">or_not_r_iff_2</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span> <span class="id" type="tactic">by</span> <span class="id" type="var">tac</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span> "push" "not" "using" <span class="id" type="var">ident</span>(<span class="id" type="var">db</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">dec</span> := <span class="id" type="var">solve_decidable</span> <span class="id" type="keyword">using</span> <span class="id" type="var">db</span> <span class="id" type="keyword">in</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">unfold</span> <span class="id" type="var">not</span>, <span class="id" type="var">iff</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#True">True</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] =&gt; <span class="id" type="tactic">rewrite</span> <span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_true_iff">not_true_iff</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] =&gt; <span class="id" type="tactic">rewrite</span> <span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_false_iff">not_false_iff</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] =&gt; <span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_not_iff">not_not_iff</a></span> <span class="id" type="var">P</span>) <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) -&gt; (?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>)] =&gt; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#contrapositive">contrapositive</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) \/ ?Q] =&gt; <span class="id" type="var">or_not_l_iff</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [?P \/ (?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>)] =&gt; <span class="id" type="var">or_not_r_iff</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) -&gt; ?Q] =&gt; <span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#imp_not_l">imp_not_l</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [?P \/ ?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] =&gt; <span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_or_iff">not_or_iff</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [?P /\ ?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] =&gt; <span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_and_iff">not_and_iff</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [(?P -&gt; ?Q) -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] =&gt; <span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_imp_iff">not_imp_iff</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">fold</span> <span class="id" type="var">any</span> <span class="id" type="var">not</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span> "push" "not" :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">push</span> <span class="id" type="var">not</span> <span class="id" type="keyword">using</span> <span class="id" type="var">core</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"push" "not" "in" "*" "|-" "using" <span class="id" type="var">ident</span>(<span class="id" type="var">db</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">dec</span> := <span class="id" type="var">solve_decidable</span> <span class="id" type="keyword">using</span> <span class="id" type="var">db</span> <span class="id" type="keyword">in</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">unfold</span> <span class="id" type="var">not</span>, <span class="id" type="var">iff</span> <span class="id" type="keyword">in</span> * |-;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#True">True</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">rewrite</span> <span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_true_iff">not_true_iff</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">rewrite</span> <span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_false_iff">not_false_iff</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] |- <span class="id" type="var">_</span> =&gt; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_not_iff">not_not_iff</a></span> <span class="id" type="var">P</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span> <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) -&gt; (?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>)] |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#contrapositive">contrapositive</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span> <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) \/ ?Q] |- <span class="id" type="var">_</span> =&gt; <span class="id" type="var">or_not_l_iff_in</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> <span class="id" type="var">H</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [?P \/ (?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>)] |- <span class="id" type="var">_</span> =&gt; <span class="id" type="var">or_not_r_iff_in</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> <span class="id" type="var">H</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) -&gt; ?Q] |- <span class="id" type="var">_</span> =&gt; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#imp_not_l">imp_not_l</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span> <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [?P \/ ?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_or_iff">not_or_iff</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [?P /\ ?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_and_iff">not_and_iff</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [(?P -&gt; ?Q) -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] |- <span class="id" type="var">_</span> =&gt; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_imp_iff">not_imp_iff</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span> <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">fold</span> <span class="id" type="var">any</span> <span class="id" type="var">not</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span> "push" "not" "in" "*" "|-"  :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">push</span> <span class="id" type="var">not</span> <span class="id" type="keyword">in</span> * |- <span class="id" type="keyword">using</span> <span class="id" type="var">core</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span> "push" "not" "in" "*" "using" <span class="id" type="var">ident</span>(<span class="id" type="var">db</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">push</span> <span class="id" type="var">not</span> <span class="id" type="keyword">using</span> <span class="id" type="var">db</span>; <span class="id" type="var">push</span> <span class="id" type="var">not</span> <span class="id" type="keyword">in</span> * |- <span class="id" type="keyword">using</span> <span class="id" type="var">db</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span> "push" "not" "in" "*" :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">push</span> <span class="id" type="var">not</span> <span class="id" type="keyword">in</span> * <span class="id" type="keyword">using</span> <span class="id" type="var">core</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+A simple test case to see how this works.  
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetLogicalFacts.test_push">test_push</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> <span class="id" type="var">R</span> : <span class="id" type="keyword">Prop</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#decidable">decidable</a></span> <span class="id" type="var">P</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#decidable">decidable</a></span> <span class="id" type="var">Q</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#True">True</a></span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ ~ <span class="id" type="var">P</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ (<span class="id" type="var">P</span> /\ <span class="id" type="var">Q</span>) -&gt; ~ <span class="id" type="var">R</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((<span class="id" type="var">P</span> /\ <span class="id" type="var">Q</span>) \/ ~ <span class="id" type="var">R</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ (<span class="id" type="var">P</span> /\ <span class="id" type="var">Q</span>) \/ <span class="id" type="var">R</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">R</span> \/ ~ (<span class="id" type="var">P</span> /\ <span class="id" type="var">Q</span>)) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ <span class="id" type="var">R</span> \/ (<span class="id" type="var">P</span> /\ <span class="id" type="var">Q</span>)) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ <span class="id" type="var">P</span> -&gt; <span class="id" type="var">R</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ ((<span class="id" type="var">R</span> -&gt; <span class="id" type="var">P</span>) \/ (<span class="id" type="var">Q</span> -&gt; <span class="id" type="var">R</span>))) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ (<span class="id" type="var">P</span> /\ <span class="id" type="var">R</span>)) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ (<span class="id" type="var">P</span> -&gt; <span class="id" type="var">R</span>)) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#True">True</a></span>.<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">pull</span> <span class="id" type="var">not</span> <span class="id" type="keyword">using</span> <span class="id" type="var">db</span></span> will pull as many negations as
+        possible toward the top of the propositions in the goal,
+        using the lemmas in <span class="inlinecode"><span class="id" type="var">db</span></span> to assist in checking the
+        decidability of the propositions involved.  If <span class="inlinecode"><span class="id" type="keyword">using</span>
+        <span class="id" type="var">db</span></span> is omitted, then <span class="inlinecode"><span class="id" type="var">core</span></span> will be used.  Additional
+        versions are provided to manipulate the hypotheses or
+        the hypotheses and goal together. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span> "pull" "not" "using" <span class="id" type="var">ident</span>(<span class="id" type="var">db</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">dec</span> := <span class="id" type="var">solve_decidable</span> <span class="id" type="keyword">using</span> <span class="id" type="var">db</span> <span class="id" type="keyword">in</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">unfold</span> <span class="id" type="var">not</span>, <span class="id" type="var">iff</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#True">True</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] =&gt; <span class="id" type="tactic">rewrite</span> <span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_true_iff">not_true_iff</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] =&gt; <span class="id" type="tactic">rewrite</span> <span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_false_iff">not_false_iff</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] =&gt; <span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_not_iff">not_not_iff</a></span> <span class="id" type="var">P</span>) <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) -&gt; (?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>)] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#contrapositive">contrapositive</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) \/ ?Q] =&gt; <span class="id" type="var">or_not_l_iff</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [?P \/ (?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>)] =&gt; <span class="id" type="var">or_not_r_iff</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) -&gt; ?Q] =&gt; <span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#imp_not_l">imp_not_l</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) /\ (?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>)] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> &lt;- (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_or_iff">not_or_iff</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [?P -&gt; ?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] =&gt; <span class="id" type="tactic">rewrite</span> &lt;- (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_and_iff">not_and_iff</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [?P /\ (?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>)] =&gt; <span class="id" type="tactic">rewrite</span> &lt;- (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_imp_iff">not_imp_iff</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [(?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) /\ ?P] =&gt; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> &lt;- (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_imp_rev_iff">not_imp_rev_iff</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">fold</span> <span class="id" type="var">any</span> <span class="id" type="var">not</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span> "pull" "not" :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pull</span> <span class="id" type="var">not</span> <span class="id" type="keyword">using</span> <span class="id" type="var">core</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"pull" "not" "in" "*" "|-" "using" <span class="id" type="var">ident</span>(<span class="id" type="var">db</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">dec</span> := <span class="id" type="var">solve_decidable</span> <span class="id" type="keyword">using</span> <span class="id" type="var">db</span> <span class="id" type="keyword">in</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">unfold</span> <span class="id" type="var">not</span>, <span class="id" type="var">iff</span> <span class="id" type="keyword">in</span> * |-;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#True">True</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">rewrite</span> <span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_true_iff">not_true_iff</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">rewrite</span> <span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_false_iff">not_false_iff</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_not_iff">not_not_iff</a></span> <span class="id" type="var">P</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span> <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) -&gt; (?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>)] |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#contrapositive">contrapositive</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span> <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) \/ ?Q] |- <span class="id" type="var">_</span> =&gt; <span class="id" type="var">or_not_l_iff_in</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> <span class="id" type="var">H</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [?P \/ (?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>)] |- <span class="id" type="var">_</span> =&gt; <span class="id" type="var">or_not_r_iff_in</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> <span class="id" type="var">H</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) -&gt; ?Q] |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#imp_not_l">imp_not_l</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span> <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [(?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) /\ (?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>)] |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> &lt;- (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_or_iff">not_or_iff</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [?P -&gt; ?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>] |- <span class="id" type="var">_</span> =&gt; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> &lt;- (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_and_iff">not_and_iff</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [?P /\ (?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>)] |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> &lt;- (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_imp_iff">not_imp_iff</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span> <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [(?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) /\ ?P] |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> &lt;- (<span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#not_imp_rev_iff">not_imp_rev_iff</a></span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span> <span class="id" type="tactic">by</span> <span class="id" type="var">dec</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">fold</span> <span class="id" type="var">any</span> <span class="id" type="var">not</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span> "pull" "not" "in" "*" "|-"  :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pull</span> <span class="id" type="var">not</span> <span class="id" type="keyword">in</span> * |- <span class="id" type="keyword">using</span> <span class="id" type="var">core</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span> "pull" "not" "in" "*" "using" <span class="id" type="var">ident</span>(<span class="id" type="var">db</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pull</span> <span class="id" type="var">not</span> <span class="id" type="keyword">using</span> <span class="id" type="var">db</span>; <span class="id" type="var">pull</span> <span class="id" type="var">not</span> <span class="id" type="keyword">in</span> * |- <span class="id" type="keyword">using</span> <span class="id" type="var">db</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span> "pull" "not" "in" "*" :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pull</span> <span class="id" type="var">not</span> <span class="id" type="keyword">in</span> * <span class="id" type="keyword">using</span> <span class="id" type="var">core</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+A simple test case to see how this works.  
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetLogicalFacts.test_pull">test_pull</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> <span class="id" type="var">R</span> : <span class="id" type="keyword">Prop</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#decidable">decidable</a></span> <span class="id" type="var">P</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#decidable">decidable</a></span> <span class="id" type="var">Q</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#True">True</a></span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ ~ <span class="id" type="var">P</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ (<span class="id" type="var">P</span> /\ <span class="id" type="var">Q</span>) -&gt; ~ <span class="id" type="var">R</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((<span class="id" type="var">P</span> /\ <span class="id" type="var">Q</span>) \/ ~ <span class="id" type="var">R</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ (<span class="id" type="var">P</span> /\ <span class="id" type="var">Q</span>) \/ <span class="id" type="var">R</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">R</span> \/ ~ (<span class="id" type="var">P</span> /\ <span class="id" type="var">Q</span>)) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ <span class="id" type="var">R</span> \/ (<span class="id" type="var">P</span> /\ <span class="id" type="var">Q</span>)) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ <span class="id" type="var">P</span> -&gt; <span class="id" type="var">R</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ (<span class="id" type="var">R</span> -&gt; <span class="id" type="var">P</span>) /\ ~ (<span class="id" type="var">Q</span> -&gt; <span class="id" type="var">R</span>)) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ <span class="id" type="var">P</span> \/ ~ <span class="id" type="var">R</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">P</span> /\ ~ <span class="id" type="var">R</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(~ <span class="id" type="var">R</span> /\ <span class="id" type="var">P</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#True">True</a></span>.<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">End</span> <span class="id" type="module"><a class="idref" href="CoqFSetDecide.html#FSetLogicalFacts">FSetLogicalFacts</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Import</span> <span class="id" type="var">FSetLogicalFacts</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab26"></a><h1 class="section">Auxiliary Tactics</h1>
+
+      Again, these lemmas and tactics are in a module so that
+      they do not affect the namespace if you import the
+      enclosing module <span class="inlinecode"><span class="id" type="var">Decide</span></span>.  
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Module</span> <span class="id" type="module"><a name="FSetDecideAuxiliary">FSetDecideAuxiliary</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab27"></a><h2 class="section">Generic Tactics</h2>
+
+        We begin by defining a few generic, useful tactics. 
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="keyword">if</span> <span class="id" type="var">t</span> <span class="id" type="keyword">then</span> <span class="id" type="var">t1</span> <span class="id" type="keyword">else</span> <span class="id" type="var">t2</span></span> executes <span class="inlinecode"><span class="id" type="var">t</span></span> and, if it does not
+        fail, then <span class="inlinecode"><span class="id" type="var">t1</span></span> will be applied to all subgoals
+        produced.  If <span class="inlinecode"><span class="id" type="var">t</span></span> fails, then <span class="inlinecode"><span class="id" type="var">t2</span></span> is executed. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"if" <span class="id" type="var">tactic</span>(<span class="id" type="var">t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"then" <span class="id" type="var">tactic</span>(<span class="id" type="var">t1</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"else" <span class="id" type="var">tactic</span>(<span class="id" type="var">t2</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">first</span> [ <span class="id" type="var">t</span>; <span class="id" type="var">first</span> [ <span class="id" type="var">t1</span> | <span class="id" type="tactic">fail</span> 2 ] | <span class="id" type="var">t2</span> ].<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">prop</span> <span class="id" type="var">P</span> <span class="id" type="var">holds</span> <span class="id" type="tactic">by</span> <span class="id" type="var">t</span></span> succeeds (but does not modify the
+        goal or context) if the proposition <span class="inlinecode"><span class="id" type="var">P</span></span> can be proved by
+        <span class="inlinecode"><span class="id" type="var">t</span></span> in the current context.  Otherwise, the tactic
+        fails. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span> "prop" <span class="id" type="var">constr</span>(<span class="id" type="var">P</span>) "holds" "by" <span class="id" type="var">tactic</span>(<span class="id" type="var">t</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">H</span> := <span class="id" type="tactic">fresh</span> <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">assert</span> <span class="id" type="var">P</span> <span class="id" type="keyword">as</span> <span class="id" type="var">H</span> <span class="id" type="tactic">by</span> <span class="id" type="var">t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">clear</span> <span class="id" type="var">H</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+This tactic acts just like <span class="inlinecode"><span class="id" type="tactic">assert</span> ... <span class="id" type="tactic">by</span> ...</span> but will
+        fail if the context already contains the proposition. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span> "assert" "new" <span class="id" type="var">constr</span>(<span class="id" type="var">e</span>) "by" <span class="id" type="var">tactic</span>(<span class="id" type="var">t</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">e</span> |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">fail</span> 1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">assert</span> <span class="id" type="var">e</span> <span class="id" type="tactic">by</span> <span class="id" type="var">t</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="tactic">subst</span>++</span> is similar to <span class="inlinecode"><span class="id" type="tactic">subst</span></span> except that
+
+<ul>
+<li> it never fails (as <span class="inlinecode"><span class="id" type="tactic">subst</span></span> does on recursive
+          equations),
+
+</li>
+<li> it substitutes locally defined variable for their
+          definitions,
+
+</li>
+<li> it performs beta reductions everywhere, which may
+          arise after substituting a locally defined function
+          for its definition.
+        
+</li>
+</ul>
+
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span> "subst" "++" :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">x</span> : <span class="id" type="var">_</span> |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">subst</span> <span class="id" type="var">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">cbv</span> <span class="id" type="var">zeta</span> <span class="id" type="var">beta</span> <span class="id" type="keyword">in</span> *.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">decompose</span> <span class="id" type="var">records</span></span> calls <span class="inlinecode"><span class="id" type="var">decompose</span> <span class="id" type="var">record</span> <span class="id" type="var">H</span></span> on every
+        relevant hypothesis <span class="inlinecode"><span class="id" type="var">H</span></span>. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Tactic Notation</span> "decompose" "records" :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">_</span> |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">progress</span> (<span class="id" type="var">decompose</span> <span class="id" type="var">record</span> <span class="id" type="var">H</span>); <span class="id" type="tactic">clear</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab28"></a><h2 class="section">Discarding Irrelevant Hypotheses</h2>
+
+        We will want to clear the context of any
+        non-FSet-related hypotheses in order to increase the
+        speed of the tactic.  To do this, we will need to be
+        able to decide which are relevant.  We do this by making
+        a simple inductive definition classifying the
+        propositions of interest. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Inductive</span> <span class="id" type="inductive"><a name="WDecide_fun.FSetDecideAuxiliary.FSet_elt_Prop">FSet_elt_Prop</a></span> : <span class="id" type="keyword">Prop</span> -&gt; <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a name="WDecide_fun.FSetDecideAuxiliary.eq_Prop">eq_Prop</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">S</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="var">S</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> (<span class="id" type="var">x</span> = <span class="id" type="var">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a name="WDecide_fun.FSetDecideAuxiliary.eq_elt_prop">eq_elt_prop</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a name="WDecide_fun.FSetDecideAuxiliary.In_elt_prop">In_elt_prop</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a name="WDecide_fun.FSetDecideAuxiliary.True_elt_prop">True_elt_prop</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#True">True</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a name="WDecide_fun.FSetDecideAuxiliary.False_elt_prop">False_elt_prop</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a name="WDecide_fun.FSetDecideAuxiliary.conj_elt_prop">conj_elt_prop</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> <span class="id" type="var">P</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> <span class="id" type="var">Q</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> (<span class="id" type="var">P</span> /\ <span class="id" type="var">Q</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a name="WDecide_fun.FSetDecideAuxiliary.disj_elt_prop">disj_elt_prop</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> <span class="id" type="var">P</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> <span class="id" type="var">Q</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> (<span class="id" type="var">P</span> \/ <span class="id" type="var">Q</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a name="WDecide_fun.FSetDecideAuxiliary.impl_elt_prop">impl_elt_prop</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> <span class="id" type="var">P</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> <span class="id" type="var">Q</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> (<span class="id" type="var">P</span> -&gt; <span class="id" type="var">Q</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a name="WDecide_fun.FSetDecideAuxiliary.not_elt_prop">not_elt_prop</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">P</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> <span class="id" type="var">P</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_elt_Prop">FSet_elt_Prop</a></span> (~ <span class="id" type="var">P</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Inductive</span> <span class="id" type="inductive"><a name="WDecide_fun.FSetDecideAuxiliary.FSet_Prop">FSet_Prop</a></span> : <span class="id" type="keyword">Prop</span> -&gt; <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a name="WDecide_fun.FSetDecideAuxiliary.elt_FSet_Prop">elt_FSet_Prop</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">P</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.FSetDecideAuxiliary.FSet_elt_Prop">FSet_elt_Prop</a></span> <span class="id" type="var">P</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_Prop">FSet_Prop</a></span> <span class="id" type="var">P</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a name="WDecide_fun.FSetDecideAuxiliary.Empty_FSet_Prop">Empty_FSet_Prop</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_Prop">FSet_Prop</a></span> (<span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.Empty">Empty</a></span> <span class="id" type="var">s</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a name="WDecide_fun.FSetDecideAuxiliary.Subset_FSet_Prop">Subset_FSet_Prop</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s1</span> <span class="id" type="var">s2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_Prop">FSet_Prop</a></span> (<span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.Subset">Subset</a></span> <span class="id" type="var">s1</span> <span class="id" type="var">s2</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a name="WDecide_fun.FSetDecideAuxiliary.Equal_FSet_Prop">Equal_FSet_Prop</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s1</span> <span class="id" type="var">s2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#FSet_Prop">FSet_Prop</a></span> (<span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.Equal">Equal</a></span> <span class="id" type="var">s1</span> <span class="id" type="var">s2</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Here is the tactic that will throw away hypotheses that
+        are not useful (for the intended scope of the <span class="inlinecode"><span class="id" type="var">fsetdec</span></span>
+        tactic). 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Hint</span> <span class="id" type="var">Constructors</span> <span class="id" type="var">FSet_elt_Prop</span> <span class="id" type="var">FSet_Prop</span> : <span class="id" type="var">FSet_Prop</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Ltac</span> <span class="id" type="var">discard_nonFSet</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : ?P |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">if</span> <span class="id" type="var">prop</span> (<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.FSetDecideAuxiliary.FSet_Prop">FSet_Prop</a></span> <span class="id" type="var">P</span>) <span class="id" type="var">holds</span> <span class="id" type="tactic">by</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="tactic">auto</span> 100 <span class="id" type="keyword">with</span> <span class="id" type="var">FSet_Prop</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">then</span> <span class="id" type="tactic">fail</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">else</span> <span class="id" type="tactic">clear</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab29"></a><h2 class="section">Turning Set Operators into Propositional Connectives</h2>
+
+        The lemmas from <span class="inlinecode"><span class="id" type="var">FSetFacts</span></span> will be used to break down
+        set operations into propositional formulas built over
+        the predicates <span class="inlinecode"><span class="id" type="var">In</span></span> and <span class="inlinecode"><span class="id" type="var">E.eq</span></span> applied only to
+        variables.  We are going to use them with <span class="inlinecode"><span class="id" type="var">autorewrite</span></span>.
+        
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Hint</span> <span class="id" type="var">Rewrite</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="lemma"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.F.empty_iff">F.empty_iff</a></span> <span class="id" type="lemma"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.F.singleton_iff">F.singleton_iff</a></span> <span class="id" type="lemma"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.F.add_iff">F.add_iff</a></span> <span class="id" type="lemma"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.F.remove_iff">F.remove_iff</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="lemma"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.F.union_iff">F.union_iff</a></span> <span class="id" type="lemma"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.F.inter_iff">F.inter_iff</a></span> <span class="id" type="lemma"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.F.diff_iff">F.diff_iff</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" type="var">set_simpl</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab30"></a><h2 class="section">Decidability of FSet Propositions</h2>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">In</span></span> is decidable. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideAuxiliary.dec_In">dec_In</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#decidable">decidable</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">E.eq</span></span> is decidable. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideAuxiliary.dec_eq">dec_eq</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#decidable">decidable</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The hint database <span class="inlinecode"><span class="id" type="var">FSet_decidability</span></span> will be given to
+        the <span class="inlinecode"><span class="id" type="var">push_neg</span></span> tactic from the module <span class="inlinecode"><span class="id" type="var">Negation</span></span>. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Resolve</span> <span class="id" type="lemma"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.FSetDecideAuxiliary.dec_In">dec_In</a></span> <span class="id" type="lemma"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.FSetDecideAuxiliary.dec_eq">dec_eq</a></span> : <span class="id" type="var">FSet_decidability</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab31"></a><h2 class="section">Normalizing Propositions About Equality</h2>
+
+        We have to deal with the fact that <span class="inlinecode"><span class="id" type="var">E.eq</span></span> may be
+        convertible with Coq's equality.  Thus, we will find the
+        following tactics useful to replace one form with the
+        other everywhere. 
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The next tactic, <span class="inlinecode"><span class="id" type="var">Logic_eq_to_E_eq</span></span>, mentions the term
+        <span class="inlinecode"><span class="id" type="var">E.t</span></span>; thus, we must ensure that <span class="inlinecode"><span class="id" type="var">E.t</span></span> is used in favor
+        of any other convertible but syntactically distinct
+        term. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Ltac</span> <span class="id" type="var">change_to_E_t</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : ?T |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">progress</span> (<span class="id" type="var">change</span> <span class="id" type="var">T</span> <span class="id" type="keyword">with</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">J</span> : <span class="id" type="var">_</span> |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">progress</span> (<span class="id" type="var">change</span> <span class="id" type="var">T</span> <span class="id" type="keyword">with</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">J</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">progress</span> (<span class="id" type="var">change</span> <span class="id" type="var">T</span> <span class="id" type="keyword">with</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span> )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> : ?T, <span class="id" type="var">_</span> |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">progress</span> (<span class="id" type="var">change</span> <span class="id" type="var">T</span> <span class="id" type="keyword">with</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">J</span> : <span class="id" type="var">_</span> |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">progress</span> (<span class="id" type="var">change</span> <span class="id" type="var">T</span> <span class="id" type="keyword">with</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">J</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">progress</span> (<span class="id" type="var">change</span> <span class="id" type="var">T</span> <span class="id" type="keyword">with</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span> )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+These two tactics take us from Coq's built-in equality
+        to <span class="inlinecode"><span class="id" type="var">E.eq</span></span> (and vice versa) when possible. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Ltac</span> <span class="id" type="var">Logic_eq_to_E_eq</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">_</span> |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">progress</span> (<span class="id" type="var">change</span> (@<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#eq">Logic.eq</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span>) <span class="id" type="keyword">with</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">progress</span> (<span class="id" type="var">change</span> (@<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#eq">Logic.eq</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span>) <span class="id" type="keyword">with</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Ltac</span> <span class="id" type="var">E_eq_to_Logic_eq</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">_</span> |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">progress</span> (<span class="id" type="var">change</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="keyword">with</span> (@<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#eq">Logic.eq</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">progress</span> (<span class="id" type="var">change</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="keyword">with</span> (@<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#eq">Logic.eq</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+This tactic works like the built-in tactic <span class="inlinecode"><span class="id" type="tactic">subst</span></span>, but
+        at the level of set element equality (which may not be
+        the convertible with Coq's equality). 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Ltac</span> <span class="id" type="var">substFSet</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> ?x ?y |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">rewrite</span> <span class="id" type="var">H</span> <span class="id" type="keyword">in</span> *; <span class="id" type="tactic">clear</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab32"></a><h2 class="section">Considering Decidability of Base Propositions</h2>
+
+        This tactic adds assertions about the decidability of
+        <span class="inlinecode"><span class="id" type="var">E.eq</span></span> and <span class="inlinecode"><span class="id" type="var">In</span></span> to the context.  This is necessary for
+        the completeness of the <span class="inlinecode"><span class="id" type="var">fsetdec</span></span> tactic.  However, in
+        order to minimize the cost of proof search, we should be
+        careful to not add more than we need.  Once negations
+        have been pushed to the leaves of the propositions, we
+        only need to worry about decidability for those base
+        propositions that appear in a negated form. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Ltac</span> <span class="id" type="var">assert_decidability</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> ?x ?y] |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">assert</span> <span class="id" type="var">new</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> \/ ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span>) <span class="id" type="tactic">by</span> (<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.FSetDecideAuxiliary.dec_eq">dec_eq</a></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="var">context</span> [~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> ?x ?s] |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">assert</span> <span class="id" type="var">new</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> \/ ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>) <span class="id" type="tactic">by</span> (<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.FSetDecideAuxiliary.dec_In">dec_In</a></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> ?x ?y] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">assert</span> <span class="id" type="var">new</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> \/ ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span>) <span class="id" type="tactic">by</span> (<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.FSetDecideAuxiliary.dec_eq">dec_eq</a></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> ?x ?s] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">assert</span> <span class="id" type="var">new</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> \/ ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>) <span class="id" type="tactic">by</span> (<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.FSetDecideAuxiliary.dec_In">dec_In</a></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span>: ~ ?P, <span class="id" type="var">H</span> : ?P \/ ~ ?P |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">clear</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab33"></a><h2 class="section">Handling <span class="inlinecode"><span class="id" type="var">Empty</span></span>, <span class="inlinecode"><span class="id" type="var">Subset</span></span>, and <span class="inlinecode"><span class="id" type="var">Equal</span></span></h2>
+
+        This tactic instantiates universally quantified
+        hypotheses (which arise from the unfolding of <span class="inlinecode"><span class="id" type="var">Empty</span></span>,
+        <span class="inlinecode"><span class="id" type="var">Subset</span></span>, and <span class="inlinecode"><span class="id" type="var">Equal</span></span>) for each of the set element
+        expressions that is involved in some membership or
+        equality fact.  Then it throws away those hypotheses,
+        which should no longer be needed. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Ltac</span> <span class="id" type="var">inst_FSet_hypotheses</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span>, <span class="id" type="var">_</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">_</span> : <span class="id" type="var">context</span> [ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> ?x <span class="id" type="var">_</span> ] |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">P</span> := <span class="id" type="var">type</span> <span class="id" type="var">of</span> (<span class="id" type="var">H</span> <span class="id" type="var">x</span>) <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">assert</span> <span class="id" type="var">new</span> <span class="id" type="var">P</span> <span class="id" type="tactic">by</span> (<span class="id" type="tactic">exact</span> (<span class="id" type="var">H</span> <span class="id" type="var">x</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span>, <span class="id" type="var">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|- <span class="id" type="var">context</span> [ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> ?x <span class="id" type="var">_</span> ] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">P</span> := <span class="id" type="var">type</span> <span class="id" type="var">of</span> (<span class="id" type="var">H</span> <span class="id" type="var">x</span>) <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">assert</span> <span class="id" type="var">new</span> <span class="id" type="var">P</span> <span class="id" type="tactic">by</span> (<span class="id" type="tactic">exact</span> (<span class="id" type="var">H</span> <span class="id" type="var">x</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span>, <span class="id" type="var">_</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">_</span> : <span class="id" type="var">context</span> [ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> ?x <span class="id" type="var">_</span> ] |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">P</span> := <span class="id" type="var">type</span> <span class="id" type="var">of</span> (<span class="id" type="var">H</span> <span class="id" type="var">x</span>) <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">assert</span> <span class="id" type="var">new</span> <span class="id" type="var">P</span> <span class="id" type="tactic">by</span> (<span class="id" type="tactic">exact</span> (<span class="id" type="var">H</span> <span class="id" type="var">x</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span>, <span class="id" type="var">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|- <span class="id" type="var">context</span> [ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> ?x <span class="id" type="var">_</span> ] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">P</span> := <span class="id" type="var">type</span> <span class="id" type="var">of</span> (<span class="id" type="var">H</span> <span class="id" type="var">x</span>) <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">assert</span> <span class="id" type="var">new</span> <span class="id" type="var">P</span> <span class="id" type="tactic">by</span> (<span class="id" type="tactic">exact</span> (<span class="id" type="var">H</span> <span class="id" type="var">x</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span>, <span class="id" type="var">_</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">_</span> : <span class="id" type="var">context</span> [ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">_</span> ?x ] |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">P</span> := <span class="id" type="var">type</span> <span class="id" type="var">of</span> (<span class="id" type="var">H</span> <span class="id" type="var">x</span>) <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">assert</span> <span class="id" type="var">new</span> <span class="id" type="var">P</span> <span class="id" type="tactic">by</span> (<span class="id" type="tactic">exact</span> (<span class="id" type="var">H</span> <span class="id" type="var">x</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span>, <span class="id" type="var">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|- <span class="id" type="var">context</span> [ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">_</span> ?x ] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">P</span> := <span class="id" type="var">type</span> <span class="id" type="var">of</span> (<span class="id" type="var">H</span> <span class="id" type="var">x</span>) <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">assert</span> <span class="id" type="var">new</span> <span class="id" type="var">P</span> <span class="id" type="tactic">by</span> (<span class="id" type="tactic">exact</span> (<span class="id" type="var">H</span> <span class="id" type="var">x</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.t">E.t</a></span>, <span class="id" type="var">_</span> |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">clear</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab34"></a><h2 class="section">The Core <span class="inlinecode"><span class="id" type="var">fsetdec</span></span> Auxiliary Tactics</h2>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Here is the crux of the proof search.  Recursion through
+        <span class="inlinecode"><span class="id" type="tactic">intuition</span></span>!  (This will terminate if I correctly
+        understand the behavior of <span class="inlinecode"><span class="id" type="tactic">intuition</span></span>.) 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Resolve</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq_refl">E.eq_refl</a></span> : <span class="id" type="var">FSet_Auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Ltac</span> <span class="id" type="var">fsetdec_rec</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">auto</span> <span class="id" type="keyword">with</span> <span class="id" type="var">FSet_Auto</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">subst</span>++;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">try</span> (<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> ?x ?x -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span> |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">destruct</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="tactic">reflexivity</span> ||<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">contradiction</span> ||<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="tactic">progress</span> <span class="id" type="var">substFSet</span>; <span class="id" type="tactic">intuition</span> <span class="id" type="var">fsetdec_rec</span>)).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+If we add <span class="inlinecode"><span class="id" type="tactic">unfold</span> <span class="id" type="var">Empty</span>, <span class="id" type="var">Subset</span>, <span class="id" type="var">Equal</span> <span class="id" type="keyword">in</span> *; <span class="id" type="tactic">intros</span>;</span> to
+        the beginning of this tactic, it will satisfy the same
+        specification as the <span class="inlinecode"><span class="id" type="var">fsetdec</span></span> tactic; however, it will
+        be much slower than necessary without the pre-processing
+        done by the wrapper tactic <span class="inlinecode"><span class="id" type="var">fsetdec</span></span>. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Ltac</span> <span class="id" type="var">fsetdec_body</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">inst_FSet_hypotheses</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">autorewrite</span> <span class="id" type="keyword">with</span> <span class="id" type="var">set_simpl</span> <span class="id" type="keyword">in</span> *;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">push</span> <span class="id" type="var">not</span> <span class="id" type="keyword">in</span> * <span class="id" type="keyword">using</span> <span class="id" type="var">FSet_decidability</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">substFSet</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">assert_decidability</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">auto</span> <span class="id" type="keyword">with</span> <span class="id" type="var">FSet_Auto</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="tactic">intuition</span> <span class="id" type="var">fsetdec_rec</span>) ||<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">fail</span> 1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"because the goal is beyond the scope of this tactic".<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">End</span> <span class="id" type="module"><a class="idref" href="CoqFSetDecide.html#FSetDecideAuxiliary">FSetDecideAuxiliary</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Import</span> <span class="id" type="var">FSetDecideAuxiliary</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab35"></a><h1 class="section">The <span class="inlinecode"><span class="id" type="var">fsetdec</span></span> Tactic</h1>
+
+      Here is the top-level tactic (the only one intended for
+      clients of this library).  It's specification is given at
+      the top of the file. 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Ltac</span> <span class="id" type="var">fsetdec</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">unfold</span> <span class="id" type="var">iff</span> <span class="id" type="keyword">in</span> *;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">fold</span> <span class="id" type="var">any</span> <span class="id" type="var">not</span>; <span class="id" type="tactic">intros</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">decompose</span> <span class="id" type="var">records</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">discard_nonFSet</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">unfold</span> <span class="id" type="var">Empty</span>, <span class="id" type="var">Subset</span>, <span class="id" type="var">Equal</span> <span class="id" type="keyword">in</span> *; <span class="id" type="tactic">intros</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">change_to_E_t</span>; <span class="id" type="var">E_eq_to_Logic_eq</span>; <span class="id" type="tactic">subst</span>++; <span class="id" type="var">Logic_eq_to_E_eq</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pull</span> <span class="id" type="var">not</span> <span class="id" type="keyword">using</span> <span class="id" type="var">FSet_decidability</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">unfold</span> <span class="id" type="var">not</span> <span class="id" type="keyword">in</span> *;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> ?x ?r) -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span> |- (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> ?x ?s) -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">contradict</span> <span class="id" type="var">H</span>; <span class="id" type="var">fsetdec_body</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> ?x ?r) -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span> |- (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> ?x ?y) -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">contradict</span> <span class="id" type="var">H</span>; <span class="id" type="var">fsetdec_body</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> ?x ?r) -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span> |- (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> ?y ?x) -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">contradict</span> <span class="id" type="var">H</span>; <span class="id" type="var">fsetdec_body</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span>: ?P -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span> |- ?Q -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">if</span> <span class="id" type="var">prop</span> (<span class="id" type="inductive"><a class="idref" href="CoqFSetDecide.html#WDecide_fun.FSetDecideAuxiliary.FSet_elt_Prop">FSet_elt_Prop</a></span> <span class="id" type="var">P</span>) <span class="id" type="var">holds</span> <span class="id" type="tactic">by</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="tactic">auto</span> 100 <span class="id" type="keyword">with</span> <span class="id" type="var">FSet_Prop</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">then</span> (<span class="id" type="var">contradict</span> <span class="id" type="var">H</span>; <span class="id" type="var">fsetdec_body</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">else</span> <span class="id" type="var">fsetdec_body</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">fsetdec_body</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab36"></a><h1 class="section">Examples</h1>
+
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Module</span> <span class="id" type="module"><a name="FSetDecideTestCases">FSetDecideTestCases</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_eq_trans_1">test_eq_trans_1</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="var">z</span> <span class="id" type="var">s</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">z</span> <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">z</span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_eq_trans_2">test_eq_trans_2</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="var">z</span> <span class="id" type="var">r</span> <span class="id" type="var">s</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.singleton">singleton</a></span> <span class="id" type="var">y</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">z</span> <span class="id" type="var">r</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">z</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.add">add</a></span> <span class="id" type="var">y</span> <span class="id" type="var">r</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">z</span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_eq_neq_trans_1">test_eq_neq_trans_1</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">w</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="var">z</span> <span class="id" type="var">s</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">w</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">y</span> <span class="id" type="var">z</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">w</span> <span class="id" type="var">s</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">w</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.remove">remove</a></span> <span class="id" type="var">z</span> <span class="id" type="var">s</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_eq_neq_trans_2">test_eq_neq_trans_2</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">w</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="var">z</span> <span class="id" type="var">r1</span> <span class="id" type="var">r2</span> <span class="id" type="var">s</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.singleton">singleton</a></span> <span class="id" type="var">w</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">r1</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.add">add</a></span> <span class="id" type="var">y</span> <span class="id" type="var">r1</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">r2</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.remove">remove</a></span> <span class="id" type="var">z</span> <span class="id" type="var">r2</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">w</span> <span class="id" type="var">s</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">w</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.remove">remove</a></span> <span class="id" type="var">z</span> <span class="id" type="var">s</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_In_singleton">test_In_singleton</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.singleton">singleton</a></span> <span class="id" type="var">x</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_add_In">test_add_In</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="var">s</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.add">add</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_Subset_add_remove">test_Subset_add_remove</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">s</span> [&lt;=] (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.add">add</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.remove">remove</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>)).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_eq_disjunction">test_eq_disjunction</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">w</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="var">z</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">w</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.add">add</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.add">add</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.singleton">singleton</a></span> <span class="id" type="var">z</span>))) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">w</span> <span class="id" type="var">x</span> \/ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">w</span> <span class="id" type="var">y</span> \/ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">w</span> <span class="id" type="var">z</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_not_In_disj">test_not_In_disj</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="var">s1</span> <span class="id" type="var">s2</span> <span class="id" type="var">s3</span> <span class="id" type="var">s4</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.union">union</a></span> <span class="id" type="var">s1</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.union">union</a></span> <span class="id" type="var">s2</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.union">union</a></span> <span class="id" type="var">s3</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.add">add</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s4</span>)))) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s1</span> \/ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s4</span> \/ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">y</span> <span class="id" type="var">x</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_not_In_conj">test_not_In_conj</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="var">s1</span> <span class="id" type="var">s2</span> <span class="id" type="var">s3</span> <span class="id" type="var">s4</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.union">union</a></span> <span class="id" type="var">s1</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.union">union</a></span> <span class="id" type="var">s2</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.union">union</a></span> <span class="id" type="var">s3</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.add">add</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s4</span>)))) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s1</span> /\ ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s4</span> /\ ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">y</span> <span class="id" type="var">x</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_iff_conj">test_iff_conj</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">a</span> <span class="id" type="var">s'</span> &lt;-&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> \/ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">a</span> <span class="id" type="var">s</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">a</span> <span class="id" type="var">s'</span> &lt;-&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">a</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.add">add</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>)).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_set_ops_1">test_set_ops_1</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">q</span> <span class="id" type="var">r</span> <span class="id" type="var">s</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.singleton">singleton</a></span> <span class="id" type="var">x</span>) [&lt;=] <span class="id" type="var">s</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.Empty">Empty</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.union">union</a></span> <span class="id" type="var">q</span> <span class="id" type="var">r</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.Empty">Empty</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.inter">inter</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.diff">diff</a></span> <span class="id" type="var">s</span> <span class="id" type="var">q</span>) (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.diff">diff</a></span> <span class="id" type="var">s</span> <span class="id" type="var">r</span>)) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.eq_chain_test">eq_chain_test</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x1</span> <span class="id" type="var">x2</span> <span class="id" type="var">x3</span> <span class="id" type="var">x4</span> <span class="id" type="var">s1</span> <span class="id" type="var">s2</span> <span class="id" type="var">s3</span> <span class="id" type="var">s4</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.Empty">Empty</a></span> <span class="id" type="var">s1</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x2</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.add">add</a></span> <span class="id" type="var">x1</span> <span class="id" type="var">s1</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x3</span> <span class="id" type="var">s2</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x3</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.remove">remove</a></span> <span class="id" type="var">x2</span> <span class="id" type="var">s2</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x4</span> <span class="id" type="var">s3</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x4</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.add">add</a></span> <span class="id" type="var">x3</span> <span class="id" type="var">s3</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x1</span> <span class="id" type="var">s4</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.Subset">Subset</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.add">add</a></span> <span class="id" type="var">x4</span> <span class="id" type="var">s4</span>) <span class="id" type="var">s4</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_too_complex">test_too_complex</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="var">z</span> <span class="id" type="var">r</span> <span class="id" type="var">s</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.singleton">singleton</a></span> <span class="id" type="var">y</span>) -&gt; <span class="id" type="var">r</span> [&lt;=] <span class="id" type="var">s</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">z</span> <span class="id" type="var">r</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">z</span> <span class="id" type="var">s</span>.<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">fsetdec</span></span> is not intended to solve this directly. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.function_test_1">function_test_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">f</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.t">t</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">g</span> : <span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.elt">elt</a></span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.elt">elt</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">s1</span> <span class="id" type="var">s2</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.t">t</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">x1</span> <span class="id" type="var">x2</span> : <span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.elt">elt</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.Equal">Equal</a></span> <span class="id" type="var">s1</span> (<span class="id" type="var">f</span> <span class="id" type="var">s2</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">x1</span> (<span class="id" type="var">g</span> (<span class="id" type="var">g</span> <span class="id" type="var">x2</span>)) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x1</span> <span class="id" type="var">s1</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> (<span class="id" type="var">g</span> (<span class="id" type="var">g</span> <span class="id" type="var">x2</span>)) (<span class="id" type="var">f</span> <span class="id" type="var">s2</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.function_test_2">function_test_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">f</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.t">t</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">g</span> : <span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.elt">elt</a></span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.elt">elt</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">s1</span> <span class="id" type="var">s2</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.t">t</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">x1</span> <span class="id" type="var">x2</span> : <span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.elt">elt</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.Equal">Equal</a></span> <span class="id" type="var">s1</span> (<span class="id" type="var">f</span> <span class="id" type="var">s2</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">x1</span> (<span class="id" type="var">g</span> <span class="id" type="var">x2</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x1</span> <span class="id" type="var">s1</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">g</span> <span class="id" type="var">x2</span> = <span class="id" type="var">g</span> (<span class="id" type="var">g</span> <span class="id" type="var">x2</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> (<span class="id" type="var">g</span> (<span class="id" type="var">g</span> <span class="id" type="var">x2</span>)) (<span class="id" type="var">f</span> <span class="id" type="var">s2</span>).<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">fsetdec</span></span> is not intended to solve this directly. 
+</div>
+<div class="code">
+<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_baydemir">test_baydemir</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">f</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.t">t</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.t">t</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.elt">elt</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.add">add</a></span> <span class="id" type="var">y</span> (<span class="id" type="var">f</span> <span class="id" type="var">s</span>)) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="var">f</span> <span class="id" type="var">s</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_baydemir_2">test_baydemir_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> : <span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.elt">elt</a></span>) (<span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.t">t</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.Subset">Subset</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.inter">inter</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.singleton">singleton</a></span> <span class="id" type="var">x</span>) <span class="id" type="var">s</span>) <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.empty">empty</a></span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_baydemir_3">test_baydemir_3</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.elt">elt</a></span>) (<span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.t">t</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.add">add</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">x</span> = <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="WDecide_fun.FSetDecideTestCases.test_baydemir_4">test_baydemir_4</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> : <span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.elt">elt</a></span>) (<span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.t">t</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqFSetDecide.html#M.Equal">Equal</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.inter">inter</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.add">add</a></span> <span class="id" type="var">x</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.empty">empty</a></span>) <span class="id" type="var">s</span>) <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.empty">empty</a></span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="CoqFSetDecide.html#M.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">End</span> <span class="id" type="module"><a class="idref" href="CoqFSetDecide.html#FSetDecideTestCases">FSetDecideTestCases</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="module"><a class="idref" href="CoqFSetDecide.html#WDecide_fun">WDecide_fun</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.FSetInterface.html#">FSetInterface</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Now comes variants for self-contained weak sets and for full sets.
+    For these variants, only one argument is necessary. Thanks to
+    the subtyping <span class="inlinecode"><span class="id" type="var">WS</span>&lt;=S</span>, the <span class="inlinecode"><span class="id" type="var">Decide</span></span> functor which is meant to be
+    used on modules <span class="inlinecode">(<span class="id" type="var">M</span>:S)</span> can simply be an alias of <span class="inlinecode"><span class="id" type="var">WDecide</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="module"><a name="WDecide">WDecide</a></span> (<span class="id" type="var">M</span>:WS) := <span class="id" type="module"><a class="idref" href="CoqFSetDecide.html#WDecide_fun">WDecide_fun</a></span> <span class="id" type="module"><a class="idref" href="CoqFSetDecide.html#E">M.E</a></span> <span class="id" type="module"><a class="idref" href="CoqFSetDecide.html#">M</a></span>.<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="module"><a name="Decide">Decide</a></span> := <span class="id" type="module"><a class="idref" href="CoqFSetDecide.html#WDecide">WDecide</a></span>.<br/>
+</div>
+<hr/>This page has been generated by <a href="http://coq.inria.fr">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

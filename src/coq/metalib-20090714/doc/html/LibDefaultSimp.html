@@ -1,0 +1,320 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<link href="coqdoc.css" rel="stylesheet" type="text/css"/>
+<title>LibDefaultSimp</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library LibDefaultSimp</h1>
+
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+A library that provides tactics for "simplifying" goals using
+    a combination of common proof steps. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Program.Equality.html#">Coq.Program.Equality</a></span>.<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Program.Tactics.html#">Coq.Program.Tactics</a></span>.<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.omega.Omega.html#">Coq.omega.Omega</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab65"></a><h1 class="section">Variants on standard tactics</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">n_intros</span> <span class="id" type="var">n</span></span> performs <span class="inlinecode"><span class="id" type="var">n</span></span> introductions. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">n_intros</span> <span class="id" type="var">n</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">n</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#O">O</a></span> =&gt; <span class="id" type="var">idtac</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#S">S</a></span> ?n' =&gt; <span class="id" type="tactic">intros</span> ?; <span class="id" type="var">n_intros</span> <span class="id" type="var">n'</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">safe_f_equal</span></span> is a variant of <span class="inlinecode"><span class="id" type="tactic">f_equal</span></span> that progresses only if
+    it can be "proved" that the function is injective.  An ad hoc
+    method is used to determine whether the function is injective.
+    Unlike <span class="inlinecode"><span class="id" type="tactic">f_equal</span></span>, <span class="inlinecode"><span class="id" type="var">safe_f_equal</span></span> only works on functions up to
+    some particular arity; see the implementation.
+
+<br/><br/>
+    Implementation note: Our test for injectivity of a function uses
+    the <span class="inlinecode"><span class="id" type="tactic">injection</span></span> tactic.  Specifically, if <span class="inlinecode"><span class="id" type="tactic">injection</span></span> generates a
+    new equality, then we assume that the function is injective.  We
+    play tricks with the <span class="inlinecode"><span class="id" type="tactic">try</span></span> and <span class="inlinecode"><span class="id" type="tactic">fail</span></span> tactics so that we can
+    "temporarily" introduce a subgoal that lets us test the function
+    using <span class="inlinecode"><span class="id" type="tactic">injection</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">safe_f_equal</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">rec</span> <span class="id" type="var">inj_test</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">H</span> := <span class="id" type="tactic">fresh</span> "H" <span class="id" type="keyword">in</span> <span class="id" type="tactic">intros</span> <span class="id" type="var">H</span>; <span class="id" type="tactic">injection</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J</span> := <span class="id" type="tactic">fresh</span> "J" <span class="id" type="keyword">in</span> <span class="id" type="tactic">intros</span> <span class="id" type="var">J</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span> : ?x = ?y, <span class="id" type="var">_</span> : ?x = ?y |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">fail</span> 1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span> =&gt; <span class="id" type="var">idtac</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">core</span> <span class="id" type="var">n</span> <span class="id" type="var">t1</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">first</span> [ <span class="id" type="var">first</span> [ <span class="id" type="var">t1</span>; [ <span class="id" type="var">n_intros</span> <span class="id" type="var">n</span>; <span class="id" type="var">inj_test</span> | ]; <span class="id" type="tactic">fail</span> 1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="tactic">fail</span> 2 ]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="tactic">f_equal</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="tactic">fail</span> 1 ]<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| |- ?f <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> = ?f <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">core</span> 16 <span class="id" type="var">ltac</span>:(assert (<span class="id" type="keyword">forall</span> <span class="id" type="var">x1</span> <span class="id" type="var">x2</span> <span class="id" type="var">x3</span> <span class="id" type="var">x4</span> <span class="id" type="var">x5</span> <span class="id" type="var">x6</span> <span class="id" type="var">x7</span> <span class="id" type="var">x8</span> <span class="id" type="var">y1</span> <span class="id" type="var">y2</span> <span class="id" type="var">y3</span> <span class="id" type="var">y4</span> <span class="id" type="var">y5</span> <span class="id" type="var">y6</span> <span class="id" type="var">y7</span> <span class="id" type="var">y8</span>, <span class="id" type="var">f</span> <span class="id" type="var">x1</span> <span class="id" type="var">x2</span> <span class="id" type="var">x3</span> <span class="id" type="var">x4</span> <span class="id" type="var">x5</span> <span class="id" type="var">x6</span> <span class="id" type="var">x7</span> <span class="id" type="var">x8</span> = <span class="id" type="var">f</span> <span class="id" type="var">y1</span> <span class="id" type="var">y2</span> <span class="id" type="var">y3</span> <span class="id" type="var">y4</span> <span class="id" type="var">y5</span> <span class="id" type="var">y6</span> <span class="id" type="var">y7</span> <span class="id" type="var">y8</span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| |- ?f <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> = ?f <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">core</span> 14 <span class="id" type="var">ltac</span>:(assert (<span class="id" type="keyword">forall</span> <span class="id" type="var">x1</span> <span class="id" type="var">x2</span> <span class="id" type="var">x3</span> <span class="id" type="var">x4</span> <span class="id" type="var">x5</span> <span class="id" type="var">x6</span> <span class="id" type="var">x7</span> <span class="id" type="var">y1</span> <span class="id" type="var">y2</span> <span class="id" type="var">y3</span> <span class="id" type="var">y4</span> <span class="id" type="var">y5</span> <span class="id" type="var">y6</span> <span class="id" type="var">y7</span>, <span class="id" type="var">f</span> <span class="id" type="var">x1</span> <span class="id" type="var">x2</span> <span class="id" type="var">x3</span> <span class="id" type="var">x4</span> <span class="id" type="var">x5</span> <span class="id" type="var">x6</span> <span class="id" type="var">x7</span> = <span class="id" type="var">f</span> <span class="id" type="var">y1</span> <span class="id" type="var">y2</span> <span class="id" type="var">y3</span> <span class="id" type="var">y4</span> <span class="id" type="var">y5</span> <span class="id" type="var">y6</span> <span class="id" type="var">y7</span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| |- ?f <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> = ?f <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">core</span> 12 <span class="id" type="var">ltac</span>:(assert (<span class="id" type="keyword">forall</span> <span class="id" type="var">x1</span> <span class="id" type="var">x2</span> <span class="id" type="var">x3</span> <span class="id" type="var">x4</span> <span class="id" type="var">x5</span> <span class="id" type="var">x6</span> <span class="id" type="var">y1</span> <span class="id" type="var">y2</span> <span class="id" type="var">y3</span> <span class="id" type="var">y4</span> <span class="id" type="var">y5</span> <span class="id" type="var">y6</span>, <span class="id" type="var">f</span> <span class="id" type="var">x1</span> <span class="id" type="var">x2</span> <span class="id" type="var">x3</span> <span class="id" type="var">x4</span> <span class="id" type="var">x5</span> <span class="id" type="var">x6</span> = <span class="id" type="var">f</span> <span class="id" type="var">y1</span> <span class="id" type="var">y2</span> <span class="id" type="var">y3</span> <span class="id" type="var">y4</span> <span class="id" type="var">y5</span> <span class="id" type="var">y6</span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| |- ?f <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> = ?f <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">core</span> 10 <span class="id" type="var">ltac</span>:(assert (<span class="id" type="keyword">forall</span> <span class="id" type="var">x1</span> <span class="id" type="var">x2</span> <span class="id" type="var">x3</span> <span class="id" type="var">x4</span> <span class="id" type="var">x5</span> <span class="id" type="var">y1</span> <span class="id" type="var">y2</span> <span class="id" type="var">y3</span> <span class="id" type="var">y4</span> <span class="id" type="var">y5</span>, <span class="id" type="var">f</span> <span class="id" type="var">x1</span> <span class="id" type="var">x2</span> <span class="id" type="var">x3</span> <span class="id" type="var">x4</span> <span class="id" type="var">x5</span> = <span class="id" type="var">f</span> <span class="id" type="var">y1</span> <span class="id" type="var">y2</span> <span class="id" type="var">y3</span> <span class="id" type="var">y4</span> <span class="id" type="var">y5</span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| |- ?f <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> = ?f <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">core</span> 8 <span class="id" type="var">ltac</span>:(assert (<span class="id" type="keyword">forall</span> <span class="id" type="var">x1</span> <span class="id" type="var">x2</span> <span class="id" type="var">x3</span> <span class="id" type="var">x4</span> <span class="id" type="var">y1</span> <span class="id" type="var">y2</span> <span class="id" type="var">y3</span> <span class="id" type="var">y4</span>, <span class="id" type="var">f</span> <span class="id" type="var">x1</span> <span class="id" type="var">x2</span> <span class="id" type="var">x3</span> <span class="id" type="var">x4</span> = <span class="id" type="var">f</span> <span class="id" type="var">y1</span> <span class="id" type="var">y2</span> <span class="id" type="var">y3</span> <span class="id" type="var">y4</span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| |- ?f <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> = ?f <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">core</span> 6 <span class="id" type="var">ltac</span>:(assert (<span class="id" type="keyword">forall</span> <span class="id" type="var">x1</span> <span class="id" type="var">x2</span> <span class="id" type="var">x3</span> <span class="id" type="var">y1</span> <span class="id" type="var">y2</span> <span class="id" type="var">y3</span>, <span class="id" type="var">f</span> <span class="id" type="var">x1</span> <span class="id" type="var">x2</span> <span class="id" type="var">x3</span> = <span class="id" type="var">f</span> <span class="id" type="var">y1</span> <span class="id" type="var">y2</span> <span class="id" type="var">y3</span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| |- ?f <span class="id" type="var">_</span> <span class="id" type="var">_</span> = ?f <span class="id" type="var">_</span> <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">core</span> 4 <span class="id" type="var">ltac</span>:(assert (<span class="id" type="keyword">forall</span> <span class="id" type="var">x1</span> <span class="id" type="var">x2</span> <span class="id" type="var">y1</span> <span class="id" type="var">y2</span>, <span class="id" type="var">f</span> <span class="id" type="var">x1</span> <span class="id" type="var">x2</span> = <span class="id" type="var">f</span> <span class="id" type="var">y1</span> <span class="id" type="var">y2</span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| |- ?f <span class="id" type="var">_</span> = ?f <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">core</span> 2 <span class="id" type="var">ltac</span>:(assert (<span class="id" type="keyword">forall</span> <span class="id" type="var">x1</span> <span class="id" type="var">y1</span>, <span class="id" type="var">f</span> <span class="id" type="var">x1</span> = <span class="id" type="var">f</span> <span class="id" type="var">y1</span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>))<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab66"></a><h1 class="section">Tactics for inversion</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">find_easy_inversion</span></span> finds a non-equality hypothesis that
+    when inverted (using <span class="inlinecode"><span class="id" type="tactic">inversion</span></span>) leads to zero or one subgoals. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">find_easy_inversion</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">is_ok</span> <span class="id" type="var">H</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="tactic">subst</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span> : <span class="id" type="var">_</span> = <span class="id" type="var">_</span> |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">fail</span> 1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span> =&gt; <span class="id" type="var">idtac</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">clear</span> <span class="id" type="var">H</span>)<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="var">_</span> |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">type</span> <span class="id" type="var">of</span> <span class="id" type="var">H</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| @<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#eq">eq</a></span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">fail</span> 1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span> =&gt; (<span class="id" type="tactic">inversion</span> <span class="id" type="var">H</span>; [ <span class="id" type="var">idtac</span> ]; <span class="id" type="var">is_ok</span> <span class="id" type="var">H</span>) || (<span class="id" type="tactic">inversion</span> <span class="id" type="var">H</span>; <span class="id" type="tactic">fail</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">destruct_exists</span></span> finds an element of a dependent product type anywhere
+    in the goal and destructs it. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">destruct_exists</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">rec</span> <span class="id" type="var">main</span> <span class="id" type="var">x</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">type</span> <span class="id" type="var">of</span> <span class="id" type="var">x</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#ex">ex</a></span> <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">destruct</span> <span class="id" type="var">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Specif.html#sig">sig</a></span> <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">destruct</span> <span class="id" type="var">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Specif.html#sigT">sigT</a></span> <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">destruct</span> <span class="id" type="var">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [?x] =&gt; <span class="id" type="var">main</span> <span class="id" type="var">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="var">_</span> |- <span class="id" type="var">_</span> =&gt; <span class="id" type="var">main</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span> : <span class="id" type="var">context</span> [?x] |- <span class="id" type="var">_</span> =&gt; <span class="id" type="var">main</span> <span class="id" type="var">x</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">destruct_sum</span></span> finds an element of a disjoint sum anywhere in the
+    goal and destructs it, i.e., performs a case analysis. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">destruct_sum</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">rec</span> <span class="id" type="var">main</span> <span class="id" type="var">x</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">type</span> <span class="id" type="var">of</span> <span class="id" type="var">x</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#or">or</a></span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">destruct</span> <span class="id" type="var">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Specif.html#sumbool">sumbool</a></span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">destruct</span> <span class="id" type="var">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Specif.html#sumor">sumor</a></span> <span class="id" type="var">_</span> <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">destruct</span> <span class="id" type="var">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span> [?x] =&gt; <span class="id" type="var">main</span> <span class="id" type="var">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="var">_</span> |- <span class="id" type="var">_</span> =&gt; <span class="id" type="var">main</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span> : <span class="id" type="var">context</span> [?x] |- <span class="id" type="var">_</span> =&gt; <span class="id" type="var">main</span> <span class="id" type="var">x</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">find_injection</span></span> finds an equality in the current context and
+    supplies it to the <span class="inlinecode"><span class="id" type="tactic">injection</span></span> tactic.  It succeeds only if there
+    is an equality in the context such that <span class="inlinecode"><span class="id" type="tactic">injection</span></span> generates
+    non-trivial equalities.  On success, the equality is removed from
+    the context, and the equalities generated by <span class="inlinecode"><span class="id" type="tactic">injection</span></span> are left
+    in the goal. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">find_injection</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="var">_</span> = <span class="id" type="var">_</span> |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J</span> := <span class="id" type="tactic">fresh</span> <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">injection</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">intros</span> <span class="id" type="var">J</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : ?x = ?y, <span class="id" type="var">J</span> : ?x = ?y |- <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">fail</span> 1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span> =&gt; <span class="id" type="var">idtac</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">revert</span> <span class="id" type="var">J</span>; <span class="id" type="tactic">clear</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab67"></a><h1 class="section">Putting it all together</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">default_step</span></span> is a default collection of "steps" intended to be
+    applied to the goal over and over again.  None of the steps should
+    lead to multiple subgoals.
+
+<br/><br/>
+    The ordering of the steps is important!  While no step is unsafe
+    (in the sense that it might produce an unprovable goal state),
+    whether one step is applied before another can affect whether some
+    other step applies in the future.  For example, <span class="inlinecode"><span class="id" type="tactic">auto</span></span> is
+    sensitive to the exact form of the goal, hence why it is tried
+    first.
+
+<br/><br/>
+    Implementation note: The "<span class="inlinecode"><span class="id" type="tactic">auto</span></span>" step is pulled out into a tactic
+    named <span class="inlinecode"><span class="id" type="var">default_auto</span></span>, which can be redefined if different behavior
+    is desired.  We do similarly for the <span class="inlinecode"><span class="id" type="var">autorewrite</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">default_auto</span>        := <span class="id" type="tactic">auto</span>; <span class="id" type="tactic">tauto</span>.<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">default_autorewrite</span> := <span class="id" type="tactic">fail</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">default_step</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="var">first</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[ <span class="id" type="var">solve</span> [<span class="id" type="var">default_auto</span>]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="tactic">progress</span> <span class="id" type="tactic">intros</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="tactic">progress</span> <span class="id" type="tactic">simpl</span> <span class="id" type="keyword">in</span> *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="tactic">progress</span> <span class="id" type="tactic">subst</span>*<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">find_injection</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">discriminates</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">find_easy_inversion</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">destruct_exists</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="tactic">progress</span> <span class="id" type="var">default_autorewrite</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">solve</span> [<span class="id" type="keyword">let</span> <span class="id" type="var">H</span> := <span class="id" type="tactic">fresh</span> <span class="id" type="keyword">in</span> <span class="id" type="tactic">assert</span> (<span class="id" type="var">H</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>) <span class="id" type="tactic">by</span> <span class="id" type="tactic">omega</span>; <span class="id" type="tactic">elim</span> <span class="id" type="var">H</span>]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;].<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">default_case_split</span></span> is similar to <span class="inlinecode"><span class="id" type="var">default_step</span></span>, except that the
+    steps it tries lead to case splits. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">default_case_split</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="var">first</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[ <span class="id" type="tactic">progress</span> <span class="id" type="var">destruct_sum</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="tactic">progress</span> <span class="id" type="var">safe_f_equal</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;].<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+We now combine everything above. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">default_steps</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> <span class="id" type="var">default_step</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">default_case_splits</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> <span class="id" type="var">default_case_split</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">default_simp</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> <span class="id" type="var">first</span> [<span class="id" type="var">default_step</span> | <span class="id" type="var">default_case_split</span>].<br/>
+</div>
+<hr/>This page has been generated by <a href="http://coq.inria.fr">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

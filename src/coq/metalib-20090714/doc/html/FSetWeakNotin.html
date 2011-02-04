@@ -1,0 +1,354 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<link href="coqdoc.css" rel="stylesheet" type="text/css"/>
+<title>FSetWeakNotin</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library FSetWeakNotin</h1>
+
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Lemmas and tactics for working with and solving goals related to
+    non-membership in finite sets.  The main tactic of interest here
+    is <span class="inlinecode"><span class="id" type="var">solve_notin</span></span>.
+
+<br/><br/>
+    Implicit arguments are declared by default in this library. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.FSetInterface.html#">Coq.FSets.FSetInterface</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="CoqFSetDecide.html#">CoqFSetDecide</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab60"></a><h1 class="section">Implementation</h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="module"><a name="Notin_fun">Notin_fun</a></span><br/>
+&nbsp;&nbsp;(<span class="id" type="var">E</span> : <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.DecidableType.html#">DecidableType</a></span>) (<span class="id" type="keyword">Import</span> <span class="id" type="var">X</span> : <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.FSetInterface.html#">FSetInterface.WSfun</a></span> <span class="id" type="module"><a class="idref" href="FSetWeakNotin.html#">E</a></span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="keyword">Import</span> <span class="id" type="module"><a name="D">D</a></span> := <span class="id" type="module"><a class="idref" href="CoqFSetDecide.html#">CoqFSetDecide.WDecide_fun</a></span> <span class="id" type="module"><a class="idref" href="FSetWeakNotin.html#">E</a></span> <span class="id" type="module"><a class="idref" href="FSetWeakNotin.html#">X</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab61"></a><h1 class="section">Facts about set non-membership</h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="Notin_fun.Lemmas">Lemmas</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Notin_fun.Lemmas.x">x</a></span> <span class="id" type="variable"><a name="Notin_fun.Lemmas.y">y</a></span>  : <span class="id" type="definition"><a class="idref" href="FSetWeakNotin.html#X.elt">elt</a></span>.<br/>
+<span class="id" type="keyword">Variable</span>  <span class="id" type="variable"><a name="Notin_fun.Lemmas.s">s</a></span> <span class="id" type="variable"><a name="Notin_fun.Lemmas.s'">s'</a></span> : <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.t">X.t</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_empty_1">notin_empty_1</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.empty">empty</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_add_1">notin_add_1</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.add">add</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>) -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_add_1'">notin_add_1'</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.add">add</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">x</span> &lt;&gt; <span class="id" type="var">y</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_add_2">notin_add_2</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.add">add</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>) -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_add_3">notin_add_3</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.add">add</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_singleton_1">notin_singleton_1</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.singleton">singleton</a></span> <span class="id" type="var">x</span>) -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_singleton_1'">notin_singleton_1'</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.singleton">singleton</a></span> <span class="id" type="var">x</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">x</span> &lt;&gt; <span class="id" type="var">y</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_singleton_2">notin_singleton_2</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.singleton">singleton</a></span> <span class="id" type="var">x</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_remove_1">notin_remove_1</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.remove">remove</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> \/ ~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_remove_2">notin_remove_2</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.remove">remove</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_remove_3">notin_remove_3</a></span> :<br/>
+&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.remove">remove</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_remove_3'">notin_remove_3'</a></span> :<br/>
+&nbsp;&nbsp;<span class="id" type="var">x</span> = <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.remove">remove</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_union_1">notin_union_1</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.union">union</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>) -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_union_2">notin_union_2</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.union">union</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>) -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_union_3">notin_union_3</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.union">union</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_inter_1">notin_inter_1</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.inter">inter</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>) -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> \/ ~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_inter_2">notin_inter_2</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.inter">inter</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_inter_3">notin_inter_3</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.inter">inter</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_diff_1">notin_diff_1</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.diff">diff</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>) -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> \/ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_diff_2">notin_diff_2</a></span> :<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.diff">diff</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.notin_diff_3">notin_diff_3</a></span> :<br/>
+&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.diff">diff</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="FSetWeakNotin.html#Notin_fun.Lemmas">Lemmas</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab62"></a><h1 class="section">Hints</h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Resolve</span><br/>
+&nbsp;&nbsp;@<span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_empty_1">notin_empty_1</a></span> @<span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_add_3">notin_add_3</a></span> @<span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_singleton_2">notin_singleton_2</a></span> @<span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_remove_2">notin_remove_2</a></span><br/>
+&nbsp;&nbsp;@<span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_remove_3">notin_remove_3</a></span> @<span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_remove_3'">notin_remove_3'</a></span> @<span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_union_3">notin_union_3</a></span> @<span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_inter_2">notin_inter_2</a></span><br/>
+&nbsp;&nbsp;@<span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_inter_3">notin_inter_3</a></span> @<span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_diff_2">notin_diff_2</a></span> @<span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_diff_3">notin_diff_3</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab63"></a><h1 class="section">Tactics for non-membership</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">destruct_notin</span></span> decomposes all hypotheses of the form <span class="inlinecode">~ <span class="id" type="var">In</span> <span class="id" type="var">x</span> <span class="id" type="var">s</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">destruct_notin</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> ?x ?s -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span> |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">change</span> (~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_notin</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> ?x ?s -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">change</span> (~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_notin</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : ~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">_</span> <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.empty">empty</a></span> |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">clear</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_notin</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : ~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> ?y (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.add">add</a></span> ?x ?s) |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J1</span> := <span class="id" type="tactic">fresh</span> "NotInTac" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J2</span> := <span class="id" type="tactic">fresh</span> "NotInTac" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pose</span> <span class="id" type="var">proof</span> <span class="id" type="var">H</span> <span class="id" type="keyword">as</span> <span class="id" type="var">J1</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pose</span> <span class="id" type="var">proof</span> <span class="id" type="var">H</span> <span class="id" type="keyword">as</span> <span class="id" type="var">J2</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_add_1">notin_add_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_add_1'">notin_add_1'</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">J1</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_add_2">notin_add_2</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">J2</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_notin</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : ~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> ?y (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.singleton">singleton</a></span> ?x) |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J</span> := <span class="id" type="tactic">fresh</span> "NotInTac" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pose</span> <span class="id" type="var">proof</span> <span class="id" type="var">H</span> <span class="id" type="keyword">as</span> <span class="id" type="var">J</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_singleton_1">notin_singleton_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_singleton_1'">notin_singleton_1'</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">J</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_notin</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : ~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> ?y (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.remove">remove</a></span> ?x ?s) |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J</span> := <span class="id" type="tactic">fresh</span> "NotInTac" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_remove_1">notin_remove_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">destruct</span> <span class="id" type="var">H</span> <span class="id" type="keyword">as</span> [<span class="id" type="var">J</span> | <span class="id" type="var">J</span>];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_notin</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : ~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> ?x (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.union">union</a></span> ?s ?s') |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J</span> := <span class="id" type="tactic">fresh</span> "NotInTac" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pose</span> <span class="id" type="var">proof</span> <span class="id" type="var">H</span> <span class="id" type="keyword">as</span> <span class="id" type="var">J</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_union_1">notin_union_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_union_2">notin_union_2</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">J</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_notin</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : ~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> ?x (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.inter">inter</a></span> ?s ?s') |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J</span> := <span class="id" type="tactic">fresh</span> "NotInTac" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_inter_1">notin_inter_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">destruct</span> <span class="id" type="var">H</span> <span class="id" type="keyword">as</span> [<span class="id" type="var">J</span> | <span class="id" type="var">J</span>];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_notin</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : ~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> ?x (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.diff">diff</a></span> ?s ?s') |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J</span> := <span class="id" type="tactic">fresh</span> "NotInTac" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_diff_1">notin_diff_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">destruct</span> <span class="id" type="var">H</span> <span class="id" type="keyword">as</span> [<span class="id" type="var">J</span> | <span class="id" type="var">J</span>];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_notin</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">idtac</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">solve_notin</span></span> decomposes hypotheses of the form <span class="inlinecode">~ <span class="id" type="var">In</span> <span class="id" type="var">x</span> <span class="id" type="var">s</span></span> and
+    then tries some simple heuristics for solving the resulting
+    goals. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">solve_notin</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">intros</span>;<br/>
+&nbsp;&nbsp;<span class="id" type="var">destruct_notin</span>;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> <span class="id" type="var">first</span> [ <span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_union_3">notin_union_3</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_add_3">notin_add_3</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_singleton_2">notin_singleton_2</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="FSetWeakNotin.html#Notin_fun.notin_empty_1">notin_empty_1</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;];<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">auto</span>;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">try</span> <span class="id" type="tactic">tauto</span>;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">fail</span> "Not solvable by [solve_notin]; try [destruct_notin]".<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab64"></a><h1 class="section">Examples and test cases</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+These examples and test cases are not meant to be exhaustive. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.test_solve_notin_1">test_solve_notin_1</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">G</span>,<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.union">union</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span>) -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">G</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.union">union</a></span> <span class="id" type="var">E</span> <span class="id" type="var">G</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.test_solve_notin_2">test_solve_notin_2</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">G</span>,<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.union">union</a></span> <span class="id" type="var">E</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.union">union</a></span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.singleton">singleton</a></span> <span class="id" type="var">y</span>) <span class="id" type="var">F</span>)) -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">G</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.singleton">singleton</a></span> <span class="id" type="var">y</span>) /\ ~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.singleton">singleton</a></span> <span class="id" type="var">x</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.test_solve_notin_3">test_solve_notin_3</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span>,<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.singleton">singleton</a></span> <span class="id" type="var">y</span>) /\ ~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.singleton">singleton</a></span> <span class="id" type="var">x</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.test_solve_notin_4">test_solve_notin_4</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">G</span>,<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.union">union</a></span> <span class="id" type="var">E</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.union">union</a></span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.singleton">singleton</a></span> <span class="id" type="var">x</span>) <span class="id" type="var">F</span>)) -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">G</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.test_solve_notin_5">test_solve_notin_5</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span>,<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.union">union</a></span> <span class="id" type="var">E</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.union">union</a></span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.singleton">singleton</a></span> <span class="id" type="var">y</span>) <span class="id" type="var">F</span>)) -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#E.eq">E.eq</a></span> <span class="id" type="var">y</span> <span class="id" type="var">x</span> /\ ~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.test_solve_notin_6">test_solve_notin_6</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="var">E</span>,<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.add">add</a></span> <span class="id" type="var">y</span> <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> /\ ~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">E</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Notin_fun.test_solve_notin_7">test_solve_notin_7</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span>,<br/>
+&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="FSetWeakNotin.html#X.singleton">singleton</a></span> <span class="id" type="var">x</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="module"><a class="idref" href="FSetWeakNotin.html#Notin_fun">Notin_fun</a></span>.<br/>
+</div>
+<hr/>This page has been generated by <a href="http://coq.inria.fr">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

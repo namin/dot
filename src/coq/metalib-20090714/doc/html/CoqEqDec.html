@@ -1,0 +1,138 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<link href="coqdoc.css" rel="stylesheet" type="text/css"/>
+<title>CoqEqDec</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library CoqEqDec</h1>
+
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+A type class-based library for working with decidable equality. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Classes.Equivalence.html#">Coq.Classes.Equivalence</a></span>.<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Classes.EquivDec.html#">Coq.Classes.EquivDec</a></span>.<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#">Coq.Logic.Decidable</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab18"></a><h1 class="section">Hints for <span class="inlinecode"><span class="id" type="var">equiv</span></span></h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Extern</span> 0 (?x === ?x) =&gt; <span class="id" type="tactic">reflexivity</span>.<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Extern</span> 1 (<span class="id" type="var">_</span> === <span class="id" type="var">_</span>) =&gt; (<span class="id" type="tactic">symmetry</span>; <span class="id" type="tactic">trivial</span>; <span class="id" type="tactic">fail</span>).<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Extern</span> 1 (<span class="id" type="var">_</span> =/= <span class="id" type="var">_</span>) =&gt; (<span class="id" type="tactic">symmetry</span>; <span class="id" type="tactic">trivial</span>; <span class="id" type="tactic">fail</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab19"></a><h1 class="section">Facts about <span class="inlinecode"><span class="id" type="var">EqDec</span></span></h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The <span class="inlinecode"><span class="id" type="var">EqDec</span></span> class is defined in Coq's standard library. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="equiv_reflexive'">equiv_reflexive'</a></span> : <span class="id" type="keyword">forall</span> `{<span class="id" type="class"><a class="idref" href="http://coq.inria.fr/library/Coq.Classes.EquivDec.html#EqDec">EqDec</a></span> <span class="id" type="var">A</span>} (<span class="id" type="var">x</span> : <span class="id" type="var">A</span>),<br/>
+&nbsp;&nbsp;<span class="id" type="var">x</span> === <span class="id" type="var">x</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="equiv_symmetric'">equiv_symmetric'</a></span> : <span class="id" type="keyword">forall</span> `{<span class="id" type="class"><a class="idref" href="http://coq.inria.fr/library/Coq.Classes.EquivDec.html#EqDec">EqDec</a></span> <span class="id" type="var">A</span>} (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="var">A</span>),<br/>
+&nbsp;&nbsp;<span class="id" type="var">x</span> === <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">y</span> === <span class="id" type="var">x</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="equiv_transitive'">equiv_transitive'</a></span> : <span class="id" type="keyword">forall</span> `{<span class="id" type="class"><a class="idref" href="http://coq.inria.fr/library/Coq.Classes.EquivDec.html#EqDec">EqDec</a></span> <span class="id" type="var">A</span>} (<span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="var">z</span> : <span class="id" type="var">A</span>),<br/>
+&nbsp;&nbsp;<span class="id" type="var">x</span> === <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">y</span> === <span class="id" type="var">z</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">x</span> === <span class="id" type="var">z</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="equiv_decidable">equiv_decidable</a></span> : <span class="id" type="keyword">forall</span> `{<span class="id" type="class"><a class="idref" href="http://coq.inria.fr/library/Coq.Classes.EquivDec.html#EqDec">EqDec</a></span> <span class="id" type="var">A</span>} (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="var">A</span>),<br/>
+&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#decidable">decidable</a></span> (<span class="id" type="var">x</span> === <span class="id" type="var">y</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab20"></a><h1 class="section">Specializing <span class="inlinecode"><span class="id" type="var">EqDec</span></span></h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+It is convenient to be able to use a single notation for decidable
+    equality on types.  This can naturally be done using a type class.
+    However, the definition of <span class="inlinecode"><span class="id" type="var">EqDec</span></span> in the EquivDec library is
+    overly general for cases where the equality is <span class="inlinecode"><span class="id" type="var">eq</span></span>: the extra
+    layer of abstraction provided by abstracting over the equivalence
+    relation gets in the way of smooth reasoning.  To get around this,
+    we define a version of that class where the equivalence relation
+    is hard-coded to be <span class="inlinecode"><span class="id" type="var">eq</span></span>.
+
+<br/><br/>
+    Implementation note: One should not declare an instance for
+    <span class="inlinecode"><span class="id" type="var">EqDec_eq</span> <span class="id" type="var">A</span></span> directly.  First, declare an instance for <span class="inlinecode">@<span class="id" type="var">EqDec</span> <span class="id" type="var">A</span>
+    <span class="id" type="var">eq</span> <span class="id" type="var">eq_equivalence</span></span>.  Second, let class inference build an instance
+    for <span class="inlinecode"><span class="id" type="var">EqDec_eq</span> <span class="id" type="var">A</span></span> using the instance declaration below.
+
+<br/><br/>
+    Implementation note (BEA): Specifying <span class="inlinecode"><span class="id" type="var">eq_equivalence</span></span> explicitly
+    is important.  Following Murphy's Law, if type class inference can
+    find multiple ways of inferring the <span class="inlinecode">@<span class="id" type="var">Equivalence</span> <span class="id" type="var">A</span> <span class="id" type="var">eq</span></span> argument,
+    it will do so in the most inconvenient way possible.
+    Additionally, I choose to infer <span class="inlinecode"><span class="id" type="var">EqDec_eq</span></span> instances from <span class="inlinecode"><span class="id" type="var">EqDec</span></span>
+    instances because the standard library already defines instances
+    for <span class="inlinecode"><span class="id" type="var">EqDec</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Class</span> <span class="id" type="record"><a name="EqDec_eq">EqDec_eq</a></span> (<span class="id" type="var">A</span> : <span class="id" type="keyword">Type</span>) :=<br/>
+&nbsp;&nbsp;<span class="id" type="projection"><a name="eq_dec">eq_dec</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="var">A</span>), {<span class="id" type="var">x</span> = <span class="id" type="var">y</span>} + {<span class="id" type="var">x</span> &lt;&gt; <span class="id" type="var">y</span>}.<br/>
+
+<br/>
+<span class="id" type="keyword">Instance</span> <span class="id" type="instance"><a name="EqDec_eq_of_EqDec">EqDec_eq_of_EqDec</a></span> `(@<span class="id" type="class"><a class="idref" href="http://coq.inria.fr/library/Coq.Classes.EquivDec.html#EqDec">EqDec</a></span> <span class="id" type="var">A</span> <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#eq">eq</a></span> <span class="id" type="instance"><a class="idref" href="http://coq.inria.fr/library/Coq.Classes.RelationClasses.html#eq_equivalence">eq_equivalence</a></span>) : <span class="id" type="class"><a class="idref" href="CoqEqDec.html#EqDec_eq">EqDec_eq</a></span> <span class="id" type="var">A</span>.<br/>
+</div>
+<hr/>This page has been generated by <a href="http://coq.inria.fr">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

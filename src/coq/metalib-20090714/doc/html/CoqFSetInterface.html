@@ -1,0 +1,1000 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<link href="coqdoc.css" rel="stylesheet" type="text/css"/>
+<title>CoqFSetInterface</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library CoqFSetInterface</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+Includes minor tweaks by Brian Aydemir.
+
+<br/><br/>
+
+<ul>
+<li> Prefer <span class="inlinecode"><span class="id" type="var">E.t</span></span> over <span class="inlinecode"><span class="id" type="var">elt</span></span> in types, so that "parameter inlining"
+      is more effective. 
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab37"></a><h1 class="section">Finite set library</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Set interfaces, inspired by the one of Ocaml. When compared with 
+    Ocaml, the main differences are: 
+
+<ul>
+<li> the lack of <span class="inlinecode"><span class="id" type="var">iter</span></span> function, useless since Coq is purely functional
+
+</li>
+<li> the use of <span class="inlinecode"><span class="id" type="var">option</span></span> types instead of <span class="inlinecode"><span class="id" type="var">Not_found</span></span> exceptions
+
+</li>
+<li> the use of <span class="inlinecode"><span class="id" type="var">nat</span></span> instead of <span class="inlinecode"><span class="id" type="var">int</span></span> for the <span class="inlinecode"><span class="id" type="var">cardinal</span></span> function 
+
+</li>
+</ul>
+
+<br/><br/>
+    Several variants of the set interfaces are available: 
+
+<ul>
+<li> <span class="inlinecode"><span class="id" type="var">WSfun</span></span> : functorial signature for weak sets, non-dependent style
+
+</li>
+<li> <span class="inlinecode"><span class="id" type="var">WS</span></span>    : self-contained version of <span class="inlinecode"><span class="id" type="var">WSfun</span></span>
+
+</li>
+<li> <span class="inlinecode"><span class="id" type="var">Sfun</span></span>  : functorial signature for ordered sets, non-dependent style
+
+</li>
+<li> <span class="inlinecode"><span class="id" type="var">S</span></span>     : self-contained version of <span class="inlinecode"><span class="id" type="var">Sfun</span></span>
+
+</li>
+<li> <span class="inlinecode"><span class="id" type="var">Sdep</span></span>  : analog of <span class="inlinecode"><span class="id" type="var">S</span></span> written using dependent style
+
+</li>
+</ul>
+
+<br/><br/>
+    If unsure, <span class="inlinecode"><span class="id" type="var">S</span></span> is probably what you're looking for: other signatures
+    are subsets of it, apart from <span class="inlinecode"><span class="id" type="var">Sdep</span></span> which is isomorphic to <span class="inlinecode"><span class="id" type="var">S</span></span> (see 
+    <span class="inlinecode"><span class="id" type="var">FSetBridge</span></span>).
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Export</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Bool.Bool.html#">Bool</a></span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.OrderedType.html#">OrderedType</a></span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.DecidableType.html#">DecidableType</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab38"></a><h1 class="section">Non-dependent signatures</h1>
+
+
+<br/><br/>
+    The following signatures presents sets as purely informative 
+    programs together with axioms 
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab39"></a><h2 class="section">Functorial signature for weak sets</h2>
+
+
+<br/><br/>
+    Weak sets are sets without ordering on base elements, only 
+    a decidable equality. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="keyword">Type</span> <span class="id" type="module"><a name="WSfun">WSfun</a></span> (<span class="id" type="var">E</span> : <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.DecidableType.html#">DecidableType</a></span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="WSfun.elt">elt</a></span> := <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.t">t</a></span> : <span class="id" type="keyword">Type</span>. </div>
+
+<div class="doc">
+the abstract type of sets 
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Logical predicates 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.In">In</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="keyword">Prop</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="WSfun.Equal">Equal</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> := <span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">a</span> <span class="id" type="var">s</span> &lt;-&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">a</span> <span class="id" type="var">s'</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="WSfun.Subset">Subset</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> := <span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">a</span> <span class="id" type="var">s</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">a</span> <span class="id" type="var">s'</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="WSfun.Empty">Empty</a></span> <span class="id" type="var">s</span> := <span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span>, ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">a</span> <span class="id" type="var">s</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="WSfun.For_all">For_all</a></span> (<span class="id" type="var">P</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span> -&gt; <span class="id" type="keyword">Prop</span>) <span class="id" type="var">s</span> := <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> -&gt; <span class="id" type="var">P</span> <span class="id" type="var">x</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="WSfun.Exists">Exists</a></span> (<span class="id" type="var">P</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span> -&gt; <span class="id" type="keyword">Prop</span>) <span class="id" type="var">s</span> := <span class="id" type="var">exists</span> <span class="id" type="var">x</span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> /\ <span class="id" type="var">P</span> <span class="id" type="var">x</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Notation</span> "s  [=]  t" := (<span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.Equal">Equal</a></span> <span class="id" type="var">s</span> <span class="id" type="var">t</span>) (<span class="id" type="tactic">at</span> <span class="id" type="var">level</span> 70, <span class="id" type="var">no</span> <span class="id" type="var">associativity</span>).<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Notation</span> "s  [&lt;=]  t" := (<span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.Subset">Subset</a></span> <span class="id" type="var">s</span> <span class="id" type="var">t</span>) (<span class="id" type="tactic">at</span> <span class="id" type="var">level</span> 70, <span class="id" type="var">no</span> <span class="id" type="var">associativity</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.empty">empty</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span>.<br/>
+</div>
+
+<div class="doc">
+The empty set. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.is_empty">is_empty</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#bool">bool</a></span>.<br/>
+</div>
+
+<div class="doc">
+Test whether a set is empty or not. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.mem">mem</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#bool">bool</a></span>.<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">mem</span> <span class="id" type="var">x</span> <span class="id" type="var">s</span></span> tests whether <span class="inlinecode"><span class="id" type="var">x</span></span> belongs to the set <span class="inlinecode"><span class="id" type="var">s</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.add">add</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span>.<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">add</span> <span class="id" type="var">x</span> <span class="id" type="var">s</span></span> returns a set containing all elements of <span class="inlinecode"><span class="id" type="var">s</span></span>,
+  plus <span class="inlinecode"><span class="id" type="var">x</span></span>. If <span class="inlinecode"><span class="id" type="var">x</span></span> was already in <span class="inlinecode"><span class="id" type="var">s</span></span>, <span class="inlinecode"><span class="id" type="var">s</span></span> is returned unchanged. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.singleton">singleton</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span>.<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">singleton</span> <span class="id" type="var">x</span></span> returns the one-element set containing only <span class="inlinecode"><span class="id" type="var">x</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.remove">remove</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span>.<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">remove</span> <span class="id" type="var">x</span> <span class="id" type="var">s</span></span> returns a set containing all elements of <span class="inlinecode"><span class="id" type="var">s</span></span>,
+  except <span class="inlinecode"><span class="id" type="var">x</span></span>. If <span class="inlinecode"><span class="id" type="var">x</span></span> was not in <span class="inlinecode"><span class="id" type="var">s</span></span>, <span class="inlinecode"><span class="id" type="var">s</span></span> is returned unchanged. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.union">union</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span>.<br/>
+</div>
+
+<div class="doc">
+Set union. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.inter">inter</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span>.<br/>
+</div>
+
+<div class="doc">
+Set intersection. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.diff">diff</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span>.<br/>
+</div>
+
+<div class="doc">
+Set difference. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="WSfun.eq">eq</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="keyword">Prop</span> := <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.Equal">Equal</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.eq_dec">eq_dec</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>, { <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.eq">eq</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> } + { ~ <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.eq">eq</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> }.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.equal">equal</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#bool">bool</a></span>.<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">equal</span> <span class="id" type="var">s1</span> <span class="id" type="var">s2</span></span> tests whether the sets <span class="inlinecode"><span class="id" type="var">s1</span></span> and <span class="inlinecode"><span class="id" type="var">s2</span></span> are
+  equal, that is, contain equal elements. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.subset">subset</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#bool">bool</a></span>.<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">subset</span> <span class="id" type="var">s1</span> <span class="id" type="var">s2</span></span> tests whether the set <span class="inlinecode"><span class="id" type="var">s1</span></span> is a subset of
+  the set <span class="inlinecode"><span class="id" type="var">s2</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.fold">fold</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> : <span class="id" type="keyword">Type</span>, (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span> -&gt; <span class="id" type="var">A</span> -&gt; <span class="id" type="var">A</span>) -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="var">A</span> -&gt; <span class="id" type="var">A</span>.<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">fold</span> <span class="id" type="var">f</span> <span class="id" type="var">s</span> <span class="id" type="var">a</span></span> computes <span class="inlinecode">(<span class="id" type="var">f</span> <span class="id" type="var">xN</span> ... (<span class="id" type="var">f</span> <span class="id" type="var">x2</span> (<span class="id" type="var">f</span> <span class="id" type="var">x1</span> <span class="id" type="var">a</span>))...)</span>,
+  where <span class="inlinecode"><span class="id" type="var">x1</span> ... <span class="id" type="var">xN</span></span> are the elements of <span class="inlinecode"><span class="id" type="var">s</span></span>.
+  The order in which elements of <span class="inlinecode"><span class="id" type="var">s</span></span> are presented to <span class="inlinecode"><span class="id" type="var">f</span></span> is
+  unspecified. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.for_all">for_all</a></span> : (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#bool">bool</a></span>) -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#bool">bool</a></span>.<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">for_all</span> <span class="id" type="var">p</span> <span class="id" type="var">s</span></span> checks if all elements of the set
+  satisfy the predicate <span class="inlinecode"><span class="id" type="var">p</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.exists_">exists_</a></span> : (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#bool">bool</a></span>) -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#bool">bool</a></span>.<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">exists</span> <span class="id" type="var">p</span> <span class="id" type="var">s</span></span> checks if at least one element of
+  the set satisfies the predicate <span class="inlinecode"><span class="id" type="var">p</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.filter">filter</a></span> : (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#bool">bool</a></span>) -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span>.<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">filter</span> <span class="id" type="var">p</span> <span class="id" type="var">s</span></span> returns the set of all elements in <span class="inlinecode"><span class="id" type="var">s</span></span>
+  that satisfy predicate <span class="inlinecode"><span class="id" type="var">p</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.partition">partition</a></span> : (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#bool">bool</a></span>) -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> * <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span>.<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">partition</span> <span class="id" type="var">p</span> <span class="id" type="var">s</span></span> returns a pair of sets <span class="inlinecode">(<span class="id" type="var">s1</span>, <span class="id" type="var">s2</span>)</span>, where
+  <span class="inlinecode"><span class="id" type="var">s1</span></span> is the set of all the elements of <span class="inlinecode"><span class="id" type="var">s</span></span> that satisfy the
+  predicate <span class="inlinecode"><span class="id" type="var">p</span></span>, and <span class="inlinecode"><span class="id" type="var">s2</span></span> is the set of all the elements of
+  <span class="inlinecode"><span class="id" type="var">s</span></span> that do not satisfy <span class="inlinecode"><span class="id" type="var">p</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.cardinal">cardinal</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#nat">nat</a></span>.<br/>
+</div>
+
+<div class="doc">
+Return the number of elements of a set. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.elements">elements</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span>.<br/>
+</div>
+
+<div class="doc">
+Return the list of all elements of the given set, in any order. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.choose">choose</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#option">option</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span>.<br/>
+</div>
+
+<div class="doc">
+Return one element of the given set, or <span class="inlinecode"><span class="id" type="var">None</span></span> if
+  the set is empty. Which element is chosen is unspecified.
+  Equal sets could return different elements. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="WSfun.Spec">Spec</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variable</span> <span class="id" type="variable"><a name="WSfun.Spec.s">s</a></span> <span class="id" type="variable"><a name="WSfun.Spec.s'">s'</a></span> <span class="id" type="variable"><a name="WSfun.Spec.s''">s''</a></span>: <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.t">t</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variable</span> <span class="id" type="variable"><a name="WSfun.Spec.x">x</a></span> <span class="id" type="variable"><a name="WSfun.Spec.y">y</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">In</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.In_1">In_1</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">eq</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.eq_refl">eq_refl</a></span> : <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.eq">eq</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.eq_sym">eq_sym</a></span> : <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.eq">eq</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.eq">eq</a></span> <span class="id" type="var">s'</span> <span class="id" type="var">s</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.eq_trans">eq_trans</a></span> : <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.eq">eq</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.eq">eq</a></span> <span class="id" type="var">s'</span> <span class="id" type="var">s''</span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.eq">eq</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s''</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">mem</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.mem_1">mem_1</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.mem">mem</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.mem_2">mem_2</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.mem">mem</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">equal</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.equal_1">equal_1</a></span> : <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.Equal">Equal</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.equal">equal</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.equal_2">equal_2</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.equal">equal</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.Equal">Equal</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">subset</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.subset_1">subset_1</a></span> : <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.Subset">Subset</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.subset">subset</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.subset_2">subset_2</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.subset">subset</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.Subset">Subset</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">empty</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.empty_1">empty_1</a></span> : <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.Empty">Empty</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.empty">empty</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">is_empty</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.is_empty_1">is_empty_1</a></span> : <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.Empty">Empty</a></span> <span class="id" type="var">s</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.is_empty">is_empty</a></span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.is_empty_2">is_empty_2</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.is_empty">is_empty</a></span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.Empty">Empty</a></span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">add</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.add_1">add_1</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.add">add</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>).<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.add_2">add_2</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.add">add</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>).<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.add_3">add_3</a></span> : ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.add">add</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>) -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">remove</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.remove_1">remove_1</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt; ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.remove">remove</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>).<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.remove_2">remove_2</a></span> : ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.remove">remove</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>).<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.remove_3">remove_3</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.remove">remove</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>) -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">singleton</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.singleton_1">singleton_1</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.singleton">singleton</a></span> <span class="id" type="var">x</span>) -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.singleton_2">singleton_2</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">y</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.singleton">singleton</a></span> <span class="id" type="var">x</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">union</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.union_1">union_1</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.union">union</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>) -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> \/ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.union_2">union_2</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.union">union</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>).<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.union_3">union_3</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.union">union</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">inter</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.inter_1">inter_1</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.inter">inter</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>) -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.inter_2">inter_2</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.inter">inter</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>) -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.inter_3">inter_3</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.inter">inter</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">diff</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.diff_1">diff_1</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.diff">diff</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>) -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.diff_2">diff_2</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.diff">diff</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>) -&gt; ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.diff_3">diff_3</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> -&gt; ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.diff">diff</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">fold</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.fold_1">fold_1</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">A</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">i</span> : <span class="id" type="var">A</span>) (<span class="id" type="var">f</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span> -&gt; <span class="id" type="var">A</span> -&gt; <span class="id" type="var">A</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.fold">fold</a></span> <span class="id" type="var">f</span> <span class="id" type="var">s</span> <span class="id" type="var">i</span> = <span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#fold_left">fold_left</a></span> (<span class="id" type="keyword">fun</span> <span class="id" type="var">a</span> <span class="id" type="var">e</span> =&gt; <span class="id" type="var">f</span> <span class="id" type="var">e</span> <span class="id" type="var">a</span>) (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.elements">elements</a></span> <span class="id" type="var">s</span>) <span class="id" type="var">i</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">cardinal</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.cardinal_1">cardinal_1</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.cardinal">cardinal</a></span> <span class="id" type="var">s</span> = <span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#length">length</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.elements">elements</a></span> <span class="id" type="var">s</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="WSfun.Spec.Filter">Filter</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variable</span> <span class="id" type="variable"><a name="WSfun.Spec.Filter.f">f</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#bool">bool</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">filter</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.filter_1">filter_1</a></span> : <span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#compat_bool">compat_bool</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">f</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.filter">filter</a></span> <span class="id" type="var">f</span> <span class="id" type="var">s</span>) -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.filter_2">filter_2</a></span> : <span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#compat_bool">compat_bool</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">f</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.filter">filter</a></span> <span class="id" type="var">f</span> <span class="id" type="var">s</span>) -&gt; <span class="id" type="var">f</span> <span class="id" type="var">x</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.filter_3">filter_3</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#compat_bool">compat_bool</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">f</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> -&gt; <span class="id" type="var">f</span> <span class="id" type="var">x</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.filter">filter</a></span> <span class="id" type="var">f</span> <span class="id" type="var">s</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">for_all</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.for_all_1">for_all_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#compat_bool">compat_bool</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">f</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.For_all">For_all</a></span> (<span class="id" type="keyword">fun</span> <span class="id" type="var">x</span> =&gt; <span class="id" type="var">f</span> <span class="id" type="var">x</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span>) <span class="id" type="var">s</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.for_all">for_all</a></span> <span class="id" type="var">f</span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.for_all_2">for_all_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#compat_bool">compat_bool</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">f</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.for_all">for_all</a></span> <span class="id" type="var">f</span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.For_all">For_all</a></span> (<span class="id" type="keyword">fun</span> <span class="id" type="var">x</span> =&gt; <span class="id" type="var">f</span> <span class="id" type="var">x</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span>) <span class="id" type="var">s</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">exists</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.exists_1">exists_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#compat_bool">compat_bool</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">f</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.Exists">Exists</a></span> (<span class="id" type="keyword">fun</span> <span class="id" type="var">x</span> =&gt; <span class="id" type="var">f</span> <span class="id" type="var">x</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span>) <span class="id" type="var">s</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.exists_">exists_</a></span> <span class="id" type="var">f</span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.exists_2">exists_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#compat_bool">compat_bool</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">f</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.exists_">exists_</a></span> <span class="id" type="var">f</span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.Exists">Exists</a></span> (<span class="id" type="keyword">fun</span> <span class="id" type="var">x</span> =&gt; <span class="id" type="var">f</span> <span class="id" type="var">x</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#true">true</a></span>) <span class="id" type="var">s</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">partition</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.partition_1">partition_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#compat_bool">compat_bool</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">f</span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.Equal">Equal</a></span> (<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#fst">fst</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.partition">partition</a></span> <span class="id" type="var">f</span> <span class="id" type="var">s</span>)) (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.filter">filter</a></span> <span class="id" type="var">f</span> <span class="id" type="var">s</span>).<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.partition_2">partition_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#compat_bool">compat_bool</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">f</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.Equal">Equal</a></span> (<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#snd">snd</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.partition">partition</a></span> <span class="id" type="var">f</span> <span class="id" type="var">s</span>)) (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.filter">filter</a></span> (<span class="id" type="keyword">fun</span> <span class="id" type="var">x</span> =&gt; <span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#negb">negb</a></span> (<span class="id" type="var">f</span> <span class="id" type="var">x</span>)) <span class="id" type="var">s</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="CoqFSetInterface.html#WSfun.Spec.Filter">Filter</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">elements</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.elements_1">elements_1</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#InA">InA</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.elements">elements</a></span> <span class="id" type="var">s</span>).<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.elements_2">elements_2</a></span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#InA">InA</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.elements">elements</a></span> <span class="id" type="var">s</span>) -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>.<br/>
+</div>
+
+<div class="doc">
+When compared with ordered sets, here comes the only 
+      property that is really weaker: 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.elements_3w">elements_3w</a></span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#NoDupA">NoDupA</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.elements">elements</a></span> <span class="id" type="var">s</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">choose</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.choose_1">choose_1</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.choose">choose</a></span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#Some">Some</a></span> <span class="id" type="var">x</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="WSfun.choose_2">choose_2</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.choose">choose</a></span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#None">None</a></span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#WSfun.Empty">Empty</a></span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="CoqFSetInterface.html#WSfun.Spec">Spec</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Resolve</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.mem_1">mem_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.equal_1">equal_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.subset_1">subset_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.empty_1">empty_1</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.is_empty_1">is_empty_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.choose_1">choose_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.choose_2">choose_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.add_1">add_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.add_2">add_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.remove_1">remove_1</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.remove_2">remove_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.singleton_2">singleton_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.union_1">union_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.union_2">union_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.union_3">union_3</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.inter_3">inter_3</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.diff_3">diff_3</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.fold_1">fold_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.filter_3">filter_3</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.for_all_1">for_all_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.exists_1">exists_1</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.partition_1">partition_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.partition_2">partition_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.elements_1">elements_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.elements_3w">elements_3w</a></span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" type="tactic">set</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Immediate</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.In_1">In_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.mem_2">mem_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.equal_2">equal_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.subset_2">subset_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.is_empty_2">is_empty_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.add_3">add_3</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.remove_3">remove_3</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.singleton_1">singleton_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.inter_1">inter_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.inter_2">inter_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.diff_1">diff_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.diff_2">diff_2</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.filter_1">filter_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.filter_2">filter_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.for_all_2">for_all_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.exists_2">exists_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#WSfun.elements_2">elements_2</a></span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" type="tactic">set</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="module"><a class="idref" href="CoqFSetInterface.html#WSfun">WSfun</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab40"></a><h2 class="section">Static signature for weak sets</h2>
+
+
+<br/><br/>
+    Similar to the functorial signature <span class="inlinecode"><span class="id" type="var">SW</span></span>, except that the 
+    module <span class="inlinecode"><span class="id" type="var">E</span></span> of base elements is incorporated in the signature. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="keyword">Type</span> <span class="id" type="module"><a name="WS">WS</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Declare Module</span> <span class="id" type="module"><a name="E">E</a></span> : <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.DecidableType.html#">DecidableType</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="var">Include Type</span> <span class="id" type="module"><a class="idref" href="CoqFSetInterface.html#WSfun">WSfun</a></span> <span class="id" type="module"><a class="idref" href="CoqFSetInterface.html#E">E</a></span>.<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="module"><a class="idref" href="CoqFSetInterface.html#WS">WS</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab41"></a><h2 class="section">Functorial signature for sets on ordered elements</h2>
+
+
+<br/><br/>
+    Based on <span class="inlinecode"><span class="id" type="var">WSfun</span></span>, plus ordering on sets and <span class="inlinecode"><span class="id" type="var">min_elt</span></span> and <span class="inlinecode"><span class="id" type="var">max_elt</span></span>
+    and some stronger specifications for other functions. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="keyword">Type</span> <span class="id" type="module"><a name="Sfun">Sfun</a></span> (<span class="id" type="var">E</span> : <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.OrderedType.html#">OrderedType</a></span>).<br/>
+&nbsp;&nbsp;<span class="id" type="var">Include Type</span> <span class="id" type="module"><a class="idref" href="CoqFSetInterface.html#WSfun">WSfun</a></span> <span class="id" type="module"><a class="idref" href="CoqFSetInterface.html#">E</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sfun.lt">lt</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.t">t</a></span> -&gt; <span class="id" type="keyword">Prop</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sfun.compare">compare</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.t">t</a></span>, <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.OrderedType.html#Compare">Compare</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.lt">lt</a></span> <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sfun.eq">eq</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>.<br/>
+</div>
+
+<div class="doc">
+Total ordering between sets. Can be used as the ordering function
+  for doing sets of sets. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sfun.min_elt">min_elt</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.t">t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#option">option</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span>.<br/>
+</div>
+
+<div class="doc">
+Return the smallest element of the given set
+  (with respect to the <span class="inlinecode"><span class="id" type="var">E.compare</span></span> ordering), 
+  or <span class="inlinecode"><span class="id" type="var">None</span></span> if the set is empty. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sfun.max_elt">max_elt</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.t">t</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#option">option</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span>.<br/>
+</div>
+
+<div class="doc">
+Same as <span class="inlinecode"><span class="id" type="var">min_elt</span></span>, but returns the largest element of the
+  given set. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="Sfun.Spec">Spec</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variable</span> <span class="id" type="variable"><a name="Sfun.Spec.s">s</a></span> <span class="id" type="variable"><a name="Sfun.Spec.s'">s'</a></span> <span class="id" type="variable"><a name="Sfun.Spec.s''">s''</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.t">t</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variable</span> <span class="id" type="variable"><a name="Sfun.Spec.x">x</a></span> <span class="id" type="variable"><a name="Sfun.Spec.y">y</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.t">E.t</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">lt</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sfun.lt_trans">lt_trans</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.lt">lt</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.lt">lt</a></span> <span class="id" type="var">s'</span> <span class="id" type="var">s''</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.lt">lt</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s''</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sfun.lt_not_eq">lt_not_eq</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.lt">lt</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> -&gt; ~ <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sfun.eq">eq</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Additional specification of <span class="inlinecode"><span class="id" type="var">elements</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sfun.elements_3">elements_3</a></span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Sorting.Sorting.html#sort">sort</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.lt">E.lt</a></span> (<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.elements">elements</a></span> <span class="id" type="var">s</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Remark: since <span class="inlinecode"><span class="id" type="var">fold</span></span> is specified via <span class="inlinecode"><span class="id" type="var">elements</span></span>, this stronger
+   specification of <span class="inlinecode"><span class="id" type="var">elements</span></span> has an indirect impact on <span class="inlinecode"><span class="id" type="var">fold</span></span>, 
+   which can now be proved to receive elements in increasing order.
+  
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">min_elt</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sfun.min_elt_1">min_elt_1</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.min_elt">min_elt</a></span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#Some">Some</a></span> <span class="id" type="var">x</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sfun.min_elt_2">min_elt_2</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.min_elt">min_elt</a></span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#Some">Some</a></span> <span class="id" type="var">x</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span> -&gt; ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.lt">E.lt</a></span> <span class="id" type="var">y</span> <span class="id" type="var">x</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sfun.min_elt_3">min_elt_3</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.min_elt">min_elt</a></span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#None">None</a></span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sfun.Empty">Empty</a></span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Specification of <span class="inlinecode"><span class="id" type="var">max_elt</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sfun.max_elt_1">max_elt_1</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.max_elt">max_elt</a></span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#Some">Some</a></span> <span class="id" type="var">x</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sfun.max_elt_2">max_elt_2</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.max_elt">max_elt</a></span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#Some">Some</a></span> <span class="id" type="var">x</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span> -&gt; ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.lt">E.lt</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sfun.max_elt_3">max_elt_3</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.max_elt">max_elt</a></span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#None">None</a></span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sfun.Empty">Empty</a></span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Additional specification of <span class="inlinecode"><span class="id" type="var">choose</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sfun.choose_3">choose_3</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.choose">choose</a></span> <span class="id" type="var">s</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#Some">Some</a></span> <span class="id" type="var">x</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.choose">choose</a></span> <span class="id" type="var">s'</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#Some">Some</a></span> <span class="id" type="var">y</span> -&gt; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sfun.Equal">Equal</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="CoqFSetInterface.html#Sfun.Spec">Spec</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Resolve</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.elements_3">elements_3</a></span> : <span class="id" type="tactic">set</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Immediate</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.min_elt_1">min_elt_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.min_elt_2">min_elt_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.min_elt_3">min_elt_3</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.max_elt_1">max_elt_1</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.max_elt_2">max_elt_2</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sfun.max_elt_3">max_elt_3</a></span> : <span class="id" type="tactic">set</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="module"><a class="idref" href="CoqFSetInterface.html#Sfun">Sfun</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab42"></a><h2 class="section">Static signature for sets on ordered elements</h2>
+
+
+<br/><br/>
+    Similar to the functorial signature <span class="inlinecode"><span class="id" type="var">Sfun</span></span>, except that the 
+    module <span class="inlinecode"><span class="id" type="var">E</span></span> of base elements is incorporated in the signature. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="keyword">Type</span> <span class="id" type="module"><a name="S">S</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Declare Module</span> <span class="id" type="module"><a name="E">E</a></span> : <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.OrderedType.html#">OrderedType</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="var">Include Type</span> <span class="id" type="module"><a class="idref" href="CoqFSetInterface.html#Sfun">Sfun</a></span> <span class="id" type="module"><a class="idref" href="CoqFSetInterface.html#E">E</a></span>.<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="module"><a class="idref" href="CoqFSetInterface.html#S">S</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab43"></a><h2 class="section">Some subtyping tests</h2>
+
+<pre>
+WSfun ---&gt; WS
+ |         |
+ |         |
+ V         V
+Sfun  ---&gt; S
+
+Module S_WS (M : S) &lt;: WS := M.
+Module Sfun_WSfun (E:OrderedType)(M : Sfun E) &lt;: WSfun E := M.
+Module S_Sfun (M : S) &lt;: Sfun M.E := M.
+Module WS_WSfun (M : WS) &lt;: WSfun M.E := M.
+</pre>
+
+<br/><br/>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab44"></a><h1 class="section">Dependent signature</h1>
+
+
+<br/><br/>
+    Signature <span class="inlinecode"><span class="id" type="var">Sdep</span></span> presents ordered sets using dependent types 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="keyword">Type</span> <span class="id" type="module"><a name="Sdep">Sdep</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Declare Module</span> <span class="id" type="module"><a name="E">E</a></span> : <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.OrderedType.html#">OrderedType</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="Sdep.elt">elt</a></span> := <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.t">t</a></span> : <span class="id" type="keyword">Type</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.In">In</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span> -&gt; <span class="id" type="keyword">Prop</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="Sdep.Equal">Equal</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> := <span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">a</span> <span class="id" type="var">s</span> &lt;-&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">a</span> <span class="id" type="var">s'</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="Sdep.Subset">Subset</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> := <span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">a</span> <span class="id" type="var">s</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">a</span> <span class="id" type="var">s'</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="keyword">Add</span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> := <span class="id" type="keyword">forall</span> <span class="id" type="var">y</span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s'</span> &lt;-&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> \/ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="Sdep.Empty">Empty</a></span> <span class="id" type="var">s</span> := <span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">a</span> <span class="id" type="var">s</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="Sdep.For_all">For_all</a></span> (<span class="id" type="var">P</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span> -&gt; <span class="id" type="keyword">Prop</span>) <span class="id" type="var">s</span> := <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> -&gt; <span class="id" type="var">P</span> <span class="id" type="var">x</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="Sdep.Exists">Exists</a></span> (<span class="id" type="var">P</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span> -&gt; <span class="id" type="keyword">Prop</span>) <span class="id" type="var">s</span> := <span class="id" type="var">exists</span> <span class="id" type="var">x</span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> /\ <span class="id" type="var">P</span> <span class="id" type="var">x</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Notation</span> "s [=] t" := (<span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.Equal">Equal</a></span> <span class="id" type="var">s</span> <span class="id" type="var">t</span>) (<span class="id" type="tactic">at</span> <span class="id" type="var">level</span> 70, <span class="id" type="var">no</span> <span class="id" type="var">associativity</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="Sdep.eq">eq</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span> -&gt; <span class="id" type="keyword">Prop</span> := <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.Equal">Equal</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.lt">lt</a></span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span> -&gt; <span class="id" type="keyword">Prop</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.compare">compare</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>, <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.OrderedType.html#Compare">Compare</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.lt">lt</a></span> <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.eq">eq</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.eq_refl">eq_refl</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>, <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.eq">eq</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.eq_sym">eq_sym</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>, <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.eq">eq</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.eq">eq</a></span> <span class="id" type="var">s'</span> <span class="id" type="var">s</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.eq_trans">eq_trans</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> <span class="id" type="var">s''</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>, <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.eq">eq</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.eq">eq</a></span> <span class="id" type="var">s'</span> <span class="id" type="var">s''</span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.eq">eq</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s''</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.lt_trans">lt_trans</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> <span class="id" type="var">s''</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.lt">lt</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.lt">lt</a></span> <span class="id" type="var">s'</span> <span class="id" type="var">s''</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.lt">lt</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s''</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.lt_not_eq">lt_not_eq</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.lt">lt</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> -&gt; ~ <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.eq">eq</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.eq_In">eq_In</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>) (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>), <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> -&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.empty">empty</a></span> : {<span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span> | <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.Empty">Empty</a></span> <span class="id" type="var">s</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.is_empty">is_empty</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>, {<span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.Empty">Empty</a></span> <span class="id" type="var">s</span>} + {~ <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.Empty">Empty</a></span> <span class="id" type="var">s</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.mem">mem</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>) (<span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>), {<span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>} + {~ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.add">add</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>) (<span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>), {<span class="id" type="var">s'</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span> | <span class="id" type="keyword">Add</span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a name="Sdep.singleton">singleton</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, {<span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span> | <span class="id" type="keyword">forall</span> <span class="id" type="var">y</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span> &lt;-&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a name="Sdep.remove">remove</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>) (<span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" type="var">s'</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span> | <span class="id" type="keyword">forall</span> <span class="id" type="var">y</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s'</span> &lt;-&gt; ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> /\ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">y</span> <span class="id" type="var">s</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a name="Sdep.union">union</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" type="var">s''</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span> | <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s''</span> &lt;-&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> \/ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a name="Sdep.inter">inter</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" type="var">s''</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span> | <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s''</span> &lt;-&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> /\ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a name="Sdep.diff">diff</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" type="var">s''</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span> | <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s''</span> &lt;-&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> /\ ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.equal">equal</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>, {<span class="id" type="var">s</span>[=]<span class="id" type="var">s'</span>} + {~ <span class="id" type="var">s</span>[=]<span class="id" type="var">s'</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.subset">subset</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>, {<span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.Subset">Subset</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>} + {~ <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.Subset">Subset</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a name="Sdep.filter">filter</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">P</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span> -&gt; <span class="id" type="keyword">Prop</span>) (<span class="id" type="var">Pdec</span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, {<span class="id" type="var">P</span> <span class="id" type="var">x</span>} + {~ <span class="id" type="var">P</span> <span class="id" type="var">x</span>})<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" type="var">s'</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span> | <span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#compat_P">compat_P</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.eq">E.eq</a></span> <span class="id" type="var">P</span> -&gt; <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s'</span> &lt;-&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> /\ <span class="id" type="var">P</span> <span class="id" type="var">x</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a name="Sdep.for_all">for_all</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">P</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span> -&gt; <span class="id" type="keyword">Prop</span>) (<span class="id" type="var">Pdec</span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, {<span class="id" type="var">P</span> <span class="id" type="var">x</span>} + {~ <span class="id" type="var">P</span> <span class="id" type="var">x</span>})<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#compat_P">compat_P</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.eq">E.eq</a></span> <span class="id" type="var">P</span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.For_all">For_all</a></span> <span class="id" type="var">P</span> <span class="id" type="var">s</span>} + {<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#compat_P">compat_P</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.eq">E.eq</a></span> <span class="id" type="var">P</span> -&gt; ~ <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.For_all">For_all</a></span> <span class="id" type="var">P</span> <span class="id" type="var">s</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a name="Sdep.exists_">exists_</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">P</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span> -&gt; <span class="id" type="keyword">Prop</span>) (<span class="id" type="var">Pdec</span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, {<span class="id" type="var">P</span> <span class="id" type="var">x</span>} + {~ <span class="id" type="var">P</span> <span class="id" type="var">x</span>})<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#compat_P">compat_P</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.eq">E.eq</a></span> <span class="id" type="var">P</span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.Exists">Exists</a></span> <span class="id" type="var">P</span> <span class="id" type="var">s</span>} + {<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#compat_P">compat_P</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.eq">E.eq</a></span> <span class="id" type="var">P</span> -&gt; ~ <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.Exists">Exists</a></span> <span class="id" type="var">P</span> <span class="id" type="var">s</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a name="Sdep.partition">partition</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">P</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span> -&gt; <span class="id" type="keyword">Prop</span>) (<span class="id" type="var">Pdec</span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, {<span class="id" type="var">P</span> <span class="id" type="var">x</span>} + {~ <span class="id" type="var">P</span> <span class="id" type="var">x</span>})<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" type="var">partition</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span> * <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span> |<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> (<span class="id" type="var">s1</span>, <span class="id" type="var">s2</span>) := <span class="id" type="var">partition</span> <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#compat_P">compat_P</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.eq">E.eq</a></span> <span class="id" type="var">P</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.For_all">For_all</a></span> <span class="id" type="var">P</span> <span class="id" type="var">s1</span> /\<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.For_all">For_all</a></span> (<span class="id" type="keyword">fun</span> <span class="id" type="var">x</span> =&gt; ~ <span class="id" type="var">P</span> <span class="id" type="var">x</span>) <span class="id" type="var">s2</span> /\<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> &lt;-&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s1</span> \/ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s2</span>)}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a name="Sdep.elements">elements</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" type="var">l</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span> |<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Sorting.Sorting.html#sort">sort</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.lt">E.lt</a></span> <span class="id" type="var">l</span> /\ (<span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> &lt;-&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#InA">InA</a></span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">l</span>)}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a name="Sdep.fold">fold</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">A</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">f</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span> -&gt; <span class="id" type="var">A</span> -&gt; <span class="id" type="var">A</span>) (<span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>) (<span class="id" type="var">i</span> : <span class="id" type="var">A</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" type="var">r</span> : <span class="id" type="var">A</span> | <span class="id" type="keyword">let</span> (<span class="id" type="var">l</span>,_) := <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.elements">elements</a></span> <span class="id" type="var">s</span> <span class="id" type="keyword">in</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">r</span> = <span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#fold_left">fold_left</a></span> (<span class="id" type="keyword">fun</span> <span class="id" type="var">a</span> <span class="id" type="var">e</span> =&gt; <span class="id" type="var">f</span> <span class="id" type="var">e</span> <span class="id" type="var">a</span>) <span class="id" type="var">l</span> <span class="id" type="var">i</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a name="Sdep.cardinal">cardinal</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" type="var">r</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#nat">nat</a></span> | <span class="id" type="keyword">let</span> (<span class="id" type="var">l</span>,_) := <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.elements">elements</a></span> <span class="id" type="var">s</span> <span class="id" type="keyword">in</span> <span class="id" type="var">r</span> = <span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#length">length</a></span> <span class="id" type="var">l</span> }.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a name="Sdep.min_elt">min_elt</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span> | <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> /\ <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.For_all">For_all</a></span> (<span class="id" type="keyword">fun</span> <span class="id" type="var">y</span> =&gt; ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.lt">E.lt</a></span> <span class="id" type="var">y</span> <span class="id" type="var">x</span>) <span class="id" type="var">s</span>} + {<span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.Empty">Empty</a></span> <span class="id" type="var">s</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a name="Sdep.max_elt">max_elt</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span> | <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span> /\ <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.For_all">For_all</a></span> (<span class="id" type="keyword">fun</span> <span class="id" type="var">y</span> =&gt; ~ <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.lt">E.lt</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span>) <span class="id" type="var">s</span>} + {<span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.Empty">Empty</a></span> <span class="id" type="var">s</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.choose">choose</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.t">t</a></span>, {<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.t">E.t</a></span> | <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">s</span>} + {<span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.Empty">Empty</a></span> <span class="id" type="var">s</span>}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The <span class="inlinecode"><span class="id" type="var">choose_3</span></span> specification of <span class="inlinecode"><span class="id" type="var">S</span></span> cannot be packed 
+        in the dependent version of <span class="inlinecode"><span class="id" type="var">choose</span></span>, so we leave it separate. 
+</div>
+<div class="code">
+&nbsp;&nbsp;<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Sdep.choose_equal">choose_equal</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span>, <span class="id" type="definition"><a class="idref" href="CoqFSetInterface.html#Sdep.Equal">Equal</a></span> <span class="id" type="var">s</span> <span class="id" type="var">s'</span> -&gt; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.choose">choose</a></span> <span class="id" type="var">s</span>, <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.choose">choose</a></span> <span class="id" type="var">s'</span> <span class="id" type="keyword">with</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Specif.html#inleft">inleft</a></span> (<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Specif.html#exist">exist</a></span> <span class="id" type="var">x</span> <span class="id" type="var">_</span>), <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Specif.html#inleft">inleft</a></span> (<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Specif.html#exist">exist</a></span> <span class="id" type="var">x'</span> <span class="id" type="var">_</span>) =&gt; <span class="id" type="axiom"><a class="idref" href="CoqFSetInterface.html#Sdep.E.eq">E.eq</a></span> <span class="id" type="var">x</span> <span class="id" type="var">x'</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Specif.html#inright">inright</a></span> <span class="id" type="var">_</span>, <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Specif.html#inright">inright</a></span> <span class="id" type="var">_</span>  =&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#True">True</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span>, <span class="id" type="var">_</span>  =&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="module"><a class="idref" href="CoqFSetInterface.html#Sdep">Sdep</a></span>.<br/>
+
+<br/>
+</div>
+<hr/>This page has been generated by <a href="http://coq.inria.fr">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

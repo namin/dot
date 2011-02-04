@@ -1,0 +1,368 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<link href="coqdoc.css" rel="stylesheet" type="text/css"/>
+<title>CoqUniquenessTac</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library CoqUniquenessTac</h1>
+
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Provides a tactic for proving the uniqueness of objects. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#">Coq.Lists.List</a></span>.<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Eqdep_dec.html#">Coq.Logic.Eqdep_dec</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.omega.Omega.html#">Coq.omega.Omega</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab51"></a><h1 class="section">Auxiliary definitions</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+From a list of types, compute the type of a curried function whose
+    arguments are those types. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Fixpoint</span> <span class="id" type="definition"><a name="arrow">arrow</a></span> (<span class="id" type="var">xs</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="keyword">Type</span>) (<span class="id" type="var">res</span> : <span class="id" type="keyword">Type</span>) : <span class="id" type="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">xs</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> =&gt; <span class="id" type="var">res</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#cons">cons</a></span> <span class="id" type="var">y</span> <span class="id" type="var">ys</span> =&gt; <span class="id" type="var">y</span> -&gt; <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#arrow">arrow</a></span> <span class="id" type="var">ys</span> <span class="id" type="var">res</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+From a list of types, compute the type of a heterogeneous list
+    whose elements are of those types.  Heterogeneous lists are
+    represented as nested tuples. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Fixpoint</span> <span class="id" type="definition"><a name="tuple">tuple</a></span> (<span class="id" type="var">xs</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="keyword">Type</span>) : <span class="id" type="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">xs</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> =&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#unit">unit</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#cons">cons</a></span> <span class="id" type="var">y</span> <span class="id" type="var">ys</span> =&gt; (<span class="id" type="var">y</span> * <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tuple">tuple</a></span> <span class="id" type="var">ys</span>)%type<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Apply a curried function to a heterogeneous list of arguments. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="apply_tuple">apply_tuple</a></span><br/>
+&nbsp;&nbsp;(<span class="id" type="var">xs</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="keyword">Type</span>) (<span class="id" type="var">res</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">f</span> : <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#arrow">arrow</a></span> <span class="id" type="var">xs</span> <span class="id" type="var">res</span>) (<span class="id" type="var">arg</span> : <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tuple">tuple</a></span> <span class="id" type="var">xs</span>)<br/>
+&nbsp;&nbsp;: <span class="id" type="var">res</span>.<br/>
+<span class="id" type="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">induction</span> <span class="id" type="var">xs</span> <span class="id" type="keyword">as</span> [ | ? ? <span class="id" type="var">IH</span> ]; <span class="id" type="tactic">simpl</span>; <span class="id" type="tactic">intros</span> <span class="id" type="var">res</span> <span class="id" type="var">f</span> <span class="id" type="var">arg</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">exact</span> <span class="id" type="var">f</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">exact</span> (<span class="id" type="var">IH</span> <span class="id" type="var">res</span> (<span class="id" type="var">f</span> (<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#fst">fst</a></span> <span class="id" type="var">arg</span>)) (<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#snd">snd</a></span> <span class="id" type="var">arg</span>)).<br/>
+<span class="id" type="keyword">Defined</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Reverse a list onto the given accumulator.  Compared to
+    <span class="inlinecode"><span class="id" type="var">List.rev</span></span>, this definition simplifies the implementation of
+    heterogeneous list reversal (see below). 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Fixpoint</span> <span class="id" type="definition"><a name="tr_list_rev">tr_list_rev</a></span> (<span class="id" type="var">A</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">xs</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="var">A</span>) (<span class="id" type="var">acc</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="var">A</span>) : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="var">A</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">xs</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> =&gt; <span class="id" type="var">acc</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#cons">cons</a></span> <span class="id" type="var">y</span> <span class="id" type="var">ys</span> =&gt; <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tr_list_rev">tr_list_rev</a></span> <span class="id" type="var">A</span> <span class="id" type="var">ys</span> (<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#cons">cons</a></span> <span class="id" type="var">y</span> <span class="id" type="var">acc</span>)<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Implicit Arguments</span> <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tr_list_rev">tr_list_rev</a></span> [ <span class="id" type="var">A</span> ].<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Reverse a list. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="list_rev">list_rev</a></span> (<span class="id" type="var">A</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">xs</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="var">A</span>) : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="var">A</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tr_list_rev">tr_list_rev</a></span> <span class="id" type="var">xs</span> <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Implicit Arguments</span> <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#list_rev">list_rev</a></span> [ <span class="id" type="var">A</span> ].<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Reverse a heterogeneous list onto the given accumulator. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="tr_tuple_rev">tr_tuple_rev</a></span><br/>
+&nbsp;&nbsp;(<span class="id" type="var">xs</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="keyword">Type</span>) (<span class="id" type="var">ab</span> : <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tuple">tuple</a></span> <span class="id" type="var">xs</span>)<br/>
+&nbsp;&nbsp;(<span class="id" type="var">acc</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="keyword">Type</span>) (<span class="id" type="var">acc'</span> : <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tuple">tuple</a></span> <span class="id" type="var">acc</span>)<br/>
+&nbsp;&nbsp;: <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tuple">tuple</a></span> (<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tr_list_rev">tr_list_rev</a></span> <span class="id" type="var">xs</span> <span class="id" type="var">acc</span>).<br/>
+<span class="id" type="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">induction</span> <span class="id" type="var">xs</span> <span class="id" type="keyword">as</span> [ | ? ? <span class="id" type="var">IH</span> ]; <span class="id" type="tactic">simpl</span>; <span class="id" type="tactic">intros</span> <span class="id" type="var">ab</span> <span class="id" type="var">acc</span> <span class="id" type="var">acc'</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">exact</span> <span class="id" type="var">acc'</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">exact</span> (<span class="id" type="var">IH</span> (<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#snd">snd</a></span> <span class="id" type="var">ab</span>) (<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#cons">cons</a></span> <span class="id" type="var">a</span> <span class="id" type="var">acc</span>) (<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#fst">fst</a></span> <span class="id" type="var">ab</span>, <span class="id" type="var">acc'</span>)).<br/>
+<span class="id" type="keyword">Defined</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Reverse a heterogenous list. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="tuple_rev">tuple_rev</a></span><br/>
+&nbsp;&nbsp;(<span class="id" type="var">xs</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="keyword">Type</span>) (<span class="id" type="var">ab</span> : <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tuple">tuple</a></span> <span class="id" type="var">xs</span>) : <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tuple">tuple</a></span> (<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#list_rev">list_rev</a></span> <span class="id" type="var">xs</span>) :=<br/>
+&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tr_tuple_rev">tr_tuple_rev</a></span> <span class="id" type="var">xs</span> <span class="id" type="var">ab</span> <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#tt">tt</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab52"></a><h1 class="section">Auxiliary facts</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+This is the minimum set of facts about decidable equality that the
+    <span class="inlinecode"><span class="id" type="var">uniqueness</span></span> tactic (defined below) requires. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="eq_unit_dec">eq_unit_dec</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#unit">unit</a></span>),<br/>
+&nbsp;&nbsp;{<span class="id" type="var">x</span> = <span class="id" type="var">y</span>} + {<span class="id" type="var">x</span> &lt;&gt; <span class="id" type="var">y</span>}.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="eq_pair_dec">eq_pair_dec</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">A</span> <span class="id" type="var">B</span> : <span class="id" type="keyword">Type</span>),<br/>
+&nbsp;&nbsp;(<span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="var">A</span>, {<span class="id" type="var">x</span> = <span class="id" type="var">y</span>} + {<span class="id" type="var">x</span> &lt;&gt; <span class="id" type="var">y</span>}) -&gt;<br/>
+&nbsp;&nbsp;(<span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="var">B</span>, {<span class="id" type="var">x</span> = <span class="id" type="var">y</span>} + {<span class="id" type="var">x</span> &lt;&gt; <span class="id" type="var">y</span>}) -&gt;<br/>
+&nbsp;&nbsp;(<span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="var">A</span> * <span class="id" type="var">B</span>, {<span class="id" type="var">x</span> = <span class="id" type="var">y</span>} + {<span class="id" type="var">x</span> &lt;&gt; <span class="id" type="var">y</span>}).<br/>
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Resolve</span> <span class="id" type="lemma"><a class="idref" href="CoqUniquenessTac.html#eq_unit_dec">eq_unit_dec</a></span> <span class="id" type="lemma"><a class="idref" href="CoqUniquenessTac.html#eq_pair_dec">eq_pair_dec</a></span> : <span class="id" type="var">eq_dec</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab53"></a><h1 class="section">Tactic for proving the uniqueness of objects</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">uniqueness</span></span> analyzes goals of the form <span class="inlinecode"><span class="id" type="var">C</span> <span class="id" type="var">x1</span> .. <span class="id" type="var">xn</span> = <span class="id" type="var">q</span></span> by
+    destructing <span class="inlinecode"><span class="id" type="var">q</span></span> using the <span class="inlinecode"><span class="id" type="tactic">case</span></span> tactic.  It is mainly useful when
+    <span class="inlinecode"><span class="id" type="var">q</span></span> is an object of an indexed inductive type <span class="inlinecode"><span class="id" type="var">Q</span></span>, since it
+    generalizes the goal such that <span class="inlinecode"><span class="id" type="tactic">case</span></span> will succeed.  The argument
+    should be the number of indices to <span class="inlinecode"><span class="id" type="var">Q</span></span>, and the indices should not
+    depend on each other.
+
+<br/><br/>
+    Subgoals generated by the tactic will require one of three things:
+    showing that the goal state is impossible, proving that equality
+    at some type is decidable, and proving that any two objects of
+    some type are equal.  The tactic <span class="inlinecode"><span class="id" type="tactic">auto</span> <span class="id" type="keyword">with</span> <span class="id" type="var">eq_dec</span></span> is used to
+    discharge subgoals of the second form.  The tactic <span class="inlinecode"><span class="id" type="tactic">auto</span></span> is used
+    to discharge subgoals of the third form. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">uniqueness</span> <span class="id" type="var">icount</span> :=<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">intros</span>;<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">try</span> (<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span> |- <span class="id" type="var">_</span> = ?f <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">symmetry</span> <span class="id" type="keyword">end</span>);<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">lhs</span> := <span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span> |- ?lhs = <span class="id" type="var">_</span> =&gt; <span class="id" type="var">constr</span>:(lhs) <span class="id" type="keyword">end</span> <span class="id" type="keyword">in</span><br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">rhs</span> := <span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span> |- <span class="id" type="var">_</span> = ?rhs =&gt; <span class="id" type="var">constr</span>:(rhs) <span class="id" type="keyword">end</span> <span class="id" type="keyword">in</span><br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">sort</span> := <span class="id" type="keyword">match</span> <span class="id" type="var">type</span> <span class="id" type="var">of</span> <span class="id" type="var">rhs</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| ?pred =&gt; <span class="id" type="keyword">match</span> <span class="id" type="var">type</span> <span class="id" type="var">of</span> <span class="id" type="var">pred</span> <span class="id" type="keyword">with</span> ?sort =&gt; <span class="id" type="var">sort</span> <span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">in</span><br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">rec</span> <span class="id" type="var">get_pred_type</span> <span class="id" type="var">i</span> <span class="id" type="var">pred</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">i</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#O">O</a></span> =&gt; <span class="id" type="var">pred</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#S">S</a></span> ?n =&gt; <span class="id" type="keyword">match</span> <span class="id" type="var">pred</span> <span class="id" type="keyword">with</span> ?f ?x =&gt; <span class="id" type="var">get_pred_type</span> <span class="id" type="var">n</span> <span class="id" type="var">f</span> <span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">pred</span> := <span class="id" type="var">get_pred_type</span> <span class="id" type="var">icount</span> <span class="id" type="var">ltac</span>:(type <span class="id" type="var">of</span> <span class="id" type="var">rhs</span>) <span class="id" type="keyword">in</span><br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">rec</span> <span class="id" type="var">get_ind_types</span> <span class="id" type="var">i</span> <span class="id" type="var">pred</span> <span class="id" type="var">acc</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">i</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#O">O</a></span> =&gt; <span class="id" type="var">acc</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#S">S</a></span> ?n =&gt; <span class="id" type="keyword">match</span> <span class="id" type="var">pred</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| ?f ?x =&gt; <span class="id" type="keyword">let</span> <span class="id" type="var">ind</span> := <span class="id" type="var">type</span> <span class="id" type="var">of</span> <span class="id" type="var">x</span> <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">get_ind_types</span> <span class="id" type="var">n</span> <span class="id" type="var">f</span> (@<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#cons">cons</a></span> <span class="id" type="keyword">Type</span> <span class="id" type="var">ind</span> <span class="id" type="var">acc</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">ind_types</span> := <span class="id" type="var">get_ind_types</span> <span class="id" type="var">icount</span> <span class="id" type="var">ltac</span>:(type <span class="id" type="var">of</span> <span class="id" type="var">rhs</span>) (@<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> <span class="id" type="keyword">Type</span>) <span class="id" type="keyword">in</span><br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">rec</span> <span class="id" type="var">get_inds</span> <span class="id" type="var">i</span> <span class="id" type="var">pred</span> <span class="id" type="var">acc</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">i</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#O">O</a></span> =&gt; <span class="id" type="var">acc</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#S">S</a></span> ?n =&gt; <span class="id" type="keyword">match</span> <span class="id" type="var">pred</span> <span class="id" type="keyword">with</span> ?f ?x =&gt; <span class="id" type="var">get_inds</span> <span class="id" type="var">n</span> <span class="id" type="var">f</span> (<span class="id" type="var">x</span>, <span class="id" type="var">acc</span>) <span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">inds</span> := <span class="id" type="var">get_inds</span> <span class="id" type="var">icount</span> <span class="id" type="var">ltac</span>:(type <span class="id" type="var">of</span> <span class="id" type="var">rhs</span>) <span class="id" type="var">tt</span> <span class="id" type="keyword">in</span><br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">rind_types</span> := <span class="id" type="var">constr</span>:(list_rev <span class="id" type="var">ind_types</span>) <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">rinds</span> := <span class="id" type="var">constr</span>:(tuple_rev <span class="id" type="var">ind_types</span> <span class="id" type="var">inds</span>) <span class="id" type="keyword">in</span><br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">core</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">constr</span>:(fun (<span class="id" type="var">ainds</span> : <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tuple">tuple</a></span> <span class="id" type="var">rind_types</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">rhs</span>   : <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#apply_tuple">apply_tuple</a></span> (<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#list_rev">list_rev</a></span> <span class="id" type="var">rind_types</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">sort</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pred</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tuple_rev">tuple_rev</a></span> <span class="id" type="var">rind_types</span> <span class="id" type="var">ainds</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">eqpf</span> : <span class="id" type="var">rinds</span> = <span class="id" type="var">ainds</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#eq">eq</a></span> (<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#apply_tuple">apply_tuple</a></span> (<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#list_rev">list_rev</a></span> <span class="id" type="var">rind_types</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">sort</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pred</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tuple_rev">tuple_rev</a></span> <span class="id" type="var">rind_types</span> <span class="id" type="var">ainds</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(@<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#eq_rect">eq_rect</a></span> (<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tuple">tuple</a></span> <span class="id" type="var">rind_types</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">rinds</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="keyword">fun</span> <span class="id" type="var">rinds</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#apply_tuple">apply_tuple</a></span> (<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#list_rev">list_rev</a></span> <span class="id" type="var">rind_types</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">sort</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pred</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tuple_rev">tuple_rev</a></span> <span class="id" type="var">rind_types</span> <span class="id" type="var">rinds</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">lhs</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">ainds</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">eqpf</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">rhs</span>)<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">core</span> := <span class="id" type="var">eval</span> <span class="id" type="tactic">simpl</span> <span class="id" type="keyword">in</span> <span class="id" type="var">core</span> <span class="id" type="keyword">in</span><br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">rec</span> <span class="id" type="var">curry</span> <span class="id" type="var">f</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">type</span> <span class="id" type="var">of</span> <span class="id" type="var">f</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="keyword">forall</span> <span class="id" type="var">_</span> : (<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#unit">unit</a></span>), <span class="id" type="var">_</span> =&gt; <span class="id" type="var">constr</span>:(f <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#tt">tt</a></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="keyword">forall</span> <span class="id" type="var">_</span> : (<span class="id" type="var">_</span> * <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#unit">unit</a></span>), <span class="id" type="var">_</span> =&gt; <span class="id" type="var">constr</span>:(fun <span class="id" type="var">a</span> =&gt; <span class="id" type="var">f</span> (<span class="id" type="var">a</span>, <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#tt">tt</a></span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="keyword">forall</span> <span class="id" type="var">_</span> : (<span class="id" type="var">_</span> * <span class="id" type="var">_</span>), <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">f'</span> := <span class="id" type="var">constr</span>:(fun <span class="id" type="var">b</span> <span class="id" type="var">a</span> =&gt; <span class="id" type="var">f</span> (<span class="id" type="var">a</span>, <span class="id" type="var">b</span>)) <span class="id" type="keyword">in</span> <span class="id" type="var">curry</span> <span class="id" type="var">f'</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">core</span> := <span class="id" type="var">curry</span> <span class="id" type="var">core</span> <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">core</span> := <span class="id" type="var">eval</span> <span class="id" type="tactic">simpl</span> <span class="id" type="keyword">in</span> <span class="id" type="var">core</span> <span class="id" type="keyword">in</span><br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">rec</span> <span class="id" type="var">apply_core</span> <span class="id" type="var">f</span> <span class="id" type="var">args</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">args</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#tt">tt</a></span> =&gt; <span class="id" type="var">constr</span>:(f)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| (?x, ?xs) =&gt; <span class="id" type="var">apply_core</span> (<span class="id" type="var">f</span> <span class="id" type="var">x</span>) <span class="id" type="var">xs</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">core</span> := <span class="id" type="var">apply_core</span> <span class="id" type="var">core</span> <span class="id" type="var">inds</span> <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">core</span> := <span class="id" type="var">constr</span>:(core <span class="id" type="var">rhs</span>) <span class="id" type="keyword">in</span><br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="var">change</span> <span class="id" type="var">lhs</span> <span class="id" type="keyword">with</span> (@<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#eq_rect">eq_rect</a></span> (<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tuple">tuple</a></span> <span class="id" type="var">rind_types</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">rinds</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="keyword">fun</span> <span class="id" type="var">rinds</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#apply_tuple">apply_tuple</a></span> (<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#list_rev">list_rev</a></span> <span class="id" type="var">rind_types</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">sort</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pred</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tuple_rev">tuple_rev</a></span> <span class="id" type="var">rind_types</span> <span class="id" type="var">rinds</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">lhs</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">rinds</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#refl_equal">refl_equal</a></span> <span class="id" type="var">rinds</span>));<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">generalize</span> (<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#refl_equal">refl_equal</a></span> <span class="id" type="var">rinds</span>);<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="var">change</span> <span class="id" type="var">core</span>;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">case</span> <span class="id" type="var">rhs</span>;<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">unfold</span> <span class="id" type="var">list_rev</span>, <span class="id" type="var">tuple_rev</span> <span class="id" type="keyword">in</span> *;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">simpl</span> <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tr_list_rev">tr_list_rev</a></span> <span class="id" type="keyword">in</span> *;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">simpl</span> <span class="id" type="definition"><a class="idref" href="CoqUniquenessTac.html#tr_tuple_rev">tr_tuple_rev</a></span> <span class="id" type="keyword">in</span> *;<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> (<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| |- (<span class="id" type="var">_</span>, <span class="id" type="var">_</span>) = (<span class="id" type="var">_</span>, <span class="id" type="var">_</span>) -&gt; <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">H</span> := <span class="id" type="tactic">fresh</span> <span class="id" type="keyword">in</span> <span class="id" type="tactic">intros</span> <span class="id" type="var">H</span>; <span class="id" type="tactic">try</span> <span class="id" type="tactic">discriminate</span>; <span class="id" type="tactic">injection</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span> =&gt; <span class="id" type="tactic">progress</span> <span class="id" type="tactic">intro</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>);<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">subst</span>;<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">try</span> (<span class="id" type="tactic">rewrite</span> &lt;- <span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Eqdep_dec.html#eq_rect_eq_dec">eq_rect_eq_dec</a></span>; [ <span class="id" type="tactic">f_equal</span>; <span class="id" type="tactic">auto</span> | <span class="id" type="tactic">auto</span> <span class="id" type="keyword">with</span> <span class="id" type="var">eq_dec</span> ]).<br/>
+</div>
+<hr/>This page has been generated by <a href="http://coq.inria.fr">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

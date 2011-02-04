@@ -1,0 +1,135 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<link href="coqdoc.css" rel="stylesheet" type="text/css"/>
+<title>FSetExtra</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library FSetExtra</h1>
+
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.FSets.html#">Coq.FSets.FSets</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="CoqFSetInterface.html#">CoqFSetInterface</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab58"></a><h1 class="section">Interface</h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="keyword">Type</span> <span class="id" type="module"><a name="WSfun">WSfun</a></span> (<span class="id" type="var">X</span> : <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.DecidableType.html#">DecidableType</a></span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="var">Include Type</span> <span class="id" type="module"><a class="idref" href="CoqFSetInterface.html#">CoqFSetInterface.WSfun</a></span> <span class="id" type="module"><a class="idref" href="FSetExtra.html#">X</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Definition of when two sets are disjoint. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="WSfun.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> := <span class="id" type="axiom"><a class="idref" href="FSetExtra.html#WSfun.inter">inter</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> [=] <span class="id" type="axiom"><a class="idref" href="FSetExtra.html#WSfun.empty">empty</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+We make <span class="inlinecode"><span class="id" type="var">notin</span></span> a definition for <span class="inlinecode">~ <span class="id" type="var">In</span> <span class="id" type="var">x</span> <span class="id" type="var">L</span></span>.  We use this
+      definition whenever possible, so that the <span class="inlinecode"><span class="id" type="tactic">intuition</span></span> tactic
+      does not turn <span class="inlinecode">~ <span class="id" type="var">In</span> <span class="id" type="var">x</span> <span class="id" type="var">L</span></span> into <span class="inlinecode"><span class="id" type="var">In</span> <span class="id" type="var">x</span> <span class="id" type="var">L</span> -&gt; <span class="id" type="var">False</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="WSfun.notin">notin</a></span> <span class="id" type="var">x</span> <span class="id" type="var">L</span> := ~ <span class="id" type="axiom"><a class="idref" href="FSetExtra.html#WSfun.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">L</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The predicate <span class="inlinecode"><span class="id" type="var">fresh_list</span> <span class="id" type="var">L</span> <span class="id" type="var">n</span> <span class="id" type="var">xs</span></span> holds when <span class="inlinecode"><span class="id" type="var">xs</span></span> is a list of
+      length <span class="inlinecode"><span class="id" type="var">n</span></span> such that the elements are distinct from each other
+      and from the elements of <span class="inlinecode"><span class="id" type="var">L</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Fixpoint</span> <span class="id" type="definition"><a name="WSfun.fresh_list">fresh_list</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">L</span> : <span class="id" type="axiom"><a class="idref" href="FSetExtra.html#WSfun.t">t</a></span>) (<span class="id" type="var">n</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#nat">nat</a></span>) (<span class="id" type="var">xs</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="axiom"><a class="idref" href="FSetExtra.html#X.t">X.t</a></span>) {<span class="id" type="keyword">struct</span> <span class="id" type="var">xs</span>} : <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">xs</span>, <span class="id" type="var">n</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span>, <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#O">O</a></span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#True">True</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#cons">cons</a></span> <span class="id" type="var">x</span> <span class="id" type="var">xs'</span>, <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#S">S</a></span> <span class="id" type="var">n'</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="FSetExtra.html#WSfun.notin">notin</a></span> <span class="id" type="var">x</span> <span class="id" type="var">L</span> /\ <span class="id" type="definition"><a class="idref" href="FSetExtra.html#fresh_list">fresh_list</a></span> (<span class="id" type="axiom"><a class="idref" href="FSetExtra.html#WSfun.union">union</a></span> <span class="id" type="var">L</span> (<span class="id" type="axiom"><a class="idref" href="FSetExtra.html#WSfun.singleton">singleton</a></span> <span class="id" type="var">x</span>)) <span class="id" type="var">n'</span> <span class="id" type="var">xs'</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span>, <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="module"><a class="idref" href="FSetExtra.html#WSfun">WSfun</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab59"></a><h1 class="section">Implementation</h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="module"><a name="Make">Make</a></span> (<span class="id" type="var">X</span> : <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.DecidableType.html#">DecidableType</a></span>) &lt;: <span class="id" type="module"><a class="idref" href="FSetExtra.html#WSfun">WSfun</a></span> <span class="id" type="module"><a class="idref" href="FSetExtra.html#">X</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Include</span> <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.FSetWeakList.html#">FSetWeakList.Make</a></span> <span class="id" type="module"><a class="idref" href="FSetExtra.html#">X</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> := <span class="id" type="definition"><a class="idref" href="FSetExtra.html#Make.Equal">Equal</a></span> (<span class="id" type="definition"><a class="idref" href="FSetExtra.html#Make.inter">inter</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span>) <span class="id" type="definition"><a class="idref" href="FSetExtra.html#Make.empty">empty</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="Make.notin">notin</a></span> <span class="id" type="var">x</span> <span class="id" type="var">L</span> := ~ <span class="id" type="definition"><a class="idref" href="FSetExtra.html#Make.In">In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">L</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Fixpoint</span> <span class="id" type="definition"><a name="Make.fresh_list">fresh_list</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">L</span> : <span class="id" type="definition"><a class="idref" href="FSetExtra.html#Make.t">t</a></span>) (<span class="id" type="var">n</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#nat">nat</a></span>) (<span class="id" type="var">xs</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="axiom"><a class="idref" href="FSetExtra.html#X.t">X.t</a></span>) {<span class="id" type="keyword">struct</span> <span class="id" type="var">xs</span>} : <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">xs</span>, <span class="id" type="var">n</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span>, <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#O">O</a></span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#True">True</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#cons">cons</a></span> <span class="id" type="var">x</span> <span class="id" type="var">xs'</span>, <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#S">S</a></span> <span class="id" type="var">n'</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="FSetExtra.html#Make.notin">notin</a></span> <span class="id" type="var">x</span> <span class="id" type="var">L</span> /\ <span class="id" type="definition"><a class="idref" href="FSetExtra.html#fresh_list">fresh_list</a></span> (<span class="id" type="definition"><a class="idref" href="FSetExtra.html#Make.union">union</a></span> <span class="id" type="var">L</span> (<span class="id" type="definition"><a class="idref" href="FSetExtra.html#Make.singleton">singleton</a></span> <span class="id" type="var">x</span>)) <span class="id" type="var">n'</span> <span class="id" type="var">xs'</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span>, <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="module"><a class="idref" href="FSetExtra.html#Make">Make</a></span>.<br/>
+</div>
+<hr/>This page has been generated by <a href="http://coq.inria.fr">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

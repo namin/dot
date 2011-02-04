@@ -1,0 +1,151 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<link href="coqdoc.css" rel="stylesheet" type="text/css"/>
+<title>CoqUniquenessTacEx</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library CoqUniquenessTacEx</h1>
+
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Arith.Peano_dec.html#">Coq.Arith.Peano_dec</a></span>.<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#">Coq.Lists.SetoidList</a></span>.<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.omega.Omega.html#">Coq.omega.Omega</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="CoqUniquenessTac.html#">CoqUniquenessTac</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab54"></a><h1 class="section">Examples</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The examples go through more smoothly if we declare <span class="inlinecode"><span class="id" type="var">eq_nat_dec</span></span>
+    as a hint. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Resolve</span> <span class="id" type="lemma"><a class="idref" href="http://coq.inria.fr/library/Coq.Arith.Peano_dec.html#eq_nat_dec">eq_nat_dec</a></span> : <span class="id" type="var">eq_dec</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab55"></a><h2 class="section">Predicates on natural numbers</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Scheme</span> <span class="id" type="var">le_ind'</span> := <span class="id" type="keyword">Induction</span> <span class="id" type="keyword">for</span> <span class="id" type="var">le</span> <span class="id" type="keyword">Sort</span> <span class="id" type="keyword">Prop</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="le_unique">le_unique</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#nat">nat</a></span>) (<span class="id" type="var">p</span> <span class="id" type="var">q</span>: <span class="id" type="var">x</span> &lt;= <span class="id" type="var">y</span>), <span class="id" type="var">p</span> = <span class="id" type="var">q</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab56"></a><h2 class="section">Predicates on lists</h2>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Uniqueness of proofs for predicates on lists often comes up when
+    discussing extensional equality on finite sets, as implemented by
+    the FSets library. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="Uniqueness_Of_SetoidList_Proofs">Uniqueness_Of_SetoidList_Proofs</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variable</span> <span class="id" type="variable"><a name="Uniqueness_Of_SetoidList_Proofs.A">A</a></span> : <span class="id" type="keyword">Type</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variable</span> <span class="id" type="variable"><a name="Uniqueness_Of_SetoidList_Proofs.R">R</a></span> : <span class="id" type="var">A</span> -&gt; <span class="id" type="var">A</span> -&gt; <span class="id" type="keyword">Prop</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Hypothesis</span> <span class="id" type="variable"><a name="Uniqueness_Of_SetoidList_Proofs.R_unique">R_unique</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="var">A</span>) (<span class="id" type="var">p</span> <span class="id" type="var">q</span> : <span class="id" type="var">R</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span>), <span class="id" type="var">p</span> = <span class="id" type="var">q</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Hypothesis</span> <span class="id" type="variable"><a name="Uniqueness_Of_SetoidList_Proofs.list_eq_dec">list_eq_dec</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">xs</span> <span class="id" type="var">ys</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="var">A</span>), {<span class="id" type="var">xs</span> = <span class="id" type="var">ys</span>} + {<span class="id" type="var">xs</span> &lt;&gt; <span class="id" type="var">ys</span>}.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Scheme</span> <span class="id" type="var">lelistA_ind'</span> := <span class="id" type="keyword">Induction</span> <span class="id" type="keyword">for</span> <span class="id" type="var">lelistA</span> <span class="id" type="keyword">Sort</span> <span class="id" type="keyword">Prop</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Scheme</span> <span class="id" type="var">sort_ind'</span>    := <span class="id" type="keyword">Induction</span> <span class="id" type="keyword">for</span> <span class="id" type="var">sort</span> <span class="id" type="keyword">Sort</span> <span class="id" type="keyword">Prop</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Scheme</span> <span class="id" type="var">eqlistA_ind'</span> := <span class="id" type="keyword">Induction</span> <span class="id" type="keyword">for</span> <span class="id" type="var">eqlistA</span> <span class="id" type="keyword">Sort</span> <span class="id" type="keyword">Prop</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Theorem</span> <span class="id" type="lemma"><a name="lelistA_unique">lelistA_unique</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> : <span class="id" type="var">A</span>) (<span class="id" type="var">xs</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="var">A</span>) (<span class="id" type="var">p</span> <span class="id" type="var">q</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Sorting.Sorting.html#lelistA">lelistA</a></span> <span class="id" type="var">R</span> <span class="id" type="var">x</span> <span class="id" type="var">xs</span>), <span class="id" type="var">p</span> = <span class="id" type="var">q</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Theorem</span> <span class="id" type="lemma"><a name="sort_unique">sort_unique</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">xs</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="var">A</span>) (<span class="id" type="var">p</span> <span class="id" type="var">q</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Sorting.Sorting.html#sort">sort</a></span> <span class="id" type="var">R</span> <span class="id" type="var">xs</span>), <span class="id" type="var">p</span> = <span class="id" type="var">q</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Theorem</span> <span class="id" type="lemma"><a name="eqlistA_unique">eqlistA_unique</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> (<span class="id" type="var">xs</span> <span class="id" type="var">ys</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="var">A</span>) (<span class="id" type="var">p</span> <span class="id" type="var">q</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.SetoidList.html#eqlistA">eqlistA</a></span> <span class="id" type="var">R</span> <span class="id" type="var">xs</span> <span class="id" type="var">ys</span>), <span class="id" type="var">p</span> = <span class="id" type="var">q</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="CoqUniquenessTacEx.html#Uniqueness_Of_SetoidList_Proofs">Uniqueness_Of_SetoidList_Proofs</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab57"></a><h2 class="section">Vectors</h2>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">uniqueness</span></span> can show that the only vector of length zero is the
+    empty vector.  This shows that the tactic is not restricted to
+    working only on <span class="inlinecode"><span class="id" type="keyword">Prop</span></span>s. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Inductive</span> <span class="id" type="inductive"><a name="vector">vector</a></span> (<span class="id" type="var">A</span> : <span class="id" type="keyword">Type</span>) : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#nat">nat</a></span> -&gt; <span class="id" type="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="vnil">vnil</a></span> : <span class="id" type="inductive"><a class="idref" href="CoqUniquenessTacEx.html#vector">vector</a></span> <span class="id" type="var">A</span> 0<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="vcons">vcons</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">n</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#nat">nat</a></span>) (<span class="id" type="var">a</span> : <span class="id" type="var">A</span>), <span class="id" type="inductive"><a class="idref" href="CoqUniquenessTacEx.html#vector">vector</a></span> <span class="id" type="var">A</span> <span class="id" type="var">n</span> -&gt; <span class="id" type="inductive"><a class="idref" href="CoqUniquenessTacEx.html#vector">vector</a></span> <span class="id" type="var">A</span> (<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#S">S</a></span> <span class="id" type="var">n</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Theorem</span> <span class="id" type="lemma"><a name="vector_O_eq">vector_O_eq</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">A</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">v</span> : <span class="id" type="inductive"><a class="idref" href="CoqUniquenessTacEx.html#vector">vector</a></span> <span class="id" type="var">A</span> 0),<br/>
+&nbsp;&nbsp;<span class="id" type="var">v</span> = <span class="id" type="constructor"><a class="idref" href="CoqUniquenessTacEx.html#vnil">vnil</a></span> <span class="id" type="var">_</span>.<br/>
+</div>
+<hr/>This page has been generated by <a href="http://coq.inria.fr">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

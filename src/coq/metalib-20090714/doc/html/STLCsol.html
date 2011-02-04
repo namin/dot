@@ -1,0 +1,2336 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<link href="coqdoc.css" rel="stylesheet" type="text/css"/>
+<title>STLCsol</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library STLCsol</h1>
+
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The simply-typed lambda calculus in Coq. 
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+An interactive tutorial on developing programming language
+    metatheory.  This file uses the simply-typed lambda calculus
+    (STLC) to demonstrate the locally nameless representation of
+    lambda terms and cofinite quantification in judgments.
+
+<br/><br/>
+    This tutorial concentrates on "how" to formalize STLC; for more
+    details about "why" we use this style of development see:
+    "Engineering Formal Metatheory", Aydemir, Chargu'eraud, Pierce,
+    Pollack, Weirich. POPL 2008.
+
+<br/><br/>
+    Tutorial authors: Brian Aydemir and Stephanie Weirich, with help
+    from Aaron Bohannon, Nate Foster, Benjamin Pierce, Jeffrey
+    Vaughan, Dimitrios Vytiniotis, and Steve Zdancewic.  Adapted from
+    code by Arthur Chargu'eraud.
+
+<br/><br/>
+    Draft of 7/14/2009
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab257"></a><h1 class="section">Contents</h1>
+
+
+<ul>
+<li> Syntax of STLC
+
+</li>
+<li> Substitution
+
+</li>
+<li> Free variables
+
+</li>
+<li> Open
+
+</li>
+<li> Local closure
+
+</li>
+<li> Properties about basic operations
+
+</li>
+<li> Cofinite quantification
+
+</li>
+<li> Tactic support
+
+</li>
+<li> Typing environments
+
+</li>
+<li> Typing relation
+
+</li>
+<li> Weakening
+
+</li>
+<li> Substitution
+
+</li>
+<li> Values and evaluation
+
+</li>
+<li> Preservation
+
+</li>
+<li> Progress
+
+</li>
+<li> Additional properties
+
+</li>
+<li> Renaming
+
+</li>
+<li> Decidability of typechecking
+
+</li>
+<li> Equivalence of exist fresh and cofinite
+
+</li>
+</ul>
+
+<br/><br/>
+  Solutions to exercises are in <span class="inlinecode"><span class="id" type="var">STLCsol.v</span></span>.
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+First, we import a number of definitions from the Metatheory
+    library (see Metatheory.v).  The following command makes those
+    definitions available in the rest of this file.  This command will
+    only succeed if you have already run "make" in the tutorial
+    directory to compile the Metatheory library.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="Metatheory.html#">Metatheory</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab258"></a><h1 class="section">Syntax of STLC</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+We use a locally nameless representation for the simply-typed
+    lambda calculus, where bound variables are represented as natural
+    numbers (de Bruijn indices) and free variables are represented as
+    <span class="inlinecode"><span class="id" type="var">atom</span></span>s.
+
+<br/><br/>
+    The type <span class="inlinecode"><span class="id" type="var">atom</span></span>, defined in the MetatheoryAtom library, represents
+    names.  Equality on names is decidable (<span class="inlinecode"><span class="id" type="var">eq_atom_dec</span></span>), and it is
+    possible to generate an atom fresh for any given finite set of
+    atoms (<span class="inlinecode"><span class="id" type="var">atom_fresh</span></span>).
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Inductive</span> <span class="id" type="inductive"><a name="typ">typ</a></span> : <span class="id" type="keyword">Set</span> :=<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="typ_base">typ_base</a></span>  : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#typ">typ</a></span><br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="typ_arrow">typ_arrow</a></span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#typ">typ</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#typ">typ</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#typ">typ</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Inductive</span> <span class="id" type="inductive"><a name="exp">exp</a></span> : <span class="id" type="keyword">Set</span> :=<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="bvar">bvar</a></span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#nat">nat</a></span>  -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span><br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="fvar">fvar</a></span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span><br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="abs">abs</a></span>  : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#typ">typ</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span>  -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span><br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="app">app</a></span>  : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span>  -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Coercion</span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#bvar">bvar</a></span> : <span class="id" type="var">nat</span> &gt;-&gt; <span class="id" type="var">exp</span>.<br/>
+<span class="id" type="keyword">Coercion</span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#fvar">fvar</a></span> : <span class="id" type="var">atom</span> &gt;-&gt; <span class="id" type="var">exp</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+We declare the constructors for indices and variables to be
+    coercions.  That way, if Coq sees a <span class="inlinecode"><span class="id" type="var">nat</span></span> where it expects an
+    <span class="inlinecode"><span class="id" type="var">exp</span></span>, it will implicitly insert an application of <span class="inlinecode"><span class="id" type="var">bvar</span></span>; and
+    similarly for <span class="inlinecode"><span class="id" type="var">atom</span></span>s.
+
+<br/><br/>
+    For example, we can encode the expression (\x:b. Y x) as below.
+    Because "Y" is free variable in this term, we need to assume an
+    atom for this name.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Y">Y</a></span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>.<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="demo_rep1">demo_rep1</a></span> := <span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="axiom"><a class="idref" href="STLCsol.html#Y">Y</a></span> 0).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Note that because of the coercions we may write <span class="inlinecode"><span class="id" type="var">abs</span> (<span class="id" type="var">app</span> <span class="id" type="var">Y</span> 0)</span>
+    instead of <span class="inlinecode"><span class="id" type="var">abs</span> (<span class="id" type="var">app</span> (<span class="id" type="var">fvar</span> <span class="id" type="var">Y</span>) (<span class="id" type="var">bvar</span> 0))</span>.
+
+<br/><br/>
+    Below is another example: the encoding of (\x:b. \y:b. (y x)).
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="demo_rep2">demo_rep2</a></span> := <span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> 0 1)).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Exercise: Uncomment and then complete the definitions of the following
+	 lambda calculus terms using the locally nameless representation.
+
+<br/><br/>
+       "two"     :    \s:b-&gt;b. \z:b. s (s z)
+
+<br/><br/>
+       "COMB_K"  :    \x:b. \y:b. x
+
+<br/><br/>
+       "COMB_S"  :    \x:b -&gt; b -&gt; b.\y:b -&gt; b.\z:b. x z (y z)
+
+<br/><br/>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="two">two</a></span> :=<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_arrow">typ_arrow</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> 1 (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> 1 0))).<br/>
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="COMB_K">COMB_K</a></span> :=<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span> 1).<br/>
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="COMB_S">COMB_S</a></span> :=<br/>
+&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_arrow">typ_arrow</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_arrow">typ_arrow</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_arrow">typ_arrow</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> 2 0) (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> 1 0)))).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+There are two important advantages of the locally nameless
+    representation:
+
+<ul>
+<li> Alpha-equivalent terms have a unique representation.
+       We're always working up to alpha-equivalence.
+
+</li>
+<li> Operations such as free variable substitution and free
+       variable calculation have simple recursive definitions
+       (and therefore are simple to reason about).
+
+</li>
+</ul>
+
+<br/><br/>
+    Weighed against these advantages are two drawbacks:
+
+<ul>
+<li> The <span class="inlinecode"><span class="id" type="var">exp</span></span> datatype admits terms, such as <span class="inlinecode"><span class="id" type="var">abs</span> 3</span>, where
+       indices are unbound.
+       A term is called "locally closed" when it contains
+       no unbound indices.
+
+</li>
+<li> We must define *both* bound variable &amp; free variable
+       substitution and reason about how these operations
+       interact with each other.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab259"></a><h1 class="section">Substitution</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Substitution replaces a free variable with a term.  The definition
+    below is simple for two reasons:
+
+<ul>
+<li> Because bound variables are represented using indices, there
+        is no need to worry about variable capture.
+
+</li>
+<li> We assume that the term being substituted in is locally
+        closed.  Thus, there is no need to shift indices when
+        passing under a binder.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Fixpoint</span> <span class="id" type="definition"><a name="subst">subst</a></span> (<span class="id" type="var">z</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) (<span class="id" type="var">u</span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span>) (<span class="id" type="var">e</span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span>)<br/>
+&nbsp;&nbsp;{<span class="id" type="keyword">struct</span> <span class="id" type="var">e</span>} : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">e</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="STLCsol.html#bvar">bvar</a></span> <span class="id" type="var">i</span> =&gt; <span class="id" type="constructor"><a class="idref" href="STLCsol.html#bvar">bvar</a></span> <span class="id" type="var">i</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="STLCsol.html#fvar">fvar</a></span> <span class="id" type="var">x</span> =&gt; <span class="id" type="keyword">if</span> <span class="id" type="var">x</span> == <span class="id" type="var">z</span> <span class="id" type="keyword">then</span> <span class="id" type="var">u</span> <span class="id" type="keyword">else</span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#fvar">fvar</a></span> <span class="id" type="var">x</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">t</span> <span class="id" type="var">e1</span> =&gt; <span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">t</span> (<span class="id" type="definition"><a class="idref" href="STLCsol.html#subst">subst</a></span> <span class="id" type="var">z</span> <span class="id" type="var">u</span> <span class="id" type="var">e1</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span> =&gt; <span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> (<span class="id" type="definition"><a class="idref" href="STLCsol.html#subst">subst</a></span> <span class="id" type="var">z</span> <span class="id" type="var">u</span> <span class="id" type="var">e1</span>) (<span class="id" type="definition"><a class="idref" href="STLCsol.html#subst">subst</a></span> <span class="id" type="var">z</span> <span class="id" type="var">u</span> <span class="id" type="var">e2</span>)<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The <span class="inlinecode"><span class="id" type="keyword">Fixpoint</span></span> keyword defines a Coq function.  As all functions
+    in Coq must be total.  The annotation <span class="inlinecode">{<span class="id" type="keyword">struct</span> <span class="id" type="var">e</span>}</span> indicates the
+    termination metric---all recursive calls in this definition are
+    made to arguments that are structurally smaller than <span class="inlinecode"><span class="id" type="var">e</span></span>.
+
+<br/><br/>
+    Note also that subst uses the notation <span class="inlinecode"><span class="id" type="var">x</span> == <span class="id" type="var">z</span></span> for decidable atom
+    equality.  This notation is defined in the Metatheory library.
+
+<br/><br/>
+    We define a notation for free variable substitution that mimics
+    standard mathematical notation.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Notation</span> "[ z ~&gt; u ] e" := (<span class="id" type="definition"><a class="idref" href="STLCsol.html#subst">subst</a></span> <span class="id" type="var">z</span> <span class="id" type="var">u</span> <span class="id" type="var">e</span>) (<span class="id" type="tactic">at</span> <span class="id" type="var">level</span> 68).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+To demonstrate how free variable substitution works, we need to
+    reason about atom equality.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Parameter</span> <span class="id" type="axiom"><a name="Z">Z</a></span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>.<br/>
+<span class="id" type="keyword">Check</span> (<span class="id" type="axiom"><a class="idref" href="STLCsol.html#Y">Y</a></span> == <span class="id" type="axiom"><a class="idref" href="STLCsol.html#Z">Z</a></span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The decidable atom equality function returns a sum. If the two
+    atoms are equal, the left branch of the sum is returned, carrying
+    a proof of the proposition that the atoms are equal.  If they are
+    not equal, the right branch includes a proof of the disequality.
+
+<br/><br/>
+    The demo below uses three new tactics:
+
+<ul>
+<li> The tactic <span class="inlinecode"><span class="id" type="tactic">simpl</span></span> reduces a Coq expression to its normal
+      form.
+
+</li>
+<li> The tactic <span class="inlinecode"><span class="id" type="tactic">destruct</span> (<span class="id" type="var">Y</span>==Y)</span> considers the two possible
+      results of the equality test.
+
+</li>
+<li> The tactic <span class="inlinecode"><span class="id" type="var">Case</span></span> marks cases in the proof script.
+      It takes any string as its argument, and puts that string in
+      the hypothesis list until the case is finished.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="demo_subst1">demo_subst1</a></span>:<br/>
+&nbsp;&nbsp;[<span class="id" type="axiom"><a class="idref" href="STLCsol.html#Y">Y</a></span> ~&gt; <span class="id" type="axiom"><a class="idref" href="STLCsol.html#Z">Z</a></span>] (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> 0 <span class="id" type="axiom"><a class="idref" href="STLCsol.html#Y">Y</a></span>)) = (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> 0 <span class="id" type="axiom"><a class="idref" href="STLCsol.html#Z">Z</a></span>)).<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Take-home Exercise: We can use almost the same proof script as
+    above to state how substitution works in the variable case. Try it
+    on your own.  
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="subst_eq_var">subst_eq_var</a></span>: <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">u</span>,<br/>
+&nbsp;&nbsp;[<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>]<span class="id" type="var">x</span> = <span class="id" type="var">u</span>.<br/>
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="subst_neq_var">subst_neq_var</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">u</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="var">y</span> &lt;&gt; <span class="id" type="var">x</span> -&gt; [<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>]<span class="id" type="var">y</span> = <span class="id" type="var">y</span>.<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab260"></a><h1 class="section">Free variables</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The function <span class="inlinecode"><span class="id" type="var">fv</span></span>, defined below, calculates the set of free
+    variables in an expression.  Because we are using a locally
+    nameless representation, where bound variables are represented as
+    indices, any name we see is a free variable of a term.  In
+    particular, this makes the <span class="inlinecode"><span class="id" type="var">abs</span></span> case simple.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Fixpoint</span> <span class="id" type="definition"><a name="fv">fv</a></span> (<span class="id" type="var">e</span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span>) {<span class="id" type="keyword">struct</span> <span class="id" type="var">e</span>} : <span class="id" type="abbreviation"><a class="idref" href="MetatheoryAtom.html#atoms">atoms</a></span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">e</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="STLCsol.html#bvar">bvar</a></span> <span class="id" type="var">i</span> =&gt; <span class="id" type="abbreviation"><a class="idref" href="Metatheory.html#empty">empty</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="STLCsol.html#fvar">fvar</a></span> <span class="id" type="var">x</span> =&gt; <span class="id" type="abbreviation"><a class="idref" href="Metatheory.html#singleton">singleton</a></span> <span class="id" type="var">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">t</span> <span class="id" type="var">e1</span> =&gt; <span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> <span class="id" type="var">e1</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span> =&gt; (<span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> <span class="id" type="var">e1</span>) `<span class="id" type="var">union</span>` (<span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> <span class="id" type="var">e2</span>)<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The type <span class="inlinecode"><span class="id" type="var">atoms</span></span> represents a finite set of elements of type
+    <span class="inlinecode"><span class="id" type="var">atom</span></span>.  The notation for infix union is defined in the Metatheory
+    library.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="f_equal_demo">f_equal_demo</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span>, <span class="id" type="var">e1</span> = <span class="id" type="var">e2</span> -&gt; <span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> <span class="id" type="var">e1</span> = <span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> <span class="id" type="var">e2</span>.<br/>
+
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="fsetdec_demo">fsetdec_demo</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> :atom) (<span class="id" type="var">S</span> : <span class="id" type="abbreviation"><a class="idref" href="MetatheoryAtom.html#atoms">atoms</a></span>),<br/>
+&nbsp;&nbsp;<span class="id" type="var">x</span> `<span class="id" type="keyword">in</span>` (<span class="id" type="abbreviation"><a class="idref" href="Metatheory.html#singleton">singleton</a></span> <span class="id" type="var">x</span> `<span class="id" type="var">union</span>` <span class="id" type="var">S</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Exercise <span class="inlinecode"><span class="id" type="var">subst_fresh</span></span>
+    To show the ease of reasoning with these definitions, we will prove a
+    standard result from lambda calculus: if a variable does not
+    appear free in a term, then substituting for it has no effect.
+
+<br/><br/>
+    HINTS: Prove this lemma by induction on <span class="inlinecode"><span class="id" type="var">e</span></span>.
+
+<br/><br/>
+
+<ul>
+<li> You will need to use <span class="inlinecode"><span class="id" type="tactic">simpl</span></span> in many cases.  You can <span class="inlinecode"><span class="id" type="tactic">simpl</span></span>
+      everything everywhere (including hypotheses) with the
+      pattern <span class="inlinecode"><span class="id" type="tactic">simpl</span> <span class="id" type="keyword">in</span> *</span>.
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li> Part of this proof includes a false assumption about free
+      variables.  Destructing this hypothesis produces a goal about
+      finite set membership that is solvable by <span class="inlinecode"><span class="id" type="var">fsetdec</span></span>.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="subst_fresh">subst_fresh</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">e</span> <span class="id" type="var">u</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="var">x</span> `<span class="id" type="var">notin</span>` <span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> <span class="id" type="var">e</span> -&gt; [<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>] <span class="id" type="var">e</span> = <span class="id" type="var">e</span>.<br/>
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="subst_notin_fv">subst_notin_fv</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="var">u</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" type="var">x</span> `<span class="id" type="var">notin</span>` <span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> <span class="id" type="var">e</span> -&gt; <span class="id" type="var">x</span> `<span class="id" type="var">notin</span>` <span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> <span class="id" type="var">u</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" type="var">x</span> `<span class="id" type="var">notin</span>` <span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> ([<span class="id" type="var">y</span> ~&gt; <span class="id" type="var">u</span>]<span class="id" type="var">e</span>).<br/>
+<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab261"></a><h1 class="section">Opening</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Opening replaces an index with a term.  It corresponds to informal
+    substitution for a bound variable, such as in the rule for beta
+    reduction.  Note that only "dangling" indices (those that do not
+    refer to any abstraction) can be opened.  Opening has no effect
+    for terms that are locally closed.
+
+<br/><br/>
+    Natural numbers are just an inductive datatype with two
+    constructors: <span class="inlinecode"><span class="id" type="var">O</span></span> (as in the letter 'oh', not 'zero') and <span class="inlinecode"><span class="id" type="var">S</span></span>,
+    defined in Coq.Init.Datatypes.  Coq allows literal natural numbers
+    to be written using standard decimal notation, e.g., 0, 1, 2, etc.
+    The notation <span class="inlinecode"><span class="id" type="var">k</span> == <span class="id" type="var">i</span></span> is the decidable equality function for
+    natural numbers (cf. <span class="inlinecode"><span class="id" type="var">Coq.Peano_dec.eq_nat_dec</span></span>).  This notation
+    is defined in the Metatheory library.
+
+<br/><br/>
+    We make several simplifying assumptions in defining <span class="inlinecode"><span class="id" type="var">open_rec</span></span>.
+
+<br/><br/>
+    First, we assume that the argument <span class="inlinecode"><span class="id" type="var">u</span></span> is locally closed.  This
+    assumption simplifies the implementation since we do not need to
+    shift indices in <span class="inlinecode"><span class="id" type="var">u</span></span> when passing under a binder.  Second, we
+    assume that this function is initially called with index zero and
+    that zero is the only unbound index in the term.  This eliminates
+    the need to possibly subtract one in the case of indices.
+
+<br/><br/>
+    There is no need to worry about variable capture because bound
+    variables are indices.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Fixpoint</span> <span class="id" type="definition"><a name="open_rec">open_rec</a></span> (<span class="id" type="var">k</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#nat">nat</a></span>) (<span class="id" type="var">u</span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span>)(<span class="id" type="var">e</span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span>)<br/>
+&nbsp;&nbsp;{<span class="id" type="keyword">struct</span> <span class="id" type="var">e</span>} : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">e</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="STLCsol.html#bvar">bvar</a></span> <span class="id" type="var">i</span> =&gt; <span class="id" type="keyword">if</span> <span class="id" type="var">k</span> == <span class="id" type="var">i</span> <span class="id" type="keyword">then</span> <span class="id" type="var">u</span> <span class="id" type="keyword">else</span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#bvar">bvar</a></span> <span class="id" type="var">i</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="STLCsol.html#fvar">fvar</a></span> <span class="id" type="var">x</span> =&gt; <span class="id" type="constructor"><a class="idref" href="STLCsol.html#fvar">fvar</a></span> <span class="id" type="var">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">t</span> <span class="id" type="var">e1</span> =&gt; <span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">t</span> (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open_rec">open_rec</a></span> (<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#S">S</a></span> <span class="id" type="var">k</span>) <span class="id" type="var">u</span> <span class="id" type="var">e1</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span> =&gt; <span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open_rec">open_rec</a></span> <span class="id" type="var">k</span> <span class="id" type="var">u</span> <span class="id" type="var">e1</span>) (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open_rec">open_rec</a></span> <span class="id" type="var">k</span> <span class="id" type="var">u</span> <span class="id" type="var">e2</span>)<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Many common applications of opening replace index zero with an
+    expression or variable.  The following definition provides a
+    convenient shorthand for such uses.  Note that the order of
+    arguments is switched relative to the definition above.  For
+    example, <span class="inlinecode">(<span class="id" type="var">open</span> <span class="id" type="var">e</span> <span class="id" type="var">x</span>)</span> can be read as "substitute the variable <span class="inlinecode"><span class="id" type="var">x</span></span>
+    for index <span class="inlinecode">0</span> in <span class="inlinecode"><span class="id" type="var">e</span></span>" and "open <span class="inlinecode"><span class="id" type="var">e</span></span> with the variable <span class="inlinecode"><span class="id" type="var">x</span></span>."
+    Recall that the coercions above let us write <span class="inlinecode"><span class="id" type="var">x</span></span> in place of
+    <span class="inlinecode">(<span class="id" type="var">fvar</span> <span class="id" type="var">x</span>)</span>.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="open">open</a></span> <span class="id" type="var">e</span> <span class="id" type="var">u</span> := <span class="id" type="definition"><a class="idref" href="STLCsol.html#open_rec">open_rec</a></span> 0 <span class="id" type="var">u</span> <span class="id" type="var">e</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+This next demo shows the operation of <span class="inlinecode"><span class="id" type="var">open</span></span>.  For example, the
+    locally nameless representation of the term (\y. (\x. (y x)) y) is
+    <span class="inlinecode"><span class="id" type="var">abs</span> (<span class="id" type="var">app</span> (<span class="id" type="var">abs</span> (<span class="id" type="var">app</span> 1 0)) 0)</span>.  To look at the body without the
+    outer abstraction, we need to replace the indices that refer to
+    that abstraction with a name.  Therefore, we show that we can open
+    the body of the abs above with Y to produce <span class="inlinecode"><span class="id" type="var">app</span> (<span class="id" type="var">abs</span> (<span class="id" type="var">app</span> <span class="id" type="var">Y</span> 0))
+    <span class="id" type="var">Y</span>)</span>.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="demo_open">demo_open</a></span> :<br/>
+&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> 1 0)) 0) <span class="id" type="axiom"><a class="idref" href="STLCsol.html#Y">Y</a></span> =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_base">typ_base</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="axiom"><a class="idref" href="STLCsol.html#Y">Y</a></span> 0)) <span class="id" type="axiom"><a class="idref" href="STLCsol.html#Y">Y</a></span>).<br/>
+
+<br/>
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab262"></a><h1 class="section">Local closure</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Recall that <span class="inlinecode"><span class="id" type="var">exp</span></span> admits terms that contain unbound indices.  We
+    say that a term is locally closed when no indices appearing in it
+    are unbound.  The proposition <span class="inlinecode"><span class="id" type="var">lc</span> <span class="id" type="var">e</span></span> holds when an expression <span class="inlinecode"><span class="id" type="var">e</span></span>
+    is locally closed.
+
+<br/><br/>
+    The inductive definition below formalizes local closure such that
+    the resulting induction principle serves as the structural
+    induction principle over (locally closed) expressions.  In
+    particular, unlike induction for type <span class="inlinecode"><span class="id" type="var">exp</span></span>, there are no cases
+    for bound variables.  Thus, the induction principle corresponds
+    more closely to informal practice than the one arising from the
+    definition of pre-terms.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Inductive</span> <span class="id" type="inductive"><a name="lc">lc</a></span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span> -&gt; <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="lc_var">lc_var</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span>:atom),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">x</span><br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="lc_abs">lc_abs</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">e</span> <span class="id" type="var">t</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">x</span> `<span class="id" type="var">notin</span>` <span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> <span class="id" type="var">e</span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> <span class="id" type="var">e</span> <span class="id" type="var">x</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">t</span> <span class="id" type="var">e</span>)<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="lc_app">lc_app</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">e1</span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">e2</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="var">Constructors</span> <span class="id" type="var">lc</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Properties about basic operations 
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+We also define a notation for <span class="inlinecode"><span class="id" type="var">open_rec</span></span> to make stating some of
+    the properties simpler. However, we don't need to use open_rec
+    outside of this part of the tutorial so we make it a local
+    notation, confined to this section. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="BasicOperations">BasicOperations</a></span>.<br/>
+<span class="id" type="keyword">Notation</span> <span class="id" type="keyword">Local</span> "{ k ~&gt; u } t" := (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open_rec">open_rec</a></span> <span class="id" type="var">k</span> <span class="id" type="var">u</span> <span class="id" type="var">t</span>) (<span class="id" type="tactic">at</span> <span class="id" type="var">level</span> 67).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The first property we would like to show is the analogue to
+    <span class="inlinecode"><span class="id" type="var">subst_fresh</span></span>: index substitution has no effect for closed terms.
+
+<br/><br/>
+    Here is an initial attempt at the proof.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="open_rec_lc_0">open_rec_lc_0</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">k</span> <span class="id" type="var">u</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">e</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">e</span> = {<span class="id" type="var">k</span> ~&gt; <span class="id" type="var">u</span>} <span class="id" type="var">e</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+At this point there are two problems.  Our goal is about
+    substitution for index <span class="inlinecode"><span class="id" type="var">S</span> <span class="id" type="var">k</span></span> in term <span class="inlinecode"><span class="id" type="var">e</span></span>, while our induction
+    hypothesis IHLC only tells use about index <span class="inlinecode"><span class="id" type="var">k</span></span> in term <span class="inlinecode"><span class="id" type="var">open</span> <span class="id" type="var">e</span> <span class="id" type="var">x</span></span>.
+
+<br/><br/>
+    To solve the first problem, we generalize our IH over all <span class="inlinecode"><span class="id" type="var">k</span></span>.
+    That way, when <span class="inlinecode"><span class="id" type="var">k</span></span> is incremented in the <span class="inlinecode"><span class="id" type="var">abs</span></span> case, it will still
+    apply.  Below, we use the tactic <span class="inlinecode"><span class="id" type="tactic">generalize</span> <span class="id" type="tactic">dependent</span></span> to
+    generalize over <span class="inlinecode"><span class="id" type="var">k</span></span> before using induction.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="open_rec_lc_1">open_rec_lc_1</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">k</span> <span class="id" type="var">u</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">e</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">e</span> = {<span class="id" type="var">k</span> ~&gt; <span class="id" type="var">u</span>} <span class="id" type="var">e</span>.<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+At this point we are still stuck because the IH concerns
+    <span class="inlinecode"><span class="id" type="var">open</span> <span class="id" type="var">e</span> <span class="id" type="var">x</span></span> instead of <span class="inlinecode"><span class="id" type="var">e</span></span>. The result that we need is that if an
+    index substitution has no effect for an opened term, then it has
+    no effect for the raw term (as long as we are *not* substituting
+    for <span class="inlinecode">0</span>, hence <span class="inlinecode"><span class="id" type="var">S</span> <span class="id" type="var">k</span></span> below).
+<pre>
+   open e x = {S k ~&gt; u}(open e x)  -&gt; e = {S k ~&gt; u} e
+</pre>
+
+<br/><br/>
+   In other words, expanding the definition of open:
+<pre>
+   {0 ~&gt; x}e = {S k ~&gt; u}({0 ~&gt; x} e)  -&gt; e = {S k ~&gt; u} e
+</pre>
+
+<br/><br/>
+   Of course, to prove this result, we must generalize
+   <span class="inlinecode">0</span> and <span class="inlinecode"><span class="id" type="var">S</span> <span class="id" type="var">k</span></span> to be any pair of inequal numbers to get a strong
+   enough induction hypothesis for the <span class="inlinecode"><span class="id" type="var">abs</span></span> case.
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="open_rec_lc_core">open_rec_lc_core</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span> <span class="id" type="var">j</span> <span class="id" type="var">v</span> <span class="id" type="var">i</span> <span class="id" type="var">u</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="var">i</span> &lt;&gt; <span class="id" type="var">j</span> -&gt;<br/>
+&nbsp;&nbsp;{<span class="id" type="var">j</span> ~&gt; <span class="id" type="var">v</span>} <span class="id" type="var">e</span> = {<span class="id" type="var">i</span> ~&gt; <span class="id" type="var">u</span>} ({<span class="id" type="var">j</span> ~&gt; <span class="id" type="var">v</span>} <span class="id" type="var">e</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">e</span> = {<span class="id" type="var">i</span> ~&gt; <span class="id" type="var">u</span>} <span class="id" type="var">e</span>.<br/>
+<br/>
+<br/>
+<br/>
+
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="open_rec_lc_core_automated">open_rec_lc_core_automated</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span> <span class="id" type="var">j</span> <span class="id" type="var">v</span> <span class="id" type="var">i</span> <span class="id" type="var">u</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="var">i</span> &lt;&gt; <span class="id" type="var">j</span> -&gt;<br/>
+&nbsp;&nbsp;{<span class="id" type="var">j</span> ~&gt; <span class="id" type="var">v</span>} <span class="id" type="var">e</span> = {<span class="id" type="var">i</span> ~&gt; <span class="id" type="var">u</span>} ({<span class="id" type="var">j</span> ~&gt; <span class="id" type="var">v</span>} <span class="id" type="var">e</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">e</span> = {<span class="id" type="var">i</span> ~&gt; <span class="id" type="var">u</span>} <span class="id" type="var">e</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+With the help of this lemma, we can complete the proof. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="open_rec_lc">open_rec_lc</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">k</span> <span class="id" type="var">u</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">e</span> -&gt; <span class="id" type="var">e</span> = {<span class="id" type="var">k</span> ~&gt; <span class="id" type="var">u</span>} <span class="id" type="var">e</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Take-home Exercise <span class="inlinecode"><span class="id" type="var">subst_open_rec</span></span> 
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The next lemma demonstrates that free variable substitution
+    distributes over index substitution.
+
+<br/><br/>
+    The proof of this lemma is by straightforward induction over
+    <span class="inlinecode"><span class="id" type="var">e1</span></span>. When <span class="inlinecode"><span class="id" type="var">e1</span></span> is a free variable, we need to appeal to
+    <span class="inlinecode"><span class="id" type="var">open_rec_lc</span></span>, proved above.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="subst_open_rec">subst_open_rec</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span> <span class="id" type="var">u</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">k</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">u</span> -&gt;<br/>
+&nbsp;&nbsp;[<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>] ({<span class="id" type="var">k</span> ~&gt; <span class="id" type="var">e2</span>} <span class="id" type="var">e1</span>) = {<span class="id" type="var">k</span> ~&gt; [<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>] <span class="id" type="var">e2</span>} ([<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>] <span class="id" type="var">e1</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab263"></a><h3 class="section">Exercise <span class="inlinecode"><span class="id" type="var">subst_open_var</span></span></h3>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The lemma above is most often used with <span class="inlinecode"><span class="id" type="var">k</span> = 0</span> and
+    <span class="inlinecode"><span class="id" type="var">e2</span></span> as some fresh variable. Therefore, it simplifies matters
+    to define the following useful corollary.
+
+<br/><br/>
+    HINT: Do not use induction.
+    Rewrite with <span class="inlinecode"><span class="id" type="var">subst_open_rec</span></span> and <span class="inlinecode"><span class="id" type="var">subst_neq_var</span></span>.
+
+<br/><br/>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="subst_open_var">subst_open_var</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">u</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="var">y</span> &lt;&gt; <span class="id" type="var">x</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">u</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> ([<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>] <span class="id" type="var">e</span>) <span class="id" type="var">y</span> = [<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>] (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> <span class="id" type="var">e</span> <span class="id" type="var">y</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab264"></a><h3 class="section">Take-home Exercise <span class="inlinecode"><span class="id" type="var">subst_intro</span></span></h3>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+This lemma states that opening can be replaced with variable
+    opening and substitution.
+
+<br/><br/>
+    HINT: Prove by induction on <span class="inlinecode"><span class="id" type="var">e</span></span>, first generalizing the
+    argument to <span class="inlinecode"><span class="id" type="var">open_rec</span></span> by using the <span class="inlinecode"><span class="id" type="tactic">generalize</span></span> tactic, e.g.,
+    <span class="inlinecode"><span class="id" type="tactic">generalize</span> 0</span>.
+
+<br/><br/>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="subst_intro">subst_intro</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">u</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="var">x</span> `<span class="id" type="var">notin</span>` (<span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> <span class="id" type="var">e</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> <span class="id" type="var">e</span> <span class="id" type="var">u</span> = [<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>](<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> <span class="id" type="var">e</span> <span class="id" type="var">x</span>).<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="STLCsol.html#BasicOperations">BasicOperations</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Cofinite quantification 
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="subst_lc_0">subst_lc_0</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">u</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">e</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">u</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> ([<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>] <span class="id" type="var">e</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Print</span> <span class="id" type="var">lc_abs</span>.<br/>
+<span class="id" type="var">Admitted</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Here we are stuck. We don't know that <span class="inlinecode"><span class="id" type="var">x0</span></span> is not in the free
+    variables of <span class="inlinecode"><span class="id" type="var">u</span></span>.
+
+<br/><br/>
+    The solution is to change the *definition* of local closure so
+    that we get a different induction principle.  Currently, in the
+    <span class="inlinecode"><span class="id" type="var">lc_abs</span></span> case, we show that an abstraction is locally closed by
+    showing that the body is locally closed after it has been opened
+    with one particular variable.
+
+<br/><br/>
+<pre>
+  | lc_abs : forall (x : atom) e,
+      x `notin` fv e -&gt;
+      lc (open e x) -&gt;
+      lc (abs e)
+</pre>
+
+<br/><br/>
+    Therefore, our induction hypothesis in this case only applies to
+    that variable. From the hypothesis list in the <span class="inlinecode"><span class="id" type="var">lc_abs</span></span> case:
+
+<br/><br/>
+      x0 : atom,
+      IHHe : lc (<span class="inlinecode"><span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span></span>open e x0)
+
+<br/><br/>
+    The problem is that we don't have any assumptions about <span class="inlinecode"><span class="id" type="var">x0</span></span>. It
+    could very well be equal to <span class="inlinecode"><span class="id" type="var">x</span></span>.
+
+<br/><br/>
+    A stronger induction principle provides an IH that applies to many
+    variables. In that case, we could pick one that is "fresh enough".
+    To do so, we need to revise the above definition of lc and replace
+    the type of lc_abs with this one:
+
+<br/><br/>
+<pre>
+  | lc_abs_c : forall L e,
+      (forall x:atom, x `notin` L -&gt; lc (open e x)) -&gt;
+      lc (abs e)
+</pre>
+
+<br/><br/>
+   This rule says that to show that an abstraction is locally closed,
+   we need to show that the body is closed, after it has been opened by
+   any atom <span class="inlinecode"><span class="id" type="var">x</span></span>, *except* those in some set <span class="inlinecode"><span class="id" type="var">L</span></span>. With this rule, the IH
+   in this proof is now:
+
+<br/><br/>
+     H0 : forall x0 : atom, x0 `notin` L -&gt; lc (<span class="inlinecode"><span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span></span>open e x0)
+
+<br/><br/>
+   Below, lc_c is the local closure judgment revised to use this new
+   rule in the abs case. We call this "cofinite quantification"
+   because the IH applies to an infinite number of atoms <span class="inlinecode"><span class="id" type="var">x0</span></span>, except
+   those in some finite set <span class="inlinecode"><span class="id" type="var">L</span></span>.
+
+<br/><br/>
+   Changing the rule in this way does not change what terms are locally
+   closed.  (For more details about cofinite-quantification see:
+   "Engineering Formal Metatheory", Aydemir, Chargu'eraud, Pierce,
+   Pollack, Weirich. POPL 2008.)
+
+<br/><br/>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Inductive</span> <span class="id" type="inductive"><a name="lc_c">lc_c</a></span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span> -&gt; <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="lc_var_c">lc_var_c</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span>:atom),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> <span class="id" type="var">x</span><br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="lc_abs_c">lc_abs_c</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">L</span> : <span class="id" type="abbreviation"><a class="idref" href="MetatheoryAtom.html#atoms">atoms</a></span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>, <span class="id" type="var">x</span> `<span class="id" type="var">notin</span>` <span class="id" type="var">L</span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> <span class="id" type="var">e</span> <span class="id" type="var">x</span>)) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">T</span> <span class="id" type="var">e</span>)<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="lc_app_c">lc_app_c</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> <span class="id" type="var">e1</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> <span class="id" type="var">e2</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="var">Constructors</span> <span class="id" type="var">lc_c</span>.<br/>
+
+<br/>
+
+<br/>
+<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="CofiniteQuantification">CofiniteQuantification</a></span>.<br/>
+<span class="id" type="keyword">Notation</span> <span class="id" type="keyword">Local</span> "{ k ~&gt; u } t" := (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open_rec">open_rec</a></span> <span class="id" type="var">k</span> <span class="id" type="var">u</span> <span class="id" type="var">t</span>) (<span class="id" type="tactic">at</span> <span class="id" type="var">level</span> 67).<br/>
+
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="open_rec_lc_c">open_rec_lc_c</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">k</span> <span class="id" type="var">u</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> <span class="id" type="var">e</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">e</span> = {<span class="id" type="var">k</span> ~&gt; <span class="id" type="var">u</span>} <span class="id" type="var">e</span>.<br/>
+<br/>
+
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="subst_open_rec_c">subst_open_rec_c</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span> <span class="id" type="var">u</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">k</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> <span class="id" type="var">u</span> -&gt;<br/>
+&nbsp;&nbsp;[<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>] ({<span class="id" type="var">k</span> ~&gt; <span class="id" type="var">e2</span>} <span class="id" type="var">e1</span>) = {<span class="id" type="var">k</span> ~&gt; [<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>] <span class="id" type="var">e2</span>} ([<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>] <span class="id" type="var">e1</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="subst_open_var_c">subst_open_var_c</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">u</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="var">y</span> &lt;&gt; <span class="id" type="var">x</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> <span class="id" type="var">u</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> ([<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>] <span class="id" type="var">e</span>) <span class="id" type="var">y</span> = [<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>] (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> <span class="id" type="var">e</span> <span class="id" type="var">y</span>).<br/>
+
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="subst_lc_c">subst_lc_c</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">u</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> <span class="id" type="var">e</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> <span class="id" type="var">u</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> ([<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>] <span class="id" type="var">e</span>).<br/>
+<br/>
+<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="STLCsol.html#CofiniteQuantification">CofiniteQuantification</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab265"></a><h1 class="section">Tactic support</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+When picking a fresh atom or applying a rule that uses cofinite
+    quantification, choosing a set of atoms to be fresh for can be
+    tedious.  In practice, it is simpler to use a tactic to choose the
+    set to be as large as possible.
+
+<br/><br/>
+    The tactic <span class="inlinecode"><span class="id" type="var">gather_atoms</span></span> is used to collect together all the
+    atoms in the context.  It relies on an auxiliary tactic,
+    <span class="inlinecode"><span class="id" type="var">gather_atoms_with</span></span> (from MetatheoryAtom), which maps a function
+    that returns a finite set of atoms over all hypotheses with the
+    appropriate type.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">gather_atoms</span> ::=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">A</span> := <span class="id" type="var">gather_atoms_with</span> (<span class="id" type="keyword">fun</span> <span class="id" type="var">x</span> : <span class="id" type="abbreviation"><a class="idref" href="MetatheoryAtom.html#atoms">atoms</a></span> =&gt; <span class="id" type="var">x</span>) <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">B</span> := <span class="id" type="var">gather_atoms_with</span> (<span class="id" type="keyword">fun</span> <span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span> =&gt; <span class="id" type="abbreviation"><a class="idref" href="Metatheory.html#singleton">singleton</a></span> <span class="id" type="var">x</span>) <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">C</span> := <span class="id" type="var">gather_atoms_with</span> (<span class="id" type="keyword">fun</span> <span class="id" type="var">x</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span> * <span class="id" type="inductive"><a class="idref" href="STLCsol.html#typ">typ</a></span>) =&gt; <span class="id" type="definition"><a class="idref" href="Metatheory.html#EnvImpl.dom">dom</a></span> <span class="id" type="var">x</span>) <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">D</span> := <span class="id" type="var">gather_atoms_with</span> (<span class="id" type="keyword">fun</span> <span class="id" type="var">x</span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span> =&gt; <span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> <span class="id" type="var">x</span>) <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="var">constr</span>:(A `<span class="id" type="var">union</span>` <span class="id" type="var">B</span> `<span class="id" type="var">union</span>` <span class="id" type="var">C</span> `<span class="id" type="var">union</span>` <span class="id" type="var">D</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+A number of other, useful tactics are defined by the Metatheory
+    library, and each depends on <span class="inlinecode"><span class="id" type="var">gather_atoms</span></span>.  By redefining
+    <span class="inlinecode"><span class="id" type="var">gather_atoms</span></span>, denoted by the <span class="inlinecode">::=</span> in its definition below, we
+    automatically update these tactics so that they use the proper
+    notion of "all atoms in the context."
+
+<br/><br/>
+    For example, the tactic <span class="inlinecode">(<span class="id" type="var">pick</span> <span class="id" type="tactic">fresh</span> <span class="id" type="var">x</span>)</span> chooses an atom fresh for
+    "everything" in the context.  It is the same as <span class="inlinecode">(<span class="id" type="var">pick</span> <span class="id" type="tactic">fresh</span> <span class="id" type="var">x</span> <span class="id" type="keyword">for</span>
+    <span class="id" type="var">L</span>)</span>, except where <span class="inlinecode"><span class="id" type="var">L</span></span> has been computed by <span class="inlinecode"><span class="id" type="var">gather_atoms</span></span>.
+
+<br/><br/>
+    The tactic <span class="inlinecode">(<span class="id" type="var">pick</span> <span class="id" type="tactic">fresh</span> <span class="id" type="var">x</span> <span class="id" type="var">and</span> <span class="id" type="tactic">apply</span> <span class="id" type="var">H</span>)</span> applies a rule <span class="inlinecode"><span class="id" type="var">H</span></span> that is
+    defined using cofinite quantification.  It automatically
+    instantiates the finite set of atoms to exclude using
+    <span class="inlinecode"><span class="id" type="var">gather_atoms</span></span>.
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab266"></a><h3 class="section">Example</h3>
+
+
+<br/><br/>
+    Below, we reprove <span class="inlinecode"><span class="id" type="var">subst_lc_c</span></span> using <span class="inlinecode">(<span class="id" type="var">pick</span> <span class="id" type="tactic">fresh</span> <span class="id" type="var">and</span> <span class="id" type="tactic">apply</span>)</span>.
+    Step through the proof below to see how <span class="inlinecode">(<span class="id" type="var">pick</span> <span class="id" type="tactic">fresh</span> <span class="id" type="var">and</span> <span class="id" type="tactic">apply</span>)</span>
+    works.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="subst_lc_c_alternate_proof">subst_lc_c_alternate_proof</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">u</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> <span class="id" type="var">e</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> <span class="id" type="var">u</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> ([<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>] <span class="id" type="var">e</span>).<br/>
+<br/>
+<br/>
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab267"></a><h1 class="section">Typing environments</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+We represent environments as association lists (lists of pairs of
+    keys and values) whose keys are <span class="inlinecode"><span class="id" type="var">atom</span></span>s.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Notation</span> <span class="id" type="abbreviation"><a name="env">env</a></span> := (<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span> * <span class="id" type="inductive"><a class="idref" href="STLCsol.html#typ">typ</a></span>)).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+For STLC, environments bind <span class="inlinecode"><span class="id" type="var">atom</span></span>s to <span class="inlinecode"><span class="id" type="var">typ</span></span>s.  We define an
+    abbreviation <span class="inlinecode"><span class="id" type="var">env</span></span> for the type of these environments.  Coq will
+    print <span class="inlinecode"><span class="id" type="var">list</span> (<span class="id" type="var">atom</span> * <span class="id" type="var">typ</span>)</span> as <span class="inlinecode"><span class="id" type="var">env</span></span>, and we can use <span class="inlinecode"><span class="id" type="var">env</span></span> as a
+    shorthand for writing <span class="inlinecode"><span class="id" type="var">list</span> (<span class="id" type="var">atom</span> * <span class="id" type="var">typ</span>)</span>.
+
+<br/><br/>
+    Lists are defined in Coq's standard library, with the constructors
+    <span class="inlinecode"><span class="id" type="var">nil</span></span> and <span class="inlinecode"><span class="id" type="var">cons</span></span>.  The list library includes the <span class="inlinecode">::</span> notation
+    for cons as well as standard list operations such as append, map,
+    and fold. The infix operation "++" is list append.
+
+<br/><br/>
+    The Metatheory library extends this reasoning by instantiating the
+    AssocList library to provide support for association lists whose
+    keys are <span class="inlinecode"><span class="id" type="var">atom</span></span>s.  Everything in this library is polymorphic over
+    the type of objects bound in the environment.  Look in AssocList
+    for additional details about the functions and predicates that we
+    mention below.
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Environment equality 
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+When reasoning about environments, we often need to talk about
+    bindings in the "middle" of an environment. Therefore, it is common
+    for lemmas and definitions to use list append in their statements.
+    Unfortunately, list append is associative, so two Coq expressions may
+    denote the same environment even though they are not equal.
+
+<br/><br/>
+    The tactic <span class="inlinecode"><span class="id" type="var">simpl_env</span></span> reassociates all concatenations of
+    environments to the right.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="append_assoc_demo">append_assoc_demo</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">E0</span> <span class="id" type="var">E1</span> <span class="id" type="var">E2</span> <span class="id" type="var">E3</span>:env),<br/>
+&nbsp;&nbsp;<span class="id" type="var">E0</span> ++ (<span class="id" type="var">E1</span> ++ <span class="id" type="var">E2</span>) ++ <span class="id" type="var">E3</span> = <span class="id" type="var">E0</span> ++ <span class="id" type="var">E1</span> ++ <span class="id" type="var">E2</span> ++ <span class="id" type="var">E3</span>.<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+To make environments easy to read, instead of building them from
+    <span class="inlinecode"><span class="id" type="var">nil</span></span> and <span class="inlinecode"><span class="id" type="var">cons</span></span>, we prefer to build them from the following
+    components:
+
+<ul>
+<li> <span class="inlinecode"><span class="id" type="var">nil</span></span>: The empty list.
+
+</li>
+<li> <span class="inlinecode"><span class="id" type="var">one</span></span>: Lists consisting of exactly one item.
+
+</li>
+<li> <span class="inlinecode">++</span>:  List append.
+
+</li>
+</ul>
+
+<br/><br/>
+   Furthermore, we introduce compact notation for one (singleton lists):
+   <span class="inlinecode">(<span class="id" type="var">x</span> ~ <span class="id" type="var">T</span>)</span> is the same as <span class="inlinecode"><span class="id" type="var">one</span> (<span class="id" type="var">x</span>, <span class="id" type="var">T</span>)</span>.
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The simpl_env tactic actually puts lists built from only nil, one
+    and <span class="inlinecode">++</span> into a "normal form". This process reassociates all appends
+    to the right, removes extraneous nils converts cons to singleton
+    lists with an append.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="simpl_env_demo">simpl_env_demo</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> <span class="id" type="var">y</span>:atom) (<span class="id" type="var">T1</span> <span class="id" type="var">T2</span>:typ) (<span class="id" type="var">E</span> <span class="id" type="var">F</span>:env),<br/>
+&nbsp;&nbsp;&nbsp;((<span class="id" type="var">x</span> ~ <span class="id" type="var">T1</span>) ++ <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span>) ++ (<span class="id" type="var">y</span>,T2) :: (<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> ++ <span class="id" type="var">E</span>) ++ <span class="id" type="var">F</span> =<br/>
+&nbsp;&nbsp;&nbsp;(<span class="id" type="var">x</span> ~ <span class="id" type="var">T1</span>) ++ (<span class="id" type="var">y</span> ~ <span class="id" type="var">T2</span>) ++ <span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Note that the <span class="inlinecode"><span class="id" type="tactic">simpl</span></span> tactic doesn't produce the "normal form" for
+    environments. It should always be followed up with <span class="inlinecode"><span class="id" type="var">simpl_env</span></span>.
+
+<br/><br/>
+    Furthermore, to convert an environment to any equivalent form
+    other than the normal form (perhaps to apply a lemma) use the
+    tactic <span class="inlinecode"><span class="id" type="var">rewrite_env</span></span>.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="rewrite_env_demo">rewrite_env_demo</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> <span class="id" type="var">y</span>:atom) (<span class="id" type="var">T</span>:typ) <span class="id" type="var">P</span>,<br/>
+&nbsp;&nbsp;(<span class="id" type="keyword">forall</span> <span class="id" type="var">E</span>, <span class="id" type="var">P</span> ((<span class="id" type="var">x</span>,T):: <span class="id" type="var">E</span>) -&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#True">True</a></span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">P</span> (<span class="id" type="var">x</span> ~ <span class="id" type="var">T</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#True">True</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Environment operations. 
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The ternary predicate <span class="inlinecode"><span class="id" type="var">binds</span></span> holds when a given binding is
+    present somewhere in an environment.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="binds_demo">binds_demo</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span>:atom) (<span class="id" type="var">T</span>:typ) (<span class="id" type="var">E</span> <span class="id" type="var">F</span>:env),<br/>
+&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="Metatheory.html#EnvImpl.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">T</span> (<span class="id" type="var">E</span> ++ (<span class="id" type="var">x</span> ~ <span class="id" type="var">T</span>) ++ <span class="id" type="var">F</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The function <span class="inlinecode"><span class="id" type="var">dom</span></span> computes the domain of an environment,
+    returning a finite set of <span class="inlinecode"><span class="id" type="var">atom</span></span>s. Note that we cannot use Coq's
+    equality for finite sets, we must instead use a defined relation
+    <span class="inlinecode">=</span> for atom set equality.
+ 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="dom_demo">dom_demo</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) (<span class="id" type="var">T</span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#typ">typ</a></span>),<br/>
+&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="Metatheory.html#EnvImpl.dom">dom</a></span> (<span class="id" type="var">x</span> ~ <span class="id" type="var">T</span>) [=] <span class="id" type="abbreviation"><a class="idref" href="Metatheory.html#singleton">singleton</a></span> <span class="id" type="var">x</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The unary predicate <span class="inlinecode"><span class="id" type="var">uniq</span></span> holds when each atom is bound at most
+    once in an environment.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="uniq_demo">uniq_demo</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) (<span class="id" type="var">T</span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#typ">typ</a></span>),<br/>
+&nbsp;&nbsp;<span class="id" type="var">x</span> &lt;&gt; <span class="id" type="var">y</span> -&gt; <span class="id" type="inductive"><a class="idref" href="Metatheory.html#EnvImpl.uniq">uniq</a></span> ((<span class="id" type="var">x</span> ~ <span class="id" type="var">T</span>) ++ (<span class="id" type="var">y</span> ~ <span class="id" type="var">T</span>)).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab268"></a><h1 class="section">Typing relation</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The definition of the typing relation is straightforward.  In
+    order to ensure that the relation holds for only well-formed
+    environments, we check in the <span class="inlinecode"><span class="id" type="var">typing_var</span></span> case that the
+    environment is <span class="inlinecode"><span class="id" type="var">uniq</span></span>.  The structure of typing derivations
+    implicitly ensures that the relation holds only for locally closed
+    expressions.  Finally, note the use of cofinite quantification in
+    the <span class="inlinecode"><span class="id" type="var">typing_abs</span></span> case.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Inductive</span> <span class="id" type="inductive"><a name="typing_c">typing_c</a></span> : <span class="id" type="abbreviation"><a class="idref" href="STLCsol.html#env">env</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#typ">typ</a></span> -&gt; <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="typing_var_c">typing_var_c</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Metatheory.html#EnvImpl.uniq">uniq</a></span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="Metatheory.html#EnvImpl.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">T</span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#fvar">fvar</a></span> <span class="id" type="var">x</span>) <span class="id" type="var">T</span><br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="typing_abs_c">typing_abs_c</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">L</span> : <span class="id" type="abbreviation"><a class="idref" href="MetatheoryAtom.html#atoms">atoms</a></span>) <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T1</span> <span class="id" type="var">T2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span>:atom), <span class="id" type="var">x</span> `<span class="id" type="var">notin</span>` <span class="id" type="var">L</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> ((<span class="id" type="var">x</span> ~ <span class="id" type="var">T1</span>) ++ <span class="id" type="var">E</span>) (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> <span class="id" type="var">e</span> <span class="id" type="var">x</span>) <span class="id" type="var">T2</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">e</span>) (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_arrow">typ_arrow</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">T2</span>)<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="typing_app_c">typing_app_c</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span> <span class="id" type="var">T1</span> <span class="id" type="var">T2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e1</span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_arrow">typ_arrow</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">T2</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e2</span> <span class="id" type="var">T1</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span>) <span class="id" type="var">T2</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+We add the constructors of the typing relation as hints to be used
+    by the <span class="inlinecode"><span class="id" type="tactic">auto</span></span> and <span class="inlinecode"><span class="id" type="tactic">eauto</span></span> tactics.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="var">Constructors</span> <span class="id" type="var">typing_c</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab269"></a><h1 class="section">Weakening</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Weakening states that if an expression is typeable in some
+    environment, then it is typeable in any well-formed extension of
+    that environment.  This property is needed to prove the
+    substitution lemma.
+
+<br/><br/>
+    As stated below, this lemma is not directly proveable.  The
+    natural way to try proving this lemma proceeds by induction on the
+    typing derivation for <span class="inlinecode"><span class="id" type="var">e</span></span>.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_weakening_0">typing_weakening_0</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Metatheory.html#EnvImpl.uniq">uniq</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+We are stuck in the <span class="inlinecode"><span class="id" type="var">typing_abs_c</span></span> case because the induction
+    hypothesis <span class="inlinecode"><span class="id" type="var">H0</span></span> applies only when we weaken the environment at its
+    head.  In this case, however, we need to weaken the environment in
+    the middle; compare the conclusion at the point where we're stuck
+    to the hypothesis <span class="inlinecode"><span class="id" type="var">H</span></span>, which comes from the given typing derivation.
+
+<br/><br/>
+    We can obtain a more useful induction hypothesis by changing the
+    statement to insert new bindings into the middle of the
+    environment, instead of at the head.  However, the proof still
+    gets stuck, as can be seen by examining each of the cases in
+    the proof below.
+
+<br/><br/>
+    Note: To view subgoal n in a proof, use the command "<span class="inlinecode"><span class="id" type="keyword">Show</span> <span class="id" type="var">n</span></span>".
+    To work on subgoal n instead of the first one, use the command
+    "<span class="inlinecode"><span class="id" type="var">Focus</span> <span class="id" type="var">n</span></span>".
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_weakening_strengthened_0">typing_weakening_strengthened_0</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">G</span> : <span class="id" type="abbreviation"><a class="idref" href="STLCsol.html#env">env</a></span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Metatheory.html#EnvImpl.uniq">uniq</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The hypotheses in the <span class="inlinecode"><span class="id" type="var">typing_var_c</span></span> case include an environment
+    <span class="inlinecode"><span class="id" type="var">E0</span></span> that that has no relation to what we need to prove.  The
+    missing fact we need is that <span class="inlinecode"><span class="id" type="var">E0</span> = (<span class="id" type="var">G</span> ++ <span class="id" type="var">E</span>)</span>.
+
+<br/><br/>
+    The problem here arises from the fact that Coq's <span class="inlinecode"><span class="id" type="tactic">induction</span></span>
+    tactic let's us only prove something about all typing derivations.
+    While it's clear to us that weakening applies to all typing
+    derivations, it's not clear to Coq, because the environment is
+    written using concatenation.  The <span class="inlinecode"><span class="id" type="tactic">induction</span></span> tactic expects that
+    all arguments to a judgement are variables.  So we see <span class="inlinecode"><span class="id" type="var">E0</span></span> in the
+    proof instead of <span class="inlinecode">(<span class="id" type="var">G</span> ++ <span class="id" type="var">E</span>)</span>.
+
+<br/><br/>
+    The solution is to restate the lemma.  For example, we can prove
+
+<br/><br/>
+<pre>
+  forall E F E' e T, typing_c E' e T -&gt;
+  forall G, E' = G ++ E -&gt; uniq (G ++ F ++ E) -&gt; typing_c (G ++ F ++ E) e T.
+</pre>
+
+<br/><br/>
+    The equality gets around the problem with Coq's <span class="inlinecode"><span class="id" type="tactic">induction</span></span>
+    tactic.  The placement of the <span class="inlinecode">(<span class="id" type="keyword">forall</span> <span class="id" type="var">G</span>)</span> quantifier gives us a
+    sufficiently strong induction hypothesis in the <span class="inlinecode"><span class="id" type="var">typing_abs_c</span></span> case.
+
+<br/><br/>
+    However, we prefer not to state the lemma in the way shown above,
+    since it is not as readable as the original statement.  Instead,
+    we use a tactic to introduce the equality within the proof itself.
+    The tactic <span class="inlinecode">(<span class="id" type="var">remember</span> <span class="id" type="var">t</span> <span class="id" type="keyword">as</span> <span class="id" type="var">t'</span>)</span> replaces an object <span class="inlinecode"><span class="id" type="var">t</span></span> with the
+    identifier <span class="inlinecode"><span class="id" type="var">t'</span></span> everywhere in the goal and introduces an equality
+    <span class="inlinecode"><span class="id" type="var">t'</span> = <span class="id" type="var">t</span></span> into the context.  It is often combined with <span class="inlinecode"><span class="id" type="tactic">generalize</span>
+    <span class="id" type="tactic">dependent</span></span>, as illustrated below.
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab270"></a><h3 class="section">Exercise</h3>
+
+
+<br/><br/>
+    See how we use <span class="inlinecode"><span class="id" type="var">remember</span> <span class="id" type="keyword">as</span></span> in the proof below for weakening.
+    Then, complete the proof below.
+
+<br/><br/>
+    HINTS:
+
+<br/><br/>
+
+<ul>
+<li> The <span class="inlinecode"><span class="id" type="var">typing_var_c</span></span> case follows from <span class="inlinecode"><span class="id" type="var">binds_weaken</span></span>, the
+         weakening lemma for the <span class="inlinecode"><span class="id" type="var">binds</span></span> relation.
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li> The <span class="inlinecode"><span class="id" type="var">typing_abs_c</span></span> case follows from the induction
+         hypothesis, but the <span class="inlinecode"><span class="id" type="tactic">apply</span></span> tactic may be unable to unify
+         things as you might expect.
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li>
+<ul>
+<li> Recall the <span class="inlinecode"><span class="id" type="var">pick</span> <span class="id" type="tactic">fresh</span> <span class="id" type="var">and</span> <span class="id" type="tactic">apply</span></span> tactic.
+
+</li>
+</ul>
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li>
+<ul>
+<li> In order to apply the induction hypothesis, use
+              <span class="inlinecode"><span class="id" type="var">rewrite_env</span></span> to reassociate the list operations.
+
+</li>
+</ul>
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li>
+<ul>
+<li> After applying the induction hypothesis, use
+              <span class="inlinecode"><span class="id" type="var">simpl_env</span></span> to use <span class="inlinecode"><span class="id" type="var">uniq_push</span></span>.
+
+</li>
+</ul>
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li>
+<ul>
+<li> Here, use <span class="inlinecode"><span class="id" type="tactic">auto</span></span> to solve facts about finite sets of
+              atoms, since it will simplify the <span class="inlinecode"><span class="id" type="var">dom</span></span> function behind
+              the scenes.  <span class="inlinecode"><span class="id" type="var">fsetdec</span></span> does not work with the <span class="inlinecode"><span class="id" type="var">dom</span></span>
+              function.
+
+</li>
+</ul>
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li> The <span class="inlinecode"><span class="id" type="var">typing_app_c</span></span> case follows directly from the induction
+         hypotheses.
+  
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_c_weakening_strengthened">typing_c_weakening_strengthened</a></span> :  <span class="id" type="keyword">forall</span> (<span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">G</span> : <span class="id" type="abbreviation"><a class="idref" href="STLCsol.html#env">env</a></span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Metatheory.html#EnvImpl.uniq">uniq</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span>.<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab271"></a><h3 class="section">Example</h3>
+
+
+<br/><br/>
+    We can now prove our original statement of weakening.  The only
+    interesting step is the use of the rewrite_env tactic.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_c_weakening">typing_c_weakening</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">E</span> <span class="id" type="var">F</span> : <span class="id" type="abbreviation"><a class="idref" href="STLCsol.html#env">env</a></span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Metatheory.html#EnvImpl.uniq">uniq</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab272"></a><h1 class="section">Substitution</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Having proved weakening, we can now prove the usual substitution
+    lemma, which we state both in the form we need and in the
+    strengthened form needed to make the proof go through.
+
+<br/><br/>
+<pre>
+  typing_c_subst_simple : forall E e u S T z,
+    typing_c ((z ~ S) ++ E) e T -&gt;
+    typing_c E u S -&gt;
+    typing_c E ([z ~&gt; u] e) T
+
+  typing_c_subst : forall E F e u S T z,
+    typing_c (F ++ (z ~ S) ++ E) e T -&gt;
+    typing_c E u S -&gt;
+    typing_c (F ++ E) ([z ~&gt; u] e) T
+</pre>
+
+<br/><br/>
+    The proof of the strengthened statement proceeds by induction on
+    the given typing derivation for <span class="inlinecode"><span class="id" type="var">e</span></span>.  The most involved case is
+    the one for variables; the others follow from the induction
+    hypotheses.
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab273"></a><h3 class="section">Exercise</h3>
+
+
+<br/><br/>
+    Below, we state what needs to be proved in the <span class="inlinecode"><span class="id" type="var">typing_var_c</span></span> case
+    of the substitution lemma.  Fill in the proof.
+
+<br/><br/>
+    Proof sketch: The proof proceeds by a case analysis on <span class="inlinecode">(<span class="id" type="var">x</span> == <span class="id" type="var">z</span>)</span>,
+    i.e., whether the two variables are the same or not.
+
+<br/><br/>
+
+<ul>
+<li> If <span class="inlinecode">(<span class="id" type="var">x</span> = <span class="id" type="var">z</span>)</span>, then we need to show <span class="inlinecode">(<span class="id" type="var">typing</span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">u</span> <span class="id" type="var">T</span>)</span>.
+        This follows from the given typing derivation for <span class="inlinecode"><span class="id" type="var">u</span></span> by
+        weakening and the fact that <span class="inlinecode"><span class="id" type="var">T</span></span> must equal <span class="inlinecode"><span class="id" type="var">S</span></span>.
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li> If <span class="inlinecode">(<span class="id" type="var">x</span> &lt;&gt; <span class="id" type="var">z</span>)</span>, then we need to show <span class="inlinecode">(<span class="id" type="var">typing</span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">x</span> <span class="id" type="var">T</span>)</span>.
+        This follows by the typing rule for variables.
+
+</li>
+</ul>
+
+<br/><br/>
+    HINTS: Lemmas <span class="inlinecode"><span class="id" type="var">binds_mid_eq</span></span>, <span class="inlinecode"><span class="id" type="var">uniq_remove_mid</span></span>,
+    and <span class="inlinecode"><span class="id" type="var">binds_remove_mid</span></span> are useful.
+
+<br/><br/>
+  
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_subst_var_case">typing_subst_var_case</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">E</span> <span class="id" type="var">F</span> : <span class="id" type="abbreviation"><a class="idref" href="STLCsol.html#env">env</a></span>) <span class="id" type="var">u</span> <span class="id" type="var">S</span> <span class="id" type="var">T</span> (<span class="id" type="var">z</span> <span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>),<br/>
+&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="Metatheory.html#EnvImpl.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">T</span> (<span class="id" type="var">F</span> ++ (<span class="id" type="var">z</span> ~ <span class="id" type="var">S</span>) ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Metatheory.html#EnvImpl.uniq">uniq</a></span> (<span class="id" type="var">F</span> ++ (<span class="id" type="var">z</span> ~ <span class="id" type="var">S</span>) ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">u</span> <span class="id" type="var">S</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) ([<span class="id" type="var">z</span> ~&gt; <span class="id" type="var">u</span>] <span class="id" type="var">x</span>) <span class="id" type="var">T</span>.<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab274"></a><h3 class="section">Note</h3>
+
+
+<br/><br/>
+    The other two cases of the proof of the substitution lemma are
+    relatively straightforward.  However, the case for <span class="inlinecode"><span class="id" type="var">typing_abs_c</span></span>
+    needs the fact that the typing relation holds only for
+    locally-closed expressions.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_c_to_lc_c">typing_c_to_lc_c</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> <span class="id" type="var">e</span>.<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab275"></a><h3 class="section">Exercise</h3>
+
+
+<br/><br/>
+    Complete the proof of the substitution lemma. The proof proceeds
+    by induction on the typing derivation for <span class="inlinecode"><span class="id" type="var">e</span></span>.  The initial steps
+    should use <span class="inlinecode"><span class="id" type="var">remember</span> <span class="id" type="keyword">as</span></span> and <span class="inlinecode"><span class="id" type="tactic">generalize</span> <span class="id" type="tactic">dependent</span></span> in a manner
+    similar to the proof of weakening.
+
+<br/><br/>
+   HINTS:
+
+<ul>
+<li> Use the lemma proved above for the <span class="inlinecode"><span class="id" type="var">typing_var_c</span></span> case.
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li> The <span class="inlinecode"><span class="id" type="var">typing_abs_c</span></span> case follows from the induction hypothesis.
+
+<ul>
+<li> Use <span class="inlinecode"><span class="id" type="tactic">simpl</span></span> to simplify the substitution.
+
+</li>
+</ul>
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li>
+<ul>
+<li> Recall the tactic <span class="inlinecode"><span class="id" type="var">pick</span> <span class="id" type="tactic">fresh</span> <span class="id" type="var">and</span> <span class="id" type="tactic">apply</span></span>.
+
+</li>
+</ul>
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li>
+<ul>
+<li> In order to use the induction hypothesis, use
+             <span class="inlinecode"><span class="id" type="var">subst_open_var_c</span></span> to push the substitution under the
+             opening operation.
+
+</li>
+</ul>
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li>
+<ul>
+<li> Recall the lemma <span class="inlinecode"><span class="id" type="var">typing_c_to_lc_c</span></span> and the
+             <span class="inlinecode"><span class="id" type="var">rewrite_env</span></span> and <span class="inlinecode"><span class="id" type="var">simpl_env</span></span> tactics.
+
+</li>
+</ul>
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li> The <span class="inlinecode"><span class="id" type="var">typing_app_c</span></span> case follows from the induction hypotheses.
+        Use <span class="inlinecode"><span class="id" type="tactic">simpl</span></span> to simplify the substitution.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_c_subst">typing_c_subst</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">E</span> <span class="id" type="var">F</span> : <span class="id" type="abbreviation"><a class="idref" href="STLCsol.html#env">env</a></span>) <span class="id" type="var">e</span> <span class="id" type="var">u</span> <span class="id" type="var">S</span> <span class="id" type="var">T</span> (<span class="id" type="var">z</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>),<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> (<span class="id" type="var">F</span> ++ (<span class="id" type="var">z</span> ~ <span class="id" type="var">S</span>) ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">u</span> <span class="id" type="var">S</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) ([<span class="id" type="var">z</span> ~&gt; <span class="id" type="var">u</span>] <span class="id" type="var">e</span>) <span class="id" type="var">T</span>.<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab276"></a><h3 class="section">Exercise</h3>
+
+
+<br/><br/>
+    Complete the proof of the substitution lemma stated in the form we
+    need it.  The proof is similar to that of <span class="inlinecode"><span class="id" type="var">typing_weakening</span></span>.
+
+<br/><br/>
+    HINT: You'll need to use <span class="inlinecode"><span class="id" type="var">rewrite_env</span></span> to prepend <span class="inlinecode"><span class="id" type="var">nil</span></span>,
+    and <span class="inlinecode"><span class="id" type="var">simpl_env</span></span> to simplify nil away.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_c_subst_simple">typing_c_subst_simple</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">E</span> : <span class="id" type="abbreviation"><a class="idref" href="STLCsol.html#env">env</a></span>) <span class="id" type="var">e</span> <span class="id" type="var">u</span> <span class="id" type="var">S</span> <span class="id" type="var">T</span> (<span class="id" type="var">z</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>),<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> ((<span class="id" type="var">z</span> ~ <span class="id" type="var">S</span>) ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">u</span> <span class="id" type="var">S</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> ([<span class="id" type="var">z</span> ~&gt; <span class="id" type="var">u</span>] <span class="id" type="var">e</span>) <span class="id" type="var">T</span>.<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab277"></a><h1 class="section">Values and Evaluation</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+In order to state the preservation lemma, we first need to define
+    values and the small-step evaluation relation.  These inductive
+    relations are straightforward to define.
+
+<br/><br/>
+    Note the hypotheses which ensure that the relations hold only for
+    locally closed terms.  Below, we prove that this is actually the
+    case, since it is not completely obvious from the definitions
+    alone.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Inductive</span> <span class="id" type="inductive"><a name="value_c">value_c</a></span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span> -&gt; <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="value_abs_c">value_abs_c</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span> <span class="id" type="var">T1</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">e</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#value_c">value_c</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">e</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Inductive</span> <span class="id" type="inductive"><a name="eval_c">eval_c</a></span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span> -&gt; <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="eval_beta_c">eval_beta_c</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span> <span class="id" type="var">T1</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">e1</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#value_c">value_c</a></span> <span class="id" type="var">e2</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval_c">eval_c</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">e1</span>) <span class="id" type="var">e2</span>) (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span>)<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="eval_app_1_c">eval_app_1_c</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e1</span> <span class="id" type="var">e1'</span> <span class="id" type="var">e2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> <span class="id" type="var">e2</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval_c">eval_c</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e1'</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval_c">eval_c</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span>) (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="var">e1'</span> <span class="id" type="var">e2</span>)<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="eval_app_2_c">eval_app_2_c</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span> <span class="id" type="var">e2'</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#value_c">value_c</a></span> <span class="id" type="var">e1</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval_c">eval_c</a></span> <span class="id" type="var">e2</span> <span class="id" type="var">e2'</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval_c">eval_c</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span>) (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2'</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+We add the constructors for these two relations as hints to be used
+    by Coq's <span class="inlinecode"><span class="id" type="tactic">auto</span></span> and <span class="inlinecode"><span class="id" type="tactic">eauto</span></span> tactics.
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="var">Constructors</span> <span class="id" type="var">value_c</span> <span class="id" type="var">eval_c</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab278"></a><h1 class="section">Preservation</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab279"></a><h3 class="section">Take-home Exercise</h3>
+
+
+<br/><br/>
+    Complete the proof of preservation.  In this proof, we proceed by
+    induction on the given typing derivation.  The induction
+    hypothesis has already been appropriately generalized by the given
+    proof fragment.
+
+<br/><br/>
+    Proof sketch: By induction on the typing derivation for <span class="inlinecode"><span class="id" type="var">e</span></span>.
+
+<br/><br/>
+
+<ul>
+<li> <span class="inlinecode"><span class="id" type="var">typing_var_c</span></span> case: Variables don't step.
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li> <span class="inlinecode"><span class="id" type="var">typing_abs_c</span></span> case: Abstractions don't step.
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li> <span class="inlinecode"><span class="id" type="var">typing_app_c</span></span> case: By case analysis on how <span class="inlinecode"><span class="id" type="var">e</span></span> steps. The
+        <span class="inlinecode"><span class="id" type="var">eval_beta</span></span> case is interesting, since it follows by the
+        substitution lemma.  The others follow directly from the
+        induction hypotheses.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="preservation_c">preservation_c</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">E</span> : <span class="id" type="abbreviation"><a class="idref" href="STLCsol.html#env">env</a></span>) <span class="id" type="var">e</span> <span class="id" type="var">e'</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval_c">eval_c</a></span> <span class="id" type="var">e</span> <span class="id" type="var">e'</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e'</span> <span class="id" type="var">T</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab280"></a><h1 class="section">Progress</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab281"></a><h3 class="section">Exercise</h3>
+
+
+<br/><br/>
+    Complete the proof of the progress lemma.  The induction
+    hypothesis has already been appropriately generalized by the given
+    proof fragment.
+
+<br/><br/>
+    Proof sketch: By induction on the typing derivation for <span class="inlinecode"><span class="id" type="var">e</span></span>.
+
+<br/><br/>
+
+<ul>
+<li> <span class="inlinecode"><span class="id" type="var">typing_var_c</span></span> case: Can't happen; the empty environment doesn't
+        bind anything.
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li> <span class="inlinecode"><span class="id" type="var">typing_abs_c</span></span> case: Abstractions are values.
+
+</li>
+</ul>
+
+<br/><br/>
+
+<ul>
+<li> <span class="inlinecode"><span class="id" type="var">typing_app_c</span></span> case: Applications reduce.  The result follows
+        from an exhaustive case analysis on whether the two components
+        of the application step or are values and the fact that a
+        value must be an abstraction.
+
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="progress_c">progress_c</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#value_c">value_c</a></span> <span class="id" type="var">e</span> \/ <span class="id" type="var">exists</span> <span class="id" type="var">e'</span>, <span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval_c">eval_c</a></span> <span class="id" type="var">e</span> <span class="id" type="var">e'</span>.<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab282"></a><h1 class="section">Renaming</h1>
+
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_c_uniq">typing_c_uniq</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt; <span class="id" type="inductive"><a class="idref" href="Metatheory.html#EnvImpl.uniq">uniq</a></span> <span class="id" type="var">E</span>.<br/>
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_c_rename">typing_c_rename</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> <span class="id" type="var">y</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T1</span> <span class="id" type="var">T2</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="var">x</span> `<span class="id" type="var">notin</span>` <span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> <span class="id" type="var">e</span> -&gt; <span class="id" type="var">y</span> `<span class="id" type="var">notin</span>` (<span class="id" type="definition"><a class="idref" href="Metatheory.html#EnvImpl.dom">dom</a></span> <span class="id" type="var">E</span> `<span class="id" type="var">union</span>` <span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> <span class="id" type="var">e</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> ((<span class="id" type="var">x</span> ~ <span class="id" type="var">T1</span>) ++ <span class="id" type="var">E</span>) (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> <span class="id" type="var">e</span> <span class="id" type="var">x</span>) <span class="id" type="var">T2</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> ((<span class="id" type="var">y</span> ~ <span class="id" type="var">T1</span>) ++ <span class="id" type="var">E</span>) (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> <span class="id" type="var">e</span> <span class="id" type="var">y</span>) <span class="id" type="var">T2</span>.<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab283"></a><h1 class="section">Exists-Fresh Definitions</h1>
+
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+<span class="id" type="keyword">Inductive</span> <span class="id" type="inductive"><a name="typing">typing</a></span> : <span class="id" type="abbreviation"><a class="idref" href="STLCsol.html#env">env</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#typ">typ</a></span> -&gt; <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="typing_var">typing_var</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Metatheory.html#EnvImpl.uniq">uniq</a></span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="Metatheory.html#EnvImpl.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">T</span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing">typing</a></span> <span class="id" type="var">E</span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#fvar">fvar</a></span> <span class="id" type="var">x</span>) <span class="id" type="var">T</span><br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="typing_abs">typing_abs</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T1</span> <span class="id" type="var">T2</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">x</span> `<span class="id" type="var">notin</span>` <span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> <span class="id" type="var">e</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing">typing</a></span> ((<span class="id" type="var">x</span> ~ <span class="id" type="var">T1</span>) ++ <span class="id" type="var">E</span>) (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> <span class="id" type="var">e</span> <span class="id" type="var">x</span>) <span class="id" type="var">T2</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing">typing</a></span> <span class="id" type="var">E</span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">e</span>) (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_arrow">typ_arrow</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">T2</span>)<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="typing_app">typing_app</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span> <span class="id" type="var">T1</span> <span class="id" type="var">T2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing">typing</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e1</span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#typ_arrow">typ_arrow</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">T2</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing">typing</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e2</span> <span class="id" type="var">T1</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing">typing</a></span> <span class="id" type="var">E</span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span>) <span class="id" type="var">T2</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Inductive</span> <span class="id" type="inductive"><a name="value">value</a></span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span> -&gt; <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="value_abs">value_abs</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span> <span class="id" type="var">T1</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">e</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#value">value</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">e</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Inductive</span> <span class="id" type="inductive"><a name="eval">eval</a></span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#exp">exp</a></span> -&gt; <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="eval_beta">eval_beta</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span> <span class="id" type="var">T1</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">e1</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#value">value</a></span> <span class="id" type="var">e2</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval">eval</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">e1</span>) <span class="id" type="var">e2</span>) (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span>)<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="eval_app_1">eval_app_1</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e1</span> <span class="id" type="var">e1'</span> <span class="id" type="var">e2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">e2</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval">eval</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e1'</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval">eval</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span>) (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="var">e1'</span> <span class="id" type="var">e2</span>)<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="eval_app_2">eval_app_2</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span> <span class="id" type="var">e2'</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#value">value</a></span> <span class="id" type="var">e1</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval">eval</a></span> <span class="id" type="var">e2</span> <span class="id" type="var">e2'</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval">eval</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span>) (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#app">app</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2'</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="var">Constructors</span> <span class="id" type="var">typing</span> <span class="id" type="var">value</span> <span class="id" type="var">eval</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab284"></a><h1 class="section">Equivalence of Exists-Fresh and Cofinite Definitions</h1>
+
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+First, we show that the two local closure predicates are equivalent.
+    This lemma follows via a renaming lemma for lc_c. 
+</div>
+<div class="code">
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="lc_rename">lc_rename</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span> (<span class="id" type="var">x</span>:atom) (<span class="id" type="var">y</span>:atom),<br/>
+&nbsp;&nbsp;<span class="id" type="var">x</span> `<span class="id" type="var">notin</span>` <span class="id" type="definition"><a class="idref" href="STLCsol.html#fv">fv</a></span> <span class="id" type="var">e</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> <span class="id" type="var">e</span> <span class="id" type="var">x</span>) -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> <span class="id" type="var">e</span> <span class="id" type="var">y</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="lc_to_lc_c">lc_to_lc_c</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span>, <span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">e</span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> <span class="id" type="var">e</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="lc_c_to_lc">lc_c_to_lc</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span>, <span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> <span class="id" type="var">e</span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">e</span>.<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Correspondence of typing and typing_c 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_to_typing_c">typing_to_typing_c</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing">typing</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_c_to_typing">typing_c_to_typing</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing">typing</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="value_to_value_c">value_to_value_c</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#value">value</a></span> <span class="id" type="var">e</span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#value_c">value_c</a></span> <span class="id" type="var">e</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="value_c_to_value">value_c_to_value</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#value_c">value_c</a></span> <span class="id" type="var">e</span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#value">value</a></span> <span class="id" type="var">e</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="eval_to_eval_c">eval_to_eval_c</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span> <span class="id" type="var">e'</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval">eval</a></span> <span class="id" type="var">e</span> <span class="id" type="var">e'</span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval_c">eval_c</a></span> <span class="id" type="var">e</span> <span class="id" type="var">e'</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="eval_c_to_eval">eval_c_to_eval</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span> <span class="id" type="var">e'</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval_c">eval_c</a></span> <span class="id" type="var">e</span> <span class="id" type="var">e'</span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval">eval</a></span> <span class="id" type="var">e</span> <span class="id" type="var">e'</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="preservation">preservation</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">e'</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing">typing</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval">eval</a></span> <span class="id" type="var">e</span> <span class="id" type="var">e'</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing">typing</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e'</span> <span class="id" type="var">T</span>.<br/>
+<br/>
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="progress">progress</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing">typing</a></span> <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#value">value</a></span> <span class="id" type="var">e</span> \/ <span class="id" type="var">exists</span> <span class="id" type="var">e'</span>, <span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval">eval</a></span> <span class="id" type="var">e</span> <span class="id" type="var">e'</span>.<br/>
+<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab285"></a><h1 class="section">Regularity</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+To be fully confident about the exist-fresh rules, we can show their
+   "regularity" --- that these relations only include locally closed
+   terms. (For the exists-fresh definition of local closure.)
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Importantly: to prove regularity, we need to know subst_lc, and that
+    we most directly prove by using the connection between lc and lc_c. 
+</div>
+<div class="code">
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="subst_lc">subst_lc</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="MetatheoryAtom.html#AtomImpl.atom">atom</a></span>) <span class="id" type="var">u</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">e</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">u</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> ([<span class="id" type="var">x</span> ~&gt; <span class="id" type="var">u</span>] <span class="id" type="var">e</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Take-home exercise. <span class="inlinecode"><span class="id" type="var">open_abs</span></span> is the analogue of subst_lc for bound variable
+   substitution.
+   HINT: use inversion, subst_intro and subst_lc to prove this lemma.
+
+</div>
+<div class="code">
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="open_abs">open_abs</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span> <span class="id" type="var">u</span> <span class="id" type="var">T1</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">e</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">u</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> (<span class="id" type="definition"><a class="idref" href="STLCsol.html#open">open</a></span> <span class="id" type="var">e</span> <span class="id" type="var">u</span>).<br/>
+
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="value_to_lc">value_to_lc</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#value">value</a></span> <span class="id" type="var">e</span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">e</span>.<br/>
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="eval_to_lc">eval_to_lc</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#eval">eval</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">e2</span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">e1</span> /\ <span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">e2</span>.<br/>
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_to_lc">typing_to_lc</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing">typing</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt; <span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc">lc</a></span> <span class="id" type="var">e</span>.<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab286"></a><h1 class="section">Decidability of Typechecking</h1>
+
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Equality on types is decidable 
+</div>
+<div class="code">
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="eq_typ_dec">eq_typ_dec</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">T</span> <span class="id" type="var">T'</span> : <span class="id" type="inductive"><a class="idref" href="STLCsol.html#typ">typ</a></span>),<br/>
+&nbsp;&nbsp;{ <span class="id" type="var">T</span> = <span class="id" type="var">T'</span> } + { <span class="id" type="var">T</span> &lt;&gt; <span class="id" type="var">T'</span> }.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Take-home exercise.
+
+<br/><br/>
+    To prove that ill-formed terms cannot be typechecked, we will need an
+    auxiliary lemma that says that each term only has a single type.
+
+<br/><br/>
+    HINT: to prove this lemma you will need to generalize the induction
+    hypothesis for T2 and use the lemma <span class="inlinecode"><span class="id" type="var">binds_unique</span></span> from <span class="inlinecode"><span class="id" type="var">AtomEnv.v</span></span>.
+
+</div>
+<div class="code">
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_c_unique">typing_c_unique</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T1</span> <span class="id" type="var">T2</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T1</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T2</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">T1</span> = <span class="id" type="var">T2</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="decidable">decidable</a></span> (<span class="id" type="var">P</span> : <span class="id" type="keyword">Prop</span>) := (<span class="id" type="var">P</span> \/ ~ <span class="id" type="var">P</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_c_decidable">typing_c_decidable</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">e</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#lc_c">lc_c</a></span> <span class="id" type="var">e</span> -&gt; <span class="id" type="inductive"><a class="idref" href="Metatheory.html#EnvImpl.uniq">uniq</a></span> <span class="id" type="var">E</span> -&gt; <span class="id" type="definition"><a class="idref" href="STLCsol.html#decidable">decidable</a></span> (<span class="id" type="var">exists</span> <span class="id" type="var">T</span>, <span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing_c">typing_c</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span>).<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">Check</span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#typing_abs_c">typing_abs_c</a></span> <span class="id" type="var">L</span> <span class="id" type="var">E</span> (<span class="id" type="constructor"><a class="idref" href="STLCsol.html#abs">abs</a></span> <span class="id" type="var">T</span> <span class="id" type="var">e</span>) <span class="id" type="var">T</span> <span class="id" type="var">S</span>).<br/>
+<br/>
+<br/>
+<br/>
+<span class="id" type="keyword">Qed</span>.<br/>
+
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_weakening_strengthened">typing_weakening_strengthened</a></span> :  <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">G</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing">typing</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Metatheory.html#EnvImpl.uniq">uniq</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="STLCsol.html#typing">typing</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span>.<br/>
+<br/>
+<br/>
+
+<br/>
+</div>
+<hr/>This page has been generated by <a href="http://coq.inria.fr">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,22 @@
+AssocList.vo: AssocList.v CoqFSetDecide.vo CoqListFacts.vo LibTactics.vo
+CoqEqDec.vo: CoqEqDec.v
+CoqFSetDecide.vo: CoqFSetDecide.v
+CoqFSetInterface.vo: CoqFSetInterface.v
+CoqListFacts.vo: CoqListFacts.v CoqUniquenessTac.vo
+CoqUniquenessTac.vo: CoqUniquenessTac.v
+CoqUniquenessTacEx.vo: CoqUniquenessTacEx.v CoqUniquenessTac.vo
+FSetExtra.vo: FSetExtra.v CoqFSetInterface.vo
+FSetWeakNotin.vo: FSetWeakNotin.v CoqFSetDecide.vo
+LibDefaultSimp.vo: LibDefaultSimp.v
+LibLNgen.vo: LibLNgen.v LibDefaultSimp.vo Metatheory.vo
+LibTactics.vo: LibTactics.v
+MetatheoryAtom.vo: MetatheoryAtom.v CoqFSetDecide.vo CoqListFacts.vo FSetExtra.vo FSetWeakNotin.vo LibTactics.vo
+Metatheory.vo: Metatheory.v AssocList.vo CoqEqDec.vo CoqListFacts.vo LibTactics.vo MetatheoryAtom.vo
+AssumeList.vo: AssumeList.v CoqFSetDecide.vo CoqListFacts.vo LibTactics.vo MetatheoryAtom.vo
+MetatheoryAlt.vo: MetatheoryAlt.v CoqEqDec.vo CoqListFacts.vo LibTactics.vo MetatheoryAtom.vo AssumeList.vo
+Fsub_LetSum_Definitions.vo: Fsub_LetSum_Definitions.v Metatheory.vo
+Fsub_LetSum_Infrastructure.vo: Fsub_LetSum_Infrastructure.v Fsub_LetSum_Definitions.vo
+Fsub_LetSum_Lemmas.vo: Fsub_LetSum_Lemmas.v Fsub_LetSum_Infrastructure.vo
+Fsub_LetSum_Soundness.vo: Fsub_LetSum_Soundness.v Fsub_LetSum_Lemmas.vo
+CoqIntro.vo: CoqIntro.v
+STLCsol.vo: STLCsol.v Metatheory.vo

@@ -1,0 +1,1434 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<link href="coqdoc.css" rel="stylesheet" type="text/css"/>
+<title>AssocList</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library AssocList</h1>
+
+<div class="code">
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+A library for association lists, i.e., lists of pairs 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.FSets.html#">Coq.FSets.FSets</a></span>.<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#">Coq.Lists.List</a></span>.<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#">Coq.Logic.Decidable</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="CoqFSetDecide.html#">CoqFSetDecide</a></span>.<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="CoqListFacts.html#">CoqListFacts</a></span>.<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Import</span> <span class="id" type="library"><a class="idref" href="LibTactics.html#">LibTactics</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab1"></a><h1 class="section">Implementation</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+We implement association lists as lists of key-value pairs.  We
+    use <span class="inlinecode"><span class="id" type="var">eq</span></span> as the equality on both keys and values.  This is evident
+    primarily in the definitions of <span class="inlinecode"><span class="id" type="var">binds</span></span> and <span class="inlinecode"><span class="id" type="var">maps</span></span>.
+
+<br/><br/>
+    (Implementation note: We can generalize the implementation to
+    arbitrary equivalence relations.  For now, we have chosen not to,
+    in order to keep the implementation simple and to optimize for
+    what we expect is the common case.)
+
+<br/><br/>
+    Note that our library has an implicit convention for the "normal
+    form" of an association list.  This normal form requires that a
+    list be built only from <span class="inlinecode"><span class="id" type="var">nil</span></span> (the empty list), <span class="inlinecode"><span class="id" type="var">one</span></span> (the
+    singleton list), and <span class="inlinecode"><span class="id" type="var">app</span></span> (concatenation).  Additionally,
+    concatenations should be associated to the right and the list
+    should not contain any <span class="inlinecode"><span class="id" type="var">nil</span></span> terms, unless it is the empty list
+    itself.
+
+<br/><br/>
+    This allows association lists to be written in a slightly more
+    uniform manner when compared to using both <span class="inlinecode"><span class="id" type="var">cons</span></span> and <span class="inlinecode"><span class="id" type="var">app</span></span> to
+    build them.  The downsides are that Coq's <span class="inlinecode"><span class="id" type="tactic">simpl</span></span> tactic will
+    simplify instances of <span class="inlinecode"><span class="id" type="var">one</span></span> down to <span class="inlinecode"><span class="id" type="var">cons</span></span> and that there are
+    instances in which one needs to write association lists that are
+    not in normal form (e.g., some concatenations will need to be
+    associated to the left).  The <span class="inlinecode"><span class="id" type="var">simpl_alist</span></span> and <span class="inlinecode"><span class="id" type="var">rewrite_alist</span></span>
+    tactics below are designed to minimize the impact of these
+    downsides.
+
+<br/><br/>
+    A <span class="inlinecode"><span class="id" type="var">Strategy</span></span> declaration can be used to prevent Coq's tactics from
+    simplifying <span class="inlinecode"><span class="id" type="var">one</span></span>, if one so desires. 
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="module"><a name="Make">Make</a></span><br/>
+&nbsp;&nbsp;(<span class="id" type="var">X</span> : <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.DecidableTypeEx.html#">UsualDecidableType</a></span>)<br/>
+&nbsp;&nbsp;(<span class="id" type="keyword">Import</span> <span class="id" type="var">KeySet</span> : <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.FSetInterface.html#">FSetInterface.WSfun</a></span> <span class="id" type="module"><a class="idref" href="AssocList.html#">X</a></span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="keyword">Import</span> <span class="id" type="module"><a name="D">D</a></span> := <span class="id" type="module"><a class="idref" href="CoqFSetDecide.html#">CoqFSetDecide.WDecide_fun</a></span> <span class="id" type="module"><a class="idref" href="AssocList.html#">X</a></span> <span class="id" type="module"><a class="idref" href="AssocList.html#">KeySet</a></span>.<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="module"><a name="KeySetProperties">KeySetProperties</a></span> := <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.FSetProperties.html#">FSetProperties.WProperties_fun</a></span> <span class="id" type="module"><a class="idref" href="AssocList.html#">X</a></span> <span class="id" type="module"><a class="idref" href="AssocList.html#">KeySet</a></span>.<br/>
+<span class="id" type="keyword">Module</span> <span class="id" type="module"><a name="KeySetFacts">KeySetFacts</a></span> := <span class="id" type="module"><a class="idref" href="http://coq.inria.fr/library/Coq.FSets.FSetFacts.html#">FSetFacts.WFacts_fun</a></span> <span class="id" type="module"><a class="idref" href="AssocList.html#">X</a></span> <span class="id" type="module"><a class="idref" href="AssocList.html#">KeySet</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab2"></a><h1 class="section">Basic definitions</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Implicit arguments are enabled for the following definitions. 
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">one</span></span> constructs an association list consisting of exactly one
+    binding.  We define an infix notation for it and ensure that the
+    arguments to <span class="inlinecode"><span class="id" type="var">app</span></span> are interpreted in the right scope, i.e.,
+    <span class="inlinecode"><span class="id" type="var">list_scope</span></span>.
+
+<br/><br/>
+    Implementation note: The level associated with the notation gives
+    it a higher precedence than the "++" notation for <span class="inlinecode"><span class="id" type="var">app</span></span>.  This
+    should eliminate the need for parentheses.  See the definition
+    below of <span class="inlinecode"><span class="id" type="var">uniq</span></span>, for example. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="Make.one">one</a></span> (<span class="id" type="var">C</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">item</span> : <span class="id" type="var">C</span>) : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="var">C</span> := <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#cons">cons</a></span> <span class="id" type="var">item</span> <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Notation</span> "x ~ a" := (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.one">one</a></span> (<span class="id" type="var">x</span>, <span class="id" type="var">a</span>)) (<span class="id" type="tactic">at</span> <span class="id" type="var">level</span> 50) : <span class="id" type="var">list_scope</span>.<br/>
+
+<br/>
+
+<br/>
+<span class="id" type="keyword">Open</span> <span class="id" type="keyword">Scope</span> <span class="id" type="var">list_scope</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">dom</span></span> computes the domain of an association list, i.e., the
+    set consisting of its keys. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Fixpoint</span> <span class="id" type="definition"><a name="Make.dom">dom</a></span><br/>
+&nbsp;&nbsp;(<span class="id" type="var">C</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*C))<br/>
+&nbsp;&nbsp;: <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.t">KeySet.t</a></span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">E</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> =&gt; <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.empty">empty</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| (<span class="id" type="var">x</span>, <span class="id" type="var">_</span>) :: <span class="id" type="var">E'</span> =&gt; <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.add">add</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#dom">dom</a></span> <span class="id" type="var">E'</span>)<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">get</span></span> looks up a key in an association list. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Fixpoint</span> <span class="id" type="definition"><a name="Make.get">get</a></span><br/>
+&nbsp;&nbsp;(<span class="id" type="var">C</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>) (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*C))<br/>
+&nbsp;&nbsp;: <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#option">option</a></span> <span class="id" type="var">C</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">E</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> =&gt; <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#None">None</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| (<span class="id" type="var">y</span>, <span class="id" type="var">c</span>) :: <span class="id" type="var">F</span> =&gt; <span class="id" type="keyword">if</span> <span class="id" type="axiom"><a class="idref" href="AssocList.html#X.eq_dec">X.eq_dec</a></span> <span class="id" type="var">x</span> <span class="id" type="var">y</span> <span class="id" type="keyword">then</span> <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#Some">Some</a></span> <span class="id" type="var">c</span> <span class="id" type="keyword">else</span> <span class="id" type="definition"><a class="idref" href="AssocList.html#get">get</a></span> <span class="id" type="var">x</span> <span class="id" type="var">F</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">binds</span></span> is a ternary predicate that holds when a key-value pair
+    appears somewhere in the given association list. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="Make.binds">binds</a></span><br/>
+&nbsp;&nbsp;(<span class="id" type="var">A</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>) (<span class="id" type="var">a</span> : <span class="id" type="var">A</span>) (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A))<br/>
+&nbsp;&nbsp;: <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#In">List.In</a></span> (<span class="id" type="var">x</span>, <span class="id" type="var">a</span>) <span class="id" type="var">E</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">maps</span></span> is a ternary predicate that holds when the first binding in
+    the list for the given key is to the given value. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="Make.maps">maps</a></span><br/>
+&nbsp;&nbsp;(<span class="id" type="var">A</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>) (<span class="id" type="var">a</span> : <span class="id" type="var">A</span>) (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A))<br/>
+&nbsp;&nbsp;: <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.get">get</a></span> <span class="id" type="var">x</span> <span class="id" type="var">E</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Datatypes.html#Some">Some</a></span> <span class="id" type="var">a</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">disjoint</span></span> is a binary predicate that holds when the domains of
+    two association lists are disjoint. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="Make.disjoint">disjoint</a></span><br/>
+&nbsp;&nbsp;(<span class="id" type="var">A</span> <span class="id" type="var">B</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B))<br/>
+&nbsp;&nbsp;: <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.inter">inter</a></span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>) (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">F</span>) [&lt;=] <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.empty">empty</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">map</span></span> applies a function to each of the values in an association
+    list. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="Make.map">map</a></span><br/>
+&nbsp;&nbsp;(<span class="id" type="var">A</span> <span class="id" type="var">B</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">f</span> : <span class="id" type="var">A</span> -&gt; <span class="id" type="var">B</span>) (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A))<br/>
+&nbsp;&nbsp;: <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B) :=<br/>
+&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#map">List.map</a></span> (<span class="id" type="keyword">fun</span> <span class="id" type="var">b</span> =&gt; <span class="id" type="keyword">match</span> <span class="id" type="var">b</span> <span class="id" type="keyword">with</span> (<span class="id" type="var">x</span>, <span class="id" type="var">a</span>) =&gt; (<span class="id" type="var">x</span>, <span class="id" type="var">f</span> <span class="id" type="var">a</span>) <span class="id" type="keyword">end</span>) <span class="id" type="var">E</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">uniq</span></span> is unary predicate that holds if and only if each key is
+    bound at most once in the given association list.  Note that
+    <span class="inlinecode"><span class="id" type="var">uniq</span></span> is defined in terms of <span class="inlinecode"><span class="id" type="var">one</span></span>, not <span class="inlinecode"><span class="id" type="var">cons</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Inductive</span> <span class="id" type="inductive"><a name="Make.uniq">uniq</a></span> (<span class="id" type="var">A</span> : <span class="id" type="keyword">Type</span>) : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A) -&gt; <span class="id" type="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="Make.uniq_nil">uniq_nil</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#uniq">uniq</a></span> <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span><br/>
+&nbsp;&nbsp;| <span class="id" type="constructor"><a name="Make.uniq_push">uniq_push</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#uniq">uniq</a></span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#uniq">uniq</a></span> (<span class="id" type="var">x</span> ~ <span class="id" type="var">a</span> ++ <span class="id" type="var">E</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Unless stated otherwise, in the remainder of this file, implicit
+    arguments will not be declared by default. 
+</div>
+<div class="code">
+
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab3"></a><h1 class="section">List properties</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The following properties are used mainly for rewriting association
+    lists into the normal form described above.  See the <span class="inlinecode"><span class="id" type="var">simpl_alist</span></span>
+    and <span class="inlinecode"><span class="id" type="var">rewrite_alist</span></span> tactics below. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="Make.ListProperties">ListProperties</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variable</span>  <span class="id" type="variable"><a name="Make.ListProperties.X">X</a></span> : <span class="id" type="keyword">Type</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.ListProperties.x">x</a></span> <span class="id" type="variable"><a name="Make.ListProperties.y">y</a></span> : <span class="id" type="var">X</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.ListProperties.l">l</a></span> <span class="id" type="variable"><a name="Make.ListProperties.l1">l1</a></span> <span class="id" type="variable"><a name="Make.ListProperties.l2">l2</a></span> <span class="id" type="variable"><a name="Make.ListProperties.l3">l3</a></span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="var">X</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.cons_app_one">cons_app_one</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#cons">cons</a></span> <span class="id" type="var">x</span> <span class="id" type="var">l</span> = <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.one">one</a></span> <span class="id" type="var">x</span> ++ <span class="id" type="var">l</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.cons_app_assoc">cons_app_assoc</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#cons">cons</a></span> <span class="id" type="var">x</span> <span class="id" type="var">l1</span>) ++ <span class="id" type="var">l2</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#cons">cons</a></span> <span class="id" type="var">x</span> (<span class="id" type="var">l1</span> ++ <span class="id" type="var">l2</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.app_assoc">app_assoc</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">l1</span> ++ <span class="id" type="var">l2</span>) ++ <span class="id" type="var">l3</span> = <span class="id" type="var">l1</span> ++ (<span class="id" type="var">l2</span> ++ <span class="id" type="var">l3</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.app_nil_1">app_nil_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> ++ <span class="id" type="var">l</span> = <span class="id" type="var">l</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.app_nil_2">app_nil_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">l</span> ++ <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> = <span class="id" type="var">l</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.in_nil_iff">in_nil_iff</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#In">List.In</a></span> <span class="id" type="var">x</span> <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> &lt;-&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.in_one_iff">in_one_iff</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#In">List.In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.one">one</a></span> <span class="id" type="var">y</span>) &lt;-&gt; <span class="id" type="var">x</span> = <span class="id" type="var">y</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.in_app_iff">in_app_iff</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#In">List.In</a></span> <span class="id" type="var">x</span> (<span class="id" type="var">l1</span> ++ <span class="id" type="var">l2</span>) &lt;-&gt; <span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#In">List.In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">l1</span> \/ <span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#In">List.In</a></span> <span class="id" type="var">x</span> <span class="id" type="var">l2</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="AssocList.html#Make.ListProperties">ListProperties</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab4"></a><h1 class="section">Properties of <span class="inlinecode"><span class="id" type="var">map</span></span> and <span class="inlinecode"><span class="id" type="var">dom</span></span></h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The following lemmas are used mainly to simplify applications of
+    <span class="inlinecode"><span class="id" type="var">map</span></span> and <span class="inlinecode"><span class="id" type="var">dom</span></span> to association lists.  See also the <span class="inlinecode"><span class="id" type="var">simpl_alist</span></span>
+    and <span class="inlinecode"><span class="id" type="var">rewrite_alist</span></span> tactics below. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="Make.Properties">Properties</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.Properties.A">A</a></span> <span class="id" type="variable"><a name="Make.Properties.B">B</a></span> <span class="id" type="variable"><a name="Make.Properties.key">key</a></span> : <span class="id" type="keyword">Type</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variable</span>  <span class="id" type="variable"><a name="Make.Properties.f">f</a></span>       : <span class="id" type="var">A</span> -&gt; <span class="id" type="var">B</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variable</span>  <span class="id" type="variable"><a name="Make.Properties.x">x</a></span>       : <span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variable</span>  <span class="id" type="variable"><a name="Make.Properties.b">b</a></span>       : <span class="id" type="var">A</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.Properties.E">E</a></span> <span class="id" type="variable"><a name="Make.Properties.F">F</a></span> <span class="id" type="variable"><a name="Make.Properties.G">G</a></span>   : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.map_nil">map_nil</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> (@<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.map_one">map_one</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> (<span class="id" type="var">x</span> ~ <span class="id" type="var">b</span>) = (<span class="id" type="var">x</span> ~ <span class="id" type="var">f</span> <span class="id" type="var">b</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.map_cons">map_cons</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> ((<span class="id" type="var">x</span>, <span class="id" type="var">b</span>) :: <span class="id" type="var">E</span>) = <span class="id" type="var">x</span> ~ <span class="id" type="var">f</span> <span class="id" type="var">b</span> ++ <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> <span class="id" type="var">E</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.map_app">map_app</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) = <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> <span class="id" type="var">E</span> ++ <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> <span class="id" type="var">F</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.dom_nil">dom_nil</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> (@<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) = <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.empty">empty</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.dom_one">dom_one</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> (<span class="id" type="var">x</span> ~ <span class="id" type="var">b</span>) [=] <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.singleton">singleton</a></span> <span class="id" type="var">x</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.dom_cons">dom_cons</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> ((<span class="id" type="var">x</span>, <span class="id" type="var">b</span>) :: <span class="id" type="var">E</span>) [=] <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.union">union</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.singleton">singleton</a></span> <span class="id" type="var">x</span>) (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.dom_app">dom_app</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) [=] <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.union">union</a></span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>) (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">F</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.dom_map">dom_map</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> <span class="id" type="var">E</span>) [=] <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="AssocList.html#Make.Properties">Properties</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab5"></a><h1 class="section">The <span class="inlinecode"><span class="id" type="var">simpl_alist</span></span> tactic</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+Rewriting hints. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="var">Rewrite</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.cons_app_one">cons_app_one</a></span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.cons_app_assoc">cons_app_assoc</a></span>      : <span class="id" type="var">rewr_list</span>.<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="var">Rewrite</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.app_assoc">app_assoc</a></span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.app_nil_1">app_nil_1</a></span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.app_nil_2">app_nil_2</a></span>    : <span class="id" type="var">rewr_list</span>.<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="var">Rewrite</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.in_nil_iff">in_nil_iff</a></span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.in_one_iff">in_one_iff</a></span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.in_app_iff">in_app_iff</a></span> : <span class="id" type="var">rewr_list_in</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="var">Rewrite</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.map_nil">map_nil</a></span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.map_one">map_one</a></span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.map_cons">map_cons</a></span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.map_app">map_app</a></span>         : <span class="id" type="var">rewr_map</span>.<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="var">Rewrite</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.dom_nil">dom_nil</a></span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.dom_one">dom_one</a></span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.dom_cons">dom_cons</a></span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.dom_app">dom_app</a></span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.dom_map">dom_map</a></span> : <span class="id" type="var">rewr_dom</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The <span class="inlinecode"><span class="id" type="var">simpl_alist</span></span> tactic rewrites association lists so that they
+    are in the normal form described above.  Similar to the <span class="inlinecode"><span class="id" type="tactic">simpl</span></span>
+    tactic, we define "<span class="inlinecode"><span class="id" type="keyword">in</span> *</span>" and "<span class="inlinecode"><span class="id" type="keyword">in</span> <span class="id" type="var">H</span></span>" variants of the tactic. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">simpl_alist</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="var">autorewrite</span> <span class="id" type="keyword">with</span> <span class="id" type="var">rewr_list</span> <span class="id" type="var">rewr_map</span> <span class="id" type="var">rewr_dom</span>.<br/>
+<span class="id" type="keyword">Tactic Notation</span> "simpl_alist" "in" <span class="id" type="var">hyp</span>(<span class="id" type="var">H</span>) :=<br/>
+&nbsp;&nbsp;<span class="id" type="var">autorewrite</span> <span class="id" type="keyword">with</span> <span class="id" type="var">rewr_list</span> <span class="id" type="var">rewr_map</span> <span class="id" type="var">rewr_dom</span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>.<br/>
+<span class="id" type="keyword">Tactic Notation</span> "simpl_alist" "in" "*" :=<br/>
+&nbsp;&nbsp;<span class="id" type="var">autorewrite</span> <span class="id" type="keyword">with</span> <span class="id" type="var">rewr_list</span> <span class="id" type="var">rewr_map</span> <span class="id" type="var">rewr_dom</span> <span class="id" type="keyword">in</span> *.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab6"></a><h1 class="section">The <span class="inlinecode"><span class="id" type="var">rewrite_alist</span></span> tactic</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The tactic <span class="inlinecode">(<span class="id" type="var">rewrite_alist</span> <span class="id" type="var">E</span>)</span> replaces an association list in the
+    conclusion of the goal with <span class="inlinecode"><span class="id" type="var">E</span></span>.  Suitability for replacement is
+    determined by whether <span class="inlinecode"><span class="id" type="var">simpl_alist</span></span> can put <span class="inlinecode"><span class="id" type="var">E</span></span> and the chosen
+    environment in the same normal form, up to convertibility's in
+    Coq.  We also define an "<span class="inlinecode"><span class="id" type="keyword">in</span> <span class="id" type="var">H</span></span>" variant that performs the
+    replacement in a hypothesis <span class="inlinecode"><span class="id" type="var">H</span></span>.
+
+<br/><br/>
+    Implementation note: The tactic depends on appropriate morphisms
+    being declared for finite set operations. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Tactic Notation</span> "rewrite_alist" <span class="id" type="var">constr</span>(<span class="id" type="var">E</span>) :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span>[?x] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">change</span> <span class="id" type="var">x</span> <span class="id" type="keyword">with</span> <span class="id" type="var">E</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| |- <span class="id" type="var">context</span>[?x] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">replace</span> <span class="id" type="var">x</span> <span class="id" type="keyword">with</span> <span class="id" type="var">E</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ | <span class="id" type="tactic">try</span> <span class="id" type="tactic">reflexivity</span>; <span class="id" type="var">simpl_alist</span>; <span class="id" type="tactic">reflexivity</span> ]<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Tactic Notation</span> "rewrite_alist" <span class="id" type="var">constr</span>(<span class="id" type="var">E</span>) "in" <span class="id" type="var">hyp</span>(<span class="id" type="var">H</span>) :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">type</span> <span class="id" type="var">of</span> <span class="id" type="var">H</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">context</span>[?x] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">change</span> <span class="id" type="var">x</span> <span class="id" type="keyword">with</span> <span class="id" type="var">E</span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">context</span>[?x] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">replace</span> <span class="id" type="var">x</span> <span class="id" type="keyword">with</span> <span class="id" type="var">E</span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ | <span class="id" type="tactic">try</span> <span class="id" type="tactic">reflexivity</span>; <span class="id" type="var">simpl_alist</span>; <span class="id" type="tactic">reflexivity</span> ]<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab7"></a><h1 class="section">Induction</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+For convenience, we provide a tactic for reasoning by induction on
+    the structure of an association list.  Compared to regular <span class="inlinecode"><span class="id" type="var">list</span></span>
+    induction, in the "<span class="inlinecode"><span class="id" type="var">cons</span></span>" case, this tactic automatically
+    destructs the pair at the head of the list and ensures that the
+    list is formed using <span class="inlinecode"><span class="id" type="var">one</span></span> and <span class="inlinecode"><span class="id" type="var">app</span></span>. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.alist_ind">alist_ind</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">A</span> : <span class="id" type="keyword">Type</span>) (<span class="id" type="var">P</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span> * <span class="id" type="var">A</span>) -&gt; <span class="id" type="keyword">Type</span>),<br/>
+&nbsp;&nbsp;(<span class="id" type="var">P</span> <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span>) -&gt;<br/>
+&nbsp;&nbsp;(<span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">xs</span>, <span class="id" type="var">P</span> <span class="id" type="var">xs</span> -&gt; <span class="id" type="var">P</span> (<span class="id" type="var">x</span> ~ <span class="id" type="var">a</span> ++ <span class="id" type="var">xs</span>)) -&gt;<br/>
+&nbsp;&nbsp;(<span class="id" type="keyword">forall</span> <span class="id" type="var">xs</span>, <span class="id" type="var">P</span> <span class="id" type="var">xs</span>).<br/>
+<br/>
+
+<br/>
+<span class="id" type="keyword">Tactic Notation</span> "alist" "induction" <span class="id" type="var">ident</span>(<span class="id" type="var">E</span>) :=<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">try</span> (<span class="id" type="tactic">intros</span> <span class="id" type="var">until</span> <span class="id" type="var">E</span>);<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">T</span> := <span class="id" type="var">type</span> <span class="id" type="var">of</span> <span class="id" type="var">E</span> <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">T</span> := <span class="id" type="var">eval</span> <span class="id" type="tactic">compute</span> <span class="id" type="keyword">in</span> <span class="id" type="var">T</span> <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">T</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (?key * ?A) =&gt; <span class="id" type="tactic">induction</span> <span class="id" type="var">E</span> <span class="id" type="keyword">using</span> (<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.alist_ind">alist_ind</a></span> <span class="id" type="var">A</span>)<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Tactic Notation</span> "alist" "induction" <span class="id" type="var">ident</span>(<span class="id" type="var">E</span>) "as" <span class="id" type="var">simple_intropattern</span>(<span class="id" type="var">P</span>) :=<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">try</span> (<span class="id" type="tactic">intros</span> <span class="id" type="var">until</span> <span class="id" type="var">E</span>);<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">T</span> := <span class="id" type="var">type</span> <span class="id" type="var">of</span> <span class="id" type="var">E</span> <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">T</span> := <span class="id" type="var">eval</span> <span class="id" type="tactic">compute</span> <span class="id" type="keyword">in</span> <span class="id" type="var">T</span> <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">T</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (?key * ?A) =&gt; <span class="id" type="tactic">induction</span> <span class="id" type="var">E</span> <span class="id" type="keyword">as</span> <span class="id" type="var">P</span> <span class="id" type="keyword">using</span> (<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.alist_ind">alist_ind</a></span> <span class="id" type="var">A</span>)<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab8"></a><h1 class="section">Basic facts about <span class="inlinecode"><span class="id" type="var">disjoint</span></span></h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="Make.Disjoint">Disjoint</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Implicit</span> <span class="id" type="keyword">Types</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> <span class="id" type="var">C</span> : <span class="id" type="keyword">Type</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_sym_1">disjoint_sym_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">F</span> <span class="id" type="var">E</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_sym">disjoint_sym</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> &lt;-&gt; <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">F</span> <span class="id" type="var">E</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_nil_1">disjoint_nil_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> (@<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) <span class="id" type="var">E</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_one_1">disjoint_one_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>) (<span class="id" type="var">a</span> : <span class="id" type="var">A</span>) (<span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> (<span class="id" type="var">x</span> ~ <span class="id" type="var">a</span>) <span class="id" type="var">F</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">F</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_one_2">disjoint_one_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>) (<span class="id" type="var">a</span> : <span class="id" type="var">A</span>) (<span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">F</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> (<span class="id" type="var">x</span> ~ <span class="id" type="var">a</span>) <span class="id" type="var">F</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_one_l">disjoint_one_l</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>) (<span class="id" type="var">a</span> : <span class="id" type="var">A</span>) (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> (<span class="id" type="var">x</span> ~ <span class="id" type="var">a</span>) <span class="id" type="var">E</span> &lt;-&gt; ~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_one_r">disjoint_one_r</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> (<span class="id" type="var">x</span> : <span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>) (<span class="id" type="var">a</span> : <span class="id" type="var">A</span>) (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> (<span class="id" type="var">x</span> ~ <span class="id" type="var">a</span>) &lt;-&gt; ~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_cons_1">disjoint_cons_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> ((<span class="id" type="var">x</span>, <span class="id" type="var">a</span>) :: <span class="id" type="var">E</span>) <span class="id" type="var">F</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">F</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_cons_2">disjoint_cons_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> ((<span class="id" type="var">x</span>, <span class="id" type="var">a</span>) :: <span class="id" type="var">E</span>) <span class="id" type="var">F</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_cons_3">disjoint_cons_3</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">F</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> ((<span class="id" type="var">x</span>, <span class="id" type="var">a</span>) :: <span class="id" type="var">E</span>) <span class="id" type="var">F</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_cons_l">disjoint_cons_l</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> ((<span class="id" type="var">x</span>, <span class="id" type="var">a</span>) :: <span class="id" type="var">E</span>) <span class="id" type="var">F</span> &lt;-&gt; ~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">F</span>) /\ <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span>.<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_cons_r">disjoint_cons_r</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">F</span> ((<span class="id" type="var">x</span>, <span class="id" type="var">a</span>) :: <span class="id" type="var">E</span>) &lt;-&gt; ~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">F</span>) /\ <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_app_1">disjoint_app_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> (<span class="id" type="var">E</span> <span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">G</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) <span class="id" type="var">G</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">G</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_app_2">disjoint_app_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> (<span class="id" type="var">E</span> <span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">G</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) <span class="id" type="var">G</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">F</span> <span class="id" type="var">G</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_app_3">disjoint_app_3</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> (<span class="id" type="var">E</span> <span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">G</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">G</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">F</span> <span class="id" type="var">G</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) <span class="id" type="var">G</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_app_l">disjoint_app_l</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> (<span class="id" type="var">E</span> <span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">G</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) <span class="id" type="var">G</span> &lt;-&gt; <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">G</span> /\ <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">F</span> <span class="id" type="var">G</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_app_r">disjoint_app_r</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> (<span class="id" type="var">E</span> <span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">G</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">G</span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) &lt;-&gt; <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">G</span> /\ <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">F</span> <span class="id" type="var">G</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_map_1">disjoint_map_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> <span class="id" type="var">C</span> (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)) (<span class="id" type="var">f</span>:A-&gt;C),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> <span class="id" type="var">E</span>) <span class="id" type="var">F</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_map_2">disjoint_map_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> <span class="id" type="var">C</span> (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)) (<span class="id" type="var">f</span>:A-&gt;C),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> <span class="id" type="var">E</span>) <span class="id" type="var">F</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_map_l">disjoint_map_l</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> <span class="id" type="var">C</span> (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)) (<span class="id" type="var">f</span>:A-&gt;C),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> <span class="id" type="var">E</span>) <span class="id" type="var">F</span> &lt;-&gt; <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.disjoint_map_r">disjoint_map_r</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">A</span> <span class="id" type="var">B</span> <span class="id" type="var">C</span> (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)) (<span class="id" type="var">F</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*B)) (<span class="id" type="var">f</span>:A-&gt;C),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">F</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> <span class="id" type="var">E</span>) &lt;-&gt; <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="AssocList.html#Make.Disjoint">Disjoint</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab9"></a><h1 class="section">Basic facts about <span class="inlinecode"><span class="id" type="var">uniq</span></span></h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="Make.UniqProperties">UniqProperties</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.UniqProperties.A">A</a></span> <span class="id" type="variable"><a name="Make.UniqProperties.B">B</a></span>   : <span class="id" type="keyword">Type</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.UniqProperties.f">f</a></span>     : <span class="id" type="var">A</span> -&gt; <span class="id" type="var">B</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.UniqProperties.x">x</a></span>     : <span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.UniqProperties.a">a</a></span> <span class="id" type="variable"><a name="Make.UniqProperties.b">b</a></span>   : <span class="id" type="var">A</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.UniqProperties.E">E</a></span> <span class="id" type="variable"><a name="Make.UniqProperties.F">F</a></span> <span class="id" type="variable"><a name="Make.UniqProperties.G">G</a></span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_one_1">uniq_one_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">x</span> ~ <span class="id" type="var">b</span>).<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_cons_1">uniq_cons_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> ((<span class="id" type="var">x</span>, <span class="id" type="var">a</span>) :: <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> <span class="id" type="var">E</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_cons_2">uniq_cons_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> ((<span class="id" type="var">x</span>, <span class="id" type="var">a</span>) :: <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_cons_3">uniq_cons_3</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> ((<span class="id" type="var">x</span>, <span class="id" type="var">a</span>) :: <span class="id" type="var">E</span>).<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_cons_iff">uniq_cons_iff</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> ((<span class="id" type="var">x</span>, <span class="id" type="var">a</span>) :: <span class="id" type="var">E</span>) &lt;-&gt; <span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> <span class="id" type="var">E</span> /\ ~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>).<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_app_1">uniq_app_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) -&gt; <span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> <span class="id" type="var">E</span>.<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_app_2">uniq_app_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) -&gt; <span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> <span class="id" type="var">F</span>.<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_app_3">uniq_app_3</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) -&gt; <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span>.<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_app_4">uniq_app_4</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> <span class="id" type="var">F</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>).<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_app_iff">uniq_app_iff</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) &lt;-&gt; <span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> <span class="id" type="var">E</span> /\ <span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> <span class="id" type="var">F</span> /\ <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="var">E</span> <span class="id" type="var">F</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_map_1">uniq_map_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> <span class="id" type="var">E</span>.<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_map_2">uniq_map_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> <span class="id" type="var">E</span>).<br/>
+<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_map_iff">uniq_map_iff</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> <span class="id" type="var">E</span>) &lt;-&gt; <span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> <span class="id" type="var">E</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="AssocList.html#Make.UniqProperties">UniqProperties</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab10"></a><h1 class="section">Basic facts about <span class="inlinecode"><span class="id" type="var">binds</span></span></h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="Make.BindsProperties">BindsProperties</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variable</span>  <span class="id" type="variable"><a name="Make.BindsProperties.A">A</a></span> <span class="id" type="variable"><a name="Make.BindsProperties.B">B</a></span>   : <span class="id" type="keyword">Type</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.BindsProperties.f">f</a></span>     : <span class="id" type="var">A</span> -&gt; <span class="id" type="var">B</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.BindsProperties.x">x</a></span> <span class="id" type="variable"><a name="Make.BindsProperties.y">y</a></span>   : <span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.BindsProperties.a">a</a></span> <span class="id" type="variable"><a name="Make.BindsProperties.b">b</a></span>   : <span class="id" type="var">A</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.BindsProperties.E">E</a></span> <span class="id" type="variable"><a name="Make.BindsProperties.F">F</a></span> <span class="id" type="variable"><a name="Make.BindsProperties.G">G</a></span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_nil_iff">binds_nil_iff</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> &lt;-&gt; <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_one_1">binds_one_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">y</span> ~ <span class="id" type="var">b</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">x</span> = <span class="id" type="var">y</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_one_2">binds_one_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">y</span> ~ <span class="id" type="var">b</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">a</span> = <span class="id" type="var">b</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_one_3">binds_one_3</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">x</span> = <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">a</span> = <span class="id" type="var">b</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">y</span> ~ <span class="id" type="var">b</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_one_iff">binds_one_iff</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">y</span> ~ <span class="id" type="var">b</span>) &lt;-&gt; <span class="id" type="var">x</span> = <span class="id" type="var">y</span> /\ <span class="id" type="var">a</span> = <span class="id" type="var">b</span>.<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_cons_1">binds_cons_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> ((<span class="id" type="var">y</span>, <span class="id" type="var">b</span>) :: <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">x</span> = <span class="id" type="var">y</span> /\ <span class="id" type="var">a</span> = <span class="id" type="var">b</span>) \/ <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_cons_2">binds_cons_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">x</span> = <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">a</span> = <span class="id" type="var">b</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> ((<span class="id" type="var">y</span>, <span class="id" type="var">b</span>) :: <span class="id" type="var">E</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_cons_3">binds_cons_3</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> ((<span class="id" type="var">y</span>, <span class="id" type="var">b</span>) :: <span class="id" type="var">E</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_cons_iff">binds_cons_iff</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> ((<span class="id" type="var">y</span>, <span class="id" type="var">b</span>) :: <span class="id" type="var">E</span>) &lt;-&gt; (<span class="id" type="var">x</span> = <span class="id" type="var">y</span> /\ <span class="id" type="var">a</span> = <span class="id" type="var">b</span>) \/ <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span>.<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_app_1">binds_app_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span> \/ <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">F</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_app_2">binds_app_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_app_3">binds_app_3</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">F</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_app_iff">binds_app_iff</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) &lt;-&gt; <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span> \/ <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">F</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_map_1">binds_map_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> <span class="id" type="var">b</span>, <span class="id" type="var">f</span> <span class="id" type="var">a</span> = <span class="id" type="var">f</span> <span class="id" type="var">b</span> -&gt; <span class="id" type="var">a</span> = <span class="id" type="var">b</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> (<span class="id" type="var">f</span> <span class="id" type="var">a</span>) (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span>.<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_map_2">binds_map_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> (<span class="id" type="var">f</span> <span class="id" type="var">a</span>) (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> <span class="id" type="var">E</span>).<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_dom_contradiction">binds_dom_contradiction</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Init.Logic.html#False">False</a></span>.<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_app_uniq_1">binds_app_uniq_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span> /\ ~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">F</span>)) \/ (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">F</span> /\ ~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>)).<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_app_uniq_iff">binds_app_uniq_iff</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) &lt;-&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span> /\ ~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">F</span>)) \/<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">F</span> /\ ~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>))).<br/>
+<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="AssocList.html#Make.BindsProperties">BindsProperties</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="Make.BindsProperties2">BindsProperties2</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variable</span>  <span class="id" type="variable"><a name="Make.BindsProperties2.A">A</a></span> <span class="id" type="variable"><a name="Make.BindsProperties2.B">B</a></span>   : <span class="id" type="keyword">Type</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.BindsProperties2.f">f</a></span>     : <span class="id" type="var">A</span> -&gt; <span class="id" type="var">B</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.BindsProperties2.x">x</a></span> <span class="id" type="variable"><a name="Make.BindsProperties2.y">y</a></span>   : <span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.BindsProperties2.a">a</a></span> <span class="id" type="variable"><a name="Make.BindsProperties2.b">b</a></span>   : <span class="id" type="var">A</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.BindsProperties2.E">E</a></span> <span class="id" type="variable"><a name="Make.BindsProperties2.F">F</a></span> <span class="id" type="variable"><a name="Make.BindsProperties2.G">G</a></span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_cons_uniq_1">binds_cons_uniq_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> ((<span class="id" type="var">y</span>, <span class="id" type="var">b</span>) :: <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> ((<span class="id" type="var">y</span>, <span class="id" type="var">b</span>) :: <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">x</span> = <span class="id" type="var">y</span> /\ <span class="id" type="var">a</span> = <span class="id" type="var">b</span> /\ ~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>)) \/ (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span> /\ <span class="id" type="var">x</span> &lt;&gt; <span class="id" type="var">y</span>).<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_cons_uniq_iff">binds_cons_uniq_iff</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> ((<span class="id" type="var">y</span>, <span class="id" type="var">b</span>) :: <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> ((<span class="id" type="var">y</span>, <span class="id" type="var">b</span>) :: <span class="id" type="var">E</span>) &lt;-&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">x</span> = <span class="id" type="var">y</span> /\ <span class="id" type="var">a</span> = <span class="id" type="var">b</span> /\ ~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>)) \/<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span> /\ <span class="id" type="var">x</span> &lt;&gt; <span class="id" type="var">y</span>)).<br/>
+<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="AssocList.html#Make.BindsProperties2">BindsProperties2</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab11"></a><h1 class="section">Hints</h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Resolve</span><br/>
+&nbsp;&nbsp;@<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.app_assoc">app_assoc</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.app_nil_2">app_nil_2</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.map_app">map_app</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.dom_one">dom_one</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.dom_cons">dom_cons</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.dom_app">dom_app</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.dom_map">dom_map</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Resolve</span><br/>
+&nbsp;&nbsp;@<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_sym_1">disjoint_sym_1</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_nil_1">disjoint_nil_1</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_one_2">disjoint_one_2</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_cons_3">disjoint_cons_3</a></span><br/>
+&nbsp;&nbsp;@<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_app_3">disjoint_app_3</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_map_2">disjoint_map_2</a></span> @<span class="id" type="constructor"><a class="idref" href="AssocList.html#Make.uniq_nil">uniq_nil</a></span> @<span class="id" type="constructor"><a class="idref" href="AssocList.html#Make.uniq_push">uniq_push</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_one_1">uniq_one_1</a></span><br/>
+&nbsp;&nbsp;@<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_cons_3">uniq_cons_3</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_app_4">uniq_app_4</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_map_2">uniq_map_2</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Resolve</span><br/>
+&nbsp;&nbsp;@<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.binds_one_3">binds_one_3</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.binds_cons_2">binds_cons_2</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.binds_cons_3">binds_cons_3</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.binds_app_2">binds_app_2</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.binds_app_3">binds_app_3</a></span><br/>
+&nbsp;&nbsp;@<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.binds_map_2">binds_map_2</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab12"></a><h1 class="section">List properties</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+The following properties are an assortment of structural
+    properties about association lists. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="Make.AssortedListProperties">AssortedListProperties</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variable</span>  <span class="id" type="variable"><a name="Make.AssortedListProperties.X">X</a></span> : <span class="id" type="keyword">Type</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.AssortedListProperties.x">x</a></span> : <span class="id" type="var">X</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.AssortedListProperties.xs">xs</a></span> <span class="id" type="variable"><a name="Make.AssortedListProperties.ys">ys</a></span> <span class="id" type="variable"><a name="Make.AssortedListProperties.zs">zs</a></span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> <span class="id" type="var">X</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.one_eq_app">one_eq_app</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.one">one</a></span> <span class="id" type="var">x</span> ++ <span class="id" type="var">xs</span> = <span class="id" type="var">ys</span> ++ <span class="id" type="var">zs</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">exists</span> <span class="id" type="var">qs</span>, <span class="id" type="var">ys</span> = <span class="id" type="var">x</span> :: <span class="id" type="var">qs</span> /\ <span class="id" type="var">xs</span> = <span class="id" type="var">qs</span> ++ <span class="id" type="var">zs</span>) \/<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">ys</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> /\ <span class="id" type="var">zs</span> = <span class="id" type="var">x</span> :: <span class="id" type="var">xs</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.app_eq_one">app_eq_one</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">ys</span> ++ <span class="id" type="var">zs</span> = <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.one">one</a></span> <span class="id" type="var">x</span> ++ <span class="id" type="var">xs</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">exists</span> <span class="id" type="var">qs</span>, <span class="id" type="var">ys</span> = <span class="id" type="var">x</span> :: <span class="id" type="var">qs</span> /\ <span class="id" type="var">xs</span> = <span class="id" type="var">qs</span> ++ <span class="id" type="var">zs</span>) \/<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="var">ys</span> = <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> /\ <span class="id" type="var">zs</span> = <span class="id" type="var">x</span> :: <span class="id" type="var">xs</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.nil_neq_one_mid">nil_neq_one_mid</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> &lt;&gt; <span class="id" type="var">xs</span> ++ <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.one">one</a></span> <span class="id" type="var">x</span> ++ <span class="id" type="var">ys</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.one_mid_neq_nil">one_mid_neq_nil</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">xs</span> ++ <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.one">one</a></span> <span class="id" type="var">x</span> ++ <span class="id" type="var">ys</span> &lt;&gt; <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="AssocList.html#Make.AssortedListProperties">AssortedListProperties</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab13"></a><h1 class="section">Tactic support for <span class="inlinecode"><span class="id" type="var">disjoint</span></span> and <span class="inlinecode"><span class="id" type="var">uniq</span></span></h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">destruct_uniq</span></span> decomposes all <span class="inlinecode"><span class="id" type="var">uniq</span></span> and <span class="inlinecode"><span class="id" type="var">disjoint</span></span> hypotheses. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">destruct_uniq</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">clear</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (?x ~ ?a) |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">clear</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> ((?x, ?a) :: ?E) |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J</span> := <span class="id" type="tactic">fresh</span> "UniqTac" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pose</span> <span class="id" type="var">proof</span> <span class="id" type="var">H</span> <span class="id" type="keyword">as</span> <span class="id" type="var">J</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_cons_1">uniq_cons_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_cons_2">uniq_cons_2</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">J</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">autorewrite</span> <span class="id" type="keyword">with</span> <span class="id" type="var">rewr_dom</span> <span class="id" type="keyword">in</span> <span class="id" type="var">J</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (?E ++ ?F) |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J1</span> := <span class="id" type="tactic">fresh</span> "UniqTac" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J2</span> := <span class="id" type="tactic">fresh</span> "UniqTac" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pose</span> <span class="id" type="var">proof</span> <span class="id" type="var">H</span> <span class="id" type="keyword">as</span> <span class="id" type="var">J1</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pose</span> <span class="id" type="var">proof</span> <span class="id" type="var">H</span> <span class="id" type="keyword">as</span> <span class="id" type="var">J2</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_app_1">uniq_app_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_app_2">uniq_app_2</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">J1</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_app_3">uniq_app_3</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">J2</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> ?f ?E) |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_map_1">uniq_map_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> ?E |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">clear</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> (?x ~ ?a) ?F |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_one_1">disjoint_one_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">autorewrite</span> <span class="id" type="keyword">with</span> <span class="id" type="var">rewr_dom</span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> ((?x, ?a) :: ?E) ?F |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J</span> := <span class="id" type="tactic">fresh</span> "UniqTac" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pose</span> <span class="id" type="var">proof</span> <span class="id" type="var">H</span> <span class="id" type="keyword">as</span> <span class="id" type="var">J</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_cons_1">disjoint_cons_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_cons_2">disjoint_cons_2</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">J</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">autorewrite</span> <span class="id" type="keyword">with</span> <span class="id" type="var">rewr_dom</span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> (?E ++ ?F) ?G |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J</span> := <span class="id" type="tactic">fresh</span> "UniqTac" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pose</span> <span class="id" type="var">proof</span> <span class="id" type="var">H</span> <span class="id" type="keyword">as</span> <span class="id" type="var">J</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_app_1">disjoint_app_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_app_2">disjoint_app_2</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">J</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> ?f ?E) ?F |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_map_1">disjoint_map_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> ?E <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">clear</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> ?F (?x ~ ?a) |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_sym_1">disjoint_sym_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> ?F ((?x, ?a) :: ?E) |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_sym_1">disjoint_sym_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> ?G (?E ++ ?F) |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_sym_1">disjoint_sym_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">H</span> : <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.disjoint">disjoint</a></span> ?F (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> ?f ?E) |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.disjoint_sym_1">disjoint_sym_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">idtac</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">solve_uniq</span></span> attempts to solve goals by first decomposing
+    hypotheses about <span class="inlinecode"><span class="id" type="var">disjoint</span></span> and <span class="inlinecode"><span class="id" type="var">uniq</span></span> and then trying some
+    simple, if perhaps slow, heuristics. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">solve_uniq</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">intros</span>;<br/>
+&nbsp;&nbsp;<span class="id" type="var">destruct_uniq</span>;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">repeat</span> <span class="id" type="var">first</span> [ <span class="id" type="tactic">apply</span> <span class="id" type="constructor"><a class="idref" href="AssocList.html#Make.uniq_push">uniq_push</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_cons_3">uniq_cons_3</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_app_4">uniq_app_4</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_one_1">uniq_one_1</a></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="tactic">apply</span> <span class="id" type="constructor"><a class="idref" href="AssocList.html#Make.uniq_nil">uniq_nil</a></span> ];<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">auto</span>;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">try</span> <span class="id" type="tactic">tauto</span>;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">unfold</span> <span class="id" type="var">disjoint</span> <span class="id" type="keyword">in</span> *;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">try</span> <span class="id" type="var">fsetdec</span>;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">fail</span> "Not solvable by [solve_uniq]; try [destruct_uniq]".<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab14"></a><h1 class="section">Facts about <span class="inlinecode"><span class="id" type="var">uniq</span></span></h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="Make.UniqDerived">UniqDerived</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variable</span>  <span class="id" type="variable"><a name="Make.UniqDerived.A">A</a></span>     : <span class="id" type="keyword">Type</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.UniqDerived.x">x</a></span> <span class="id" type="variable"><a name="Make.UniqDerived.y">y</a></span>   : <span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.UniqDerived.a">a</a></span> <span class="id" type="variable"><a name="Make.UniqDerived.b">b</a></span>   : <span class="id" type="var">A</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.UniqDerived.E">E</a></span> <span class="id" type="variable"><a name="Make.UniqDerived.F">F</a></span> <span class="id" type="variable"><a name="Make.UniqDerived.G">G</a></span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_insert_mid">uniq_insert_mid</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">G</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">G</span> ++ (<span class="id" type="var">x</span> ~ <span class="id" type="var">a</span>) ++ <span class="id" type="var">E</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_remove_mid">uniq_remove_mid</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span> ++ <span class="id" type="var">G</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">G</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_reorder_1">uniq_reorder_1</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_reorder_2">uniq_reorder_2</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span> ++ <span class="id" type="var">G</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">E</span> ++ <span class="id" type="var">G</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.uniq_map_app_l">uniq_map_app_l</a></span> : <span class="id" type="keyword">forall</span> (<span class="id" type="var">f</span> : <span class="id" type="var">A</span> -&gt; <span class="id" type="var">A</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.map">map</a></span> <span class="id" type="var">f</span> <span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.fresh_mid_tail">fresh_mid_tail</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">F</span> ++ (<span class="id" type="var">x</span> ~ <span class="id" type="var">a</span>) ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.fresh_mid_head">fresh_mid_head</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">F</span> ++ (<span class="id" type="var">x</span> ~ <span class="id" type="var">a</span>) ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">F</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="AssocList.html#Make.UniqDerived">UniqDerived</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab15"></a><h1 class="section">Tactic support for <span class="inlinecode"><span class="id" type="var">binds</span></span></h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" type="var">destruct_binds_hyp</span></span> and <span class="inlinecode"><span class="id" type="var">destruct_binds_hyp_uniq</span></span> tactics
+    decompose a hypotheses of the form <span class="inlinecode"><span class="id" type="var">binds</span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span></span>, with the latter
+    tactic assuming that <span class="inlinecode"><span class="id" type="var">uniq</span> <span class="id" type="var">E</span></span> holds.  The tactic <span class="inlinecode"><span class="id" type="var">solve_uniq</span></span> is
+    used for discharging any <span class="inlinecode"><span class="id" type="var">uniq</span></span> obligations that arise.
+
+<br/><br/>
+    Implementation note (BEA, XXX): No support for <span class="inlinecode"><span class="id" type="var">map</span></span>.  I'm not
+    sure what to do about the "injectivity" side condition on
+    <span class="inlinecode"><span class="id" type="var">binds_map_inv</span></span>.  Perhaps just generate the extra subgoal, on the
+    assumption that the condition is usually provable?  It's not as
+    if I want to implement even more tactics here... 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">destruct_binds_hyp</span> <span class="id" type="var">H</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">type</span> <span class="id" type="var">of</span> <span class="id" type="var">H</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> ?x ?a <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">inversion</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> ?x ?a (?y ~ ?b) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J1</span> := <span class="id" type="tactic">fresh</span> "BindsTacKey" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J2</span> := <span class="id" type="tactic">fresh</span> "BindsTacVal" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rename</span> <span class="id" type="var">H</span> <span class="id" type="var">into</span> <span class="id" type="var">J1</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pose</span> <span class="id" type="var">proof</span> <span class="id" type="var">J1</span> <span class="id" type="keyword">as</span> <span class="id" type="var">J2</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.binds_one_1">binds_one_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">J1</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.binds_one_2">binds_one_2</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">J2</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">try</span> (<span class="id" type="tactic">subst</span> <span class="id" type="var">x</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">try</span> (<span class="id" type="tactic">subst</span> <span class="id" type="var">a</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">try</span> (<span class="id" type="tactic">subst</span> <span class="id" type="var">y</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">try</span> (<span class="id" type="tactic">subst</span> <span class="id" type="var">b</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> ?x ?a ((?y, ?b) :: ?E) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">change</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">y</span> ~ <span class="id" type="var">b</span> ++ <span class="id" type="var">E</span>)) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_binds_hyp</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> ?x ?a (?E ++ ?F) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J</span> := <span class="id" type="tactic">fresh</span> "BindsTac" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.binds_app_1">binds_app_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">destruct</span> <span class="id" type="var">H</span> <span class="id" type="keyword">as</span> [<span class="id" type="var">J</span> | <span class="id" type="var">J</span>];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_binds_hyp</span> <span class="id" type="var">J</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">idtac</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">destruct_binds_hyp_uniq</span> <span class="id" type="var">H</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">type</span> <span class="id" type="var">of</span> <span class="id" type="var">H</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> ?x ?a <span class="id" type="constructor"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#nil">nil</a></span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">inversion</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> ?x ?a (?y ~ ?b) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J1</span> := <span class="id" type="tactic">fresh</span> "BindsTacKey" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J2</span> := <span class="id" type="tactic">fresh</span> "BindsTacVal" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rename</span> <span class="id" type="var">H</span> <span class="id" type="var">into</span> <span class="id" type="var">J1</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pose</span> <span class="id" type="var">proof</span> <span class="id" type="var">J1</span> <span class="id" type="keyword">as</span> <span class="id" type="var">J2</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.binds_one_1">binds_one_1</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">J1</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.binds_one_2">binds_one_2</a></span> <span class="id" type="keyword">in</span> <span class="id" type="var">J2</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">try</span> (<span class="id" type="tactic">subst</span> <span class="id" type="var">x</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">try</span> (<span class="id" type="tactic">subst</span> <span class="id" type="var">a</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">try</span> (<span class="id" type="tactic">subst</span> <span class="id" type="var">y</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">try</span> (<span class="id" type="tactic">subst</span> <span class="id" type="var">b</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> ?x ?a ((?y, ?b) :: ?E) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">change</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">y</span> ~ <span class="id" type="var">b</span> ++ <span class="id" type="var">E</span>)) <span class="id" type="keyword">in</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_binds_hyp_uniq</span> <span class="id" type="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> ?x ?a (?E ++ ?F) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J1</span> := <span class="id" type="tactic">fresh</span> "BindsTacSideCond" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">assert</span> (<span class="id" type="var">J1</span> : <span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span>));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ <span class="id" type="var">destruct_uniq</span>; <span class="id" type="tactic">auto</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="keyword">match</span> <span class="id" type="var">type</span> <span class="id" type="var">of</span> <span class="id" type="var">J1</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| @<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> ?A <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">let</span> <span class="id" type="var">J2</span> := <span class="id" type="tactic">fresh</span> "BindsTac" <span class="id" type="keyword">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">destruct</span> (@<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.binds_app_uniq_1">binds_app_uniq_1</a></span> <span class="id" type="var">A</span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">J1</span> <span class="id" type="var">H</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">as</span> [[<span class="id" type="var">J2</span> ?] | [<span class="id" type="var">J2</span> ?]];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">clear</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">destruct_binds_hyp_uniq</span> <span class="id" type="var">J2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">idtac</span><br/>
+&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+An auxiliary tactic.  Not intended for use on its own. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">analyze_binds_cleanup</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">auto</span>;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">try</span> <span class="id" type="tactic">tauto</span>;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">try</span> <span class="id" type="tactic">discriminate</span>;<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">try</span> <span class="id" type="keyword">match</span> <span class="id" type="var">goal</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">J</span> : ~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> ?x ?E |- <span class="id" type="var">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">match</span> <span class="id" type="var">E</span> <span class="id" type="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" type="var">context</span> [<span class="id" type="var">x</span>] =&gt; <span class="id" type="tactic">elim</span> <span class="id" type="var">J</span>; <span class="id" type="tactic">clear</span>; <span class="id" type="var">simpl_alist</span>; <span class="id" type="tactic">auto</span> <span class="id" type="keyword">with</span> <span class="id" type="tactic">set</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The <span class="inlinecode"><span class="id" type="var">analyze_binds</span></span> and <span class="inlinecode"><span class="id" type="var">analyze_binds_uniq</span></span> tactics decompose a
+    hypothesis of the form <span class="inlinecode"><span class="id" type="var">binds</span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span></span>, with the latter assuming
+    that <span class="inlinecode"><span class="id" type="var">uniq</span> <span class="id" type="var">E</span></span> holds, and then try some simple heuristics for
+    solving the resulting goals. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">analyze_binds</span> <span class="id" type="var">H</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="var">destruct_binds_hyp</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;<span class="id" type="var">analyze_binds_cleanup</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Ltac</span> <span class="id" type="var">analyze_binds_uniq</span> <span class="id" type="var">H</span> :=<br/>
+&nbsp;&nbsp;<span class="id" type="var">destruct_binds_hyp_uniq</span> <span class="id" type="var">H</span>;<br/>
+&nbsp;&nbsp;<span class="id" type="var">analyze_binds_cleanup</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab16"></a><h1 class="section">Facts about <span class="inlinecode"><span class="id" type="var">binds</span></span></h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Section</span> <span class="id" type="section"><a name="Make.BindsDerived">BindsDerived</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.BindsDerived.A">A</a></span> <span class="id" type="variable"><a name="Make.BindsDerived.B">B</a></span>   : <span class="id" type="keyword">Type</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.BindsDerived.f">f</a></span>     : <span class="id" type="var">A</span> -&gt; <span class="id" type="var">B</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.BindsDerived.x">x</a></span> <span class="id" type="variable"><a name="Make.BindsDerived.y">y</a></span>   : <span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.BindsDerived.a">a</a></span> <span class="id" type="variable"><a name="Make.BindsDerived.b">b</a></span>   : <span class="id" type="var">A</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Variables</span> <span class="id" type="variable"><a name="Make.BindsDerived.E">E</a></span> <span class="id" type="variable"><a name="Make.BindsDerived.F">F</a></span> <span class="id" type="variable"><a name="Make.BindsDerived.G">G</a></span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_dec">binds_dec</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" type="keyword">forall</span> <span class="id" type="var">a</span> <span class="id" type="var">b</span> : <span class="id" type="var">A</span>, {<span class="id" type="var">a</span> = <span class="id" type="var">b</span>} + {<span class="id" type="var">a</span> &lt;&gt; <span class="id" type="var">b</span>}) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span>} + {~ <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span>}.<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_lookup">binds_lookup</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" type="var">a</span> : <span class="id" type="var">A</span> | <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span>} + (<span class="id" type="keyword">forall</span> <span class="id" type="var">a</span>, ~ <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span>).<br/>
+<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_lookup_dec">binds_lookup_dec</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="http://coq.inria.fr/library/Coq.Logic.Decidable.html#decidable">decidable</a></span> (<span class="id" type="var">exists</span> <span class="id" type="var">a</span>, <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span>).<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_weaken">binds_weaken</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">G</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">E</span> ++ <span class="id" type="var">F</span> ++ <span class="id" type="var">G</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_mid_eq">binds_mid_eq</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">F</span> ++ (<span class="id" type="var">x</span> ~ <span class="id" type="var">b</span>) ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">F</span> ++ (<span class="id" type="var">x</span> ~ <span class="id" type="var">b</span>) ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">a</span> = <span class="id" type="var">b</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_remove_mid">binds_remove_mid</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">F</span> ++ (<span class="id" type="var">y</span> ~ <span class="id" type="var">b</span>) ++ <span class="id" type="var">G</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">x</span> &lt;&gt; <span class="id" type="var">y</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">G</span>).<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_In">binds_In</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>).<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_In_inv">binds_In_inv</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> (<span class="id" type="var">E</span> : <span class="id" type="inductive"><a class="idref" href="http://coq.inria.fr/library/Coq.Lists.List.html#list">list</a></span> (<span class="id" type="axiom"><a class="idref" href="AssocList.html#X.t">X.t</a></span>*A)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">exists</span> <span class="id" type="var">a</span>, <span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span>.<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.binds_unique">binds_unique</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">b</span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">a</span> = <span class="id" type="var">b</span>.<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.fresh_app_l">fresh_app_l</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">F</span>).<br/>
+<br/>
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="Make.fresh_app_r">fresh_app_r</a></span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="AssocList.html#Make.uniq">uniq</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.binds">binds</a></span> <span class="id" type="var">x</span> <span class="id" type="var">a</span> <span class="id" type="var">F</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;~ <span class="id" type="axiom"><a class="idref" href="AssocList.html#KeySet.In">In</a></span> <span class="id" type="var">x</span> (<span class="id" type="definition"><a class="idref" href="AssocList.html#Make.dom">dom</a></span> <span class="id" type="var">E</span>).<br/>
+<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="section"><a class="idref" href="AssocList.html#Make.BindsDerived">BindsDerived</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab17"></a><h1 class="section">Hints</h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Resolve</span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.nil_neq_one_mid">nil_neq_one_mid</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.one_mid_neq_nil">one_mid_neq_nil</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Resolve</span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_insert_mid">uniq_insert_mid</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_map_app_l">uniq_map_app_l</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Immediate</span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.uniq_remove_mid">uniq_remove_mid</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Resolve</span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.binds_weaken">binds_weaken</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Hint</span> <span class="id" type="keyword">Immediate</span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.binds_remove_mid">binds_remove_mid</a></span> @<span class="id" type="lemma"><a class="idref" href="AssocList.html#Make.binds_In">binds_In</a></span>.<br/>
+
+<br/>
+<span class="id" type="keyword">End</span> <span class="id" type="module"><a class="idref" href="AssocList.html#Make">Make</a></span>.<br/>
+</div>
+<hr/>This page has been generated by <a href="http://coq.inria.fr">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

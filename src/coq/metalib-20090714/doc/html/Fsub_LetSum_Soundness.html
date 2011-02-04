@@ -1,0 +1,564 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<link href="coqdoc.css" rel="stylesheet" type="text/css"/>
+<title>Fsub_LetSum_Soundness</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library Fsub_LetSum_Soundness</h1>
+
+<div class="code">
+</div>
+
+<div class="doc">
+Type-safety proofs for Fsub.
+
+<br/><br/>
+    Authors: Brian Aydemir and Arthur Chargu\'eraud, with help from
+    Aaron Bohannon, Jeffrey Vaughan, and Dimitrios Vytiniotis.
+
+<br/><br/>
+    In parentheses are given the label of the corresponding lemma in
+    the appendix (informal proofs) of the POPLmark Challenge.
+
+<br/><br/>
+    Table of contents:
+
+<ul>
+<li> <a href="#subtyping">Properties of subtyping</a>
+
+</li>
+<li> <a href="#typing">Properties of typing</a>
+
+</li>
+<li> <a href="#preservation">Preservation</a>
+
+</li>
+<li> <a href="#progress">Progress</a> 
+</li>
+</ul>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Require</span> <span class="id" type="keyword">Export</span> <span class="id" type="library"><a class="idref" href="Fsub_LetSum_Lemmas.html#">Fsub_LetSum_Lemmas</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab135"></a><h1 class="section"><a name="subtyping"></a> Properties of subtyping</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab136"></a><h2 class="section">Reflexivity (1)</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="sub_reflexivity">sub_reflexivity</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#wf_env">wf_env</a></span> <span class="id" type="var">E</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#wf_typ">wf_typ</a></span> <span class="id" type="var">E</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">T</span> <span class="id" type="var">T</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab137"></a><h2 class="section">Weakening (2)</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="sub_weakening">sub_weakening</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">G</span> <span class="id" type="var">S</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">S</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#wf_env">wf_env</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">S</span> <span class="id" type="var">T</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab138"></a><h2 class="section">Narrowing and transitivity (3)</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Definition</span> <span class="id" type="definition"><a name="transitivity_on">transitivity_on</a></span> <span class="id" type="var">Q</span> := <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">S</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">S</span> <span class="id" type="var">Q</span> -&gt; <span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">Q</span> <span class="id" type="var">T</span> -&gt; <span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">S</span> <span class="id" type="var">T</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="sub_narrowing_aux">sub_narrowing_aux</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">Q</span> <span class="id" type="var">F</span> <span class="id" type="var">E</span> <span class="id" type="var">Z</span> <span class="id" type="var">P</span> <span class="id" type="var">S</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="Fsub_LetSum_Soundness.html#transitivity_on">transitivity_on</a></span> <span class="id" type="var">Q</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">Z</span> ~ <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#bind_sub">bind_sub</a></span> <span class="id" type="var">Q</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">S</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">Z</span> ~ <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#bind_sub">bind_sub</a></span> <span class="id" type="var">P</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">S</span> <span class="id" type="var">T</span>.<br/>
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="sub_transitivity">sub_transitivity</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">Q</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="definition"><a class="idref" href="Fsub_LetSum_Soundness.html#transitivity_on">transitivity_on</a></span> <span class="id" type="var">Q</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="sub_narrowing">sub_narrowing</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">Q</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">Z</span> <span class="id" type="var">P</span> <span class="id" type="var">S</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">Z</span> ~ <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#bind_sub">bind_sub</a></span> <span class="id" type="var">Q</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">S</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">Z</span> ~ <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#bind_sub">bind_sub</a></span> <span class="id" type="var">P</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">S</span> <span class="id" type="var">T</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab139"></a><h2 class="section">Type substitution preserves subtyping (10)</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="sub_through_subst_tt">sub_through_subst_tt</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">Q</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">Z</span> <span class="id" type="var">S</span> <span class="id" type="var">T</span> <span class="id" type="var">P</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">Z</span> ~ <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#bind_sub">bind_sub</a></span> <span class="id" type="var">Q</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">S</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> (<span class="id" type="definition"><a class="idref" href="Metatheory.html#EnvImpl.map">map</a></span> (<span class="id" type="definition"><a class="idref" href="Fsub_LetSum_Infrastructure.html#subst_tb">subst_tb</a></span> <span class="id" type="var">Z</span> <span class="id" type="var">P</span>) <span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) (<span class="id" type="definition"><a class="idref" href="Fsub_LetSum_Infrastructure.html#subst_tt">subst_tt</a></span> <span class="id" type="var">Z</span> <span class="id" type="var">P</span> <span class="id" type="var">S</span>) (<span class="id" type="definition"><a class="idref" href="Fsub_LetSum_Infrastructure.html#subst_tt">subst_tt</a></span> <span class="id" type="var">Z</span> <span class="id" type="var">P</span> <span class="id" type="var">T</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab140"></a><h1 class="section"><a name="typing"></a> Properties of typing</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab141"></a><h2 class="section">Weakening (5)</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_weakening">typing_weakening</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">G</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#wf_env">wf_env</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> (<span class="id" type="var">G</span> ++ <span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab142"></a><h2 class="section">Strengthening (6)</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="sub_strengthening">sub_strengthening</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span> <span class="id" type="var">U</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">S</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">x</span> ~ <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#bind_typ">bind_typ</a></span> <span class="id" type="var">U</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">S</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">S</span> <span class="id" type="var">T</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab143"></a><h2 class="section">Narrowing for typing (7)</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_narrowing">typing_narrowing</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">Q</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">X</span> <span class="id" type="var">P</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">X</span> ~ <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#bind_sub">bind_sub</a></span> <span class="id" type="var">Q</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">X</span> ~ <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#bind_sub">bind_sub</a></span> <span class="id" type="var">P</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab144"></a><h2 class="section">Substitution preserves typing (8)</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_through_subst_ee">typing_through_subst_ee</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">U</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">x</span> <span class="id" type="var">T</span> <span class="id" type="var">e</span> <span class="id" type="var">u</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">x</span> ~ <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#bind_typ">bind_typ</a></span> <span class="id" type="var">U</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> <span class="id" type="var">E</span> <span class="id" type="var">u</span> <span class="id" type="var">U</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) (<span class="id" type="definition"><a class="idref" href="Fsub_LetSum_Infrastructure.html#subst_ee">subst_ee</a></span> <span class="id" type="var">x</span> <span class="id" type="var">u</span> <span class="id" type="var">e</span>) <span class="id" type="var">T</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+We provide detailed comments for the following proof, mainly to
+    point out several useful tactics and proof techniques.
+
+<br/><br/>
+    Starting a proof with "Proof with &lt;some tactic&gt;" allows us to
+    specify a default tactic that should be used to solve goals.  To
+    invoke this default tactic at the end of a proof step, we signal
+    the end of the step with three periods instead of a single one,
+    e.g., "apply typing_weakening...". 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Proof</span> <span class="id" type="keyword">with</span> <span class="id" type="var">simpl_env</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">eauto</span> 4 <span class="id" type="keyword">using</span> <span class="id" type="lemma"><a class="idref" href="Fsub_LetSum_Lemmas.html#wf_typ_strengthening">wf_typ_strengthening</a></span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="lemma"><a class="idref" href="Fsub_LetSum_Lemmas.html#wf_env_strengthening">wf_env_strengthening</a></span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="lemma"><a class="idref" href="Fsub_LetSum_Soundness.html#sub_strengthening">sub_strengthening</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The proof proceeds by induction on the given typing derivation
+      for e.  We use the <span class="inlinecode"><span class="id" type="var">remember</span></span> tactic, along with <span class="inlinecode"><span class="id" type="tactic">generalize</span>
+      <span class="id" type="tactic">dependent</span></span>, to ensure that the goal is properly strengthened
+      before we use induction. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">intros</span> <span class="id" type="var">U</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">x</span> <span class="id" type="var">T</span> <span class="id" type="var">e</span> <span class="id" type="var">u</span> <span class="id" type="var">TypT</span> <span class="id" type="var">TypU</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="var">remember</span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">x</span> ~ <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#bind_typ">bind_typ</a></span> <span class="id" type="var">U</span> ++ <span class="id" type="var">E</span>) <span class="id" type="keyword">as</span> <span class="id" type="var">E'</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">generalize</span> <span class="id" type="tactic">dependent</span> <span class="id" type="var">F</span>.<br/>
+&nbsp;&nbsp;<span class="id" type="tactic">induction</span> <span class="id" type="var">TypT</span>; <span class="id" type="tactic">intros</span> <span class="id" type="var">F</span> <span class="id" type="var">EQ</span>; <span class="id" type="tactic">subst</span>; <span class="id" type="tactic">simpl</span> <span class="id" type="definition"><a class="idref" href="Fsub_LetSum_Infrastructure.html#subst_ee">subst_ee</a></span>...<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The <span class="inlinecode"><span class="id" type="var">typing_var</span></span> case involves a case analysis on whether the
+      variable is the same as the one being substituted for. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="var">Case</span> "typing_var".<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">destruct</span> (<span class="id" type="var">x0</span> == <span class="id" type="var">x</span>); <span class="id" type="tactic">try</span> <span class="id" type="tactic">subst</span> <span class="id" type="var">x0</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+In the case where <span class="inlinecode"><span class="id" type="var">x0</span>=x</span>, we first observe that hypothesis
+        <span class="inlinecode"><span class="id" type="var">H0</span></span> implies that <span class="inlinecode"><span class="id" type="var">T</span>=U</span>, since <span class="inlinecode"><span class="id" type="var">x</span></span> can only be bound once in
+        the environment.  The conclusion then follows from hypothesis
+        <span class="inlinecode"><span class="id" type="var">TypU</span></span> and weakening.  We can use the <span class="inlinecode"><span class="id" type="var">analyze_binds_uniq</span></span>
+        tactic, described in the MetatheoryEnv library, with <span class="inlinecode"><span class="id" type="var">H0</span></span> to
+        obtain the fact that <span class="inlinecode"><span class="id" type="var">T</span>=U</span>. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">SCase</span> "x0 = x".<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">analyze_binds_uniq</span> <span class="id" type="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">injection</span> <span class="id" type="var">BindsTacVal</span>; <span class="id" type="tactic">intros</span>; <span class="id" type="tactic">subst</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+In order to apply <span class="inlinecode"><span class="id" type="var">typing_weakening</span></span>, we need to rewrite
+            the environment so that it has the right shape.  (We could
+            also prove a corollary of typing_weakening.)  The
+            <span class="inlinecode"><span class="id" type="var">rewrite_env</span></span> tactic, described in the Environment
+            library, is one way to perform this rewriting. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">rewrite_env</span> (<span class="id" type="abbreviation"><a class="idref" href="Fsub_LetSum_Definitions.html#empty">empty</a></span> ++ <span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="lemma"><a class="idref" href="Fsub_LetSum_Soundness.html#typing_weakening">typing_weakening</a></span>...<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+In the case where <span class="inlinecode"><span class="id" type="var">x0</span>&lt;&gt;x</span>, the result follows by an exhaustive
+        case analysis on exactly where <span class="inlinecode"><span class="id" type="var">x0</span></span> is bound in the
+        environment.  We perform this case analysis by using the
+        <span class="inlinecode"><span class="id" type="var">analyze_binds</span></span> tactic, described in the MetatheoryEnv
+        library. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">SCase</span> "x0 &lt;&gt; x".<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">analyze_binds</span> <span class="id" type="var">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">eauto</span> <span class="id" type="keyword">using</span> <span class="id" type="lemma"><a class="idref" href="Fsub_LetSum_Lemmas.html#wf_env_strengthening">wf_env_strengthening</a></span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">eauto</span> <span class="id" type="keyword">using</span> <span class="id" type="lemma"><a class="idref" href="Fsub_LetSum_Lemmas.html#wf_env_strengthening">wf_env_strengthening</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Informally, the <span class="inlinecode"><span class="id" type="var">typing_abs</span></span> case is a straightforward
+      application of the induction hypothesis, which is called <span class="inlinecode"><span class="id" type="var">H0</span></span>
+      here. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="var">Case</span> "typing_abs".<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+We use the "pick fresh and apply" tactic to apply the rule
+        <span class="inlinecode"><span class="id" type="var">typing_abs</span></span> without having to calculate the appropriate
+        finite set of atoms. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pick</span> <span class="id" type="tactic">fresh</span> <span class="id" type="var">y</span> <span class="id" type="var">and</span> <span class="id" type="tactic">apply</span> <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#typing_abs">typing_abs</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+We cannot apply <span class="inlinecode"><span class="id" type="var">H0</span></span> directly here.  The first problem is that
+        the induction hypothesis has <span class="inlinecode">(<span class="id" type="var">subst_ee</span> <span class="id" type="var">open_ee</span>)</span>, whereas in
+        the goal we have <span class="inlinecode">(<span class="id" type="var">open_ee</span> <span class="id" type="var">subst_ee</span>)</span>.  The lemma
+        <span class="inlinecode"><span class="id" type="var">subst_ee_open_ee_var</span></span> lets us swap the order of these two
+        operations. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> <span class="id" type="lemma"><a class="idref" href="Fsub_LetSum_Infrastructure.html#subst_ee_open_ee_var">subst_ee_open_ee_var</a></span>...<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The second problem is how the concatenations are associated in
+        the environments.  In the goal, we currently have
+
+<br/><br/>
+<pre>(y ~ bind_typ V ++ F ++ E),
+</pre>
+
+<br/><br/>
+        where concatenation associates to the right.  In order to
+        apply the induction hypothesis, we need
+
+<br/><br/>
+<pre>((y ~ bind_typ V ++ F) ++ E).
+</pre>
+
+<br/><br/>
+        We can use the <span class="inlinecode"><span class="id" type="var">rewrite_env</span></span> tactic to perform this rewriting,
+        or we can rewrite directly with an appropriate lemma from the
+        MetatheoryEnv library. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> &lt;- <span class="id" type="lemma"><a class="idref" href="Metatheory.html#EnvImpl.app_assoc">app_assoc</a></span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Now we can apply the induction hypothesis. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="var">H0</span>...<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The remaining cases in this proof are straightforward, given
+      everything that we have pointed out above. 
+</div>
+<div class="code">
+
+<br/>
+&nbsp;&nbsp;<span class="id" type="var">Case</span> "typing_tabs".<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pick</span> <span class="id" type="tactic">fresh</span> <span class="id" type="var">Y</span> <span class="id" type="var">and</span> <span class="id" type="tactic">apply</span> <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#typing_tabs">typing_tabs</a></span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> <span class="id" type="lemma"><a class="idref" href="Fsub_LetSum_Infrastructure.html#subst_ee_open_te_var">subst_ee_open_te_var</a></span>...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> &lt;- <span class="id" type="lemma"><a class="idref" href="Metatheory.html#EnvImpl.app_assoc">app_assoc</a></span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="var">H0</span>...<br/>
+&nbsp;&nbsp;<span class="id" type="var">Case</span> "typing_let".<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pick</span> <span class="id" type="tactic">fresh</span> <span class="id" type="var">y</span> <span class="id" type="var">and</span> <span class="id" type="tactic">apply</span> <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#typing_let">typing_let</a></span>...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> <span class="id" type="lemma"><a class="idref" href="Fsub_LetSum_Infrastructure.html#subst_ee_open_ee_var">subst_ee_open_ee_var</a></span>...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> &lt;- <span class="id" type="lemma"><a class="idref" href="Metatheory.html#EnvImpl.app_assoc">app_assoc</a></span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="var">H0</span>...<br/>
+&nbsp;&nbsp;<span class="id" type="var">Case</span> "typing_case".<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="var">pick</span> <span class="id" type="tactic">fresh</span> <span class="id" type="var">y</span> <span class="id" type="var">and</span> <span class="id" type="tactic">apply</span> <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#typing_case">typing_case</a></span>...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> <span class="id" type="lemma"><a class="idref" href="Fsub_LetSum_Infrastructure.html#subst_ee_open_ee_var">subst_ee_open_ee_var</a></span>...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> &lt;- <span class="id" type="lemma"><a class="idref" href="Metatheory.html#EnvImpl.app_assoc">app_assoc</a></span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="var">H0</span>...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> <span class="id" type="lemma"><a class="idref" href="Fsub_LetSum_Infrastructure.html#subst_ee_open_ee_var">subst_ee_open_ee_var</a></span>...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">rewrite</span> &lt;- <span class="id" type="lemma"><a class="idref" href="Metatheory.html#EnvImpl.app_assoc">app_assoc</a></span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="tactic">apply</span> <span class="id" type="var">H2</span>...<br/>
+<span class="id" type="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab145"></a><h2 class="section">Type substitution preserves typing (11)</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_through_subst_te">typing_through_subst_te</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">Q</span> <span class="id" type="var">E</span> <span class="id" type="var">F</span> <span class="id" type="var">Z</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span> <span class="id" type="var">P</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> (<span class="id" type="var">F</span> ++ <span class="id" type="var">Z</span> ~ <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#bind_sub">bind_sub</a></span> <span class="id" type="var">Q</span> ++ <span class="id" type="var">E</span>) <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">P</span> <span class="id" type="var">Q</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> (<span class="id" type="definition"><a class="idref" href="Metatheory.html#EnvImpl.map">map</a></span> (<span class="id" type="definition"><a class="idref" href="Fsub_LetSum_Infrastructure.html#subst_tb">subst_tb</a></span> <span class="id" type="var">Z</span> <span class="id" type="var">P</span>) <span class="id" type="var">F</span> ++ <span class="id" type="var">E</span>) (<span class="id" type="definition"><a class="idref" href="Fsub_LetSum_Infrastructure.html#subst_te">subst_te</a></span> <span class="id" type="var">Z</span> <span class="id" type="var">P</span> <span class="id" type="var">e</span>) (<span class="id" type="definition"><a class="idref" href="Fsub_LetSum_Infrastructure.html#subst_tt">subst_tt</a></span> <span class="id" type="var">Z</span> <span class="id" type="var">P</span> <span class="id" type="var">T</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab146"></a><h1 class="section"><a name="preservation"></a> Preservation</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab147"></a><h2 class="section">Inversion of typing (13)</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_inv_abs">typing_inv_abs</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">S1</span> <span class="id" type="var">e1</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> <span class="id" type="var">E</span> (<span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#exp_abs">exp_abs</a></span> <span class="id" type="var">S1</span> <span class="id" type="var">e1</span>) <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">U1</span> <span class="id" type="var">U2</span>, <span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">T</span> (<span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#typ_arrow">typ_arrow</a></span> <span class="id" type="var">U1</span> <span class="id" type="var">U2</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">U1</span> <span class="id" type="var">S1</span><br/>
+&nbsp;&nbsp;/\ <span class="id" type="var">exists</span> <span class="id" type="var">S2</span>, <span class="id" type="var">exists</span> <span class="id" type="var">L</span>, <span class="id" type="keyword">forall</span> <span class="id" type="var">x</span>, <span class="id" type="var">x</span> `<span class="id" type="var">notin</span>` <span class="id" type="var">L</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> (<span class="id" type="var">x</span> ~ <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#bind_typ">bind_typ</a></span> <span class="id" type="var">S1</span> ++ <span class="id" type="var">E</span>) (<span class="id" type="definition"><a class="idref" href="Fsub_LetSum_Definitions.html#open_ee">open_ee</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">x</span>) <span class="id" type="var">S2</span> /\ <span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">S2</span> <span class="id" type="var">U2</span>.<br/>
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_inv_tabs">typing_inv_tabs</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">S1</span> <span class="id" type="var">e1</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> <span class="id" type="var">E</span> (<span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#exp_tabs">exp_tabs</a></span> <span class="id" type="var">S1</span> <span class="id" type="var">e1</span>) <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">U1</span> <span class="id" type="var">U2</span>, <span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">T</span> (<span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#typ_all">typ_all</a></span> <span class="id" type="var">U1</span> <span class="id" type="var">U2</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">U1</span> <span class="id" type="var">S1</span><br/>
+&nbsp;&nbsp;/\ <span class="id" type="var">exists</span> <span class="id" type="var">S2</span>, <span class="id" type="var">exists</span> <span class="id" type="var">L</span>, <span class="id" type="keyword">forall</span> <span class="id" type="var">X</span>, <span class="id" type="var">X</span> `<span class="id" type="var">notin</span>` <span class="id" type="var">L</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> (<span class="id" type="var">X</span> ~ <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#bind_sub">bind_sub</a></span> <span class="id" type="var">U1</span> ++ <span class="id" type="var">E</span>) (<span class="id" type="definition"><a class="idref" href="Fsub_LetSum_Definitions.html#open_te">open_te</a></span> <span class="id" type="var">e1</span> <span class="id" type="var">X</span>) (<span class="id" type="definition"><a class="idref" href="Fsub_LetSum_Definitions.html#open_tt">open_tt</a></span> <span class="id" type="var">S2</span> <span class="id" type="var">X</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/\ <span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> (<span class="id" type="var">X</span> ~ <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#bind_sub">bind_sub</a></span> <span class="id" type="var">U1</span> ++ <span class="id" type="var">E</span>) (<span class="id" type="definition"><a class="idref" href="Fsub_LetSum_Definitions.html#open_tt">open_tt</a></span> <span class="id" type="var">S2</span> <span class="id" type="var">X</span>) (<span class="id" type="definition"><a class="idref" href="Fsub_LetSum_Definitions.html#open_tt">open_tt</a></span> <span class="id" type="var">U2</span> <span class="id" type="var">X</span>).<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_inv_inl">typing_inv_inl</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">e1</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> <span class="id" type="var">E</span> (<span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#exp_inl">exp_inl</a></span> <span class="id" type="var">e1</span>) <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">U1</span> <span class="id" type="var">U2</span>, <span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">T</span> (<span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#typ_sum">typ_sum</a></span> <span class="id" type="var">U1</span> <span class="id" type="var">U2</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">exists</span> <span class="id" type="var">S1</span>, <span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e1</span> <span class="id" type="var">S1</span> /\ <span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">S1</span> <span class="id" type="var">U1</span>.<br/>
+<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="typing_inv_inr">typing_inv_inr</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">e1</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> <span class="id" type="var">E</span> (<span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#exp_inr">exp_inr</a></span> <span class="id" type="var">e1</span>) <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="keyword">forall</span> <span class="id" type="var">U1</span> <span class="id" type="var">U2</span>, <span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">T</span> (<span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#typ_sum">typ_sum</a></span> <span class="id" type="var">U1</span> <span class="id" type="var">U2</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">exists</span> <span class="id" type="var">S1</span>, <span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e1</span> <span class="id" type="var">S1</span> /\ <span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#sub">sub</a></span> <span class="id" type="var">E</span> <span class="id" type="var">S1</span> <span class="id" type="var">U2</span>.<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab148"></a><h2 class="section">Preservation (20)</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="preservation">preservation</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">e'</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#red">red</a></span> <span class="id" type="var">e</span> <span class="id" type="var">e'</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> <span class="id" type="var">E</span> <span class="id" type="var">e'</span> <span class="id" type="var">T</span>.<br/>
+<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab149"></a><h1 class="section"><a name="progress"></a> Progress</h1>
+
+</div>
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab150"></a><h2 class="section">Canonical forms (14)</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="canonical_form_abs">canonical_form_abs</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span> <span class="id" type="var">U1</span> <span class="id" type="var">U2</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#value">value</a></span> <span class="id" type="var">e</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> <span class="id" type="abbreviation"><a class="idref" href="Fsub_LetSum_Definitions.html#empty">empty</a></span> <span class="id" type="var">e</span> (<span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#typ_arrow">typ_arrow</a></span> <span class="id" type="var">U1</span> <span class="id" type="var">U2</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">exists</span> <span class="id" type="var">V</span>, <span class="id" type="var">exists</span> <span class="id" type="var">e1</span>, <span class="id" type="var">e</span> = <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#exp_abs">exp_abs</a></span> <span class="id" type="var">V</span> <span class="id" type="var">e1</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="canonical_form_tabs">canonical_form_tabs</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span> <span class="id" type="var">U1</span> <span class="id" type="var">U2</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#value">value</a></span> <span class="id" type="var">e</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> <span class="id" type="abbreviation"><a class="idref" href="Fsub_LetSum_Definitions.html#empty">empty</a></span> <span class="id" type="var">e</span> (<span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#typ_all">typ_all</a></span> <span class="id" type="var">U1</span> <span class="id" type="var">U2</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">exists</span> <span class="id" type="var">V</span>, <span class="id" type="var">exists</span> <span class="id" type="var">e1</span>, <span class="id" type="var">e</span> = <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#exp_tabs">exp_tabs</a></span> <span class="id" type="var">V</span> <span class="id" type="var">e1</span>.<br/>
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="canonical_form_sum">canonical_form_sum</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span> <span class="id" type="var">T1</span> <span class="id" type="var">T2</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#value">value</a></span> <span class="id" type="var">e</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> <span class="id" type="abbreviation"><a class="idref" href="Fsub_LetSum_Definitions.html#empty">empty</a></span> <span class="id" type="var">e</span> (<span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#typ_sum">typ_sum</a></span> <span class="id" type="var">T1</span> <span class="id" type="var">T2</span>) -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="var">exists</span> <span class="id" type="var">e1</span>, <span class="id" type="var">e</span> = <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#exp_inl">exp_inl</a></span> <span class="id" type="var">e1</span> \/ <span class="id" type="var">e</span> = <span class="id" type="constructor"><a class="idref" href="Fsub_LetSum_Definitions.html#exp_inr">exp_inr</a></span> <span class="id" type="var">e1</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a name="lab151"></a><h2 class="section">Progress (16)</h2>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" type="keyword">Lemma</span> <span class="id" type="lemma"><a name="progress">progress</a></span> : <span class="id" type="keyword">forall</span> <span class="id" type="var">e</span> <span class="id" type="var">T</span>,<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#typing">typing</a></span> <span class="id" type="abbreviation"><a class="idref" href="Fsub_LetSum_Definitions.html#empty">empty</a></span> <span class="id" type="var">e</span> <span class="id" type="var">T</span> -&gt;<br/>
+&nbsp;&nbsp;<span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#value">value</a></span> <span class="id" type="var">e</span> \/ <span class="id" type="var">exists</span> <span class="id" type="var">e'</span>, <span class="id" type="inductive"><a class="idref" href="Fsub_LetSum_Definitions.html#red">red</a></span> <span class="id" type="var">e</span> <span class="id" type="var">e'</span>.<br/>
+<br/>
+</div>
+<hr/>This page has been generated by <a href="http://coq.inria.fr">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>
