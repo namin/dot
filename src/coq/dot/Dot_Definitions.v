@@ -27,6 +27,17 @@ Require Import List.
 
 (*Inductive level : Set := terms | types. -- can't figure out how to decide equality on labels if their type is indexed by their level... *)
 
+Inductive quality : Set :=
+  | precise   : quality
+  | subsumed  : quality.
+
+Function qconj (q1: quality) (q2: quality)  {struct q1} : quality :=
+  match (q1, q2) with
+  | (precise, precise) => precise
+  | _ => subsumed
+  end.
+Notation "q1 & q2" := (qconj q1 q2) (at level 67).
+
 Inductive label : Set :=
   | lv  : nat -> label   (* value label *)
   | lc  : nat -> label   (* class label *)
@@ -196,8 +207,6 @@ Definition open e u := open_rec_tm 0 u e.
 Definition open_tp e u := open_rec_tp 0 u e.
 Definition open_decl d u := open_rec_decl 0 u d.
 Definition open_decls ds u := map (open_rec_decl 0 u) ds.
-
-
 
 Notation "d ^d^ u" := (open_decl d u) (at level 67).
 Notation "ds ^ds^ u" := (open_decls ds u) (at level 67).
@@ -434,8 +443,9 @@ Proof.
     apply has_arg_tm_cons; auto*. apply IHdrop_tm. apply has_arg_tm_cons. inversion H6; subst; auto*. auto.
 Qed.*)
 
-Reserved Notation "E |= t ~: T" (at level 69).
-Reserved Notation "E |= t <: T" (at level 69).
+Reserved Notation "E |= t ~< T @ q" (at level 69).
+Reserved Notation "E |= t ~: T @ q" (at level 69).
+Reserved Notation "E |= t <: T @ q" (at level 69).
 
 Inductive value : tm -> Prop := 
   | value_ref : forall l,
@@ -443,6 +453,10 @@ Inductive value : tm -> Prop :=
   | value_lam : forall t b,
     lc_tm (lam t b) -> value (lam t b).
 
+
+Section MergingMembers.
+  Variable merge_decl : decl -> decl -> decl -> Prop.
+  
 (*
 Inductive same_label2 : decl -> decl -> Prop :=
   | same_label2_tm : forall l T1 T2, same_label2 (decl_tm l T1) (decl_tm l T2)
@@ -457,18 +471,12 @@ Definition and_decl := fun (d1: decl) => fun (d2: decl) => same_label2 d1 d2 ->
   end.
 *)
 
-Inductive and_decl : decl -> decl -> decl -> Prop :=
-  | and_decl_tm : forall l S1 S2,
-    and_decl (decl_tm l S1) (decl_tm l S2) (decl_tm l (tp_and S1 S2))
-  | and_decl_tp : forall L TL1 TU1 TL2 TU2,
-    and_decl (decl_tp L TL1 TU1) (decl_tp L TL2 TU2) (decl_tp L (tp_or TL1 TL2) (tp_and TU1 TU2)).
-
 (*
 drop_merge_decl d1 d ds2 ds2rest -> ds2rest is ds2 minus its member d2 that has the same label as d1, d is the anding of d1 and d2 (if d2 does not exist, d1=d and ds2=ds2rest) 
 *)
 Inductive drop_merge_decl : decl -> decl -> decls -> decls -> Prop :=
   | drop_merge_decl_head : forall d1 d2 d ds2,
-      and_decl d1 d2 d -> (* merge d1 and d2 to d -- if they have the same label *)
+      merge_decl d1 d2 d -> (* merge d1 and d2 to d -- if they have the same label *)
       drop_merge_decl d1 d (d2 :: ds2) ds2
   | drop_merge_decl_cons : forall d1 d2 d ds2 ds2rest,
       (~ same_label d1 d2) ->
@@ -477,164 +485,188 @@ Inductive drop_merge_decl : decl -> decl -> decls -> decls -> Prop :=
   | drop_merge_decl_nil : forall d1,
       drop_merge_decl d1 d1 nil nil.
 
-Inductive and_decls : decls -> decls -> decls -> Prop :=
-   | and_decls_merge : forall d1 ds1 ds2 ds2rest d ds,
+Inductive merge_decls : decls -> decls -> decls -> Prop :=
+   | merge_decls_merge : forall d1 ds1 ds2 ds2rest d ds,
      drop_merge_decl d1 d ds2 ds2rest -> (* ds2rest is ds2 minus its member with the same label as d1, d is the anding of that member in ds2 with d1 (if it does not exist, d1=d and ds2=ds2rest)  *)
-     and_decls ds1 ds2rest ds -> (* induct *)
-     and_decls (d1 :: ds1) ds2 (d :: ds).
- 
-Inductive typing : env -> tm -> tp -> Prop :=
+     merge_decls ds1 ds2rest ds -> (* induct *)
+     merge_decls (d1 :: ds1) ds2 (d :: ds).
+
+End MergingMembers.
+
+Inductive and_decl : decl -> decl -> decl -> Prop :=
+  | and_decl_tm : forall l S1 S2,
+    and_decl (decl_tm l S1) (decl_tm l S2) (decl_tm l (tp_and S1 S2))
+  | and_decl_tp : forall L TL1 TU1 TL2 TU2,
+    and_decl (decl_tp L TL1 TU1) (decl_tp L TL2 TU2) (decl_tp L (tp_or TL1 TL2) (tp_and TU1 TU2)).
+
+Definition and_decls := merge_decls and_decl.
+
+Inductive or_decl : decl -> decl -> decl -> Prop :=
+  | or_decl_tm : forall l S1 S2,
+    or_decl (decl_tm l S1) (decl_tm l S2) (decl_tm l (tp_or S1 S2))
+  | or_decl_tp : forall L TL1 TU1 TL2 TU2,
+    or_decl (decl_tp L TL1 TU1) (decl_tp L TL2 TU2) (decl_tp L (tp_and TL1 TL2) (tp_or TU1 TU2)).
+
+Definition or_decls := merge_decls or_decl.
+
+Inductive open_decl_cond : decl -> tm -> decl -> Prop :=
+  | open_decl_path : forall d p,
+      path p ->
+      open_decl_cond d p (d ^d^ p)
+  |  open_decl_term : forall d p,
+      ~ path p ->
+      lc_decl d -> (* D does not contain the self variable*)
+      open_decl_cond d p d.
+
+Inductive typing : env -> quality -> tm -> tp -> Prop :=
    | typing_var : forall E x T,
       wf_env E ->
       lc_tp T -> (* for typing_regular *)
       binds_tp x T E ->
-      E |= (fvar x) ~: T
-   | typing_sel : forall E t l T,
-      mem_tm E t (decl_tm l T) ->  
-      E |= (sel t l) ~: T
-   | typing_sub : forall E t S T,
-      E |= t ~: S ->
-      sub_tp E S T ->
-      E |= t ~: T
-   | typing_app : forall E tf Ta Tr ta,
-      E |= tf ~: (tp_fun Ta Tr) ->
-      E |= ta ~: Ta ->
-      E |= (app tf ta) ~: Tr
-   | typing_lam : forall L E S t T,
-      (forall x, x \notin L -> (x ~ (env_tp S) ++ E) |= (t ^^ x) ~: T) -> (* x notin FV(T) follows from the stronger x \notin L forall L *)
-      wf_tp E (tp_fun S T) ->
-      E |= (lam S t) ~: (tp_fun S T)
+      E |= (fvar x) ~: T @ precise
 
-   | typing_new : forall L E Tc args t T ds,
+   | typing_sel : forall E q t l T,
+      mem E q t (decl_tm l T) ->  
+      E |= (sel t l) ~: T @ q
+
+   | typing_sub : forall E q1 q2 t S T,
+      E |= t ~: S @ q1->
+      sub_tp E q2 S T ->
+      E |= t ~: T @ q1 & q2
+
+   | typing_app : forall E q1 q2 tf Ta Tr ta,
+      E |= tf ~: (tp_fun Ta Tr) @ q1 ->
+      E |= ta ~: Ta @ q2 ->
+      E |= (app tf ta) ~: Tr @ q1 & q2
+
+   | typing_lam : forall L E q S t T,
+      (forall x, x \notin L -> (x ~ (env_tp S) ++ E) |= (t ^^ x) ~: T @ q) -> (* x notin FV(T) follows from the stronger x \notin L forall L *)
+      wf_tp E (tp_fun S T) ->
+      E |= (lam S t) ~: (tp_fun S T) @ q
+
+   | typing_new : forall L E q Tc args t T ds,
       wf_tp E Tc ->
-      expands E Tc ds ->
+      expands E precise Tc ds ->
       (forall x, x \notin L -> 
         wf_args_decls (x ~ (env_tp Tc) ++ E) (ds ^ds^ x) args /\
-        (x ~ (env_tp Tc) ++ E) |= (t ^^ x) ~: T) ->
-      E |= (new Tc args t) ~: T
+        (x ~ (env_tp Tc) ++ E) |= (t ^^ x) ~: T @ q) ->
+      E |= (new Tc args t) ~: T @ q
 
-where "E |= t ~: T" := (typing E t T)
+where "E |= t ~: T @ q" := (typing E q t T)
 
 (* check lowerbounds are subtypes of upperbounds, arguments are values and they have the type declared in the decls, all value labels in decls must have corresponding arg*)
 with wf_args_decls : env -> decls -> args -> Prop := 
   | wf_args_decls_tp : forall E Tl Tu ds args l,
-      sub_tp E Tl Tu ->
+      sub_tp E _ Tl Tu ->
       wf_args_decls E ds args ->
       wf_args_decls E ((decl_tp l Tl Tu) :: ds) args
   | wf_args_decls_tm : forall E l v args args_rest T ds, 
       drop_tm l v args args_rest ->
       value v ->
-      E |= v ~: T ->
+      E |= v ~: T @ _ ->
       wf_args_decls E ds args_rest ->
-      wf_args_decls E ((decl_tm l T) :: ds) args_rest
+      wf_args_decls E ((decl_tm l T) :: ds) args
   | wf_args_decls_nil : forall E,
       wf_args_decls E nil nil
 
-with mem_tm : env -> tm -> decl -> Prop :=
-  | mem_tm_path : forall E p T D,
-      path p ->
-      E |= p ~: T ->
-      mem_tp E T D ->
-      mem_tm E p (D ^d^ p)
-  | mem_tm_tm : forall E t T D,
-      E |= t ~: T ->
-      mem_tp E T D -> (* might contain a bound variable if D depends on the selfvariable*)
-      lc_decl D -> (* D does not contain the self variable*)
-      mem_tm E t D
-
-with mem_tp : env -> tp -> decl -> Prop :=
-  | mem_tp_rfn : forall E S T DS D,
-      sub_tp E S (tp_rfn T DS) ->
+with mem : env -> quality -> tm -> decl -> Prop :=
+  | mem_ : forall E q1 q2 p T D DS Dopen,
+      E |= p ~: T @ q1 ->
+      expands E q2 T DS ->
       In D DS ->
-      mem_tp E S D
-  | mem_and : forall E T D1 D2 D,
-      mem_tp E T D1 ->
-      mem_tp E T D2 ->
-      and_decl D1 D2 D ->
-      mem_tp E T D
+      open_decl_cond D p Dopen ->
+      mem E (q1 & q2) p Dopen
 
-with expands : env -> tp -> decls -> Prop := 
-  | expands_rfn : forall E TP DSP DS DSM,
-      expands E TP DSP ->
+with expands : env -> quality -> tp -> decls -> Prop := 
+  | expands_rfn : forall E q TP DSP DS DSM,
+      expands E q TP DSP ->
       and_decls DSP DS DSM ->
-      expands E (tp_rfn TP DS) DSM
-  | expands_tsel : forall E p L S U DS,
-      path p ->
-      mem_tm E p (decl_tp L S U) ->
-      expands E U DS ->
-      expands E (tp_sel p L) DS
-  | expands_and : forall E T1 DS1 T2 DS2 DSM,
-      expands E T1 DS1 ->
-      expands E T2 DS2 ->
+      expands E q (tp_rfn TP DS) DSM
+  | expands_and : forall E q1 q2 T1 DS1 T2 DS2 DSM,
+      expands E q1 T1 DS1 ->
+      expands E q2 T2 DS2 ->
       and_decls DS1 DS2 DSM ->
-      expands E (tp_and T1 T2) DSM
+      expands E (q1 & q2) (tp_and T1 T2) DSM
+  | expands_or : forall E q1 q2 T1 DS1 T2 DS2 DSM,
+      expands E q1 T1 DS1 ->
+      expands E q2 T2 DS2 ->
+      or_decls DS1 DS2 DSM ->
+      expands E (q1 & q2) (tp_or T1 T2) DSM
+  | expands_top : forall E,
+      expands E precise tp_top nil
+  | expands_sub : forall E q1 q2 T U DS,
+      sub_tp  E q1 T U ->
+      expands E q2 U DS ->
+      expands E (q1 & q2) T DS
 
+where "E |= T ~< D @ q" := (expands E q T D)
 
-with sub_tp : env -> tp -> tp -> Prop :=  (* w/o transitivity*)
+with sub_tp : env -> quality -> tp -> tp -> Prop :=  (* w/o transitivity*)
+  | sub_tp_rfn_r : forall L q1 q2 q3 E S T TDS SDS,
+      sub_tp E q1 S T ->
+      expands E q2 S SDS -> 
+      (forall z, z \notin L -> sub_decls (z ~ (env_tp S) ++ E) q3 (SDS ^ds^ z) (TDS ^ds^ z)) ->
+      sub_tp E (q1 & (q2 & q3)) S (tp_rfn T TDS)
+
+  | sub_tp_rfn_l : forall E S T,
+      sub_tp E _ S T ->
+      sub_tp E subsumed (tp_rfn S _) T 
+
+  | sub_tp_tpsel_lower : forall E q p L S U,
+      mem E q p (decl_tp L S U) ->  (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
+      sub_tp E q S (tp_sel p L) (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
+
+  | sub_tp_tpsel_upper : forall E q p L S U,
+      mem E q p (decl_tp L S U) ->  (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
+      sub_tp E q (tp_sel p L) U (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
+
+(* below --> not interesting: reflexivity (precise!), function types, intersection, union, top and bottom *)
   | sub_tp_refl : forall E T,
-      sub_tp E T T
-  | sub_tp_fun : forall E S1 S2 T1 T2,
-      sub_tp E S2 S1 ->
-      sub_tp E T1 T2 ->
-      sub_tp E (tp_fun S1 T1) (tp_fun S2 T2) 
-  | sub_tp_rfn_r : forall L E S T TDS SD TD,
-      sub_tp E S T ->
-      mem_tp E S SD -> 
-      In TD TDS -> 
-      same_label SD TD ->
-      (forall z, z \notin L -> sub_decl (z ~ (env_tp T) ++ E) (SD ^d^ z) (TD ^d^ z)) ->
-      sub_tp E S (tp_rfn T TDS)
-  | sub_tp_rfn_l : forall E S T DSS,
-      sub_tp E S T ->
-      sub_tp E (tp_rfn S DSS) T 
-  | sub_tp_tpsel_r : forall E p L S U S2,
-      path p ->
-      mem_tm E p (decl_tp L S U) ->
-      sub_tp E S U -> (* TODO: shouldn't this follow from the assumption that we only check subtyping of well-formed types? *)
-      sub_tp E S2 S -> (* TODO: redundant since mem_tp uses sub_tp ?*)
-      sub_tp E S2 (tp_sel p L)
-  | sub_tp_tpsel_l : forall E p L S U U2,
-      path p ->
-      mem_tm E p (decl_tp L S U) ->
-      sub_tp E S U -> (* TODO: shouldn't this follow from the assumption that we only check subtyping of well-formed types? *)
-      sub_tp E U U2 -> (* TODO: redundant since mem_tp uses sub_tp ?*)
-      sub_tp E (tp_sel p L) U2
-  | sub_tp_and_r : forall E T T1 T2,
-      sub_tp E T T1 ->
-      sub_tp E T T2 ->
-      sub_tp E T (tp_and T1 T2)
+      sub_tp E precise T T
+  | sub_tp_fun : forall E q1 q2 S1 S2 T1 T2,
+      sub_tp E q1 S2 S1 ->
+      sub_tp E q2 T1 T2 ->
+      sub_tp E (q1 & q2) (tp_fun S1 T1) (tp_fun S2 T2) 
+  | sub_tp_and_r : forall E q1 q2 T T1 T2,
+      sub_tp E q1 T T1 ->
+      sub_tp E q2 T T2 ->
+      sub_tp E (q1 & q2) T (tp_and T1 T2)
   | sub_tp_and_l1 : forall E T T1 T2,
-      sub_tp E T1 T ->
-      sub_tp E (tp_and T1 T2) T
+      sub_tp E _ T1 T ->
+      sub_tp E subsumed (tp_and T1 T2) T
   | sub_tp_and_l2 : forall E T T1 T2,
-      sub_tp E T2 T ->
-      sub_tp E (tp_and T1 T2) T
-  | sub_tp_or_l : forall E T T1 T2,
-      sub_tp E T T1 ->
-      sub_tp E T T2 ->
-      sub_tp E (tp_or T1 T2) T
+      sub_tp E _ T2 T ->
+      sub_tp E subsumed (tp_and T1 T2) T
+  | sub_tp_or_l : forall E q1 q2 T T1 T2,
+      sub_tp E q1 T T1 ->
+      sub_tp E q2 T T2 ->
+      sub_tp E (q1 & q2) (tp_or T1 T2) T
   | sub_tp_or_r1 : forall E T T1 T2,
-      sub_tp E T T1 ->
-      sub_tp E T (tp_or T1 T2) 
+      sub_tp E _ T T1 ->
+      sub_tp E subsumed T (tp_or T1 T2) 
   | sub_tp_or_r2 : forall E T T1 T2,
-      sub_tp E T T2 ->
-      sub_tp E T (tp_or T1 T2) 
+      sub_tp E _ T T2 ->
+      sub_tp E subsumed T (tp_or T1 T2) 
   | sub_tp_top : forall E T,
-      sub_tp E T tp_top
+      sub_tp E subsumed T tp_top
   | sub_tp_bot : forall E T,
-      sub_tp E tp_bot T
+      sub_tp E subsumed tp_bot T
 
-where "E |= T1 <: T2" := (sub_tp E T1 T2)
+where "E |= T1 <: T2 @ q" := (sub_tp E q T1 T2)
 
-with sub_decl : env -> decl -> decl -> Prop :=
-  | sub_decl_tp : forall E l S1 T1 S2 T2,
-     sub_tp E S2 S1 ->
-     sub_tp E S1 T1 ->
-     sub_tp E T1 T2 ->
-     sub_decl E (decl_tp l S1 T1) (decl_tp l S2 T2) 
-  | sub_decl_tm : forall E l T1 T2,
-     sub_tp E T1 T2 ->
-     sub_decl E (decl_tm l T1) (decl_tm l T2) 
+with sub_decl : env -> quality -> decl -> decl -> Prop :=
+  | sub_decl_tp : forall E q1 q2 l S1 T1 S2 T2,
+(*     sub_tp E S1 T1 ->  -- subsumed by well-formedness assumption? *)
+     sub_tp E q1 S2 S1 ->
+     sub_tp E q2 T1 T2 ->
+     sub_decl E (q1 & q2) (decl_tp l S1 T1) (decl_tp l S2 T2) 
+  | sub_decl_tm : forall E q l T1 T2,
+     sub_tp E q T1 T2 ->
+     sub_decl E q (decl_tm l T1) (decl_tm l T2) 
+
+with sub_decls : env -> quality -> decls -> decls -> Prop :=
+  | meh : forall E q DS1 DS2,
+      sub_decls E q DS1 DS2
 
 with wf_env : env -> Prop := 
   | wf_env_nil : wf_env nil
@@ -646,25 +678,24 @@ with wf_env : env -> Prop :=
 
 (* TODO: prove wf_tp E T implies lc_tp T  *)
 with wf_tp : env -> tp -> Prop :=
-  | wf_rfn : forall E T D DS,
+  | wf_rfn : forall E T DS,
       wf_tp E T ->
-      In D DS ->
       (forall z, z `notin` dom E -> 
-          wf_decl (z ~ (env_tp (tp_rfn T DS)) ++ E) (D ^d^ z)) -> (* TODO does this express what we want? *) 
+          List.Forall (wf_decl (z ~ (env_tp (tp_rfn T DS)) ++ E)) (DS ^d^ z)) ->
       wf_tp E (tp_rfn T DS)
   | wf_lam : forall E T1 T2,
       wf_tp E T1 -> 
       wf_tp E T2 ->
       wf_tp E (tp_fun T1 T2)
-  | wf_tsel1 : forall E p L S U,
+  | wf_tsel : forall E p L S U,
       path p ->
-      mem_tm E p (decl_tp L S U) ->
+      mem E _ p (decl_tp L S U) ->
       wf_tp E S -> 
       wf_tp E U ->
       wf_tp E (tp_sel p L)
   | wf_tsel_cls : forall E p L U,
       path p ->
-      mem_tm E p (decl_tp L tp_bot U) ->
+      mem E _ p (decl_tp L tp_bot U) ->
       wf_tp E (tp_sel p L)
   | wf_and : forall E T1 T2,
       wf_tp E T1 -> 
