@@ -78,8 +78,32 @@ Definition decls := list decl.
 
 Coercion bvar : nat >-> tm.
 Coercion fvar : var >-> tm.
+Coercion ref  : loc >-> tm.
+
+Function decl_getLabel (m: decl) {struct m} : label  :=
+  match m with
+  | decl_tp l _ _ => l
+  | decl_tm l _ => l
+  end.
+
+Require Import OrderedType OrderedTypeEx.
+
+Module Import Nat_as_OT_Facts := OrderedTypeFacts Nat_as_OT.
+
+Lemma eq_lab_dec : forall x y : label, { x = y } + { x <> y }.
+Proof. decide equality; decide equality. Qed.
+
+Definition same_label : decl -> decl -> Prop := fun d1 => fun d2 => (decl_getLabel d1) = (decl_getLabel d2).
 
 (*
+Function decls_lookup (l: label) (ms: decls)  {struct ms} : option decl :=
+  match ms with
+  | nil => None
+  | m' :: E' => if eq_lab_dec l (decl_getLabel m') then (Some m') else decls_lookup l E'
+  end.
+
+Notation "mems ?: l " := (option_map mem_getClassifier (mems_lookup l mems)) (at level 67).
+
 Function lab_getIdx (l: lab) {struct l} : nat :=
   match l with
   | ltm n => n
@@ -95,37 +119,6 @@ Function mem_getClassifier (m: mem) {struct m} : tp :=
   match m with
   | mtm l t _ => t
   end.
-*)
-
-
-Function decl_getLabel (m: decl) {struct m} : label  :=
-  match m with
-  | decl_tp l _ _ => l
-  | decl_tm l _ => l
-  end.
-
-
-Require Import OrderedType OrderedTypeEx.
-
-Module Import Nat_as_OT_Facts := OrderedTypeFacts Nat_as_OT.
-
-Lemma eq_lab_dec : forall x y : label, { x = y } + { x <> y }.
-Proof.
-decide equality; decide equality.
-Qed.
-
-Definition same_label : decl -> decl -> Prop := fun d1 => fun d2 =>
- (decl_getLabel d1) = (decl_getLabel d2).
-
-Function decls_lookup (l: label) (ms: decls)  {struct ms} : option decl :=
-  match ms with
-  | nil => None
-  | m' :: E' => if eq_lab_dec l (decl_getLabel m') then (Some m') else decls_lookup l E'
-  end.
-
-
-(*
-Notation "mems ?: l " := (option_map mem_getClassifier (mems_lookup l mems)) (at level 67).
 *)
 
 (*************************************************************************)
@@ -156,10 +149,11 @@ Notation "mems ?: l " := (option_map mem_getClassifier (mems_lookup l mems)) (at
     There is no need to worry about variable capture because bound
     variables are indices.
 *)
+Require Import Classes.EquivDec.
 
 Fixpoint open_rec_tm (k : nat) (u : tm) (e : tm) {struct e} : tm :=
   match e with
-    | bvar i => if k === i then u else (bvar i)
+    | bvar i => if k == i then u else (bvar i)
     | fvar x => fvar x
     | ref x => ref x
     | lam T b => lam T (open_rec_tm (k+1) u b)
@@ -352,6 +346,16 @@ Inductive path : tm -> Prop :=
   | path_ref : forall a, path (ref a)
   | path_sel : forall p l, path p -> path (sel p l).
 
+(* open up decl with term if it's a path, otherwise ensure decl is locally closed *)
+Inductive open_decl_cond : decl -> tm -> decl -> Prop :=
+  | open_decl_path : forall d p,
+      path p ->
+      open_decl_cond d p (d ^d^ p)
+  |  open_decl_term : forall d p,
+      ~ path p ->
+      lc_decl d -> (* D does not contain the self variable*)
+      open_decl_cond d p d.
+
 Inductive concrete_label : label -> Prop :=
   | concrete_lc : forall n, concrete_label (lc n).
 
@@ -365,7 +369,6 @@ Inductive concrete : tp -> Prop :=
   | concrete_top : concrete (tp_top).
 
 (*
-
 Reserved Notation "E |= T ~::Concrete" (at level 69). (* syntactic check really *)
 Reserved Notation "E |= T ~< R"  (at level 69).
 
@@ -378,20 +381,12 @@ Definition MemIn (m: mem) (ms: list mem) := (In (mem_getLabel m) (map mem_getLab
 *)
 
 
-Inductive env_entry : Set :=
+Inductive env_entry : Set := (* TODO *)
   | env_tp : tp -> env_entry
-  | env_tp_new : tp -> list (label * loc) -> env_entry.  (* track path equalities that arise from the constructor arguments supplied when instantiating a concrete type. wf_env should check tp is concrete*)
+  | env_peq : (loc * label) -> env_entry.  (* track path equality a' = a.l that arises from allocating a new object referenced by a, with label l that has value a' -- if we had singleton types, we wouldn't need a new kind of binding, could just say a' : a.l.type, although duplication could be a problem since probably, for some Tc, a' : Tc *)
       
 (* Definition env := EnvImpl.env env_entry. *)
 Notation env := (list (atom * env_entry)).
-
-Inductive binds_tp : var -> tp -> env -> Prop :=
-  | binds_tp_tp : forall x T E,
-    binds x (env_tp T) E ->
-    binds_tp x T E
-  | binds_tp_new : forall x T args E,
-    binds x (env_tp_new T args) E ->
-    binds_tp x T E.
 
 (*Notation "E |= x ~?: T" := (binds_tp x T E) (at level 67).*)
 
@@ -509,20 +504,12 @@ Inductive or_decl : decl -> decl -> decl -> Prop :=
 
 Definition or_decls := merge_decls or_decl.
 
-Inductive open_decl_cond : decl -> tm -> decl -> Prop :=
-  | open_decl_path : forall d p,
-      path p ->
-      open_decl_cond d p (d ^d^ p)
-  |  open_decl_term : forall d p,
-      ~ path p ->
-      lc_decl d -> (* D does not contain the self variable*)
-      open_decl_cond d p d.
 
 Inductive typing : env -> quality -> tm -> tp -> Prop :=
    | typing_var : forall E x T,
       wf_env E ->
       lc_tp T -> (* for typing_regular *)
-      binds_tp x T E ->
+      binds x (env_tp T) E ->
       E |= (fvar x) ~: T @ precise
 
    | typing_sel : forall E q t l T,
@@ -546,6 +533,7 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
 
    | typing_new : forall L E q Tc args t T ds,
       wf_tp E Tc ->
+      concrete Tc ->
       expands E precise Tc ds ->
       (forall x, x \notin L -> 
         wf_args_decls (x ~ (env_tp Tc) ++ E) (ds ^ds^ x) args /\
@@ -554,16 +542,34 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
 
 where "E |= t ~: T @ q" := (typing E q t T)
 
-(* check lowerbounds are subtypes of upperbounds, arguments are values and they have the type declared in the decls, all value labels in decls must have corresponding arg*)
+with path_eq : env -> tm -> tm -> Prop :=
+   | peq_refl : forall E p, (* TODO: only needed if proof of preservation depends on it *)
+      path_eq E p p
+
+   | peq_symm : forall E p q, (* TODO: only needed if proof of preservation depends on it *)
+      path_eq E p q ->
+      path_eq E q p
+
+   | peq_env : forall E a a' l,
+      wf_env E ->
+      binds a (env_peq (a', l)) E ->
+      path_eq E (ref a) (sel a' l)
+
+   | peq_sel : forall E p p' l T q,
+      path_eq E p p' ->
+      E |= (sel p l) ~: T @ q ->
+      path_eq E (sel p l) (sel p' l)
+
+(* check that lowerbounds are subtypes of upperbounds, arguments are values and they have the type declared in the decls, all value labels in decls must have corresponding arg*)
 with wf_args_decls : env -> decls -> args -> Prop := 
-  | wf_args_decls_tp : forall E Tl Tu ds args l,
-      sub_tp E _ Tl Tu ->
+  | wf_args_decls_tp : forall E q Tl Tu ds args l,
+      sub_tp E q Tl Tu ->
       wf_args_decls E ds args ->
       wf_args_decls E ((decl_tp l Tl Tu) :: ds) args
-  | wf_args_decls_tm : forall E l v args args_rest T ds, 
+  | wf_args_decls_tm : forall E q l v args args_rest T ds, 
       drop_tm l v args args_rest ->
       value v ->
-      E |= v ~: T @ _ ->
+      E |= v ~: T @ q ->
       wf_args_decls E ds args_rest ->
       wf_args_decls E ((decl_tm l T) :: ds) args
   | wf_args_decls_nil : forall E,
@@ -608,9 +614,9 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=  (* w/o transitivity*)
       (forall z, z \notin L -> sub_decls (z ~ (env_tp S) ++ E) q3 (SDS ^ds^ z) (TDS ^ds^ z)) ->
       sub_tp E (q1 & (q2 & q3)) S (tp_rfn T TDS)
 
-  | sub_tp_rfn_l : forall E S T,
-      sub_tp E _ S T ->
-      sub_tp E subsumed (tp_rfn S _) T 
+  | sub_tp_rfn_l : forall E q S DS T,
+      sub_tp E q S T ->
+      sub_tp E subsumed (tp_rfn S DS) T 
 
   | sub_tp_tpsel_lower : forall E q p L S U,
       mem E q p (decl_tp L S U) ->  (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
@@ -619,6 +625,10 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=  (* w/o transitivity*)
   | sub_tp_tpsel_upper : forall E q p L S U,
       mem E q p (decl_tp L S U) ->  (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
       sub_tp E q (tp_sel p L) U (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
+
+  | sub_path_eq : forall E T p q, (* precise subtyping is like type equality *)
+      path_eq E p q ->
+      sub_tp E precise (T ^tp^ p) (T ^tp^ q) (* lc_tp (T ^tp^ p) follows from subtyping only relating well-formed types*)
 
 (* below --> not interesting: reflexivity (precise!), function types, intersection, union, top and bottom *)
   | sub_tp_refl : forall E T,
@@ -631,21 +641,21 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=  (* w/o transitivity*)
       sub_tp E q1 T T1 ->
       sub_tp E q2 T T2 ->
       sub_tp E (q1 & q2) T (tp_and T1 T2)
-  | sub_tp_and_l1 : forall E T T1 T2,
-      sub_tp E _ T1 T ->
+  | sub_tp_and_l1 : forall E q T T1 T2,
+      sub_tp E q T1 T ->
       sub_tp E subsumed (tp_and T1 T2) T
-  | sub_tp_and_l2 : forall E T T1 T2,
-      sub_tp E _ T2 T ->
+  | sub_tp_and_l2 : forall E q T T1 T2,
+      sub_tp E q T2 T ->
       sub_tp E subsumed (tp_and T1 T2) T
   | sub_tp_or_l : forall E q1 q2 T T1 T2,
       sub_tp E q1 T T1 ->
       sub_tp E q2 T T2 ->
       sub_tp E (q1 & q2) (tp_or T1 T2) T
-  | sub_tp_or_r1 : forall E T T1 T2,
-      sub_tp E _ T T1 ->
+  | sub_tp_or_r1 : forall E q T T1 T2,
+      sub_tp E q T T1 ->
       sub_tp E subsumed T (tp_or T1 T2) 
-  | sub_tp_or_r2 : forall E T T1 T2,
-      sub_tp E _ T T2 ->
+  | sub_tp_or_r2 : forall E q T T1 T2,
+      sub_tp E q T T2 ->
       sub_tp E subsumed T (tp_or T1 T2) 
   | sub_tp_top : forall E T,
       sub_tp E subsumed T tp_top
@@ -665,8 +675,12 @@ with sub_decl : env -> quality -> decl -> decl -> Prop :=
      sub_decl E q (decl_tm l T1) (decl_tm l T2) 
 
 with sub_decls : env -> quality -> decls -> decls -> Prop :=
-  | meh : forall E q DS1 DS2,
-      sub_decls E q DS1 DS2
+  | sub_decls_precise : forall E DS1 DS2,
+      List.Forall (fun d2 => List.Exists (fun d1 => sub_decl E precise d1 d2) DS1) DS2 ->
+      sub_decls E precise DS1 DS2
+  | sub_decls_subsumed : forall E DS1 DS2,
+      List.Forall (fun d2 => List.Exists (fun d1 => exists q, sub_decl E q d1 d2) DS1) DS2 ->
+      sub_decls E subsumed DS1 DS2
 
 with wf_env : env -> Prop := 
   | wf_env_nil : wf_env nil
@@ -681,21 +695,21 @@ with wf_tp : env -> tp -> Prop :=
   | wf_rfn : forall E T DS,
       wf_tp E T ->
       (forall z, z `notin` dom E -> 
-          List.Forall (wf_decl (z ~ (env_tp (tp_rfn T DS)) ++ E)) (DS ^d^ z)) ->
+          List.Forall (wf_decl (z ~ (env_tp (tp_rfn T DS)) ++ E)) (DS ^ds^ z)) ->
       wf_tp E (tp_rfn T DS)
   | wf_lam : forall E T1 T2,
       wf_tp E T1 -> 
       wf_tp E T2 ->
       wf_tp E (tp_fun T1 T2)
-  | wf_tsel : forall E p L S U,
+  | wf_tsel : forall E q p L S U,
       path p ->
-      mem E _ p (decl_tp L S U) ->
+      mem E q p (decl_tp L S U) ->
       wf_tp E S -> 
       wf_tp E U ->
       wf_tp E (tp_sel p L)
-  | wf_tsel_cls : forall E p L U,
+  | wf_tsel_cls : forall E q p L U,
       path p ->
-      mem E _ p (decl_tp L tp_bot U) ->
+      mem E q p (decl_tp L tp_bot U) ->
       wf_tp E (tp_sel p L)
   | wf_and : forall E T1 T2,
       wf_tp E T1 -> 
@@ -727,17 +741,19 @@ Inductive red : tm -> tm -> Prop :=
 
 where "a ~=> b" := (red a b).
 
+(*
+Inductive store_typing
 
-Definition preservation := forall E t t' T,
-  E |= t ~: T ->
+Definition preservation := forall E q t t' T,
+  E |= t ~: T  @ q->
   t ~=> t' ->
-  E |= t' ~: T.
+  E |= t' ~: T @ q.
 
-Definition progress := forall t T, 
-  nil |= t ~: T ->
+Definition progress := forall t T q, 
+  nil |= t ~: T @ q ->
      value t 
   \/ exists t', t ~=> t'.
-  
+*)
   
 (*
 *** Local Variables: ***
