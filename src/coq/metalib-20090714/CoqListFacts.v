@@ -125,8 +125,9 @@ Proof.
 Qed.
 
 Lemma InA_iff_In : forall (A : Type) (x : A) (xs : list A),
-  InA (@eq _) x xs <-> In x xs.
-Proof. split; auto using InA_In, SetoidList.In_InA. Qed.
+  @Equivalence A eq -> (InA (@eq _) x xs <-> In x xs).
+Proof.
+  split; auto using InA_In, In_InA. Qed.
 
 (** Whether a list is sorted is a decidable proposition. *)
 
@@ -176,16 +177,18 @@ Section SortedListEquality.
     eqlistA (@eq _) xs ys ->
     xs = ys.
   Proof. induction xs; destruct ys; inversion 1; f_equal; auto. Qed.
-
-  Lemma Sort_InA_eq : forall xs ys,
+(*
+  Lemma Sort_InA_eq : forall (xs ys: list A),
+    @Equivalence A eq ->
     Sort xs ->
     Sort ys ->
     (forall a, InA (@eq _) a xs <-> InA (@eq _) a ys) ->
-    xs = ys.
+    xs = ys. 
   Proof.
     intros xs ys ? ? ?.
     cut (eqlistA (@eq _) xs ys).
     auto using eqlist_eq.
+    Check SortA_equivlistA_eqlistA.
     eauto using trans_eq, SetoidList.SortA_equivlistA_eqlistA.
   Qed.
 
@@ -199,7 +202,7 @@ Section SortedListEquality.
     apply Sort_InA_eq...
     intros a; specialize (H a); intuition...
   Qed.
-
+*)
 End SortedListEquality.
 
 

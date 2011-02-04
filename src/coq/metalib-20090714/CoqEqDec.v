@@ -25,22 +25,22 @@ Hint Extern 1 (_ =/= _) => (symmetry; trivial; fail).
 
 (** The [EqDec] class is defined in Coq's standard library. *)
 
-Lemma equiv_reflexive' : forall `{EqDec A} (x : A),
+Lemma equiv_reflexive' : forall A `{EqDec A} (x : A),
   x === x.
 Proof. intros. apply equiv_reflexive. Qed.
 
-Lemma equiv_symmetric' : forall `{EqDec A} (x y : A),
+Lemma equiv_symmetric' : forall A `{EqDec A} (x y : A),
   x === y ->
   y === x.
 Proof. intros. apply equiv_symmetric; assumption. Qed.
 
-Lemma equiv_transitive' : forall `{EqDec A} (x y z : A),
+Lemma equiv_transitive' : forall A `{EqDec A} (x y z : A),
   x === y ->
   y === z ->
   x === z.
 Proof. intros. eapply @equiv_transitive; eassumption. Qed.
 
-Lemma equiv_decidable : forall `{EqDec A} (x y : A),
+Lemma equiv_decidable : forall A `{EqDec A} (x y : A),
   decidable (x === y).
 Proof. intros. unfold decidable. destruct (x == y); auto. Defined.
 
@@ -72,6 +72,7 @@ Proof. intros. unfold decidable. destruct (x == y); auto. Defined.
 
 Class EqDec_eq (A : Type) :=
   eq_dec : forall (x y : A), {x = y} + {x <> y}.
-
+(*
 Instance EqDec_eq_of_EqDec `(@EqDec A eq eq_equivalence) : EqDec_eq A.
 Proof. trivial. Defined.
+*)

@@ -10,7 +10,7 @@ Require Import Coq.Arith.Arith.
 Require Import Coq.Arith.Max.
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Lists.List.
-Require Import Coq.Logic.DecidableTypeEx.
+Require Import Coq.Structures.DecidableTypeEx.
 
 Require Import CoqFSetDecide.
 Require Import CoqListFacts.
@@ -156,7 +156,7 @@ Lemma atom_fresh : forall L : atoms, { x : atom | ~ In x L }.
 Proof.
   intros L. destruct (atom_fresh_for_list (elements L)) as [a H].
   exists a. intros J. contradiction H.
-  rewrite <- CoqListFacts.InA_iff_In. auto using @elements_1.
+  rewrite <- CoqListFacts.InA_iff_In. auto using @elements_1.  auto.
 Qed.
 
 
