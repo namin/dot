@@ -600,11 +600,11 @@ with expands : env -> quality -> tp -> decls -> Prop :=
       expands E (q1 & q2) (tp_or T1 T2) DSM
   | expands_top : forall E,
       expands E precise tp_top nil
-  | expands_sub : forall E q1 q2 T U DS,
+(*  | expands_sub : forall E q1 q2 T U DS,
       sub_tp  E q1 T U ->
       expands E q2 U DS ->
       expands E (q1 & q2) T DS
-
+*)
 where "E |= T ~< D @ q" := (expands E q T D)
 
 with sub_tp : env -> quality -> tp -> tp -> Prop :=  (* w/o transitivity*)
@@ -733,16 +733,15 @@ with wf_decl : env -> decl -> Prop :=
 
 
 
-
-Reserved Notation "a ~=> b" (at level 67).
-
-(* TODO: store *)
-Inductive red : tm -> tm -> Prop :=
-
-where "a ~=> b" := (red a b).
-
-(*
+(* TODO: store and store typing, reduction
 Inductive store_typing
+
+Reserved Notation "a | s ~=> b | s'" (at level 67).
+
+
+Inductive red : store -> tm -> store -> tm -> Prop :=
+
+where "a | s ~=> b | s'" := (red s a s' b).
 
 Definition preservation := forall E q t t' T,
   E |= t ~: T  @ q->
@@ -755,6 +754,8 @@ Definition progress := forall t T q,
   \/ exists t', t ~=> t'.
 *)
   
+
+
 (*
 *** Local Variables: ***
 *** coq-prog-name: "coqtop" ***
