@@ -391,7 +391,7 @@ Notation env := (list (atom * env_entry)).
 
 (*Notation "E |= x ~?: T" := (binds_tp x T E) (at level 67).*)
 
- has_decl_tm : label -> tp -> decls -> Prop :=
+Inductive has_decl_tm : label -> tp -> decls -> Prop :=
   | has_decl_tm_match : forall l t ds,
       has_decl_tm l t ((decl_tm l t) :: ds)
   | has_decl_tm_cons : forall l l0 t t0 ds,
@@ -517,44 +517,58 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
       mem E q t (decl_tm l T) ->  
       E |= (sel t l) ~: T @ q
 
-(* it could be simpler to  disallow chaining of subsumption by requiring a precise typing judgement
-   chained subsumption would be replace by transitivity in the subtyping judgement
-   however, member selection might need subsumed typing in order for expansion to be derivable
-*)
+(* it could be simpler to  disallow chaining of subsumption by requiring a precise typing judgement;
+   chained subsumption would be replaced by transitivity in the subtyping judgement
+   however, member selection might need subsumed typing in order for expansion to be derivable *)
    | typing_sub : forall E q1 q2 t S T,
       E |= t ~: S @ q1->
       sub_tp E q2 S T ->
       E |= t ~: T @ q1 & q2
 
 (* only needed for preservation: rewrite paths in case for CTX-Sel
-   could factor this out to subtyping and introduct into typing by subsumption, but prefer to keep subtyping simple
-*)
+   could factor this out to subtyping and introduce into typing by subsumption, but prefer to keep subtyping simple *)
    | typing_path_eq : forall E q t T p p', (* precise subtyping is like type equality *) 
-      E |= t ~: (T ^tp^ p) @ q
+      E |= t ~: (T ^tp^ p) @ q ->
       path_eq E p p' ->
       E |= t ~: (T ^tp^ p') @ q
 
 (* the quality of the argument type does not contribute to the quality of the typing of the application, 
-   in fact, typing of applications is entirely irrelevant since applications cannot occur in paths*)
+   in fact, typing of applications is entirely irrelevant since applications cannot occur in paths *)
    | typing_app : forall E q q' tf Ta Tr ta,
       E |= tf ~: (tp_fun Ta Tr) @ q ->
       E |= ta ~: Ta @ q' ->
       E |= (app tf ta) ~: Tr @ q
 
+(* this judgement may bind a variable to an illegal type (in the environment) 
+   However, a lambda with an illegal type for its argument cannot be applied, and the illegal type is confined to its body *)
    | typing_lam : forall L E q S t T,
       (forall x, x \notin L -> (x ~ (env_tp S) ++ E) |= (t ^^ x) ~: T @ q) -> (* x notin FV(T) follows from the stronger x \notin L forall L *)
       wf_tp E (tp_fun S T) ->
       E |= (lam S t) ~: (tp_fun S T) @ q
 
-(* T ok means: the lowerbounds of all of T's type members are subtypes of their corresponding upperbounds, and 
-               all of T's value members *)
+(* here, variables are bound to potentially illegal types while checking their legality, 
+   when the legality is established, the variable is put in the context to type the scope of the let-binding
+
+   T ok (legal) means the lowerbounds of all of T's type members are subtypes of their corresponding upperbounds
+    
+   T ok doesn't really guarantuee anything about T's value members since they may be initalised to a lambda bound variable
+   nonetheless, value members either point to 
+     - objects of type T' (T' ok), 
+     - lambda's (irrelevant since cannot occur in paths), 
+     - or variables (lambda-bound or self): 
+        - for lambda-bound vars, we induct: a chain of function applications can only end if the argument is an object (or a lambda, which, again, is irrelevant)
+        - self variables are assumed to have the type that's checked in this judgement, or a supertype, but T ok implies T' ok for T <: T'
+
+   during preservation T ok holds for all bindings x : T in the environment, which precludes funny business in transitivity
+   the environment only contains object references (for which store typing contains derivations that their types are OK) and path equalities
+*)
    | typing_new : forall L E q Tc args t T ds,
       wf_tp E Tc ->
       concrete Tc ->
       expands E precise Tc ds ->
       (forall x, x \notin L -> 
         wf_args_decls (x ~ (env_tp Tc) ++ E) (ds ^ds^ x) args /\
-        (x ~ (env_tp(*_ok*) Tc) ++ E) |= (t ^^ x) ~: T @ q) ->
+        (x ~ (env_tp(*_ok*) Tc) ++ E) |= (t ^^ x) ~: T @ q) -> (* TODO: indicate that T ok holds for x : T -- needed? or is store typing enough *)
       E |= (new Tc args t) ~: T @ q
 
 
@@ -645,7 +659,7 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=  (* w/o transitivity*)
 (* below --> not interesting: reflexivity (precise!), function types, intersection, union, top and bottom *)
   | sub_tp_refl : forall E T,
       sub_tp E precise T T
-  | sub_tp_trans : forall E q1 q2 S1 S2 T1 T2,
+  | sub_tp_trans : forall E q1 q2 T1 T2 T3,
       sub_tp E q1 T1 T2 ->
       sub_tp E q2 T2 T3 ->
       sub_tp E (q1 & q2) T1 T3
