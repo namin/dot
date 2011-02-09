@@ -4,7 +4,7 @@
 (*************************************************************************)
 
 Set Implicit Arguments.
-Require Import Metatheory support Dot_Definitions.
+Require Import Metatheory support syntax_binding theory.
 Require Import List.
 Require Import Coq.Program.Equality.
 
@@ -41,7 +41,8 @@ Proof.
   intros E DS DS' T U q1 q2 HXp HX. generalize dependent DS'. generalize dependent U. generalize dependent q2. generalize dependent q1. dependent induction HXp.
 Focus 2.
   dependent induction q1. dependent induction q2. 
-  intros ? ? ? HS. inversion HS. subst.
+  intros ? ? ? HS. inversion HS; subst; intros. 
+  inversion H0; subst; eauto; intros.
 
   dependent induction HXp; intros ? ? ? ? ? HX; dependent induction HX; inversion HS; subst; eauto.
 
@@ -74,7 +75,7 @@ case RFN, RFN:
   assert (E |= DS2 <:DS<: DS3); eauto.
   apply (@sub_decls_monotone_and_2 E DS1 DS0 DS2 DS3); auto.
 
-(* case RFN, SUB *)
+(* case /\, SUB *)
   dependent induction q1; dependent induction q2.
   assert (E |= (tp_and T1 T2) ~< DSM @ precise & precise). apply expands_and with (DS1 := DS1) (DS2 := DS2); eauto. unfold qconj in H2.
   apply (@quality_soundness_sub E DSM DS (tp_and T1 T2) U q0 q3); eauto.
