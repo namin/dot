@@ -25,8 +25,6 @@ Require Import List.
 (** * Syntax of DOT *)
 (*********************************************************************)
 
-(*Inductive level : Set := terms | types. -- can't figure out how to decide equality on labels if their type is indexed by their level... *)
-
 Inductive quality : Set :=
   | precise   : quality
   | subsumed  : quality.
@@ -42,6 +40,10 @@ Inductive label : Set :=
   | lv  : nat -> label   (* value label *)
   | lc  : nat -> label   (* class label *)
   | la  : nat -> label.  (* abstract type label *)
+
+
+Inductive concrete_label : label -> Prop :=
+  | concrete_lc : forall n, concrete_label (lc n).
 
 Definition loc := var.
 
@@ -73,65 +75,12 @@ with tm : Set :=
            need to check tp is concrete, constructor args are values, bound variable is a loc *)
   | sel  : tm -> label -> tm.
 
-Definition args := list (label * tm).
-Definition decls := list decl.
-
-Coercion bvar : nat >-> tm.
-Coercion fvar : var >-> tm.
-Coercion ref  : loc >-> tm.
-
-Function decl_getLabel (m: decl) {struct m} : label  :=
-  match m with
-  | decl_tp l _ _ => l
-  | decl_tm l _ => l
-  end.
-
-Require Import OrderedType OrderedTypeEx.
-
-Module Import Nat_as_OT_Facts := OrderedTypeFacts Nat_as_OT.
-
-Lemma eq_lab_dec : forall x y : label, { x = y } + { x <> y }.
-Proof. decide equality; decide equality. Qed.
-
-Definition same_label : decl -> decl -> Prop := fun d1 => fun d2 => (decl_getLabel d1) = (decl_getLabel d2).
-
-(*
-Function decls_lookup (l: label) (ms: decls)  {struct ms} : option decl :=
-  match ms with
-  | nil => None
-  | m' :: E' => if eq_lab_dec l (decl_getLabel m') then (Some m') else decls_lookup l E'
-  end.
-
-Notation "mems ?: l " := (option_map mem_getClassifier (mems_lookup l mems)) (at level 67).
-
-Function lab_getIdx (l: lab) {struct l} : nat :=
-  match l with
-  | ltm n => n
-(*  | ltp n => n*)
-  end.
-
-Function mem_getRhs (m: mem) {struct m} : option tm :=
-  match m with
-  | mtm _ _ o => o
-  end.
-
-Function mem_getClassifier (m: mem) {struct m} : tp :=
-  match m with
-  | mtm l t _ => t
-  end.
-*)
-
-
-(* TODO: do we need to require lc_tm/lc_tp for constituents in path/concrete judgements? *)
-
+(* is a term a path? *)
 Inductive path : tm -> Prop :=
   | path_ref : forall a, path (ref a)
   | path_sel : forall p l, path p -> path (sel p l).
 
-
-Inductive concrete_label : label -> Prop :=
-  | concrete_lc : forall n, concrete_label (lc n).
-
+(* is a type concrete? *) 
 Inductive concrete : tp -> Prop :=
   | concrete_sel: forall p lc,
       path p -> concrete_label lc -> concrete (tp_sel p lc)
@@ -141,6 +90,141 @@ Inductive concrete : tp -> Prop :=
       concrete t1 -> concrete t2 -> concrete (tp_and t1 t2)
   | concrete_top : concrete (tp_top).
 
+
+Definition args  := list (label * tm).
+Definition decls := list decl.
+
+Inductive env_entry : Set := (* TODO *)
+  | env_tp : tp -> env_entry
+(*  | env_tp_ok : tp -> env_entry -- type put in context by new, which has been checked to be realizable *)
+  | env_peq : (loc * label) -> env_entry.  (* track path equality a' = a.l that arises from allocating a new object referenced by a, with label l that has value a' -- if we had singleton types, we wouldn't need a new kind of binding, could just say a' : a.l.type, although duplication could be a problem since probably, for some Tc, a' : Tc *)
+      
+(* Definition env := EnvImpl.env env_entry. *)
+Notation env := (list (atom * env_entry)).
+
+
+Coercion bvar : nat >-> tm.
+Coercion fvar : var >-> tm.
+Coercion ref  : loc >-> tm.
+
+(* TODO: do we need to require lc_tm/lc_tp for constituents in path/concrete judgements? *)
+
+
+
+
+(*************************)
+(* operations on members *)
+(*************************)
+
+Function decl_getLabel (m: decl) {struct m} : label  :=
+  match m with
+  | decl_tp l _ _ => l
+  | decl_tm l _ => l
+  end.
+
+(* TODO: switch to typeclass based equality? *)
+Require Import OrderedType OrderedTypeEx.
+Module Import Nat_as_OT_Facts := OrderedTypeFacts Nat_as_OT.
+Lemma eq_lab_dec : forall x y : label, { x = y } + { x <> y }.
+Proof. decide equality; decide equality. Qed.
+
+Definition same_label : decl -> decl -> Prop := fun d1 => fun d2 => (decl_getLabel d1) = (decl_getLabel d2).
+
+
+Inductive has_decl_tm : label -> tp -> decls -> Prop :=
+  | has_decl_tm_match : forall l t ds,
+      has_decl_tm l t ((decl_tm l t) :: ds)
+  | has_decl_tm_cons : forall l l0 t t0 ds,
+      has_decl_tm l t ds ->
+      l0 <> l ->
+      has_decl_tm l t ((decl_tm l0 t0) :: ds).
+
+Section MergingMembers.
+  Variable merge_decl : decl -> decl -> decl -> Prop.
+
+(*
+drop_merge_decl d1 d ds2 ds2rest -> ds2rest is ds2 minus its member d2 that has the same label as d1, d is the anding of d1 and d2 (if d2 does not exist, d1=d and ds2=ds2rest) 
+*)
+Inductive drop_merge_decl : decl -> decl -> decls -> decls -> Prop :=
+  | drop_merge_decl_head : forall d1 d2 d ds2,
+      merge_decl d1 d2 d -> (* merge d1 and d2 to d -- if they have the same label *)
+      drop_merge_decl d1 d (d2 :: ds2) ds2
+  | drop_merge_decl_cons : forall d1 d2 d ds2 ds2rest,
+      (~ same_label d1 d2) ->
+      drop_merge_decl d1 d ds2 ds2rest ->
+      drop_merge_decl d1 d (d2 :: ds2) (d2 :: ds2rest)
+  | drop_merge_decl_nil : forall d1,
+      drop_merge_decl d1 d1 nil nil.
+
+Inductive merge_decls : decls -> decls -> decls -> Prop :=
+   | merge_decls_merge : forall d1 ds1 ds2 ds2rest d ds,
+     drop_merge_decl d1 d ds2 ds2rest -> (* ds2rest is ds2 minus its member with the same label as d1, d is the anding of that member in ds2 with d1 (if it does not exist, d1=d and ds2=ds2rest)  *)
+     merge_decls ds1 ds2rest ds -> (* induct *)
+     merge_decls (d1 :: ds1) ds2 (d :: ds).
+
+End MergingMembers.
+
+Inductive and_decl : decl -> decl -> decl -> Prop :=
+  | and_decl_tm : forall l S1 S2,
+    and_decl (decl_tm l S1) (decl_tm l S2) (decl_tm l (tp_and S1 S2))
+  | and_decl_tp : forall L TL1 TU1 TL2 TU2,
+    and_decl (decl_tp L TL1 TU1) (decl_tp L TL2 TU2) (decl_tp L (tp_or TL1 TL2) (tp_and TU1 TU2)).
+
+Definition and_decls := merge_decls and_decl.
+
+Inductive or_decl : decl -> decl -> decl -> Prop :=
+  | or_decl_tm : forall l S1 S2,
+    or_decl (decl_tm l S1) (decl_tm l S2) (decl_tm l (tp_or S1 S2))
+  | or_decl_tp : forall L TL1 TU1 TL2 TU2,
+    or_decl (decl_tp L TL1 TU1) (decl_tp L TL2 TU2) (decl_tp L (tp_and TL1 TL2) (tp_or TU1 TU2)).
+
+Definition or_decls := merge_decls or_decl.
+
+
+(********************************************)
+(* operations on constructor argument lists *)
+(********************************************)
+
+Inductive has_arg_tm : label -> tm -> args -> Prop :=
+  | has_arg_tm_match : forall l t ds,
+      has_arg_tm l t ((l, t) :: ds)
+  | has_arg_tm_cons : forall l l0 t t0 ds,
+      has_arg_tm l t ds ->
+      l0 <> l ->
+      has_arg_tm l t ((l0, t0) :: ds).
+     
+(* drop_tm l t as1 as2 implies ((decl_tm l t) :: as2) is the same set of arguments as as1*)
+Inductive drop_tm : label -> tm -> args -> args -> Prop :=
+  | drop_tm_head : forall l t ds,
+      drop_tm l t ((l, t) :: ds) ds
+  | drop_tm_cons : forall l l0 t t0 ds dsrest,
+      drop_tm l t ds dsrest ->
+      l <> l0 ->
+      drop_tm l t ((l0, t0) :: ds) ((l0, t0) :: dsrest).
+
+Hint Constructors has_arg_tm.
+(*Lemma drop_tm_splices : forall l t as1 as2,
+  drop_tm l t as1 as2 -> 
+      (forall l2 t2, has_arg_tm l2 t2 as1 -> has_arg_tm l2 t2 ((l, t)::as2)) 
+   /\ (forall l2 t2, has_arg_tm l2 t2 ((l, t)::as2) ->  has_arg_tm l2 t2 as1).
+Proof.
+  intros.  split; intros.
+  induction H.
+    auto.
+    inversion H0; subst. auto.
+    assert (Hrest := IHdrop_tm H6).  
+    induction (eq_lab_dec l2 l); subst; auto. 
+      inversion Hrest; subst; auto*. 
+        repeat (apply has_arg_tm_cons;auto). 
+      inversion Hrest; subst; auto*. 
+
+  induction H. 
+    auto.
+    intros. inversion H0; subst. auto.
+    induction (eq_lab_dec l2 l0); subst; auto.   inversion H6; subst; auto*.
+    apply has_arg_tm_cons; auto*. apply IHdrop_tm. apply has_arg_tm_cons. inversion H6; subst; auto*. auto.
+Qed.
+*)
 
 (*************************************************************************)
 (** * Opening *)
@@ -360,30 +444,15 @@ with fv_decl (d : decl) {struct d} : vars :=
 Definition fv_decls (decls: decls) := (fold_left (fun (ats: vars) (d :  decl) => ats \u (fv_decl d)) decls {}).
 
 
+(**********************************************)
+(* syntax stuff that depends on local closure *)
+(**********************************************)
 
-
-(*
-Reserved Notation "E |= T ~::Concrete" (at level 69). (* syntactic check really *)
-Reserved Notation "E |= T ~< R"  (at level 69).
-
-Reserved Notation "E |= t ~: T" (at level 69).
-Reserved Notation "E |= d ~:::wf" (at level 69).
-Reserved Notation "E |= d ~:::wfs" (at level 69).
-
-
-Definition MemIn (m: mem) (ms: list mem) := (In (mem_getLabel m) (map mem_getLabel ms)).
-*)
-
-
-Inductive env_entry : Set := (* TODO *)
-  | env_tp : tp -> env_entry
-(*  | env_tp_ok : tp -> env_entry -- type put in context by new, which has been checked to be realizable *)
-  | env_peq : (loc * label) -> env_entry.  (* track path equality a' = a.l that arises from allocating a new object referenced by a, with label l that has value a' -- if we had singleton types, we wouldn't need a new kind of binding, could just say a' : a.l.type, although duplication could be a problem since probably, for some Tc, a' : Tc *)
-      
-(* Definition env := EnvImpl.env env_entry. *)
-Notation env := (list (atom * env_entry)).
-
-(*Notation "E |= x ~?: T" := (binds_tp x T E) (at level 67).*)
+Inductive value : tm -> Prop := 
+  | value_ref : forall l,
+    value (ref l)
+  | value_lam : forall t b,
+    lc_tm (lam t b) -> value (lam t b).
 
 (* open up decl with term if it's a path, otherwise ensure decl is locally closed *)
 Inductive open_decl_cond : decl -> tm -> decl -> Prop :=
@@ -395,67 +464,15 @@ Inductive open_decl_cond : decl -> tm -> decl -> Prop :=
       lc_decl d -> (* D does not contain the self variable*)
       open_decl_cond d p d.
 
-Inductive has_decl_tm : label -> tp -> decls -> Prop :=
-  | has_decl_tm_match : forall l t ds,
-      has_decl_tm l t ((decl_tm l t) :: ds)
-  | has_decl_tm_cons : forall l l0 t t0 ds,
-      has_decl_tm l t ds ->
-      l0 <> l ->
-      has_decl_tm l t ((decl_tm l0 t0) :: ds).
-
-Inductive has_arg_tm : label -> tm -> args -> Prop :=
-  | has_arg_tm_match : forall l t ds,
-      has_arg_tm l t ((l, t) :: ds)
-  | has_arg_tm_cons : forall l l0 t t0 ds,
-      has_arg_tm l t ds ->
-      l0 <> l ->
-      has_arg_tm l t ((l0, t0) :: ds).
-     
-(* drop_tm l t as1 as2 implies ((decl_tm l t) :: as2) is the same set of arguments as as1*)
-Inductive drop_tm : label -> tm -> args -> args -> Prop :=
-  | drop_tm_head : forall l t ds,
-      drop_tm l t ((l, t) :: ds) ds
-  | drop_tm_cons : forall l l0 t t0 ds dsrest,
-      drop_tm l t ds dsrest ->
-      l <> l0 ->
-      drop_tm l t ((l0, t0) :: ds) ((l0, t0) :: dsrest).
-
-Hint Constructors has_arg_tm.
-(*Lemma drop_tm_splices : forall l t as1 as2,
-  drop_tm l t as1 as2 -> 
-      (forall l2 t2, has_arg_tm l2 t2 as1 -> has_arg_tm l2 t2 ((l, t)::as2)) 
-   /\ (forall l2 t2, has_arg_tm l2 t2 ((l, t)::as2) ->  has_arg_tm l2 t2 as1).
-Proof.
-  intros.  split; intros.
-  induction H.
-    auto.
-    inversion H0; subst. auto.
-    assert (Hrest := IHdrop_tm H6).  
-    induction (eq_lab_dec l2 l); subst; auto. 
-      inversion Hrest; subst; auto*. 
-        repeat (apply has_arg_tm_cons;auto). 
-      inversion Hrest; subst; auto*. 
-
-  induction H. 
-    auto.
-    intros. inversion H0; subst. auto.
-    induction (eq_lab_dec l2 l0); subst; auto.   inversion H6; subst; auto*.
-    apply has_arg_tm_cons; auto*. apply IHdrop_tm. apply has_arg_tm_cons. inversion H6; subst; auto*. auto.
-Qed.
-*)
 
 
-Inductive value : tm -> Prop := 
-  | value_ref : forall l,
-    value (ref l)
-  | value_lam : forall t b,
-    lc_tm (lam t b) -> value (lam t b).
 
+(* SCRAPS
 
-Section MergingMembers.
-  Variable merge_decl : decl -> decl -> decl -> Prop.
-  
-(*
+Inductive level : Set := terms | types. -- can't figure out how to decide equality on labels if their type is indexed by their level... 
+
+Notation "E |= x ~?: T" := (binds_tp x T E) (at level 67).
+
 Inductive same_label2 : decl -> decl -> Prop :=
   | same_label2_tm : forall l T1 T2, same_label2 (decl_tm l T1) (decl_tm l T2)
   | same_label2_tp : forall l S1 T1 S2 T2, same_label2 (decl_tp l S1 T1) (decl_tp l S2 T2).
@@ -467,46 +484,33 @@ Definition and_decl := fun (d1: decl) => fun (d2: decl) => same_label2 d1 d2 ->
   | (decl_tm l S1, decl_tm _ S2) => decl_tm l (tp_and S1 S2)
   | (decl_tp L TL1 TU1, decl_tp _ TL2 TU2) => decl_tp L (tp_or TL1 TL2) (tp_and TU1 TU2)
   end.
+
+Function decls_lookup (l: label) (ms: decls)  {struct ms} : option decl :=
+  match ms with
+  | nil => None
+  | m' :: E' => if eq_lab_dec l (decl_getLabel m') then (Some m') else decls_lookup l E'
+  end.
+
+Notation "mems ?: l " := (option_map mem_getClassifier (mems_lookup l mems)) (at level 67).
+
+Function lab_getIdx (l: lab) {struct l} : nat :=
+  match l with
+  | ltm n => n
+(*  | ltp n => n*)
+  end.
+
+Function mem_getRhs (m: mem) {struct m} : option tm :=
+  match m with
+  | mtm _ _ o => o
+  end.
+
+Function mem_getClassifier (m: mem) {struct m} : tp :=
+  match m with
+  | mtm l t _ => t
+  end.
+
+Definition MemIn (m: mem) (ms: list mem) := (In (mem_getLabel m) (map mem_getLabel ms)).
 *)
-
-(*
-drop_merge_decl d1 d ds2 ds2rest -> ds2rest is ds2 minus its member d2 that has the same label as d1, d is the anding of d1 and d2 (if d2 does not exist, d1=d and ds2=ds2rest) 
-*)
-Inductive drop_merge_decl : decl -> decl -> decls -> decls -> Prop :=
-  | drop_merge_decl_head : forall d1 d2 d ds2,
-      merge_decl d1 d2 d -> (* merge d1 and d2 to d -- if they have the same label *)
-      drop_merge_decl d1 d (d2 :: ds2) ds2
-  | drop_merge_decl_cons : forall d1 d2 d ds2 ds2rest,
-      (~ same_label d1 d2) ->
-      drop_merge_decl d1 d ds2 ds2rest ->
-      drop_merge_decl d1 d (d2 :: ds2) (d2 :: ds2rest)
-  | drop_merge_decl_nil : forall d1,
-      drop_merge_decl d1 d1 nil nil.
-
-Inductive merge_decls : decls -> decls -> decls -> Prop :=
-   | merge_decls_merge : forall d1 ds1 ds2 ds2rest d ds,
-     drop_merge_decl d1 d ds2 ds2rest -> (* ds2rest is ds2 minus its member with the same label as d1, d is the anding of that member in ds2 with d1 (if it does not exist, d1=d and ds2=ds2rest)  *)
-     merge_decls ds1 ds2rest ds -> (* induct *)
-     merge_decls (d1 :: ds1) ds2 (d :: ds).
-
-End MergingMembers.
-
-Inductive and_decl : decl -> decl -> decl -> Prop :=
-  | and_decl_tm : forall l S1 S2,
-    and_decl (decl_tm l S1) (decl_tm l S2) (decl_tm l (tp_and S1 S2))
-  | and_decl_tp : forall L TL1 TU1 TL2 TU2,
-    and_decl (decl_tp L TL1 TU1) (decl_tp L TL2 TU2) (decl_tp L (tp_or TL1 TL2) (tp_and TU1 TU2)).
-
-Definition and_decls := merge_decls and_decl.
-
-Inductive or_decl : decl -> decl -> decl -> Prop :=
-  | or_decl_tm : forall l S1 S2,
-    or_decl (decl_tm l S1) (decl_tm l S2) (decl_tm l (tp_or S1 S2))
-  | or_decl_tp : forall L TL1 TU1 TL2 TU2,
-    or_decl (decl_tp L TL1 TU1) (decl_tp L TL2 TU2) (decl_tp L (tp_and TL1 TL2) (tp_or TU1 TU2)).
-
-Definition or_decls := merge_decls or_decl.
-
 
 (*
 *** Local Variables: ***
