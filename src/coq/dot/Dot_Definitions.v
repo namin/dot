@@ -383,6 +383,7 @@ Definition MemIn (m: mem) (ms: list mem) := (In (mem_getLabel m) (map mem_getLab
 
 Inductive env_entry : Set := (* TODO *)
   | env_tp : tp -> env_entry
+(*  | env_tp_ok : tp -> env_entry -- type put in context by new, which has been checked to be realizable *)
   | env_peq : (loc * label) -> env_entry.  (* track path equality a' = a.l that arises from allocating a new object referenced by a, with label l that has value a' -- if we had singleton types, we wouldn't need a new kind of binding, could just say a' : a.l.type, although duplication could be a problem since probably, for some Tc, a' : Tc *)
       
 (* Definition env := EnvImpl.env env_entry. *)
@@ -390,7 +391,7 @@ Notation env := (list (atom * env_entry)).
 
 (*Notation "E |= x ~?: T" := (binds_tp x T E) (at level 67).*)
 
-Inductive has_decl_tm : label -> tp -> decls -> Prop :=
+ has_decl_tm : label -> tp -> decls -> Prop :=
   | has_decl_tm_match : forall l t ds,
       has_decl_tm l t ((decl_tm l t) :: ds)
   | has_decl_tm_cons : forall l l0 t t0 ds,
@@ -516,29 +517,46 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
       mem E q t (decl_tm l T) ->  
       E |= (sel t l) ~: T @ q
 
+(* it could be simpler to  disallow chaining of subsumption by requiring a precise typing judgement
+   chained subsumption would be replace by transitivity in the subtyping judgement
+   however, member selection might need subsumed typing in order for expansion to be derivable
+*)
    | typing_sub : forall E q1 q2 t S T,
       E |= t ~: S @ q1->
       sub_tp E q2 S T ->
       E |= t ~: T @ q1 & q2
 
-   | typing_app : forall E q1 q2 tf Ta Tr ta,
-      E |= tf ~: (tp_fun Ta Tr) @ q1 ->
-      E |= ta ~: Ta @ q2 ->
-      E |= (app tf ta) ~: Tr @ q1 & q2
+(* only needed for preservation: rewrite paths in case for CTX-Sel
+   could factor this out to subtyping and introduct into typing by subsumption, but prefer to keep subtyping simple
+*)
+   | typing_path_eq : forall E q t T p p', (* precise subtyping is like type equality *) 
+      E |= t ~: (T ^tp^ p) @ q
+      path_eq E p p' ->
+      E |= t ~: (T ^tp^ p') @ q
+
+(* the quality of the argument type does not contribute to the quality of the typing of the application, 
+   in fact, typing of applications is entirely irrelevant since applications cannot occur in paths*)
+   | typing_app : forall E q q' tf Ta Tr ta,
+      E |= tf ~: (tp_fun Ta Tr) @ q ->
+      E |= ta ~: Ta @ q' ->
+      E |= (app tf ta) ~: Tr @ q
 
    | typing_lam : forall L E q S t T,
       (forall x, x \notin L -> (x ~ (env_tp S) ++ E) |= (t ^^ x) ~: T @ q) -> (* x notin FV(T) follows from the stronger x \notin L forall L *)
       wf_tp E (tp_fun S T) ->
       E |= (lam S t) ~: (tp_fun S T) @ q
 
+(* T ok means: the lowerbounds of all of T's type members are subtypes of their corresponding upperbounds, and 
+               all of T's value members *)
    | typing_new : forall L E q Tc args t T ds,
       wf_tp E Tc ->
       concrete Tc ->
       expands E precise Tc ds ->
       (forall x, x \notin L -> 
         wf_args_decls (x ~ (env_tp Tc) ++ E) (ds ^ds^ x) args /\
-        (x ~ (env_tp Tc) ++ E) |= (t ^^ x) ~: T @ q) ->
+        (x ~ (env_tp(*_ok*) Tc) ++ E) |= (t ^^ x) ~: T @ q) ->
       E |= (new Tc args t) ~: T @ q
+
 
 where "E |= t ~: T @ q" := (typing E q t T)
 
@@ -600,39 +618,37 @@ with expands : env -> quality -> tp -> decls -> Prop :=
       expands E (q1 & q2) (tp_or T1 T2) DSM
   | expands_top : forall E,
       expands E precise tp_top nil
-(*  | expands_sub : forall E q1 q2 T U DS,
+  | expands_sub : forall E q1 q2 T U DS,
       sub_tp  E q1 T U ->
       expands E q2 U DS ->
       expands E (q1 & q2) T DS
-*)
 where "E |= T ~< D @ q" := (expands E q T D)
 
 with sub_tp : env -> quality -> tp -> tp -> Prop :=  (* w/o transitivity*)
-  | sub_tp_rfn_r : forall L q1 q2 q3 E S T TDS SDS,
-      sub_tp E q1 S T ->
-      expands E q2 S SDS -> 
-      (forall z, z \notin L -> sub_decls (z ~ (env_tp S) ++ E) q3 (SDS ^ds^ z) (TDS ^ds^ z)) ->
-      sub_tp E (q1 & (q2 & q3)) S (tp_rfn T TDS)
+  | sub_tp_rfn_intro : forall E q T DS,
+      expands E q T DS -> 
+      sub_tp E q T (tp_rfn T DS)
 
-  | sub_tp_rfn_l : forall E q S DS T,
-      sub_tp E q S T ->
-      sub_tp E subsumed (tp_rfn S DS) T 
+  | sub_tp_rfn_sub : forall L E q T DS1 DS2,
+      (forall z, z \notin L -> sub_decls (z ~ (env_tp T) ++ E) q (DS1 ^ds^ z) (DS2 ^ds^ z)) ->
+      sub_tp E q (tp_rfn T DS1) (tp_rfn T DS2)
 
   | sub_tp_tpsel_lower : forall E q p L S U,
       mem E q p (decl_tp L S U) ->  (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
-      sub_tp E q S (tp_sel p L) (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
+      sub_tp E subsumed S (tp_sel p L) (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
+(* TODO: is it sound to have `sub_tp E q S (tp_sel p L)` ?? *)
 
   | sub_tp_tpsel_upper : forall E q p L S U,
       mem E q p (decl_tp L S U) ->  (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
       sub_tp E q (tp_sel p L) U (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
 
-  | sub_path_eq : forall E T p q, (* precise subtyping is like type equality *)
-      path_eq E p q ->
-      sub_tp E precise (T ^tp^ p) (T ^tp^ q) (* lc_tp (T ^tp^ p) follows from subtyping only relating well-formed types*)
-
 (* below --> not interesting: reflexivity (precise!), function types, intersection, union, top and bottom *)
   | sub_tp_refl : forall E T,
       sub_tp E precise T T
+  | sub_tp_trans : forall E q1 q2 S1 S2 T1 T2,
+      sub_tp E q1 T1 T2 ->
+      sub_tp E q2 T2 T3 ->
+      sub_tp E (q1 & q2) T1 T3
   | sub_tp_fun : forall E q1 q2 S1 S2 T1 T2,
       sub_tp E q1 S2 S1 ->
       sub_tp E q2 T1 T2 ->
@@ -677,6 +693,7 @@ with sub_decl : env -> quality -> decl -> decl -> Prop :=
 with sub_decls : env -> quality -> decls -> decls -> Prop :=
   | sub_decls_precise : forall E DS1 DS2,
       List.Forall (fun d2 => List.Exists (fun d1 => sub_decl E precise d1 d2) DS1) DS2 ->
+      List.Forall (fun d1 => List.Exists (fun d2 => same_label d1 d2) DS2) DS1 ->
       sub_decls E precise DS1 DS2
   | sub_decls_subsumed : forall E DS1 DS2,
       List.Forall (fun d2 => List.Exists (fun d1 => exists q, sub_decl E q d1 d2) DS1) DS2 ->
