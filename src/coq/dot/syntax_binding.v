@@ -139,6 +139,23 @@ Inductive has_decl_tm : label -> tp -> decls -> Prop :=
       l0 <> l ->
       has_decl_tm l t ((decl_tm l0 t0) :: ds).
 
+Require Import Coq.Classes.EquivDec.
+Require Import Coq.Program.Program.
+
+(* establish decidability of label equality so we can do if then else on labels *)
+Program Instance label_EqDec : EqDec label eq :=
+  { equiv_dec x y :=
+    match x, y with
+      | lv n, lv n' => if n == n' then in_left else in_right
+      | la n, la n' => if n == n' then in_left else in_right
+      | lc n, lc n' => if n == n' then in_left else in_right
+      | lv n, la n' | la n, lv n' | lv n, lc n' | lc n, lv n' | la n, lc n' | lc n, la n'  => in_right (* why does wildcard pattern not work?*)
+    end }.
+
+  Obligation Tactic := unfold complement, equiv ; program_simpl.
+  Solve Obligations using unfold equiv, complement in * ; program_simpl ; intuition (discriminate || eauto).
+
+
 Section MergingMembers.
   Variable merge_decl : decl -> decl -> decl -> Prop.
 
