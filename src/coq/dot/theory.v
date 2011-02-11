@@ -10,7 +10,7 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
    | typing_var : forall E x T,
       wf_env E ->
       lc_tp T -> (* for typing_regular *)
-      binds x (env_tp T) E ->
+      ctx_binds E x T ->
       E |= (fvar x) ~: T @ precise
 
    | typing_sel : forall E q t l T,
@@ -42,7 +42,7 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
 (* this judgement may bind a variable to an illegal type (in the environment) 
    However, a lambda with an illegal type for its argument cannot be applied, and the illegal type is confined to its body *)
    | typing_lam : forall L E q S t T,
-      (forall x, x \notin L -> (x ~ (env_tp S) ++ E) |= (t ^^ x) ~: T @ q) -> (* x notin FV(T) follows from the stronger x \notin L forall L *)
+      (forall x, x \notin L -> (ctx_bind E x S) |= (t ^^ x) ~: T @ q) -> (* x notin FV(T) follows from the stronger x \notin L forall L *)
       wf_tp E (tp_fun S T) ->
       E |= (lam S t) ~: (tp_fun S T) @ q
 
@@ -67,55 +67,52 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
       concrete Tc ->
       expands E precise Tc ds ->
       (forall x, x \notin L -> 
-        wf_args_decls (x ~ (env_tp Tc) ++ E) (ds ^ds^ x) args /\
-        (x ~ (env_tp(*_ok*) Tc) ++ E) |= (t ^^ x) ~: T @ q) -> (* TODO: indicate that T ok holds for x : T -- needed? or is store typing enough *)
+        wf_args_decls (ctx_bind E x Tc) (ds ^ds^ x) args /\
+        (ctx_bind(*_ok*) E x Tc) |= (t ^^ x) ~: T @ q) -> (* TODO: indicate that T ok holds for x : T -- needed? or is store typing enough *)
       E |= (new Tc args t) ~: T @ q
 
 
 where "E |= t ~: T @ q" := (typing E q t T)
 
-with path_eq : env -> tm -> tm -> Prop :=
-   | peq_refl : forall E p, (* TODO: only needed if proof of preservation depends on it *)
-      path_eq E p p
 
-   | peq_symm : forall E p q, (* TODO: only needed if proof of preservation depends on it *)
-      path_eq E p q ->
-      path_eq E q p
-
-   | peq_env : forall E a a' l,
-      wf_env E ->
-      binds a (env_peq (a', l)) E ->
-      path_eq E (ref a) (sel a' l)
-
-   | peq_sel : forall E p p' l T q,
-      path_eq E p p' ->
-      E |= (sel p l) ~: T @ q ->
-      path_eq E (sel p l) (sel p' l)
-
-(* check that lowerbounds are subtypes of upperbounds, arguments are values and they have the type declared in the decls, all value labels in decls must have corresponding arg*)
+(* check that lowerbounds are subtypes of upperbounds, 
+   arguments are values and they have the type declared in the decls, 
+   all value labels in decls must have corresponding arg (and vice-versa)*)
 with wf_args_decls : env -> decls -> args -> Prop := 
-  | wf_args_decls_tp : forall E q Tl Tu ds args l,
-      sub_tp E q Tl Tu ->
-      wf_args_decls E ds args ->
-      wf_args_decls E ((decl_tp l Tl Tu) :: ds) args
-  | wf_args_decls_tm : forall E q l v args args_rest T ds, 
-      drop_tm l v args args_rest ->
-      value v ->
-      E |= v ~: T @ q ->
-      wf_args_decls E ds args_rest ->
-      wf_args_decls E ((decl_tm l T) :: ds) args
-  | wf_args_decls_nil : forall E,
-      wf_args_decls E nil nil
+  | wf_args_decls_ : forall E DS Args,
+     List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) DS) Args -> (* all ctor args must have declaration with same label*)
+     List.Forall (fun d =>  (* TODO: why does using pattern match lead to 'Error: Non strictly positive occurrence ...'? *)
+            (exists L, exists U, exists T, d = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
+              (exists q, sub_tp E q T U)                      ) /\
+            (exists l, exists T, d = decl_tm l T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
+              List.Exists (fun l_v => fst l_v = l /\ 
+                                      value (snd l_v) /\ (exists q, E |= (snd l_v) ~: T @ q)
+                                     ) Args) 
+            ) DS ->
+     wf_args_decls E DS Args
+(*      
+match d with
+| decl_tp L T U => exists q, sub_tp E q T U (* for each type member: its lower bound must be a subtype of its upper bound *)
+| decl_tm l T => List.Exists (fun l_v => fst l_v = l /\ (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
+                   value (snd l_v) /\ (exists q, E |= (snd l_v) ~: T @ q)
+                 ) Args
+end
+*)
 
 with mem : env -> quality -> tm -> decl -> Prop :=
   | mem_ : forall E q1 q2 p T D DS Dopen,
-      E |= p ~: T @ q1 ->
+      E |= p ~: T @ q1 -> (* requiring a precise judgment makes preservation harder without gaining anything afaict *)
       expands E q2 T DS ->
       In D DS ->
       open_decl_cond D p Dopen ->
       mem E (q1 & q2) p Dopen
 
 with expands : env -> quality -> tp -> decls -> Prop := 
+  | expands_sub : forall E q1 q2 T U DS,
+      sub_tp  E q1 T U ->
+      expands E q2 U DS ->
+      expands E (q1 & q2) T DS
+
   | expands_rfn : forall E q TP DSP DS DSM,
       expands E q TP DSP ->
       and_decls DSP DS DSM ->
@@ -132,19 +129,15 @@ with expands : env -> quality -> tp -> decls -> Prop :=
       expands E (q1 & q2) (tp_or T1 T2) DSM
   | expands_top : forall E,
       expands E precise tp_top nil
-  | expands_sub : forall E q1 q2 T U DS,
-      sub_tp  E q1 T U ->
-      expands E q2 U DS ->
-      expands E (q1 & q2) T DS
 where "E |= T ~< D @ q" := (expands E q T D)
 
-with sub_tp : env -> quality -> tp -> tp -> Prop :=  (* w/o transitivity*)
+with sub_tp : env -> quality -> tp -> tp -> Prop :=
   | sub_tp_rfn_intro : forall E q T DS,
       expands E q T DS -> 
       sub_tp E q T (tp_rfn T DS)
 
   | sub_tp_rfn_sub : forall L E q T DS1 DS2,
-      (forall z, z \notin L -> sub_decls (z ~ (env_tp T) ++ E) q (DS1 ^ds^ z) (DS2 ^ds^ z)) ->
+      (forall z, z \notin L -> sub_decls (ctx_bind E z T) q (DS1 ^ds^ z) (DS2 ^ds^ z)) ->
       sub_tp E q (tp_rfn T DS1) (tp_rfn T DS2)
 
   | sub_tp_tpsel_lower : forall E q p L S U,
@@ -156,7 +149,7 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=  (* w/o transitivity*)
       mem E q p (decl_tp L S U) ->  (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
       sub_tp E q (tp_sel p L) U (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
 
-(* below --> not interesting: reflexivity (precise!), function types, intersection, union, top and bottom *)
+(* what follows is standard: reflexivity (precise!), transitivity(!), function types, intersection, union, top and bottom *)
   | sub_tp_refl : forall E T,
       sub_tp E precise T T
   | sub_tp_trans : forall E q1 q2 T1 T2 T3,
@@ -171,16 +164,16 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=  (* w/o transitivity*)
       sub_tp E q1 T T1 ->
       sub_tp E q2 T T2 ->
       sub_tp E (q1 & q2) T (tp_and T1 T2)
+  | sub_tp_or_l : forall E q1 q2 T T1 T2,
+      sub_tp E q1 T T1 ->
+      sub_tp E q2 T T2 ->
+      sub_tp E (q1 & q2) (tp_or T1 T2) T
   | sub_tp_and_l1 : forall E q T T1 T2,
       sub_tp E q T1 T ->
       sub_tp E subsumed (tp_and T1 T2) T
   | sub_tp_and_l2 : forall E q T T1 T2,
       sub_tp E q T2 T ->
       sub_tp E subsumed (tp_and T1 T2) T
-  | sub_tp_or_l : forall E q1 q2 T T1 T2,
-      sub_tp E q1 T T1 ->
-      sub_tp E q2 T T2 ->
-      sub_tp E (q1 & q2) (tp_or T1 T2) T
   | sub_tp_or_r1 : forall E q T T1 T2,
       sub_tp E q T T1 ->
       sub_tp E subsumed T (tp_or T1 T2) 
@@ -213,20 +206,53 @@ with sub_decls : env -> quality -> decls -> decls -> Prop :=
       List.Forall (fun d2 => List.Exists (fun d1 => exists q, sub_decl E q d1 d2) DS1) DS2 ->
       sub_decls E subsumed DS1 DS2
 
+
+(* path equality is needed for preservation because evaluation changes types that cannot be related otherwise *)
+with path_eq : env -> tm -> tm -> Prop :=
+   | peq_refl : forall E p, (* TODO: only needed if proof of preservation depends on it *)
+      path_eq E p p
+
+   | peq_symm : forall E p q, (* TODO: only needed if proof of preservation depends on it *)
+      path_eq E p q ->
+      path_eq E q p
+
+   | peq_env : forall E a a' l,
+      wf_env E ->
+      pex_has E (a, (a', l)) ->
+      path_eq E (ref a) (sel a' l)
+
+   | peq_sel : forall E p p' l T q,
+      path_eq E p p' ->
+      E |= (sel p l) ~: T @ q ->
+      path_eq E (sel p l) (sel p' l)
+
+(* TODO env_tp_ok*)
 with wf_env : env -> Prop := 
-  | wf_env_nil : wf_env nil
-  | wf_env_cons : forall E x U,
-     wf_env E ->
+  | wf_env_ : forall G P,
+     wf_ctx G -> wf_pex G P -> wf_env (G, P)
+
+with wf_ctx : ctx -> Prop := 
+  | wf_ctx_nil : wf_ctx nil
+  | wf_ctx_cons_tp : forall E x U,
+     wf_ctx E ->
      x \notin dom E -> 
      (forall x, x \notin dom E -> x \notin fv_tp U) -> 
-     wf_env (x ~ (env_tp U) ++ E) (* TODO env_tp_new*)
+     wf_ctx (x ~ U ++ E) (* TODO env_tp_ok*)
+
+with wf_pex : ctx -> pex -> Prop := 
+  | wf_pex_cons : forall G PS a a' l,
+     a \in dom G -> (* this binding does not replace the a : Tc that's already there*)
+     a' \in dom G ->
+     (* exists T, mem (G, nil) a' (decl_tm l T) ->*) (* TODO *)
+     wf_pex G PS ->
+     wf_pex G ((a, (a', l)) :: PS) (* a =path= a'.l since a' was allocated, and has a member l equal to a *)
 
 (* TODO: prove wf_tp E T implies lc_tp T  *)
 with wf_tp : env -> tp -> Prop :=
-  | wf_rfn : forall E T DS,
+  | wf_rfn : forall L E T DS,
       wf_tp E T ->
-      (forall z, z `notin` dom E -> 
-          List.Forall (wf_decl (z ~ (env_tp (tp_rfn T DS)) ++ E)) (DS ^ds^ z)) ->
+      (forall z, z \notin L ->
+          List.Forall (wf_decl (ctx_bind E z (tp_rfn T DS))) (DS ^ds^ z)) ->
       wf_tp E (tp_rfn T DS)
   | wf_lam : forall E T1 T2,
       wf_tp E T1 -> 
@@ -261,23 +287,76 @@ with wf_decl : env -> decl -> Prop :=
      wf_tp E T ->
      wf_decl E (decl_tm l T).
 
+(* all the info we need about an object is in its ctor arguments
+   no need to store the type, as that's only needed by preservation, which tracks it in store_typing *)
+Notation store := (list (atom * (tp * args))).
 
+Inductive wf_store : store -> Prop := 
+  | wf_store_nil : wf_store nil
+  | wf_store_cons_tp : forall E x Tc ags,
+     wf_store E ->
+     List.Forall (fun l_v => value (snd l_v)) ags -> (* the args bind labels to values *) 
+     lc_tp Tc -> concrete Tc ->
+     x \notin dom E ->
+     wf_store (x ~ (Tc, ags) ++ E).
 
-
-(* TODO: store and store typing, reduction
-Inductive store_typing
-
-Reserved Notation "a | s ~=> b | s'" (at level 67).
-
+Reserved Notation "s |~ a ~~> b  ~| s'" (at level 60).
 
 Inductive red : store -> tm -> store -> tm -> Prop :=
+  | red_beta : forall s T t v,
+     wf_store s ->
+     lc_tm (lam T t) ->
+     value v ->
+     s |~ (app (lam T t)) v ~~> (t ^^ v) ~| s
+  | red_app_fun : forall s s' t e e',
+     lc_tm t ->
+     s |~        e ~~> e'        ~| s' ->
+     s |~  app e t ~~> app e' t  ~| s'
+  | red_app_arg : forall s s' v e e',
+     value v ->
+     s |~        e ~~> e'        ~| s' ->
+     s |~  app v e ~~> app v e'  ~| s'
 
-where "a | s ~=> b | s'" := (red s a s' b).
+  | red_sel : forall s a Tc ags l v,
+     wf_store s -> 
+     binds a (Tc, ags) s ->
+     value v -> (* follows from store well-formedness -- need to check?? *)
+     In (l, v) ags -> 
+     s |~ (sel (ref a) l) ~~> v ~| s
+  | red_sel_tgt : forall s s' l e e',
+     s |~         e ~~> e'         ~| s' ->
+     s |~ (sel e l) ~~> (sel e' l) ~| s
+
+  | red_new : forall s Tc a ags t,
+     wf_store s -> 
+     lc_tm (new Tc ags t) ->
+     List.Forall (fun l_v => value (snd l_v)) ags ->
+     a `notin` dom s ->
+     s |~   (new Tc ags t) ~~> t ^^ (ref a)   ~| ((a ~ ((Tc, ags ^args^ (ref a)))) ++ s)
+
+where "s |~ a ~~> b  ~| s'" := (red s a s' b).
+
+
+Definition extract_pex : loc -> args -> pex := fun a => fun ags =>
+  List.flat_map (fun l_v => match l_v with 
+       | (l, ref al) => (al, (a, l)) :: nil
+       | _ => nil
+       end) ags.
+
+Definition typing_store E s :=
+     wf_store s 
+  /\ (forall a Tc ags DS,
+                   binds a (Tc, ags) s                           (* bound in store to ags with type Tc -- can't recover Tc from Gamma since object allocation and let-binding are collapsed, so that a is never bound in Gamma, it immediately replaces the let-bound variable *)
+               /\  E |= Tc ~< DS @ precise                       (* Tc expands (see typing_new) *)
+               /\  wf_args_decls E DS ags                        (* the args conform to the decls in Tc's expansion (see typing_new) *)
+               /\  List.Forall (pex_has E) (extract_pex a ags)). (* the path equalities derived from the object referenced by a binding its labels to references *)
+
+Notation "E |== s" := (typing_store E s) (at level 68).
 
 Definition preservation := forall E q t t' T,
-  E |= t ~: T  @ q->
-  t ~=> t' ->
-  E |= t' ~: T @ q.
+  E  |=  t ~: T  @ q ->
+  s  |~  t ~~> t'  ~| s' ->
+  (exists E', E' |== s' /\ dom E containedIn dom E' /\ E' |=  t' ~: T @ q).
 
 Definition progress := forall t T q, 
   nil |= t ~: T @ q ->

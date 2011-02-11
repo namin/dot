@@ -94,13 +94,32 @@ Inductive concrete : tp -> Prop :=
 Definition args  := list (label * tm).
 Definition decls := list decl.
 
-Inductive env_entry : Set := (* TODO *)
+(* TODO
+Inductive env_entry : Set :=  
   | env_tp : tp -> env_entry
-(*  | env_tp_ok : tp -> env_entry -- type put in context by new, which has been checked to be realizable *)
-  | env_peq : (loc * label) -> env_entry.  (* track path equality a' = a.l that arises from allocating a new object referenced by a, with label l that has value a' -- if we had singleton types, we wouldn't need a new kind of binding, could just say a' : a.l.type, although duplication could be a problem since probably, for some Tc, a' : Tc *)
-      
-(* Definition env := EnvImpl.env env_entry. *)
-Notation env := (list (atom * env_entry)).
+  | env_tp_ok : tp -> env_entry -- type put in context by new, which has been checked to be realizable 
+  | env_peq : (loc * loc * label) -> env_entry.  (* track path equality a' = a.l that arises from allocating a new object referenced by a, with label l that has value a' -- if we had singleton types, we wouldn't need a new kind of binding, could just say a' : a.l.type, although duplication could be a problem since probably, for some Tc, a' : Tc *)
+*)      
+
+(* the environment is a context + a set of path equalities
+  the context tracks which variables are bound in the current scope along with their assumed type
+  path equalities of the shape a = a'.l 
+  such an equlity arises from the allocation of a new object (referenced by a), with a member l that has value a'
+  storing these equalities in the context would cost more than it saves, since we need to maintain the invariant that every variable is bound only once
+  
+  there's an additional fact that we may need to track about variable bindings x : T, namely whether T is known to be OK (its type members have conforming bounds)
+  hopefully this info can be kept separately in the meta-theory -- we'll have to see
+*)
+Definition ctx : Set := (list (atom * tp)).
+Definition pex : Set := (list (loc * (loc * label))).
+Definition env : Set := (ctx * pex)%type.
+
+Definition ctx_binds : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x T (fst E).
+Definition ctx_bind  : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ T ++ (fst E), snd E).
+Definition ctx_fresh : env -> atom -> Prop := fun E => fun a => a `notin` dom (fst E).
+
+Definition pex_has : env -> atom * (atom * label) -> Prop := fun E => fun peq => In peq (snd E).
+Definition pex_add : env -> atom * (atom * label) -> env := fun E => fun peq => ((fst E), peq :: (snd E)).
 
 
 Coercion bvar : nat >-> tm.
@@ -122,22 +141,7 @@ Function decl_getLabel (m: decl) {struct m} : label  :=
   | decl_tm l _ => l
   end.
 
-(* TODO: switch to typeclass based equality? *)
-Require Import OrderedType OrderedTypeEx.
-Module Import Nat_as_OT_Facts := OrderedTypeFacts Nat_as_OT.
-Lemma eq_lab_dec : forall x y : label, { x = y } + { x <> y }.
-Proof. decide equality; decide equality. Qed.
-
 Definition same_label : decl -> decl -> Prop := fun d1 => fun d2 => (decl_getLabel d1) = (decl_getLabel d2).
-
-
-Inductive has_decl_tm : label -> tp -> decls -> Prop :=
-  | has_decl_tm_match : forall l t ds,
-      has_decl_tm l t ((decl_tm l t) :: ds)
-  | has_decl_tm_cons : forall l l0 t t0 ds,
-      has_decl_tm l t ds ->
-      l0 <> l ->
-      has_decl_tm l t ((decl_tm l0 t0) :: ds).
 
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Program.Program.
@@ -154,7 +158,6 @@ Program Instance label_EqDec : EqDec label eq :=
 
   Obligation Tactic := unfold complement, equiv ; program_simpl.
   Solve Obligations using unfold equiv, complement in * ; program_simpl ; intuition (discriminate || eauto).
-
 
 Section MergingMembers.
   Variable merge_decl : decl -> decl -> decl -> Prop.
@@ -198,51 +201,6 @@ Inductive or_decl : decl -> decl -> decl -> Prop :=
 Definition or_decls := merge_decls or_decl.
 
 
-(********************************************)
-(* operations on constructor argument lists *)
-(********************************************)
-
-Inductive has_arg_tm : label -> tm -> args -> Prop :=
-  | has_arg_tm_match : forall l t ds,
-      has_arg_tm l t ((l, t) :: ds)
-  | has_arg_tm_cons : forall l l0 t t0 ds,
-      has_arg_tm l t ds ->
-      l0 <> l ->
-      has_arg_tm l t ((l0, t0) :: ds).
-     
-(* drop_tm l t as1 as2 implies ((decl_tm l t) :: as2) is the same set of arguments as as1*)
-Inductive drop_tm : label -> tm -> args -> args -> Prop :=
-  | drop_tm_head : forall l t ds,
-      drop_tm l t ((l, t) :: ds) ds
-  | drop_tm_cons : forall l l0 t t0 ds dsrest,
-      drop_tm l t ds dsrest ->
-      l <> l0 ->
-      drop_tm l t ((l0, t0) :: ds) ((l0, t0) :: dsrest).
-
-Hint Constructors has_arg_tm.
-(*Lemma drop_tm_splices : forall l t as1 as2,
-  drop_tm l t as1 as2 -> 
-      (forall l2 t2, has_arg_tm l2 t2 as1 -> has_arg_tm l2 t2 ((l, t)::as2)) 
-   /\ (forall l2 t2, has_arg_tm l2 t2 ((l, t)::as2) ->  has_arg_tm l2 t2 as1).
-Proof.
-  intros.  split; intros.
-  induction H.
-    auto.
-    inversion H0; subst. auto.
-    assert (Hrest := IHdrop_tm H6).  
-    induction (eq_lab_dec l2 l); subst; auto. 
-      inversion Hrest; subst; auto*. 
-        repeat (apply has_arg_tm_cons;auto). 
-      inversion Hrest; subst; auto*. 
-
-  induction H. 
-    auto.
-    intros. inversion H0; subst. auto.
-    induction (eq_lab_dec l2 l0); subst; auto.   inversion H6; subst; auto*.
-    apply has_arg_tm_cons; auto*. apply IHdrop_tm. apply has_arg_tm_cons. inversion H6; subst; auto*. auto.
-Qed.
-*)
-
 (*************************************************************************)
 (** * Opening *)
 (*************************************************************************)
@@ -280,7 +238,7 @@ Fixpoint open_rec_tm (k : nat) (u : tm) (e : tm) {struct e} : tm :=
     | ref x => ref x
     | lam T b => lam T (open_rec_tm (k+1) u b)
     | app f a => app (open_rec_tm k u f) (open_rec_tm k u a)
-    | new T args b => new (open_rec_tp k u T) (List.map (fun a => match a with (l, a) => (l, open_rec_tm k u a) end) args) (open_rec_tm (k+1) u b)
+    | new T args b => new (open_rec_tp k u T) (List.map (fun a => match a with (l, a) => (l, open_rec_tm (k+1) u a) end) args) (open_rec_tm (k+1) u b)
     | sel e1 l => sel (open_rec_tm k u e1) l
   end
 with open_rec_tp (k : nat) (u : tm) (t : tp) {struct t} : tp :=
@@ -323,7 +281,9 @@ Definition open e u := open_rec_tm 0 u e.
 Definition open_tp e u := open_rec_tp 0 u e.
 Definition open_decl d u := open_rec_decl 0 u d.
 Definition open_decls ds u := map (open_rec_decl 0 u) ds.
+Definition open_args (ags: args) u := map (fun l_v => (fst l_v, open_rec_tm 0 u (snd l_v))) ags.
 
+Notation "ags ^args^ u" := (open_args ags u) (at level 67).
 Notation "d ^d^ u" := (open_decl d u) (at level 67).
 Notation "ds ^ds^ u" := (open_decls ds u) (at level 67).
 Notation "t ^^ u" := (open t u) (at level 67).
@@ -396,8 +356,7 @@ with lc_tm : tm -> Prop :=
       lc_tm (app f a)
   | lc_new : forall L t cas b,
       lc_tp t ->
-      lc_consargs cas ->
-      (forall x:var, x \notin L -> lc_tm (b ^^ x)) ->
+      (forall x:var, x \notin L -> lc_args (cas ^args^ x) /\ lc_tm (b ^^ x)) ->
       lc_tm (new t cas b)
   | lc_sel : forall tgt l,
       lc_tm tgt ->
@@ -409,11 +368,11 @@ with lc_decls : decls -> Prop :=
   | lc_decl_cons : forall d ds,
       lc_decl d -> lc_decls ds -> lc_decls (d :: ds)
 
-with lc_consargs : args -> Prop :=
-  | lc_consarg_nil :
-      lc_consargs (nil)
-  | lc_consarg_cons : forall l t cs,
-      lc_tm t -> lc_consargs cs -> lc_consargs ((l, t) :: cs).
+with lc_args : args -> Prop :=
+  | lc_args_nil :
+      lc_args (nil)
+  | lc_args_cons : forall l t cs,
+      lc_tm t -> lc_args cs -> lc_args ((l, t) :: cs).
 
 
 
@@ -490,6 +449,14 @@ Inductive level : Set := terms | types. -- can't figure out how to decide equali
 
 Notation "E |= x ~?: T" := (binds_tp x T E) (at level 67).
 
+Inductive has_decl_tm : label -> tp -> decls -> Prop :=
+  | has_decl_tm_match : forall l t ds,
+      has_decl_tm l t ((decl_tm l t) :: ds)
+  | has_decl_tm_cons : forall l l0 t t0 ds,
+      has_decl_tm l t ds ->
+      l0 <> l ->
+      has_decl_tm l t ((decl_tm l0 t0) :: ds).
+
 Inductive same_label2 : decl -> decl -> Prop :=
   | same_label2_tm : forall l T1 T2, same_label2 (decl_tm l T1) (decl_tm l T2)
   | same_label2_tp : forall l S1 T1 S2 T2, same_label2 (decl_tp l S1 T1) (decl_tp l S2 T2).
@@ -527,6 +494,51 @@ Function mem_getClassifier (m: mem) {struct m} : tp :=
   end.
 
 Definition MemIn (m: mem) (ms: list mem) := (In (mem_getLabel m) (map mem_getLabel ms)).
+
+
+(********************************************)
+(* operations on constructor argument lists *)
+(********************************************)
+Inductive has_arg_tm : label -> tm -> args -> Prop :=
+  | has_arg_tm_match : forall l t ds,
+      has_arg_tm l t ((l, t) :: ds)
+  | has_arg_tm_cons : forall l l0 t t0 ds,
+      has_arg_tm l t ds ->
+      l0 <> l ->
+      has_arg_tm l t ((l0, t0) :: ds).
+     
+(* drop_tm l t as1 as2 implies ((decl_tm l t) :: as2) is the same set of arguments as as1*)
+Inductive drop_tm : label -> tm -> args -> args -> Prop :=
+  | drop_tm_head : forall l t ds,
+      drop_tm l t ((l, t) :: ds) ds
+  | drop_tm_cons : forall l l0 t t0 ds dsrest,
+      drop_tm l t ds dsrest ->
+      l <> l0 ->
+      drop_tm l t ((l0, t0) :: ds) ((l0, t0) :: dsrest).
+
+Hint Constructors has_arg_tm.
+Lemma drop_tm_splices : forall l t as1 as2,
+  drop_tm l t as1 as2 -> 
+      (forall l2 t2, has_arg_tm l2 t2 as1 -> has_arg_tm l2 t2 ((l, t)::as2)) 
+   /\ (forall l2 t2, has_arg_tm l2 t2 ((l, t)::as2) ->  has_arg_tm l2 t2 as1).
+Proof.
+  intros.  split; intros.
+  induction H.
+    auto.
+    inversion H0; subst. auto.
+    assert (Hrest := IHdrop_tm H6).  
+    induction (eq_lab_dec l2 l); subst; auto. 
+      inversion Hrest; subst; auto*. 
+        repeat (apply has_arg_tm_cons;auto). 
+      inversion Hrest; subst; auto*. 
+
+  induction H. 
+    auto.
+    intros. inversion H0; subst. auto.
+    induction (eq_lab_dec l2 l0); subst; auto.   inversion H6; subst; auto*.
+    apply has_arg_tm_cons; auto*. apply IHdrop_tm. apply has_arg_tm_cons. inversion H6; subst; auto*. auto.
+Qed.
+
 *)
 
 (*
