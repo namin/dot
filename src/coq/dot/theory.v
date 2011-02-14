@@ -353,16 +353,19 @@ Definition typing_store E s :=
 
 Notation "E |== s" := (typing_store E s) (at level 68).
 
-Definition preservation := forall E q t t' T,
+Definition preservation := forall E q t t' T s s',
   E  |=  t ~: T  @ q ->
+  E  |== s ->
   s  |~  t ~~> t'  ~| s' ->
-  (exists E', E' |== s' /\ dom E containedIn dom E' /\ E' |=  t' ~: T @ q).
+  (exists E', E' |== s' /\ 
+              dom (fst E) [<=] dom (fst E') /\ 
+              E' |=  t' ~: T @ q).
 
-Definition progress := forall t T q, 
-  nil |= t ~: T @ q ->
-     value t 
-  \/ exists t', t ~=> t'.
-*)
+Definition progress := forall P t T q s,
+  (nil, P) |=  t ~: T @ q ->
+  (nil, P) |== s ->
+     value t \/ exists t', exists s', s |~ t ~~> t' ~| s'.
+
   
 
 
