@@ -67,7 +67,7 @@ with decl : Set :=
 with tm : Set :=
   | bvar : nat -> tm        (* bound variables *)
   | fvar : var -> tm        (* free variables *)
-  | ref  : loc -> tm        (* object reference *)
+(*  | ref  : loc -> tm        (* object reference *) -- treat references like free variables to avoid duplicating T-Var *)
   | lam  : tp -> tm -> tm   (* function *)
   | app  : tm -> tm -> tm   (* application *)
   | new  : tp -> list (label * tm) -> tm -> tm  (* val a = new c; t, 
@@ -75,9 +75,12 @@ with tm : Set :=
            need to check tp is concrete, constructor args are values, bound variable is a loc *)
   | sel  : tm -> label -> tm.
 
+Definition ref   := fvar.
+
 (* is a term a path? *)
 Inductive path : tm -> Prop :=
-  | path_ref : forall a, path (ref a)
+  | path_bvar : forall a, path (bvar a)
+  | path_fvar : forall a, path (fvar a)
   | path_sel : forall p l, path p -> path (sel p l).
 
 (* is a type concrete? *) 
@@ -124,7 +127,7 @@ Definition pex_add : env -> atom * (atom * label) -> env := fun E => fun peq => 
 
 Coercion bvar : nat >-> tm.
 Coercion fvar : var >-> tm.
-Coercion ref  : loc >-> tm.
+(*Coercion ref  : loc >-> tm.*)
 
 (* TODO: do we need to require lc_tm/lc_tp for constituents in path/concrete judgements? *)
 
@@ -235,7 +238,7 @@ Fixpoint open_rec_tm (k : nat) (u : tm) (e : tm) {struct e} : tm :=
   match e with
     | bvar i => if k == i then u else (bvar i)
     | fvar x => fvar x
-    | ref x => ref x
+(*    | ref x => ref x*)
     | lam T b => lam T (open_rec_tm (k+1) u b)
     | app f a => app (open_rec_tm k u f) (open_rec_tm k u a)
     | new T args b => new (open_rec_tp k u T) (List.map (fun a => match a with (l, a) => (l, open_rec_tm (k+1) u a) end) args) (open_rec_tm (k+1) u b)
@@ -315,7 +318,7 @@ Inductive  lc_tp : tp -> Prop :=
       lc_tp (tp_sel tgt l)
   | lc_tp_rfn : forall L parent ds,
       lc_tp parent ->
-      (forall x:var, x \notin L -> lc_decls (ds ^ds^ x)) ->
+      (forall x: atom, x \notin L -> lc_decls (ds ^ds^ x)) ->
       lc_tp (tp_rfn parent ds)
   | lc_tp_fun : forall f a,
       lc_tp f ->
@@ -344,8 +347,8 @@ with lc_decl : decl -> Prop :=
 with lc_tm : tm -> Prop :=
   | lc_var : forall x,
       lc_tm (fvar x)
-  | lc_ref : forall x,
-      lc_tm (ref x)
+(*  | lc_ref : forall x,
+      lc_tm (ref x) *)
   | lc_lam : forall L t b,
       lc_tp t ->
       (forall x:var, x \notin L -> lc_tm (b ^^ x)) ->
@@ -392,7 +395,7 @@ Fixpoint fv_tm (e : tm) {struct e} : vars :=
   match e with
     | bvar i => {}
     | fvar x => {{x}}
-    | ref x => {{x}}
+(*    | ref x => {{x}} *)
     | lam T b => (fv_tp T) \u (fv_tm b)
     | app f a => (fv_tm f) \u (fv_tm a)
     | new T args b => (fv_tp T) \u  (fold_left (fun (ats: vars) (l_a :  label * tm) => match l_a with (l, t) => ats \u (fv_tm t) end) args {})

@@ -67,7 +67,7 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
       concrete Tc ->
       expands E precise Tc ds ->
       (forall x, x \notin L -> 
-        wf_args_decls (ctx_bind E x Tc) (ds ^ds^ x) args /\
+        wf_args_decls (ctx_bind E x Tc) (ds ^ds^ x) (args ^args^ x) /\
         (ctx_bind(*_ok*) E x Tc) |= (t ^^ x) ~: T @ q) -> (* TODO: indicate that T ok holds for x : T -- needed? or is store typing enough *)
       E |= (new Tc args t) ~: T @ q
 
@@ -80,11 +80,13 @@ where "E |= t ~: T @ q" := (typing E q t T)
    all value labels in decls must have corresponding arg (and vice-versa)*)
 with wf_args_decls : env -> decls -> args -> Prop := 
   | wf_args_decls_ : forall E DS Args,
+     NoDupBy fst Args -> (* ctor args are unique by label *)
+     NoDupBy decl_getLabel DS -> (* decls are unique by label *)
      List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) DS) Args -> (* all ctor args must have declaration with same label*)
      List.Forall (fun d =>  (* TODO: why does using pattern match lead to 'Error: Non strictly positive occurrence ...'? *)
-            (exists L, exists U, exists T, d = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
+            (forall L U T, d = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
               (exists q, sub_tp E q T U)                      ) /\
-            (exists l, exists T, d = decl_tm l T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
+            (forall l T, d = decl_tm l T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
               List.Exists (fun l_v => fst l_v = l /\ 
                                       value (snd l_v) /\ (exists q, E |= (snd l_v) ~: T @ q)
                                      ) Args) 
@@ -345,10 +347,12 @@ Definition extract_pex : loc -> args -> pex := fun a => fun ags =>
 
 Definition typing_store E s :=
      wf_store s 
-  /\ (forall a Tc ags DS,
-                   binds a (Tc, ags) s                           (* bound in store to ags with type Tc -- can't recover Tc from Gamma since object allocation and let-binding are collapsed, so that a is never bound in Gamma, it immediately replaces the let-bound variable *)
-               /\  E |= Tc ~< DS @ precise                       (* Tc expands (see typing_new) *)
-               /\  wf_args_decls E DS ags                        (* the args conform to the decls in Tc's expansion (see typing_new) *)
+  /\ (forall a Tc ags DS, binds a (Tc, ags (*ags are locally closed: a is the self variable that's substed in already*)) s ->  (* bound in store to ags with type Tc -- can't recover Tc from Gamma since object allocation and let-binding are collapsed, so that a is never bound in Gamma, it immediately replaces the let-bound variable *)
+                   ags = ags' ^args^ (ref a) ->
+                   E |= a ~: Tc @ precise                           (* TODO: is this okay, scoping-wise? can we establish this in the case for new? *)
+               /\  E |= Tc ~< DS @ precise                          (* Tc expands (see typing_new) *)
+               /\  exists L, (forall x, x \notin L ->  
+                      wf_args_decls (ctx_bind E x Tc) (DS ^ds^ x) (ags' ^args^ x)) (* the args conform to the decls in Tc's expansion (see typing_new) *)
                /\  List.Forall (pex_has E) (extract_pex a ags)). (* the path equalities derived from the object referenced by a binding its labels to references *)
 
 Notation "E |== s" := (typing_store E s) (at level 68).

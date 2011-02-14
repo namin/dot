@@ -7,6 +7,23 @@ Set Implicit Arguments.
 Require Import List.
 Require Import Metatheory.
 
+
+Section ReDunModulo.
+
+  Variable A : Type.
+  Variable B : Type.
+  Variable modulo : A -> B.
+
+  Inductive NoDupBy : list A -> Prop :=
+    | NoDupBy_nil : NoDupBy nil
+    | NoDupBy_cons : forall x (l: list A), ~ In (modulo x) (List.map modulo l) -> NoDupBy l -> NoDupBy (x::l).
+(*
+  Lemma NoDupBy_remove_1 : forall l l' a, NoDupBy (l++a::l') -> NoDupBy (l++l').
+
+  Lemma NoDupBy_remove_2 : forall l l' a, NoDupBy (l++a::l') -> ~In a (l++l').
+*)
+End ReDunModulo.
+
 (*Fixpoint option_getOrElse (A: Set) (alt: A) (o: option A)  : A :=
   match o with
     | None => alt
