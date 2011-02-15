@@ -67,7 +67,7 @@ with decl : Set :=
 with tm : Set :=
   | bvar : nat -> tm        (* bound variables *)
   | fvar : var -> tm        (* free variables *)
-(*  | ref  : loc -> tm        (* object reference *) -- treat references like free variables to avoid duplicating T-Var *)
+  | ref  : loc -> tm        (* object reference -- different from fvar since (value (ref a)) but not (value (fvar x)) *)
   | lam  : tp -> tm -> tm   (* function *)
   | app  : tm -> tm -> tm   (* application *)
   | new  : tp -> list (label * tm) -> tm -> tm  (* val a = new c; t, 
@@ -75,12 +75,11 @@ with tm : Set :=
            need to check tp is concrete, constructor args are values, bound variable is a loc *)
   | sel  : tm -> label -> tm.
 
-Definition ref   := fvar.
-
 (* is a term a path? *)
 Inductive path : tm -> Prop :=
   | path_bvar : forall a, path (bvar a)
-  | path_fvar : forall a, path (fvar a)
+  | path_ref : forall a, path (ref a)
+  | path_fvar : forall a, path (fvar a) (* TODO: XXXX *)
   | path_sel : forall p l, path p -> path (sel p l).
 
 (* is a type concrete? *) 
@@ -97,6 +96,7 @@ Inductive concrete : tp -> Prop :=
 Definition args  := list (label * tm).
 Definition decls := list decl.
 
+Hint Constructors tp decl tm path concrete.
 (* TODO
 Inductive env_entry : Set :=  
   | env_tp : tp -> env_entry
@@ -127,7 +127,7 @@ Definition pex_add : env -> atom * (atom * label) -> env := fun E => fun peq => 
 
 Coercion bvar : nat >-> tm.
 Coercion fvar : var >-> tm.
-(*Coercion ref  : loc >-> tm.*)
+Coercion ref  : loc >-> tm.
 
 (* TODO: do we need to require lc_tm/lc_tp for constituents in path/concrete judgements? *)
 
@@ -238,7 +238,7 @@ Fixpoint open_rec_tm (k : nat) (u : tm) (e : tm) {struct e} : tm :=
   match e with
     | bvar i => if k == i then u else (bvar i)
     | fvar x => fvar x
-(*    | ref x => ref x*)
+    | ref x => ref x
     | lam T b => lam T (open_rec_tm (k+1) u b)
     | app f a => app (open_rec_tm k u f) (open_rec_tm k u a)
     | new T args b => new (open_rec_tp k u T) (List.map (fun a => match a with (l, a) => (l, open_rec_tm (k+1) u a) end) args) (open_rec_tm (k+1) u b)
@@ -347,8 +347,8 @@ with lc_decl : decl -> Prop :=
 with lc_tm : tm -> Prop :=
   | lc_var : forall x,
       lc_tm (fvar x)
-(*  | lc_ref : forall x,
-      lc_tm (ref x) *)
+  | lc_ref : forall x,
+      lc_tm (ref x)
   | lc_lam : forall L t b,
       lc_tp t ->
       (forall x:var, x \notin L -> lc_tm (b ^^ x)) ->
@@ -395,7 +395,7 @@ Fixpoint fv_tm (e : tm) {struct e} : vars :=
   match e with
     | bvar i => {}
     | fvar x => {{x}}
-(*    | ref x => {{x}} *)
+    | ref x => {{x}}
     | lam T b => (fv_tp T) \u (fv_tm b)
     | app f a => (fv_tm f) \u (fv_tm a)
     | new T args b => (fv_tp T) \u  (fold_left (fun (ats: vars) (l_a :  label * tm) => match l_a with (l, t) => ats \u (fv_tm t) end) args {})
@@ -422,16 +422,47 @@ with fv_decl (d : decl) {struct d} : vars :=
 
 Definition fv_decls (decls: decls) := (fold_left (fun (ats: vars) (d :  decl) => ats \u (fv_decl d)) decls {}).
 
+Fixpoint subst_tm (z : atom) (u : tm) (e : tm) {struct e} : tm :=
+  match e with
+    | bvar i => bvar i
+    | ref x => if x == z then u else (ref x) (* TODO: XXXX *)
+    | fvar x => if x == z then u else (fvar x)
+    | lam T b => lam (subst_tp z u T) (subst_tm z u b)
+    | app f a => app (subst_tm z u f) (subst_tm z u a)
+    | new T args b => new (subst_tp z u T) (List.map (fun l_v => (fst l_v, subst_tm z u (snd l_v))) args) (subst_tm z u b)
+    | sel e1 l => sel (subst_tm z u e1) l
+  end
+
+with subst_tp (z : atom) (u : tm) (t : tp) {struct t} : tp :=
+  match t with
+    | tp_sel e1 l => tp_sel (subst_tm z u e1) l
+    | tp_rfn parent decls => tp_rfn (subst_tp z u parent) (List.map (subst_decl z u) decls)
+    | tp_fun f t => tp_fun (subst_tp z u f) (subst_tp z u t)
+    | tp_and t1 t2 => tp_and (subst_tp z u t1) (subst_tp z u t2)
+    | tp_or t1 t2 => tp_or (subst_tp z u t1) (subst_tp z u t2)
+    | tp_top => tp_top
+    | tp_bot => tp_bot
+  end
+
+with subst_decl (z : atom) (u : tm) (d : decl) {struct d} : decl :=
+  match d with
+    | decl_tp l tl tu => decl_tp l (subst_tp z u tl) (subst_tp z u tu)
+    | decl_tm l t => decl_tm l (subst_tp z u t)
+  end.
+
+
 
 (**********************************************)
 (* syntax stuff that depends on local closure *)
 (**********************************************)
 
 Inductive value : tm -> Prop := 
-  | value_ref : forall l,
+  | value_ref : forall l, (* a free variable is not a value though *)
     value (ref l)
   | value_lam : forall t b,
     lc_tm (lam t b) -> value (lam t b).
+
+Hint Constructors value.
 
 (* open up decl with term if it's a path, otherwise ensure decl is locally closed *)
 Inductive open_decl_cond : decl -> tm -> decl -> Prop :=

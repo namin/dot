@@ -13,6 +13,12 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
       ctx_binds E x T ->
       E |= (fvar x) ~: T @ precise
 
+   | typing_ref : forall E x T,
+      wf_env E ->
+      lc_tp T -> (* for typing_regular *)
+      ctx_binds E x T ->
+      E |= (ref x) ~: T @ precise
+
    | typing_sel : forall E q t l T,
       mem E q t (decl_tm l T) ->  
       E |= (sel t l) ~: T @ q
@@ -290,7 +296,8 @@ with wf_decl : env -> decl -> Prop :=
      wf_decl E (decl_tm l T).
 
 (* all the info we need about an object is in its ctor arguments
-   no need to store the type, as that's only needed by preservation, which tracks it in store_typing *)
+need to track Tc of some object reference a in the store since we can't recuperate it from Gamma as object allocation and let-binding are collapsed, so that a is never bound in Gamma, it immediately replaces the let-bound variable
+*)
 Notation store := (list (atom * (tp * args))).
 
 Inductive wf_store : store -> Prop := 
@@ -347,23 +354,27 @@ Definition extract_pex : loc -> args -> pex := fun a => fun ags =>
 
 Definition typing_store E s :=
      wf_store s 
-  /\ (forall a Tc ags DS, binds a (Tc, ags (*ags are locally closed: a is the self variable that's substed in already*)) s ->  (* bound in store to ags with type Tc -- can't recover Tc from Gamma since object allocation and let-binding are collapsed, so that a is never bound in Gamma, it immediately replaces the let-bound variable *)
-                   ags = ags' ^args^ (ref a) ->
-                   E |= a ~: Tc @ precise                           (* TODO: is this okay, scoping-wise? can we establish this in the case for new? *)
-               /\  E |= Tc ~< DS @ precise                          (* Tc expands (see typing_new) *)
-               /\  exists L, (forall x, x \notin L ->  
+  /\ (forall a Tc ags DS, binds a (Tc, ags) s ->  (* bound in store to ags with type Tc, where the self variable has been replaced by a already  *) 
+                   exists ags', ags = ags' ^args^ (ref a) 
+               /\  E |= (ref a) ~: Tc @ precise             (* TODO: if we require a derivation of this in E, don't need to store Tc in store, right? *)
+               /\  E |= Tc ~< DS @ precise            (* Tc expands (see typing_new) *)
+               /\  exists L, (forall x, x \notin L ->
                       wf_args_decls (ctx_bind E x Tc) (DS ^ds^ x) (ags' ^args^ x)) (* the args conform to the decls in Tc's expansion (see typing_new) *)
                /\  List.Forall (pex_has E) (extract_pex a ags)). (* the path equalities derived from the object referenced by a binding its labels to references *)
 
 Notation "E |== s" := (typing_store E s) (at level 68).
 
+(* need to leave some quality-slack here since otherwise preservation/t-sel/e-sel isn't provable: 
+   a.l ~~> v does not preserve quality, since a.l may be typed precisely but v's typing comes from T-new, which has to allow subsumption
+   quality slack should be okay though, since e.g. the reduction e.l -> e'.l can still reuse the expansion of the typing of e.l since e' has the same type as e, the quality doesn't matter
+*)
 Definition preservation := forall E q t t' T s s',
   E  |=  t ~: T  @ q ->
   E  |== s ->
   s  |~  t ~~> t'  ~| s' ->
   (exists E', E' |== s' /\ 
               dom (fst E) [<=] dom (fst E') /\ 
-              E' |=  t' ~: T @ q).
+              exists q', E' |=  t' ~: T @ q'). 
 
 Definition progress := forall P t T q s,
   (nil, P) |=  t ~: T @ q ->
