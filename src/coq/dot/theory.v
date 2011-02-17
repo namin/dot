@@ -72,32 +72,25 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
       wf_tp E Tc ->
       concrete Tc ->
       expands E precise Tc ds ->
-      (forall x, x \notin L -> 
-        wf_args_decls (ctx_bind E x Tc) (ds ^ds^ x) (args ^args^ x) /\
-        (ctx_bind(*_ok*) E x Tc) |= (t ^^ x) ~: T @ q) -> (* TODO: indicate that T ok holds for x : T -- needed? or is store typing enough *)
-      E |= (new Tc args t) ~: T @ q
-
-
-where "E |= t ~: T @ q" := (typing E q t T)
-
-
 (* check that lowerbounds are subtypes of upperbounds, 
    arguments are values and they have the type declared in the decls, 
    all value labels in decls must have corresponding arg (and vice-versa)*)
-with wf_args_decls : env -> decls -> args -> Prop := 
-  | wf_args_decls_ : forall E DS Args,
-     NoDupBy fst Args -> (* ctor args are unique by label *)
-     NoDupBy decl_getLabel DS -> (* decls are unique by label *)
-     List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) DS) Args -> (* all ctor args must have declaration with same label*)
-     List.Forall (fun d =>  (* TODO: why does using pattern match lead to 'Error: Non strictly positive occurrence ...'? *)
-            (forall L U T, d = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
-              (exists q, sub_tp E q T U)                      ) /\
-            (forall l T, d = decl_tm l T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
-              List.Exists (fun l_v => fst l_v = l /\ 
-                                      value (snd l_v) /\ (exists q, E |= (snd l_v) ~: T @ q)
-                                     ) Args) 
-            ) DS ->
-     wf_args_decls E DS Args
+      (forall x, x \notin L -> 
+         NoDupBy fst (args ^args^ x) -> (* ctor args are unique by label *)
+         NoDupBy decl_getLabel (ds ^ds^ x) -> (* decls are unique by label *)
+         List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) (ds ^ds^ x)) (args ^args^ x) -> (* all ctor args must have declaration with same label*)
+         (forall d, In d (ds ^ds^ x) -> 
+                (forall L U T, d = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
+                  (exists q, sub_tp (ctx_bind E x Tc) q T U)                      ) /\
+                (forall l T, d = decl_tm l T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
+                  exists l_v, In l_v (args ^args^ x) /\ (fst l_v = l /\ 
+                                          value (snd l_v) /\ (exists q, (ctx_bind E x Tc) |= (snd l_v) ~: T @ q)
+                                         ))
+                )  /\
+          (ctx_bind(*_ok*) E x Tc) |= (t ^^ x) ~: T @ q) -> (* TODO: indicate that T ok holds for x : T -- needed? or is store typing enough *)
+      lc_tp T -> (* XXX necessary? *)
+      E |= (new Tc args t) ~: T @ q
+
 (*      
 match d with
 | decl_tp L T U => exists q, sub_tp E q T U (* for each type member: its lower bound must be a subtype of its upper bound *)
@@ -106,6 +99,9 @@ match d with
                  ) Args
 end
 *)
+
+where "E |= t ~: T @ q" := (typing E q t T)
+
 
 with mem : env -> quality -> tm -> decl -> Prop :=
   | mem_ : forall E q1 q2 p T D DS Dopen,
@@ -139,14 +135,28 @@ with expands : env -> quality -> tp -> decls -> Prop :=
       expands E precise tp_top nil
 where "E |= T ~< D @ q" := (expands E q T D)
 
+
 with sub_tp : env -> quality -> tp -> tp -> Prop :=
   | sub_tp_rfn_intro : forall E q T DS,
       expands E q T DS -> 
       sub_tp E q T (tp_rfn T DS)
 
+(* factored in since coq can't handle combined scheme that involves sub_decls -- some weird error in decomposing products
   | sub_tp_rfn_sub : forall L E q T DS1 DS2,
       (forall z, z \notin L -> sub_decls (ctx_bind E z T) q (DS1 ^ds^ z) (DS2 ^ds^ z)) ->
       sub_tp E q (tp_rfn T DS1) (tp_rfn T DS2)
+*)
+
+  | sub_tp_rfn_sub_precise : forall L E T DS1 DS2,
+      List.Forall (fun d1 => List.Exists (same_label d1) DS2) DS1 -> (* we didn't lose any members *)
+      (forall z, z \notin L -> 
+        (forall d1 d2, In d1 (DS1 ^ds^ z) -> In d2 (DS2 ^ds^ z) -> same_label d1 d2 -> sub_decl (ctx_bind E z T) precise d1 d2)) ->
+      sub_tp E precise (tp_rfn T DS1) (tp_rfn T DS2)
+
+  | sub_tp_rfn_sub : forall L E T DS1 DS2,
+      (forall z, z \notin L -> 
+        (forall d1 d2, In d1 (DS1 ^ds^ z) -> In d2 (DS2 ^ds^ z) -> same_label d1 d2 -> exists q, sub_decl (ctx_bind E z T) q d1 d2))  ->
+      sub_tp E subsumed (tp_rfn T DS1) (tp_rfn T DS2)
 
   | sub_tp_tpsel_lower : forall E q p L S U,
       mem E q p (decl_tp L S U) ->  (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
@@ -205,15 +215,16 @@ with sub_decl : env -> quality -> decl -> decl -> Prop :=
      sub_tp E q T1 T2 ->
      sub_decl E q (decl_tm l T1) (decl_tm l T2) 
 
+(* trips up combined scheme
 with sub_decls : env -> quality -> decls -> decls -> Prop :=
   | sub_decls_precise : forall E DS1 DS2,
-      List.Forall (fun d2 => List.Exists (fun d1 => sub_decl E precise d1 d2) DS1) DS2 ->
-      List.Forall (fun d1 => List.Exists (fun d2 => same_label d1 d2) DS2) DS1 ->
+      (forall d2, In d2 DS2 -> (exists d1, In d1 DS1 /\ sub_decl E precise d1 d2))  ->
+      (forall d1, In d1 DS1 -> (exists d2, In d2 DS2 /\ same_label d1 d2)) ->
       sub_decls E precise DS1 DS2
   | sub_decls_subsumed : forall E DS1 DS2,
-      List.Forall (fun d2 => List.Exists (fun d1 => exists q, sub_decl E q d1 d2) DS1) DS2 ->
+      (forall d2, In d2 DS2 -> (exists d1, exists q, In d1 DS1 /\ sub_decl E q d1 d2)) ->
       sub_decls E subsumed DS1 DS2
-
+*)
 
 (* path equality is needed for preservation because evaluation changes types that cannot be related otherwise *)
 with path_eq : env -> tm -> tm -> Prop :=
@@ -260,7 +271,7 @@ with wf_tp : env -> tp -> Prop :=
   | wf_rfn : forall L E T DS,
       wf_tp E T ->
       (forall z, z \notin L ->
-          List.Forall (wf_decl (ctx_bind E z (tp_rfn T DS))) (DS ^ds^ z)) ->
+          forall d, In d (DS ^ds^ z) -> (wf_decl (ctx_bind E z (tp_rfn T DS)) d)) ->
       wf_tp E (tp_rfn T DS)
   | wf_lam : forall E T1 T2,
       wf_tp E T1 -> 
@@ -286,6 +297,7 @@ with wf_tp : env -> tp -> Prop :=
       wf_tp E (tp_or T1 T2)
   | wf_bot : forall E, wf_tp E tp_bot
   | wf_top : forall E, wf_tp E tp_top
+  
 with wf_decl : env -> decl -> Prop :=
   | wf_decl_tp : forall E L S U,
      wf_tp E S ->
@@ -294,6 +306,21 @@ with wf_decl : env -> decl -> Prop :=
   | wf_decl_tm : forall E l T,
      wf_tp E T ->
      wf_decl E (decl_tm l T).
+
+Scheme typing_indm         := Induction for typing Sort Prop 
+  with mem_indm            := Induction for mem Sort Prop 
+  with expands_indm        := Induction for expands Sort Prop
+  with sub_tp_indm         := Induction for sub_tp Sort Prop
+  with sub_decl_indm       := Induction for sub_decl Sort Prop
+(*  with sub_decls_indm      := Induction for sub_decls Sort Prop *)
+  with path_eq_indm        := Induction for path_eq Sort Prop
+  with wf_env_indm         := Induction for wf_env Sort Prop
+  with wf_ctx_indm         := Induction for wf_ctx Sort Prop
+  with wf_pex_indm         := Induction for wf_pex Sort Prop
+  with wf_tp_indm          := Induction for wf_tp Sort Prop
+  with wf_decl_indm        := Induction for wf_decl Sort Prop.
+
+Combined Scheme typing_mutind from typing_indm,  mem_indm, expands_indm, sub_tp_indm, sub_decl_indm, path_eq_indm, wf_env_indm, wf_ctx_indm, wf_pex_indm, wf_tp_indm, wf_decl_indm.
 
 (* all the info we need about an object is in its ctor arguments
 need to track Tc of some object reference a in the store since we can't recuperate it from Gamma as object allocation and let-binding are collapsed, so that a is never bound in Gamma, it immediately replaces the let-bound variable
@@ -358,8 +385,18 @@ Definition typing_store E s :=
                    exists ags', ags = ags' ^args^ (ref a) 
                /\  E |= (ref a) ~: Tc @ precise             (* TODO: if we require a derivation of this in E, don't need to store Tc in store, right? *)
                /\  E |= Tc ~< DS @ precise            (* Tc expands (see typing_new) *)
-               /\  exists L, (forall x, x \notin L ->
-                      wf_args_decls (ctx_bind E x Tc) (DS ^ds^ x) (ags' ^args^ x)) (* the args conform to the decls in Tc's expansion (see typing_new) *)
+               /\  exists L, (forall x, x \notin L -> 
+                     NoDupBy fst (ags' ^args^ x) -> (* ctor args are unique by label *)
+                     NoDupBy decl_getLabel (DS ^ds^ x) -> (* decls are unique by label *)
+                     List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) (DS ^ds^ x)) (ags' ^args^ x) -> (* all ctor args must have declaration with same label*)
+                     List.Forall (fun d =>  (* TODO: why does using pattern match lead to 'Error: Non strictly positive occurrence ...'? *)
+                            (forall L U T, d = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
+                              (exists q, sub_tp (ctx_bind E x Tc) q T U)                      ) /\
+                            (forall l T, d = decl_tm l T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
+                              List.Exists (fun l_v => fst l_v = l /\ 
+                                                      value (snd l_v) /\ (exists q, (ctx_bind E x Tc) |= (snd l_v) ~: T @ q)
+                                                     ) (ags' ^args^ x)) 
+                            ) (DS ^ds^ x))
                /\  List.Forall (pex_has E) (extract_pex a ags)). (* the path equalities derived from the object referenced by a binding its labels to references *)
 
 Notation "E |== s" := (typing_store E s) (at level 68).

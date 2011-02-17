@@ -4,7 +4,7 @@
 (*************************************************************************)
 
 Set Implicit Arguments.
-Require Import Metatheory support syntax_binding theory.
+Require Import Metatheory support syntax_binding theory LibTactics_sf.
 Require Import List.
 Require Import Coq.Program.Equality.
 
@@ -31,6 +31,14 @@ Notation "E |= D <:DS<: D'" := (List.Forall (fun d => List.Exists (fun dp => exi
     E |= DSX <:DS<: DSX'.
     Proof.
   Admitted.
+
+
+Lemma quality_soundness_sub : forall E DS DS' T U q1 q2, 
+  E |= T ~< DS @ precise -> 
+  sub_tp E q1 T U -> 
+  E |= U ~< DS' @ q2 /\
+  E |= DS <:DS<: DS'.
+Proof. 
 
 Lemma quality_soundness_sub : forall E DS DS' T U q1 q2, 
   E |= T ~< DS @ precise -> 
