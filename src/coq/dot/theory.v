@@ -37,7 +37,7 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
    could factor this out to subtyping and introduce into typing by subsumption, but prefer to keep subtyping simple *)
    | typing_path_eq : forall E q t T p p', (* precise subtyping is like type equality *) 
       E |= t ~: (T ^tp^ p) @ q ->
-      path_eq E p p' ->
+      path_eq E p' p ->
       E |= t ~: (T ^tp^ p') @ q
 
 (* the quality of the argument type does not contribute to the quality of the typing of the application, 

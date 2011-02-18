@@ -471,11 +471,8 @@ Inductive open_decl_cond : decl -> tm -> decl -> Prop :=
       open_decl_cond d p (d ^d^ p)
   |  open_decl_term : forall d p,
       ~ path p ->
-      lc_decl d -> (* D does not contain the self variable*)
+      lc_decl d -> (* D does not contain the self variable: this makes it irrelevant whether p is a path, but asserting this makes preservation/typing_sel/red_sel easier*)
       open_decl_cond d p d.
-
-
-
 
 (* SCRAPS
 
