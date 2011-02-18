@@ -5,6 +5,7 @@ Require Import Metatheory support syntax_binding.
 Reserved Notation "E |= t ~< T @ q" (at level 69).
 Reserved Notation "E |= t ~: T @ q" (at level 69).
 Reserved Notation "E |= t <: T @ q" (at level 69).
+(*Reserved Notation "E |= t ~mem~ D @ q" (at level 69).*)
 
 Inductive typing : env -> quality -> tm -> tp -> Prop :=
    | typing_var : forall E x T,
@@ -19,9 +20,10 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
       ctx_binds E x T ->
       E |= (ref x) ~: T @ precise
 
-   | typing_sel : forall E q t l T,
-      mem E q t (decl_tm l T) ->  
-      E |= (sel t l) ~: T @ q
+   | typing_sel : forall E q1 q2 t T' D DS l T,
+(*      E |= t ~mem~ (decl_tm l T) @ q ->   *)
+      E |= t ~: T' @ q1 -> E |= T' ~< DS @ q2 -> In D DS -> open_decl_cond D t (decl_tm l T) ->
+      E |= (sel t l) ~: T @ q1 & q2
 
 (* it could be simpler to  disallow chaining of subsumption by requiring a precise typing judgement;
    chained subsumption would be replaced by transitivity in the subtyping judgement
@@ -102,14 +104,18 @@ end
 
 where "E |= t ~: T @ q" := (typing E q t T)
 
-
+(* inlined to make induction easier 
 with mem : env -> quality -> tm -> decl -> Prop :=
-  | mem_ : forall E q1 q2 p T D DS Dopen,
-      E |= p ~: T @ q1 -> (* requiring a precise judgment makes preservation harder without gaining anything afaict *)
-      expands E q2 T DS ->
-      In D DS ->
-      open_decl_cond D p Dopen ->
-      mem E (q1 & q2) p Dopen
+  | mem_ : forall E q1 q2 t T D DS Dopen,
+      E |= t ~: T @ q1 -> (* requiring a precise judgment makes preservation harder without gaining anything afaict *)
+      E |= T ~< DS @ q2 -> In D DS ->
+      open_decl_cond D t Dopen ->
+      mem E (q1 & q2) t Dopen
+
+where "E |= t ~mem~ D @ q" := (mem E q t D)
+ (*exists T, exists q1, exists q2, exists DS, exists D', E |= t ~: T @ q1 /\ E |= T ~< DS @ q2 /\ q = q1 & q2 /\ In D' DS /\ open_decl_cond D' t D*)
+*)
+
 
 with expands : env -> quality -> tp -> decls -> Prop := 
   | expands_sub : forall E q1 q2 T U DS,
@@ -158,14 +164,16 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=
         (forall d1 d2, In d1 (DS1 ^ds^ z) -> In d2 (DS2 ^ds^ z) -> same_label d1 d2 -> exists q, sub_decl (ctx_bind E z T) q d1 d2))  ->
       sub_tp E subsumed (tp_rfn T DS1) (tp_rfn T DS2)
 
-  | sub_tp_tpsel_lower : forall E q p L S U,
-      mem E q p (decl_tp L S U) ->  (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
+  | sub_tp_tpsel_lower : forall E p T' q1 DS q2 L S U,
+(*      E |= p ~mem~ (decl_tp L S U) @ q -> *)  (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
+      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> In (decl_tp L S U) (DS ^ds^ p) ->
       sub_tp E subsumed S (tp_sel p L) (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
 (* TODO: is it sound to have `sub_tp E q S (tp_sel p L)` ?? *)
 
-  | sub_tp_tpsel_upper : forall E q p L S U,
-      mem E q p (decl_tp L S U) ->  (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
-      sub_tp E q (tp_sel p L) U (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
+  | sub_tp_tpsel_upper : forall E p T' q1 DS q2 L S U,
+(*      E |= p ~mem~ (decl_tp L S U) @ q -> *) (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
+      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> In (decl_tp L S U) (DS ^ds^ p) ->
+      sub_tp E (q1 & q2) (tp_sel p L) U (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
 
 (* what follows is standard: reflexivity (precise!), transitivity(!), function types, intersection, union, top and bottom *)
   | sub_tp_refl : forall E T,
@@ -226,6 +234,7 @@ with sub_decls : env -> quality -> decls -> decls -> Prop :=
       sub_decls E subsumed DS1 DS2
 *)
 
+
 (* path equality is needed for preservation because evaluation changes types that cannot be related otherwise *)
 with path_eq : env -> tm -> tm -> Prop :=
    | peq_refl : forall E p, (* TODO: only needed if proof of preservation depends on it *)
@@ -277,15 +286,17 @@ with wf_tp : env -> tp -> Prop :=
       wf_tp E T1 -> 
       wf_tp E T2 ->
       wf_tp E (tp_fun T1 T2)
-  | wf_tsel : forall E q p L S U,
+  | wf_tsel : forall E q1 q2 T' DS p L S U,
       path p ->
-      mem E q p (decl_tp L S U) ->
+(*      E |= p ~mem~ (decl_tp L S U) @ q -> *)
+      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> In (decl_tp L S U) (DS ^ds^ p) ->
       wf_tp E S -> 
       wf_tp E U ->
       wf_tp E (tp_sel p L)
-  | wf_tsel_cls : forall E q p L U,
+  | wf_tsel_cls : forall E q1 q2 T' DS p L U,
       path p ->
-      mem E q p (decl_tp L tp_bot U) ->
+(*      E |= p ~mem~ (decl_tp L tp_bot U) @ q -> *)
+      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> In (decl_tp L tp_bot U) (DS ^ds^ p) ->
       wf_tp E (tp_sel p L)
   | wf_and : forall E T1 T2,
       wf_tp E T1 -> 
@@ -308,11 +319,10 @@ with wf_decl : env -> decl -> Prop :=
      wf_decl E (decl_tm l T).
 
 Scheme typing_indm         := Induction for typing Sort Prop 
-  with mem_indm            := Induction for mem Sort Prop 
   with expands_indm        := Induction for expands Sort Prop
+(*  with mem_indm            := Induction for mem Sort Prop URGH -- why can't Coq just do the right thing for single-ctor inductive definitions *)
   with sub_tp_indm         := Induction for sub_tp Sort Prop
   with sub_decl_indm       := Induction for sub_decl Sort Prop
-(*  with sub_decls_indm      := Induction for sub_decls Sort Prop *)
   with path_eq_indm        := Induction for path_eq Sort Prop
   with wf_env_indm         := Induction for wf_env Sort Prop
   with wf_ctx_indm         := Induction for wf_ctx Sort Prop
@@ -320,7 +330,7 @@ Scheme typing_indm         := Induction for typing Sort Prop
   with wf_tp_indm          := Induction for wf_tp Sort Prop
   with wf_decl_indm        := Induction for wf_decl Sort Prop.
 
-Combined Scheme typing_mutind from typing_indm,  mem_indm, expands_indm, sub_tp_indm, sub_decl_indm, path_eq_indm, wf_env_indm, wf_ctx_indm, wf_pex_indm, wf_tp_indm, wf_decl_indm.
+Combined Scheme typing_mutind from typing_indm, expands_indm, (*mem_indm,*) sub_tp_indm, sub_decl_indm, path_eq_indm, wf_env_indm, wf_ctx_indm, wf_pex_indm, wf_tp_indm, wf_decl_indm.
 
 (* all the info we need about an object is in its ctor arguments
 need to track Tc of some object reference a in the store since we can't recuperate it from Gamma as object allocation and let-binding are collapsed, so that a is never bound in Gamma, it immediately replaces the let-bound variable
@@ -361,7 +371,7 @@ Inductive red : store -> tm -> store -> tm -> Prop :=
      s |~ (sel (ref a) l) ~~> v ~| s
   | red_sel_tgt : forall s s' l e e',
      s |~         e ~~> e'         ~| s' ->
-     s |~ (sel e l) ~~> (sel e' l) ~| s
+     s |~ (sel e l) ~~> (sel e' l) ~| s'
 
   | red_new : forall s Tc a ags t,
      wf_store s -> 
@@ -386,9 +396,9 @@ Definition typing_store E s :=
                /\  E |= (ref a) ~: Tc @ precise             (* TODO: if we require a derivation of this in E, don't need to store Tc in store, right? *)
                /\  E |= Tc ~< DS @ precise            (* Tc expands (see typing_new) *)
                /\  exists L, (forall x, x \notin L -> 
-                     NoDupBy fst (ags' ^args^ x) -> (* ctor args are unique by label *)
-                     NoDupBy decl_getLabel (DS ^ds^ x) -> (* decls are unique by label *)
-                     List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) (DS ^ds^ x)) (ags' ^args^ x) -> (* all ctor args must have declaration with same label*)
+                     NoDupBy fst (ags' ^args^ x) /\ (* ctor args are unique by label *)
+                     NoDupBy decl_getLabel (DS ^ds^ x) /\ (* decls are unique by label *)
+                     List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) (DS ^ds^ x)) (ags' ^args^ x) /\ (* all ctor args must have declaration with same label*)
                      List.Forall (fun d =>  (* TODO: why does using pattern match lead to 'Error: Non strictly positive occurrence ...'? *)
                             (forall L U T, d = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
                               (exists q, sub_tp (ctx_bind E x Tc) q T U)                      ) /\
@@ -405,9 +415,8 @@ Notation "E |== s" := (typing_store E s) (at level 68).
    a.l ~~> v does not preserve quality, since a.l may be typed precisely but v's typing comes from T-new, which has to allow subsumption
    quality slack should be okay though, since e.g. the reduction e.l -> e'.l can still reuse the expansion of the typing of e.l since e' has the same type as e, the quality doesn't matter
 *)
-Definition preservation := forall E q t t' T s s',
-  E  |=  t ~: T  @ q ->
-  E  |== s ->
+Definition preservation := forall E q t T, E  |=  t ~: T  @ q ->
+  forall t' s s', E  |== s ->
   s  |~  t ~~> t'  ~| s' ->
   (exists E', E' |== s' /\ 
               dom (fst E) [<=] dom (fst E') /\ 
