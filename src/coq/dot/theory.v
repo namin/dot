@@ -33,13 +33,6 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
       sub_tp E q2 S T ->
       E |= t ~: T @ q1 & q2
 
-(* only needed for preservation: rewrite paths in case for CTX-Sel
-   could factor this out to subtyping and introduce into typing by subsumption, but prefer to keep subtyping simple *)
-   | typing_path_eq : forall E q t T p p', (* precise subtyping is like type equality *) 
-      E |= t ~: (T ^tp^ p) @ q ->
-      path_eq E p' p ->
-      E |= t ~: (T ^tp^ p') @ q
-
 (* the quality of the argument type does not contribute to the quality of the typing of the application, 
    in fact, typing of applications is entirely irrelevant since applications cannot occur in paths *)
    | typing_app : forall E q q' tf Ta Tr ta,
@@ -143,6 +136,11 @@ where "E |= T ~< D @ q" := (expands E q T D)
 
 
 with sub_tp : env -> quality -> tp -> tp -> Prop :=
+(* only needed for preservation: rewrite paths in case for CTX-Sel -- in subtyping so typing inversion lemma's don't need to account for two different kinds of typing slack: subtyping and path rewriting *)
+   | sub_tp_path_eq : forall E T p p', (* precise subtyping is like type equality *) 
+      path_eq E p p' ->
+      sub_tp E precise (T ^tp^ p') (T ^tp^ p)
+
   | sub_tp_rfn_intro : forall E q T DS,
       expands E q T DS -> 
       sub_tp E q T (tp_rfn T DS)
@@ -163,6 +161,9 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=
       (forall z, z \notin L -> 
         (forall d1 d2, In d1 (DS1 ^ds^ z) -> In d2 (DS2 ^ds^ z) -> same_label d1 d2 -> exists q, sub_decl (ctx_bind E z T) q d1 d2))  ->
       sub_tp E subsumed (tp_rfn T DS1) (tp_rfn T DS2)
+
+  | sub_tp_rfn_parent : forall E T DS, (* not redundant since T{} and T are unrelated, the empty refinement T{} can be derived using sub_tp_rfn_sub *)
+      sub_tp E subsumed (tp_rfn T DS) T
 
   | sub_tp_tpsel_lower : forall E p T' q1 DS q2 L S U,
 (*      E |= p ~mem~ (decl_tp L S U) @ q -> *)  (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
