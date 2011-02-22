@@ -4,8 +4,20 @@ Require Import Metatheory support syntax_binding.
 
 Reserved Notation "E |= t ~< T @ q" (at level 69).
 Reserved Notation "E |= t ~: T @ q" (at level 69).
-Reserved Notation "E |= t <: T @ q" (at level 69).
+Reserved Notation "E |= t ~<: T @ q" (at level 69).
 (*Reserved Notation "E |= t ~mem~ D @ q" (at level 69).*)
+
+Inductive safe_path : env -> tm -> Prop :=
+   | safe_path_ref_ok : forall E a T,
+      ctx_binds_ok E a T ->
+      safe_path E (ref a)
+   | safe_path_fvar_ok : forall E x T,
+      ctx_binds_ok E x T ->
+      safe_path E (fvar x)
+   | safe_path_sel : forall E p l,
+      safe_path E p -> safe_path E (sel p l).
+
+Notation "E |= t 'safe'" := (safe_path E t) (at level 69).
 
 Inductive typing : env -> quality -> tm -> tp -> Prop :=
    | typing_var : forall E x T,
@@ -29,8 +41,8 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
    chained subsumption would be replaced by transitivity in the subtyping judgement
    however, member selection might need subsumed typing in order for expansion to be derivable *)
    | typing_sub : forall E q1 q2 t S T,
-      E |= t ~: S @ q1->
-      sub_tp E q2 S T ->
+      E |= t ~:  S @ q1 ->
+      E |= S ~<: T @ q2 ->
       E |= t ~: T @ q1 & q2
 
 (* the quality of the argument type does not contribute to the quality of the typing of the application, 
@@ -76,13 +88,13 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
          List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) (ds ^ds^ x)) (args ^args^ x) -> (* all ctor args must have declaration with same label*)
          (forall d, In d (ds ^ds^ x) -> 
                 (forall L U T, d = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
-                  (exists q, sub_tp (ctx_bind E x Tc) q T U)                      ) /\
+                  (exists q, (ctx_bind E x Tc) |= T ~<: U @ q)) /\
                 (forall l T, d = decl_tm l T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
                   exists l_v, In l_v (args ^args^ x) /\ (fst l_v = l /\ 
                                           value (snd l_v) /\ (exists q, (ctx_bind E x Tc) |= (snd l_v) ~: T @ q)
                                          ))
                 )  /\
-          (ctx_bind(*_ok*) E x Tc) |= (t ^^ x) ~: T @ q) -> (* TODO: indicate that T ok holds for x : T -- needed? or is store typing enough *)
+          (ctx_bind_ok E x Tc) |= (t ^^ x) ~: T @ q) -> (* indicate that T ok holds for x : T -- needed? or is store typing enough *)
       lc_tp T -> (* XXX necessary? *)
       E |= (new Tc args t) ~: T @ q
 
@@ -112,9 +124,9 @@ where "E |= t ~mem~ D @ q" := (mem E q t D)
 
 with expands : env -> quality -> tp -> decls -> Prop := 
   | expands_sub : forall E q1 q2 T U DS,
-      sub_tp  E q1 T U ->
-      expands E q2 U DS ->
-      expands E (q1 & q2) T DS
+      E |= T ~<: U  @ q1 ->
+      E |= T ~<  DS @ q2 ->
+      E |= T ~< DS  @ (q1 & q2)
 
   | expands_rfn : forall E q TP DSP DS DSM,
       expands E q TP DSP ->
@@ -176,13 +188,17 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=
       E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> In (decl_tp L S U) (DS ^ds^ p) ->
       sub_tp E (q1 & q2) (tp_sel p L) U (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
 
-(* what follows is standard: reflexivity (precise!), transitivity(!), function types, intersection, union, top and bottom *)
+(* we can't have unfettered transitivity, because that foil typing_new's well-formedness check that all type members have conforming bounds:
+   "S <: T because p.L : S..T said so", not because they actually are -- with the current path safety check, p can only cause transitivity after it's been all patted down and shit *)
+  | sub_tp_trans : forall E q1 q2 TMid T T',
+      (exists p, exists L, TMid = tp_sel p L -> E |= p safe) -> (* no sneaky middlemen: type members may only be selected on paths that have been checked by typing_new *)
+      E |= T ~<: TMid        @  q1      ->
+      E |=       TMid ~<: T' @       q2 ->
+      E |= T          ~<: T' @ (q1 & q2)
+
+(* what follows is standard: reflexivity (precise!), function types, intersection, union, top and bottom *)
   | sub_tp_refl : forall E T,
       sub_tp E precise T T
-  | sub_tp_trans : forall E q1 q2 T1 T2 T3,
-      sub_tp E q1 T1 T2 ->
-      sub_tp E q2 T2 T3 ->
-      sub_tp E (q1 & q2) T1 T3
   | sub_tp_fun : forall E q1 q2 S1 S2 T1 T2,
       sub_tp E q1 S2 S1 ->
       sub_tp E q2 T1 T2 ->
@@ -212,7 +228,7 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=
   | sub_tp_bot : forall E T,
       sub_tp E subsumed tp_bot T
 
-where "E |= T1 <: T2 @ q" := (sub_tp E q T1 T2)
+where "E |= T1 ~<: T2 @ q" := (sub_tp E q T1 T2)
 
 with sub_decl : env -> quality -> decl -> decl -> Prop :=
   | sub_decl_tp : forall E q1 q2 l S1 T1 S2 T2,
@@ -241,7 +257,7 @@ with path_eq : env -> tm -> tm -> Prop :=
    | peq_refl : forall E p, (* TODO: only needed if proof of preservation depends on it *)
       path_eq E p p
 
-   | peq_symm : forall E p q, (* TODO: only needed if proof of preservation depends on it *)
+   | peq_symm : forall E p q, (* used in invert_subtyping_fun *)
       path_eq E p q ->
       path_eq E q p
 
@@ -255,7 +271,6 @@ with path_eq : env -> tm -> tm -> Prop :=
       E |= (sel p l) ~: T @ q ->
       path_eq E (sel p l) (sel p' l)
 
-(* TODO env_tp_ok*)
 with wf_env : env -> Prop := 
   | wf_env_ : forall G P,
      wf_ctx G -> wf_pex G P -> wf_env (G, P)
@@ -265,8 +280,9 @@ with wf_ctx : ctx -> Prop :=
   | wf_ctx_cons_tp : forall E x U,
      wf_ctx E ->
      x \notin dom E -> 
-     (forall x, x \notin dom E -> x \notin fv_tp U) -> 
-     wf_ctx (x ~ U ++ E) (* TODO env_tp_ok*)
+     (forall x, x \notin dom E -> (exists T, U = ctx_tp T    -> x \notin fv_tp T) /\
+                                  (exists T, U = ctx_tp_ok T -> x \notin fv_tp T)) -> 
+     wf_ctx (x ~ U ++ E)
 
 with wf_pex : ctx -> pex -> Prop := 
   | wf_pex_cons : forall G PS a a' l,
@@ -392,23 +408,26 @@ Definition extract_pex : loc -> args -> pex := fun a => fun ags =>
 
 Definition typing_store E s :=
      wf_store s 
-  /\ (forall a Tc ags DS, binds a (Tc, ags) s ->  (* bound in store to ags with type Tc, where the self variable has been replaced by a already  *) 
-                   exists ags', ags = ags' ^args^ (ref a) 
-               /\  E |= (ref a) ~: Tc @ precise             (* TODO: if we require a derivation of this in E, don't need to store Tc in store, right? *)
-               /\  E |= Tc ~< DS @ precise            (* Tc expands (see typing_new) *)
-               /\  exists L, (forall x, x \notin L -> 
-                     NoDupBy fst (ags' ^args^ x) /\ (* ctor args are unique by label *)
-                     NoDupBy decl_getLabel (DS ^ds^ x) /\ (* decls are unique by label *)
-                     List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) (DS ^ds^ x)) (ags' ^args^ x) /\ (* all ctor args must have declaration with same label*)
-                     List.Forall (fun d =>  (* TODO: why does using pattern match lead to 'Error: Non strictly positive occurrence ...'? *)
-                            (forall L U T, d = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
-                              (exists q, sub_tp (ctx_bind E x Tc) q T U)                      ) /\
-                            (forall l T, d = decl_tm l T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
-                              List.Exists (fun l_v => fst l_v = l /\ 
-                                                      value (snd l_v) /\ (exists q, (ctx_bind E x Tc) |= (snd l_v) ~: T @ q)
-                                                     ) (ags' ^args^ x)) 
-                            ) (DS ^ds^ x))
-               /\  List.Forall (pex_has E) (extract_pex a ags)). (* the path equalities derived from the object referenced by a binding its labels to references *)
+  /\ dom (fst E) [=] dom s (* there are no reduction steps under binders, except for the variables representing object references, but these are of course also in the store
+                              this ensures that for all x: T in E, the T's well-formedness has been checked by typing_new *)
+  /\ (forall a Tc ags DS, 
+        binds a (Tc, ags) s ->  (* bound in store to ags with type Tc, where the self variable has been replaced by `a` already  *) 
+              exists ags', ags = ags' ^args^ (ref a) 
+          /\  E |= (ref a) ~: Tc @ precise          (* TODO: this is redundant since all locations in the store are also in the environment, moreover the store does not need to track Tc *)
+          /\  E |= Tc ~< DS @ precise               (* Tc expands (see typing_new) *)
+          /\  exists L, (forall x, x \notin L -> 
+               NoDupBy fst (ags' ^args^ x) /\       (* ctor args are unique by label *)
+               NoDupBy decl_getLabel (DS ^ds^ x) /\ (* decls are unique by label *)
+               List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) (DS ^ds^ x)) (ags' ^args^ x) /\ (* all ctor args must have declaration with same label*)
+               List.Forall (fun d =>  (* TODO: why does using pattern match lead to 'Error: Non strictly positive occurrence ...'? *)
+                      (forall L U T, d = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
+                        (exists q, sub_tp (ctx_bind E x Tc) q T U)                      ) /\
+                      (forall l T, d = decl_tm l T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
+                        List.Exists (fun l_v => fst l_v = l /\ 
+                                                value (snd l_v) /\ (exists q, (ctx_bind E x Tc) |= (snd l_v) ~: T @ q)
+                                               ) (ags' ^args^ x)) 
+                      ) (DS ^ds^ x))
+          /\  List.Forall (pex_has E) (extract_pex a ags)). (* the path equalities derived from the object referenced by a binding its labels to references *)
 
 Notation "E |== s" := (typing_store E s) (at level 68).
 

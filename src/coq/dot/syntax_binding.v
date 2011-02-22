@@ -77,9 +77,9 @@ with tm : Set :=
 
 (* is a term a path? *)
 Inductive path : tm -> Prop :=
-  | path_bvar : forall a, path (bvar a)
-  | path_ref : forall a, path (ref a)
-  | path_fvar : forall a, path (fvar a) (* TODO: XXXX *)
+  | path_bvar : forall a, path (bvar a) (* variable under binder *)
+  | path_ref : forall a, path (ref a)   (* free variable that represents a reference *)
+  | path_fvar : forall a, path (fvar a) (* variable bound in Gamma *)
   | path_sel : forall p l, path p -> path (sel p l).
 
 (* is a type concrete? *) 
@@ -97,12 +97,13 @@ Definition args  := list (label * tm).
 Definition decls := list decl.
 
 Hint Constructors tp decl tm path concrete.
-(* TODO
-Inductive env_entry : Set :=  
-  | env_tp : tp -> env_entry
-  | env_tp_ok : tp -> env_entry -- type put in context by new, which has been checked to be realizable 
-  | env_peq : (loc * loc * label) -> env_entry.  (* track path equality a' = a.l that arises from allocating a new object referenced by a, with label l that has value a' -- if we had singleton types, we wouldn't need a new kind of binding, could just say a' : a.l.type, although duplication could be a problem since probably, for some Tc, a' : Tc *)
-*)      
+
+Inductive ctx_entry : Set :=  
+  | ctx_tp : tp -> ctx_entry
+  | ctx_tp_ok : tp -> ctx_entry.  (* once typing_new has checked full well-formedness of a type, its values may be used as middlemen in transitivity
+  until full well-formedness has been checked (and esp., during the final WF check) you may not rely on S <: p.L <: T (where p has L: S..T)
+  iff E |= p safe you may trust its type members as middlemen in sub_tp_trans
+  *)
 
 (* the environment is a context + a set of path equalities
   the context tracks which variables are bound in the current scope along with their assumed type
@@ -113,13 +114,15 @@ Inductive env_entry : Set :=
   there's an additional fact that we may need to track about variable bindings x : T, namely whether T is known to be OK (its type members have conforming bounds)
   hopefully this info can be kept separately in the meta-theory -- we'll have to see
 *)
-Definition ctx : Set := (list (atom * tp)).
-Definition pex : Set := (list (loc * (loc * label))).
+Definition ctx : Set := (list (atom * ctx_entry)). (* gamma, tracking whether the type a variable is assumed to have has been checked for full well-formedness or not *)
+Definition pex : Set := (list (loc * (loc * label))). (* path equalities -- only used for preservation *)
 Definition env : Set := (ctx * pex)%type.
 
-Definition ctx_binds : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x T (fst E).
-Definition ctx_bind  : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ T ++ (fst E), snd E).
-Definition ctx_fresh : env -> atom -> Prop := fun E => fun a => a `notin` dom (fst E).
+Definition ctx_binds   : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x (ctx_tp T) (fst E) \/ binds x (ctx_tp_ok T) (fst E).
+Definition ctx_binds_ok   : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x (ctx_tp_ok T) (fst E).
+Definition ctx_bind    : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ (ctx_tp T) ++ (fst E), snd E).
+Definition ctx_bind_ok : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ (ctx_tp_ok T) ++ (fst E), snd E).
+Definition ctx_fresh   : env -> atom -> Prop := fun E => fun a => a `notin` dom (fst E).
 
 Definition pex_has : env -> atom * (atom * label) -> Prop := fun E => fun peq => In peq (snd E).
 Definition pex_add : env -> atom * (atom * label) -> env := fun E => fun peq => ((fst E), peq :: (snd E)).
