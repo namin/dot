@@ -7,6 +7,7 @@ Reserved Notation "E |= t ~: T @ q" (at level 69).
 Reserved Notation "E |= t ~<: T @ q" (at level 69).
 (*Reserved Notation "E |= t ~mem~ D @ q" (at level 69).*)
 
+(*
 Inductive safe_path : env -> tm -> Prop :=
    | safe_path_ref_ok : forall E a T,
       ctx_binds_ok E a T ->
@@ -18,6 +19,7 @@ Inductive safe_path : env -> tm -> Prop :=
       safe_path E p -> safe_path E (sel p l).
 
 Notation "E |= t 'safe'" := (safe_path E t) (at level 69).
+*)
 
 Inductive typing : env -> quality -> tm -> tp -> Prop :=
    | typing_var : forall E x T,
@@ -85,7 +87,7 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
       (forall x, x \notin L -> 
          NoDupBy fst (args ^args^ x) -> (* ctor args are unique by label *)
          NoDupBy decl_getLabel (ds ^ds^ x) -> (* decls are unique by label *)
-         List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) (ds ^ds^ x)) (args ^args^ x) -> (* all ctor args must have declaration with same label*)
+         List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) ds) args -> (* all ctor args must have declaration with same label*)
          (forall d, In d (ds ^ds^ x) -> 
                 (forall L U T, d = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
                   (exists q, (ctx_bind E x Tc) |= T ~<: U @ q)) /\
@@ -94,7 +96,7 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
                                           value (snd l_v) /\ (exists q, (ctx_bind E x Tc) |= (snd l_v) ~: T @ q)
                                          ))
                 )  /\
-          (ctx_bind_ok E x Tc) |= (t ^^ x) ~: T @ q) -> (* indicate that T ok holds for x : T -- needed? or is store typing enough *)
+          (ctx_bind(*_ok*) E x Tc) |= (t ^^ x) ~: T @ q) -> (* indicate that T ok holds for x : T -- needed? or is store typing enough *)
       lc_tp T -> (* XXX necessary? *)
       E |= (new Tc args t) ~: T @ q
 
@@ -179,19 +181,21 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=
 
   | sub_tp_tpsel_lower : forall E p T' q1 DS q2 L S U,
 (*      E |= p ~mem~ (decl_tp L S U) @ q -> *)  (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
-      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> In (decl_tp L S U) (DS ^ds^ p) ->
-      sub_tp E subsumed S (tp_sel p L) (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
+      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> In (decl_tp L S U) DS ->
+      sub_tp E subsumed (S ^tp^ p) (tp_sel p L) (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
 (* TODO: is it sound to have `sub_tp E q S (tp_sel p L)` ?? *)
 
   | sub_tp_tpsel_upper : forall E p T' q1 DS q2 L S U,
 (*      E |= p ~mem~ (decl_tp L S U) @ q -> *) (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
-      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> In (decl_tp L S U) (DS ^ds^ p) ->
-      sub_tp E (q1 & q2) (tp_sel p L) U (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
+      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> In (decl_tp L S U) DS ->
+      sub_tp E (q1 & q2) (tp_sel p L) (U ^tp^ p) (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
 
 (* we can't have unfettered transitivity, because that foil typing_new's well-formedness check that all type members have conforming bounds:
    "S <: T because p.L : S..T said so", not because they actually are -- with the current path safety check, p can only cause transitivity after it's been all patted down and shit *)
   | sub_tp_trans : forall E q1 q2 TMid T T',
-      (exists p, exists L, TMid = tp_sel p L -> E |= p safe) -> (* no sneaky middlemen: type members may only be selected on paths that have been checked by typing_new *)
+(*      (forall p L, TMid = tp_sel p L -> E |= p safe) -> no sneaky middlemen: type members may only be selected on paths that have been checked by typing_new *)
+      (forall p L, TMid <> tp_sel p L) ->  (* unless p is rooted in an object reference that has been checked by typing_new, there's no guarantuee its lowerbound is a subtype of its upperbound
+                                              if it is safe, can recover the same judgement from the bounds directly without going through the path selection *)
       E |= T ~<: TMid        @  q1      ->
       E |=       TMid ~<: T' @       q2 ->
       E |= T          ~<: T' @ (q1 & q2)
@@ -280,9 +284,11 @@ with wf_ctx : ctx -> Prop :=
   | wf_ctx_cons_tp : forall E x U,
      wf_ctx E ->
      x \notin dom E -> 
-     (forall x, x \notin dom E -> (exists T, U = ctx_tp T    -> x \notin fv_tp T) /\
-                                  (exists T, U = ctx_tp_ok T -> x \notin fv_tp T)) -> 
+     (forall x, x \notin dom E -> x \notin fv_tp U)-> 
      wf_ctx (x ~ U ++ E)
+     
+     (*(exists T, U = ctx_tp T    -> x \notin fv_tp T) /\
+                                  (exists T, U = ctx_tp_ok T -> x \notin fv_tp T)) *)
 
 with wf_pex : ctx -> pex -> Prop := 
   | wf_pex_cons : forall G PS a a' l,

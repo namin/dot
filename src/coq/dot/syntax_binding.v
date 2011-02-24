@@ -98,12 +98,14 @@ Definition decls := list decl.
 
 Hint Constructors tp decl tm path concrete.
 
+(* for tracking whether the type a variable is assumed to have has been checked for full well-formedness or not 
 Inductive ctx_entry : Set :=  
   | ctx_tp : tp -> ctx_entry
   | ctx_tp_ok : tp -> ctx_entry.  (* once typing_new has checked full well-formedness of a type, its values may be used as middlemen in transitivity
   until full well-formedness has been checked (and esp., during the final WF check) you may not rely on S <: p.L <: T (where p has L: S..T)
   iff E |= p safe you may trust its type members as middlemen in sub_tp_trans
   *)
+*)
 
 (* the environment is a context + a set of path equalities
   the context tracks which variables are bound in the current scope along with their assumed type
@@ -114,14 +116,14 @@ Inductive ctx_entry : Set :=
   there's an additional fact that we may need to track about variable bindings x : T, namely whether T is known to be OK (its type members have conforming bounds)
   hopefully this info can be kept separately in the meta-theory -- we'll have to see
 *)
-Definition ctx : Set := (list (atom * ctx_entry)). (* gamma, tracking whether the type a variable is assumed to have has been checked for full well-formedness or not *)
+Definition ctx : Set := (list (atom * tp)). (* gamma *)
 Definition pex : Set := (list (loc * (loc * label))). (* path equalities -- only used for preservation *)
 Definition env : Set := (ctx * pex)%type.
 
-Definition ctx_binds   : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x (ctx_tp T) (fst E) \/ binds x (ctx_tp_ok T) (fst E).
-Definition ctx_binds_ok   : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x (ctx_tp_ok T) (fst E).
-Definition ctx_bind    : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ (ctx_tp T) ++ (fst E), snd E).
-Definition ctx_bind_ok : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ (ctx_tp_ok T) ++ (fst E), snd E).
+Definition ctx_binds   : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x T (fst E).
+(*Definition ctx_binds_ok   : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x (ctx_tp_ok T) (fst E).*)
+Definition ctx_bind    : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ T ++ (fst E), snd E).
+(*Definition ctx_bind_ok : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ (ctx_tp_ok T) ++ (fst E), snd E).*)
 Definition ctx_fresh   : env -> atom -> Prop := fun E => fun a => a `notin` dom (fst E).
 
 Definition pex_has : env -> atom * (atom * label) -> Prop := fun E => fun peq => In peq (snd E).
@@ -161,34 +163,9 @@ Program Instance label_EqDec : EqDec label eq :=
       | lc n, lc n' => if n == n' then in_left else in_right
       | lv n, la n' | la n, lv n' | lv n, lc n' | lc n, lv n' | la n, lc n' | lc n, la n'  => in_right (* why does wildcard pattern not work?*)
     end }.
-
   Obligation Tactic := unfold complement, equiv ; program_simpl.
   Solve Obligations using unfold equiv, complement in * ; program_simpl ; intuition (discriminate || eauto).
 
-Section MergingMembers.
-  Variable merge_decl : decl -> decl -> decl -> Prop.
-
-(*
-drop_merge_decl d1 d ds2 ds2rest -> ds2rest is ds2 minus its member d2 that has the same label as d1, d is the anding of d1 and d2 (if d2 does not exist, d1=d and ds2=ds2rest) 
-*)
-Inductive drop_merge_decl : decl -> decl -> decls -> decls -> Prop :=
-  | drop_merge_decl_head : forall d1 d2 d ds2,
-      merge_decl d1 d2 d -> (* merge d1 and d2 to d -- if they have the same label *)
-      drop_merge_decl d1 d (d2 :: ds2) ds2
-  | drop_merge_decl_cons : forall d1 d2 d ds2 ds2rest,
-      (~ same_label d1 d2) ->
-      drop_merge_decl d1 d ds2 ds2rest ->
-      drop_merge_decl d1 d (d2 :: ds2) (d2 :: ds2rest)
-  | drop_merge_decl_nil : forall d1,
-      drop_merge_decl d1 d1 nil nil.
-
-Inductive merge_decls : decls -> decls -> decls -> Prop :=
-   | merge_decls_merge : forall d1 ds1 ds2 ds2rest d ds,
-     drop_merge_decl d1 d ds2 ds2rest -> (* ds2rest is ds2 minus its member with the same label as d1, d is the anding of that member in ds2 with d1 (if it does not exist, d1=d and ds2=ds2rest)  *)
-     merge_decls ds1 ds2rest ds -> (* induct *)
-     merge_decls (d1 :: ds1) ds2 (d :: ds).
-
-End MergingMembers.
 
 Inductive and_decl : decl -> decl -> decl -> Prop :=
   | and_decl_tm : forall l S1 S2,
@@ -196,7 +173,19 @@ Inductive and_decl : decl -> decl -> decl -> Prop :=
   | and_decl_tp : forall L TL1 TU1 TL2 TU2,
     and_decl (decl_tp L TL1 TU1) (decl_tp L TL2 TU2) (decl_tp L (tp_or TL1 TL2) (tp_and TU1 TU2)).
 
-Definition and_decls := merge_decls and_decl.
+(* is a decl in the and'ing of two decl lists? *)
+Inductive In_and : decl -> decls -> decls -> Prop :=
+  | In_and_both : forall d d1 d2 ds1 ds2,
+    In d1 ds1 -> In d2 ds2 -> and_decl d1 d2 d -> (* and_decl d1 d2 d implies d, d1 and d2 have the same label *)
+    In_and d ds1 ds2
+  | In_and_just_1 : forall d d' ds1 ds2,
+    In d' ds1 -> same_label d d' -> (forall d'', In d'' ds2 -> ~ same_label d d'') ->
+    In_and d' ds1 ds2
+  | In_and_just_2 : forall d d' ds1 ds2,
+    In d' ds2 -> same_label d d' -> (forall d'', In d'' ds1 -> ~ same_label d d'') ->
+    In_and d' ds1 ds2.
+
+Definition and_decls (ds1: decls) (ds2: decls) (dsm: decls) := (forall d, In d dsm <-> In_and d ds1 ds2).
 
 Inductive or_decl : decl -> decl -> decl -> Prop :=
   | or_decl_tm : forall l S1 S2,
@@ -204,7 +193,14 @@ Inductive or_decl : decl -> decl -> decl -> Prop :=
   | or_decl_tp : forall L TL1 TU1 TL2 TU2,
     or_decl (decl_tp L TL1 TU1) (decl_tp L TL2 TU2) (decl_tp L (tp_and TL1 TL2) (tp_or TU1 TU2)).
 
-Definition or_decls := merge_decls or_decl.
+(* T1 \/ T2's expansion is the least common denominator of T1 and T2's members *)
+Definition or_decls (ds1: decls) (ds2: decls) (dsm: decls) := (forall d, In d dsm <-> (exists d1 d2,
+    In d1 ds1 /\ In d2 ds2 /\ or_decl d1 d2 d)).
+
+
+
+
+
 
 
 (*************************************************************************)
@@ -572,6 +568,22 @@ Proof.
     induction (eq_lab_dec l2 l0); subst; auto.   inversion H6; subst; auto*.
     apply has_arg_tm_cons; auto*. apply IHdrop_tm. apply has_arg_tm_cons. inversion H6; subst; auto*. auto.
 Qed.
+
+(*
+drop_and_decl d1 d ds2 ds2rest -> ds2rest is ds2 minus its member d2 that has the same label as d1, d is the anding of d1 and d2 (if d2 does not exist, d1=d and ds2=ds2rest) 
+*)
+Inductive drop_and_decl : decl -> decl -> decls -> decls -> Prop :=
+  | drop_and_decl_head : forall d1 d2 d ds2,
+      and_decl d1 d2 d -> (* merge d1 and d2 to d -- if they have the same label *)
+      drop_and_decl d1 d (d2 :: ds2) ds2
+  | drop_and_decl_cons : forall d1 d2 d ds2 ds2rest,
+      (~ same_label d1 d2) ->
+      drop_and_decl d1 d ds2 ds2rest ->
+      drop_and_decl d1 d (d2 :: ds2) (d2 :: ds2rest)
+  | drop_and_decl_nil : forall d1,
+      drop_and_decl d1 d1 nil nil.
+
+
 
 *)
 
