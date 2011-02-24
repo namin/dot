@@ -151,6 +151,12 @@ Function decl_getLabel (m: decl) {struct m} : label  :=
 
 Definition same_label : decl -> decl -> Prop := fun d1 => fun d2 => (decl_getLabel d1) = (decl_getLabel d2).
 
+(* only have cases for valid label/decl_XX combinations*)
+Inductive valid_label : decl -> Prop :=
+  | valid_label_tp_a : forall n T U, valid_label (decl_tp (la n) T U)
+  | valid_label_tp_c : forall n T U, valid_label (decl_tp (lc n) T U)
+  | valid_label_tm   : forall n T,   valid_label (decl_tm (lv n) T).
+
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Program.Program.
 
@@ -178,14 +184,15 @@ Inductive In_and : decl -> decls -> decls -> Prop :=
   | In_and_both : forall d d1 d2 ds1 ds2,
     In d1 ds1 -> In d2 ds2 -> and_decl d1 d2 d -> (* and_decl d1 d2 d implies d, d1 and d2 have the same label *)
     In_and d ds1 ds2
-  | In_and_just_1 : forall d d' ds1 ds2,
-    In d' ds1 -> same_label d d' -> (forall d'', In d'' ds2 -> ~ same_label d d'') ->
-    In_and d' ds1 ds2
-  | In_and_just_2 : forall d d' ds1 ds2,
-    In d' ds2 -> same_label d d' -> (forall d'', In d'' ds1 -> ~ same_label d d'') ->
-    In_and d' ds1 ds2.
+  | In_and_just_1 : forall d ds1 ds2,
+    In d ds1 -> ~ List.Exists (same_label d) ds2 ->
+    In_and d ds1 ds2
+  | In_and_just_2 : forall d ds1 ds2,
+    In d ds2 -> ~ List.Exists (same_label d) ds1 ->
+    In_and d ds1 ds2.
 
-Definition and_decls (ds1: decls) (ds2: decls) (dsm: decls) := (forall d, In d dsm <-> In_and d ds1 ds2).
+Definition and_decls (ds1: decls) (ds2: decls) (dsm: decls) := NoDupBy decl_getLabel ds1 /\ NoDupBy decl_getLabel ds2 /\
+  (forall d, (In d dsm <-> In_and d ds1 ds2)).
 
 Inductive or_decl : decl -> decl -> decl -> Prop :=
   | or_decl_tm : forall l S1 S2,
@@ -194,8 +201,8 @@ Inductive or_decl : decl -> decl -> decl -> Prop :=
     or_decl (decl_tp L TL1 TU1) (decl_tp L TL2 TU2) (decl_tp L (tp_and TL1 TL2) (tp_or TU1 TU2)).
 
 (* T1 \/ T2's expansion is the least common denominator of T1 and T2's members *)
-Definition or_decls (ds1: decls) (ds2: decls) (dsm: decls) := (forall d, In d dsm <-> (exists d1 d2,
-    In d1 ds1 /\ In d2 ds2 /\ or_decl d1 d2 d)).
+Definition or_decls (ds1: decls) (ds2: decls) (dsm: decls) := NoDupBy decl_getLabel ds1 /\ NoDupBy decl_getLabel ds2 /\
+  (forall d, (In d dsm <-> (exists d1 d2, In d1 ds1 /\ In d2 ds2 /\ or_decl d1 d2 d))).
 
 
 

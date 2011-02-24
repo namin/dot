@@ -80,20 +80,20 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
    | typing_new : forall L E q Tc args t T ds,
       wf_tp E Tc ->
       concrete Tc ->
-      expands E precise Tc ds ->
+      E |= Tc ~< ds @ precise ->
 (* check that lowerbounds are subtypes of upperbounds, 
    arguments are values and they have the type declared in the decls, 
    all value labels in decls must have corresponding arg (and vice-versa)*)
       (forall x, x \notin L -> 
-         NoDupBy fst (args ^args^ x) -> (* ctor args are unique by label *)
-         NoDupBy decl_getLabel (ds ^ds^ x) -> (* decls are unique by label *)
+         NoDupBy fst args -> (* ctor args are unique by label *)
+(*         NoDupBy decl_getLabel ds ->  -- redundant with expands Tc and Tc wf: that ensures decls are unique by label *)
          List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) ds) args -> (* all ctor args must have declaration with same label*)
-         (forall d, In d (ds ^ds^ x) -> 
-                (forall L U T, d = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
+         (forall d, In d ds -> 
+                (forall L U T, d ^d^ x = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
                   (exists q, (ctx_bind E x Tc) |= T ~<: U @ q)) /\
-                (forall l T, d = decl_tm l T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
-                  exists l_v, In l_v (args ^args^ x) /\ (fst l_v = l /\ 
-                                          value (snd l_v) /\ (exists q, (ctx_bind E x Tc) |= (snd l_v) ~: T @ q)
+                (forall l T, d ^d^ x = decl_tm l T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
+                  exists l_v, In l_v args /\ (fst l_v = l /\ 
+                                          value ((snd l_v) ^^ x) /\ (exists q, (ctx_bind E x Tc) |= ((snd l_v) ^^ x) ~: T @ q)
                                          ))
                 )  /\
           (ctx_bind(*_ok*) E x Tc) |= (t ^^ x) ~: T @ q) -> (* indicate that T ok holds for x : T -- needed? or is store typing enough *)
@@ -301,6 +301,7 @@ with wf_pex : ctx -> pex -> Prop :=
 (* TODO: prove wf_tp E T implies lc_tp T  *)
 with wf_tp : env -> tp -> Prop :=
   | wf_rfn : forall L E T DS,
+      NoDupBy decl_getLabel DS ->
       wf_tp E T ->
       (forall z, z \notin L ->
           forall d, In d (DS ^ds^ z) -> (wf_decl (ctx_bind E z (tp_rfn T DS)) d)) ->
@@ -336,9 +337,11 @@ with wf_decl : env -> decl -> Prop :=
   | wf_decl_tp : forall E L S U,
      wf_tp E S ->
      wf_tp E U ->
+     valid_label (decl_tp L S U) ->
      wf_decl E (decl_tp L S U)
   | wf_decl_tm : forall E l T,
      wf_tp E T ->
+     valid_label (decl_tm l T) ->
      wf_decl E (decl_tm l T).
 
 Scheme typing_indm         := Induction for typing Sort Prop 
@@ -416,24 +419,25 @@ Definition typing_store E s :=
      wf_store s 
   /\ dom (fst E) [=] dom s (* there are no reduction steps under binders, except for the variables representing object references, but these are of course also in the store
                               this ensures that for all x: T in E, the T's well-formedness has been checked by typing_new *)
-  /\ (forall a Tc ags DS, 
-        binds a (Tc, ags) s ->  (* bound in store to ags with type Tc, where the self variable has been replaced by `a` already  *) 
-              exists ags', ags = ags' ^args^ (ref a) 
-          /\  E |= (ref a) ~: Tc @ precise          (* TODO: this is redundant since all locations in the store are also in the environment, moreover the store does not need to track Tc *)
-          /\  E |= Tc ~< DS @ precise               (* Tc expands (see typing_new) *)
-          /\  exists L, (forall x, x \notin L -> 
-               NoDupBy fst (ags' ^args^ x) /\       (* ctor args are unique by label *)
-               NoDupBy decl_getLabel (DS ^ds^ x) /\ (* decls are unique by label *)
-               List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) (DS ^ds^ x)) (ags' ^args^ x) /\ (* all ctor args must have declaration with same label*)
-               List.Forall (fun d =>  (* TODO: why does using pattern match lead to 'Error: Non strictly positive occurrence ...'? *)
-                      (forall L U T, d = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
-                        (exists q, sub_tp (ctx_bind E x Tc) q T U)                      ) /\
-                      (forall l T, d = decl_tm l T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
-                        List.Exists (fun l_v => fst l_v = l /\ 
-                                                value (snd l_v) /\ (exists q, (ctx_bind E x Tc) |= (snd l_v) ~: T @ q)
-                                               ) (ags' ^args^ x)) 
-                      ) (DS ^ds^ x))
-          /\  List.Forall (pex_has E) (extract_pex a ags)). (* the path equalities derived from the object referenced by a binding its labels to references *)
+  /\ (forall a Tc args ds, 
+        binds a (Tc, args) s ->  (* TODO: don't need Tc in store since Gamma it -- bound in store to args with type Tc, where the self variable has been replaced by `a` already  *) 
+              exists args', args = args' ^args^ (ref a) 
+          /\  List.Forall (pex_has E) (extract_pex a args) (* the path equalities derived from the object referenced by a binding its labels to references *)
+          /\  concrete Tc (* see typing_new, replacing implication by conjunction and forall by exists *)
+          /\  E |= Tc ~< ds @ precise
+          /\  exists L, (forall x, x \notin L ->  
+                 NoDupBy fst args -> (* ctor args are unique by label *)
+        (*         NoDupBy decl_getLabel ds ->  -- redundant with expands Tc and Tc wf: that ensures decls are unique by label *)
+                 List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) ds) args -> (* all ctor args must have declaration with same label*)
+                 (forall d, In d ds -> 
+                        (forall L U T, d ^d^ x = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
+                          (exists q, (ctx_bind E x Tc) |= T ~<: U @ q)) /\
+                        (forall l T, d ^d^ x = decl_tm l T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
+                          exists l_v, In l_v args /\ (fst l_v = l /\ 
+                                                  value ((snd l_v) ^^ x) /\ (exists q, (ctx_bind E x Tc) |= ((snd l_v) ^^ x) ~: T @ q)
+                                                 ))
+                ))).
+(*          /\  E |= (ref a) ~: Tc @ precise           TODO: this is redundant since all locations in the store are also in the environment, moreover the store does not need to track Tc *)
 
 Notation "E |== s" := (typing_store E s) (at level 68).
 
