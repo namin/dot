@@ -41,7 +41,10 @@ Inductive label : Set :=
   | lc  : nat -> label   (* class label *)
   | la  : nat -> label.  (* abstract type label *)
 
+Require Import Coq.Classes.EquivDec.
+Require Import Coq.Program.Program.
 
+  
 Inductive concrete_label : label -> Prop :=
   | concrete_lc : forall n, concrete_label (lc n).
 
@@ -49,20 +52,16 @@ Definition loc := var.
 
 Inductive tp : Set :=
   | tp_sel    : tm -> label -> tp        (* type selection *) (*X tm must be a path *)
-  | tp_rfn    : tp -> list decl  -> tp   (* refinement *)  (* variable binding is encoded in the open_rec function below*)
+  | tp_rfn    : tp -> list (label*decl) -> tp   (* refinement *)  (* due to fundamental restriction in Coq, can't use a map to represent decls, since that applies decl to a constructor on the left of an arrow.... variable binding is encoded in the open_rec function below*)
   | tp_fun    : tp -> tp -> tp           (* function type *)
   | tp_and    : tp -> tp -> tp           (* intersection type *)
   | tp_or     : tp -> tp -> tp           (* union type *)
   | tp_top    : tp                       (* top type *)
   | tp_bot    : tp                       (* bottom type *)
-  
-(* due to recursive structure, using a set to hold the members is too 
-complicated -- this is more faithful to distinction between syntax and 
-well-formedness anyway*)
 
 with decl : Set :=
-  | decl_tp : label -> tp -> tp -> decl (* label, lower&upper bound (kind)*)
-  | decl_tm : label -> tp -> decl       (* label, type *)
+  | decl_tp : tp -> tp -> decl (* lower&upper bound (kind)*)
+  | decl_tm : tp -> decl       (* type *)
 
 with tm : Set :=
   | bvar : nat -> tm        (* bound variables *)
@@ -94,7 +93,7 @@ Inductive concrete : tp -> Prop :=
 
 
 Definition args  := list (label * tm).
-Definition decls := list decl.
+Definition decls := list (label * decl).
 
 Hint Constructors tp decl tm path concrete.
 
@@ -143,23 +142,6 @@ Coercion ref  : loc >-> tm.
 (* operations on members *)
 (*************************)
 
-Function decl_getLabel (m: decl) {struct m} : label  :=
-  match m with
-  | decl_tp l _ _ => l
-  | decl_tm l _ => l
-  end.
-
-Definition same_label : decl -> decl -> Prop := fun d1 => fun d2 => (decl_getLabel d1) = (decl_getLabel d2).
-
-(* only have cases for valid label/decl_XX combinations*)
-Inductive valid_label : decl -> Prop :=
-  | valid_label_tp_a : forall n T U, valid_label (decl_tp (la n) T U)
-  | valid_label_tp_c : forall n T U, valid_label (decl_tp (lc n) T U)
-  | valid_label_tm   : forall n T,   valid_label (decl_tm (lv n) T).
-
-Require Import Coq.Classes.EquivDec.
-Require Import Coq.Program.Program.
-
 (* establish decidability of label equality so we can do if then else on labels *)
 Program Instance label_EqDec : EqDec label eq :=
   { equiv_dec x y :=
@@ -172,37 +154,55 @@ Program Instance label_EqDec : EqDec label eq :=
   Obligation Tactic := unfold complement, equiv ; program_simpl.
   Solve Obligations using unfold equiv, complement in * ; program_simpl ; intuition (discriminate || eauto).
 
+Module LabelDT <: UsualDecidableType with Definition t := label.
+
+  Definition t := label.
+
+  Definition eq := @eq t.
+  Definition eq_refl := @refl_equal t.
+  Definition eq_sym := @sym_eq t.
+  Definition eq_trans := @trans_eq t.
+
+  Definition eq_dec := label_EqDec.
+
+End LabelDT.
+
+Module Import LabelSetImpl : FSetExtra.WSfun LabelDT := FSetExtra.Make LabelDT.  
+Module Import LabelMapImpl := AssocList.Make LabelDT LabelSetImpl.
+Notation labels := LabelSetImpl.t.
+Notation "s [=l=] t" := (LabelSetImpl.Equal s t) (at level 70, no associativity).
+Notation "s  [<l=]  t" := (LabelSetImpl.Subset s t) (at level 70, no associativity).
+Definition lbinds := LabelMapImpl.binds.
+Definition ldom := LabelMapImpl.dom.
+Definition luniq := LabelMapImpl.uniq.
+
+(* only have cases for valid label/decl_XX combinations*)
+Inductive valid_label : label -> decl -> Prop :=
+  | valid_label_tp_a : forall n T U, valid_label (la n) (decl_tp T U)
+  | valid_label_tp_c : forall n T U, valid_label (lc n) (decl_tp T U)
+  | valid_label_tm   : forall n T,   valid_label (lv n) (decl_tm T).
+
+Definition decls_ok (ds: decls) := uniq ds /\ (forall l d, binds l d ds -> valid_label l d).
 
 Inductive and_decl : decl -> decl -> decl -> Prop :=
-  | and_decl_tm : forall l S1 S2,
-    and_decl (decl_tm l S1) (decl_tm l S2) (decl_tm l (tp_and S1 S2))
-  | and_decl_tp : forall L TL1 TU1 TL2 TU2,
-    and_decl (decl_tp L TL1 TU1) (decl_tp L TL2 TU2) (decl_tp L (tp_or TL1 TL2) (tp_and TU1 TU2)).
-
-(* is a decl in the and'ing of two decl lists? *)
-Inductive In_and : decl -> decls -> decls -> Prop :=
-  | In_and_both : forall d d1 d2 ds1 ds2,
-    In d1 ds1 -> In d2 ds2 -> and_decl d1 d2 d -> (* and_decl d1 d2 d implies d, d1 and d2 have the same label *)
-    In_and d ds1 ds2
-  | In_and_just_1 : forall d ds1 ds2,
-    In d ds1 -> ~ List.Exists (same_label d) ds2 ->
-    In_and d ds1 ds2
-  | In_and_just_2 : forall d ds1 ds2,
-    In d ds2 -> ~ List.Exists (same_label d) ds1 ->
-    In_and d ds1 ds2.
-
-Definition and_decls (ds1: decls) (ds2: decls) (dsm: decls) := NoDupBy decl_getLabel ds1 /\ NoDupBy decl_getLabel ds2 /\
-  (forall d, (In d dsm <-> In_and d ds1 ds2)).
+  | and_decl_tm : forall S1 S2,
+    and_decl (decl_tm S1) (decl_tm S2) (decl_tm (tp_and S1 S2))
+  | and_decl_tp : forall TL1 TU1 TL2 TU2,
+    and_decl (decl_tp TL1 TU1) (decl_tp TL2 TU2) (decl_tp (tp_or TL1 TL2) (tp_and TU1 TU2)).
 
 Inductive or_decl : decl -> decl -> decl -> Prop :=
-  | or_decl_tm : forall l S1 S2,
-    or_decl (decl_tm l S1) (decl_tm l S2) (decl_tm l (tp_or S1 S2))
-  | or_decl_tp : forall L TL1 TU1 TL2 TU2,
-    or_decl (decl_tp L TL1 TU1) (decl_tp L TL2 TU2) (decl_tp L (tp_and TL1 TL2) (tp_or TU1 TU2)).
+  | or_decl_tm : forall S1 S2,
+    or_decl (decl_tm S1) (decl_tm S2) (decl_tm (tp_or S1 S2))
+  | or_decl_tp : forall TL1 TU1 TL2 TU2,
+    or_decl (decl_tp TL1 TU1) (decl_tp TL2 TU2) (decl_tp (tp_and TL1 TL2) (tp_or TU1 TU2)).
+
+Definition and_decls (ds1: decls) (ds2: decls) (dsm: decls) := decls_ok dsm /\ decls_ok ds1 /\ decls_ok ds2 /\
+  (forall l d, (binds l d dsm <-> ((exists d1 d2, binds l d1 ds1 /\ binds l d2 ds2 /\ and_decl d1 d2 d)
+                                    \/ binds l d ds1 \/ binds l d ds2))). (* decls_ok prevents duplication in dsm *)
 
 (* T1 \/ T2's expansion is the least common denominator of T1 and T2's members *)
-Definition or_decls (ds1: decls) (ds2: decls) (dsm: decls) := NoDupBy decl_getLabel ds1 /\ NoDupBy decl_getLabel ds2 /\
-  (forall d, (In d dsm <-> (exists d1 d2, In d1 ds1 /\ In d2 ds2 /\ or_decl d1 d2 d))).
+Definition or_decls (ds1: decls) (ds2: decls) (dsm: decls) := decls_ok dsm /\ decls_ok ds1 /\ decls_ok ds2 /\
+  (forall l d, (binds l d dsm <-> (exists d1 d2, binds l d1 ds1 /\ binds l d2 ds2 /\ or_decl d1 d2 d))).
 
 
 
@@ -254,7 +254,7 @@ with open_rec_tp (k : nat) (u : tm) (t : tp) {struct t} : tp :=
   match t with
     | tp_sel e1 l => tp_sel (open_rec_tm k u e1) l
     | tp_rfn parent decls => tp_rfn (open_rec_tp k u parent) 
-           (List.map (open_rec_decl (k+1)(* go under binder (the self variable) *) u) decls)
+           (map (open_rec_decl (k+1)(* go under binder (the self variable) *) u) decls)
     | tp_fun f t => tp_fun (open_rec_tp k u f) (open_rec_tp k u t)
     | tp_and t1 t2 => tp_and (open_rec_tp k u t1) (open_rec_tp k u t2)
     | tp_or t1 t2 => tp_or (open_rec_tp k u t1) (open_rec_tp k u t2)
@@ -263,8 +263,8 @@ with open_rec_tp (k : nat) (u : tm) (t : tp) {struct t} : tp :=
   end
 with open_rec_decl (k : nat) (u : tm) (d : decl) {struct d} : decl :=
   match d with
-    | decl_tp l tl tu => decl_tp l (open_rec_tp k u tl) (open_rec_tp k u tu)
-    | decl_tm l t => decl_tm l (open_rec_tp k u t)
+    | decl_tp tl tu => decl_tp (open_rec_tp k u tl) (open_rec_tp k u tu)
+    | decl_tm t => decl_tm (open_rec_tp k u t)
   end.
 
 (** We also define a notation for [open_rec].
@@ -273,7 +273,7 @@ with open_rec_decl (k : nat) (u : tm) (d : decl) {struct d} : decl :=
 Notation "{ k ~> u } t" := (open_rec_tm k u t) (at level 67).
 Notation "{ k ~tp> u } t" := (open_rec_tp k u t) (at level 67).
 Notation "{ k ~d> u } d" := (open_rec_decl k u d) (at level 67).
-Definition open_rec_decls k u ds := map (open_rec_decl k u) ds. 
+Definition open_rec_decls k u (ds: decls) := map (open_rec_decl k u) ds.
 Notation "{ k ~ds> u } ds" := (open_rec_decls k u ds) (at level 67).
 
 (** Many common applications of opening replace index zero with an
@@ -289,8 +289,8 @@ Notation "{ k ~ds> u } ds" := (open_rec_decls k u ds) (at level 67).
 Definition open e u := open_rec_tm 0 u e.
 Definition open_tp e u := open_rec_tp 0 u e.
 Definition open_decl d u := open_rec_decl 0 u d.
-Definition open_decls ds u := map (open_rec_decl 0 u) ds.
-Definition open_args (ags: args) u := map (fun l_v => (fst l_v, open_rec_tm 0 u (snd l_v))) ags.
+Definition open_decls ds u := open_rec_decls 0 u ds.
+Definition open_args (ags: args) u := map (open_rec_tm 0 u) ags.
 
 Notation "ags ^args^ u" := (open_args ags u) (at level 67).
 Notation "d ^d^ u" := (open_decl d u) (at level 67).
@@ -342,13 +342,13 @@ Inductive  lc_tp : tp -> Prop :=
   | lc_tp_bot : lc_tp (tp_bot)
 
 with lc_decl : decl -> Prop :=
-  | lc_decl_tp : forall l t1 t2,
+  | lc_decl_tp : forall t1 t2,
       lc_tp t1 ->
       lc_tp t2 ->
-      lc_decl (decl_tp l t1 t2)
-  | lc_decl_tm : forall l t1,
+      lc_decl (decl_tp t1 t2)
+  | lc_decl_tm : forall t1,
       lc_tp t1 ->
-      lc_decl (decl_tm l t1)
+      lc_decl (decl_tm t1)
 
 with lc_tm : tm -> Prop :=
   | lc_var : forall x,
@@ -374,8 +374,8 @@ with lc_tm : tm -> Prop :=
 with lc_decls : decls -> Prop :=
   | lc_decl_nil :
       lc_decls (nil)
-  | lc_decl_cons : forall d ds,
-      lc_decl d -> lc_decls ds -> lc_decls (d :: ds)
+  | lc_decl_cons : forall l d ds,
+      lc_decl d -> lc_decls ds -> lc_decls ((l, d) :: ds)
 
 with lc_args : args -> Prop :=
   | lc_args_nil :
@@ -411,7 +411,7 @@ Fixpoint fv_tm (e : tm) {struct e} : vars :=
 with fv_tp (t : tp) {struct t} : vars :=
   match t with
     | tp_sel e1 l => fv_tm e1
-    | tp_rfn parent decls => (fv_tp parent) \u (fold_left (fun (ats: vars) (d :  decl) => ats \u (fv_decl d)) decls {})
+    | tp_rfn parent decls => (fv_tp parent) \u (fold_left (fun (ats: vars) (d : (label * decl)) => ats \u (fv_decl (snd d))) decls {})
     | tp_fun f t => (fv_tp f) \u (fv_tp t)
     | tp_and t1 t2 => (fv_tp t1) \u (fv_tp t2)
     | tp_or t1 t2 => (fv_tp t1) \u (fv_tp t2)
@@ -421,12 +421,12 @@ with fv_tp (t : tp) {struct t} : vars :=
 
 with fv_decl (d : decl) {struct d} : vars :=
   match d with
-    | decl_tp l tl tu => (fv_tp tl) \u (fv_tp tu)
-    | decl_tm l t => fv_tp t
+    | decl_tp tl tu => (fv_tp tl) \u (fv_tp tu)
+    | decl_tm t => fv_tp t
   end.
 
 
-Definition fv_decls (decls: decls) := (fold_left (fun (ats: vars) (d :  decl) => ats \u (fv_decl d)) decls {}).
+Definition fv_decls (decls: decls) := (fold_left (fun (ats: vars) (d : (label * decl)) => ats \u (fv_decl (snd d))) decls {}).
 
 Fixpoint subst_tm (z : atom) (u : tm) (e : tm) {struct e} : tm :=
   match e with
@@ -435,14 +435,14 @@ Fixpoint subst_tm (z : atom) (u : tm) (e : tm) {struct e} : tm :=
     | fvar x => if x == z then u else (fvar x)
     | lam T b => lam (subst_tp z u T) (subst_tm z u b)
     | app f a => app (subst_tm z u f) (subst_tm z u a)
-    | new T args b => new (subst_tp z u T) (List.map (fun l_v => (fst l_v, subst_tm z u (snd l_v))) args) (subst_tm z u b)
+    | new T args b => new (subst_tp z u T) (map (subst_tm z u) args) (subst_tm z u b)
     | sel e1 l => sel (subst_tm z u e1) l
   end
 
 with subst_tp (z : atom) (u : tm) (t : tp) {struct t} : tp :=
   match t with
     | tp_sel e1 l => tp_sel (subst_tm z u e1) l
-    | tp_rfn parent decls => tp_rfn (subst_tp z u parent) (List.map (subst_decl z u) decls)
+    | tp_rfn parent decls => tp_rfn (subst_tp z u parent) (map (subst_decl z u) decls)
     | tp_fun f t => tp_fun (subst_tp z u f) (subst_tp z u t)
     | tp_and t1 t2 => tp_and (subst_tp z u t1) (subst_tp z u t2)
     | tp_or t1 t2 => tp_or (subst_tp z u t1) (subst_tp z u t2)
@@ -452,8 +452,8 @@ with subst_tp (z : atom) (u : tm) (t : tp) {struct t} : tp :=
 
 with subst_decl (z : atom) (u : tm) (d : decl) {struct d} : decl :=
   match d with
-    | decl_tp l tl tu => decl_tp l (subst_tp z u tl) (subst_tp z u tu)
-    | decl_tm l t => decl_tm l (subst_tp z u t)
+    | decl_tp tl tu => decl_tp (subst_tp z u tl) (subst_tp z u tu)
+    | decl_tm t => decl_tm (subst_tp z u t)
   end.
 
 
@@ -481,6 +481,34 @@ Inductive open_decl_cond : decl -> tm -> decl -> Prop :=
       open_decl_cond d p d.
 
 (* SCRAPS
+
+Module LabelDT <: UsualDecidableType with Definition t := label.
+
+  Definition t := label.
+
+  Definition eq := @eq t.
+  Definition eq_refl := @refl_equal t.
+  Definition eq_sym := @sym_eq t.
+  Definition eq_trans := @trans_eq t.
+
+  Definition eq_dec := label_EqDec.
+
+End LabelDT.
+
+Require Import Coq.FSets.FMapInterface.
+Require Import Coq.FSets.FMapWeakList.
+
+Module Import LabelMapImpl : FMapInterface.WSfun LabelDT := FMapWeakList.Make LabelDT.
+Notation labelMap := LabelMapImpl.t.
+
+(*
+Definition hasLabel (l: label) := (fun (l_d: list*decl) => fst l_d == l).
+
+let dup_sng1 := List.partition (fun l_d => List.existsb (hasLabel (fst l_d)) ds2) ds1 in
+let dup_sng2 := List.partition (fun l_d => List.existsb (hasLabel (fst l_d)) ds1) ds2 in
+(snd dup_sng1) ++ (snd dup_sng2) ++ 
+  List.flat_map (fun l_d => (fst l_d, and_decl (snd l_d) List.find (hasLabel (fst l_d)) (fst dup_sng2))) (fst dup_sng1)
+*)
 
 Inductive level : Set := terms | types. -- can't figure out how to decide equality on labels if their type is indexed by their level... 
 

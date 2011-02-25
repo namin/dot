@@ -1,25 +1,12 @@
 Set Implicit Arguments.
 Require Import List.
-Require Import Metatheory support syntax_binding.
+Require Import Metatheory support.
+Require Import syntax_binding.
 
 Reserved Notation "E |= t ~< T @ q" (at level 69).
 Reserved Notation "E |= t ~: T @ q" (at level 69).
 Reserved Notation "E |= t ~<: T @ q" (at level 69).
 (*Reserved Notation "E |= t ~mem~ D @ q" (at level 69).*)
-
-(*
-Inductive safe_path : env -> tm -> Prop :=
-   | safe_path_ref_ok : forall E a T,
-      ctx_binds_ok E a T ->
-      safe_path E (ref a)
-   | safe_path_fvar_ok : forall E x T,
-      ctx_binds_ok E x T ->
-      safe_path E (fvar x)
-   | safe_path_sel : forall E p l,
-      safe_path E p -> safe_path E (sel p l).
-
-Notation "E |= t 'safe'" := (safe_path E t) (at level 69).
-*)
 
 Inductive typing : env -> quality -> tm -> tp -> Prop :=
    | typing_var : forall E x T,
@@ -36,7 +23,7 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
 
    | typing_sel : forall E q1 q2 t T' D DS l T,
 (*      E |= t ~mem~ (decl_tm l T) @ q ->   *)
-      E |= t ~: T' @ q1 -> E |= T' ~< DS @ q2 -> In D DS -> open_decl_cond D t (decl_tm l T) ->
+      E |= t ~: T' @ q1 -> E |= T' ~< DS @ q2 -> lbinds l D DS -> open_decl_cond D t (decl_tm T) ->
       E |= (sel t l) ~: T @ q1 & q2
 
 (* it could be simpler to  disallow chaining of subsumption by requiring a precise typing judgement;
@@ -85,18 +72,16 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
    arguments are values and they have the type declared in the decls, 
    all value labels in decls must have corresponding arg (and vice-versa)*)
       (forall x, x \notin L -> 
-         NoDupBy fst args -> (* ctor args are unique by label *)
-(*         NoDupBy decl_getLabel ds ->  -- redundant with expands Tc and Tc wf: that ensures decls are unique by label *)
-         List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) ds) args -> (* all ctor args must have declaration with same label*)
-         (forall d, In d ds -> 
-                (forall L U T, d ^d^ x = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
+         luniq args -> (* ctor args are unique by label *)
+(*       decls_ok ds ->  -- implied by expansion of well-formed type *)
+         (ldom ds) [=l=] (ldom args) -> (* all ctor args must have declaration with same label*)
+         (forall l d, lbinds l d ds -> 
+                (forall U T, d ^d^ x = decl_tp T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
                   (exists q, (ctx_bind E x Tc) |= T ~<: U @ q)) /\
-                (forall l T, d ^d^ x = decl_tm l T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
-                  exists l_v, In l_v args /\ (fst l_v = l /\ 
-                                          value ((snd l_v) ^^ x) /\ (exists q, (ctx_bind E x Tc) |= ((snd l_v) ^^ x) ~: T @ q)
-                                         ))
+                (forall v T, d ^d^ x = decl_tm T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
+                  lbinds l v args /\ value (v ^^ x) /\ (exists q, (ctx_bind E x Tc) |= (v ^^ x) ~: T @ q))
                 )  /\
-          (ctx_bind(*_ok*) E x Tc) |= (t ^^ x) ~: T @ q) -> (* indicate that T ok holds for x : T -- needed? or is store typing enough *)
+          (ctx_bind E x Tc) |= (t ^^ x) ~: T @ q) ->  (* in principle, x.L would now be a valid middle man in sub_tp_trans since the type members in Tc's expansion have been checked *)
       lc_tp T -> (* XXX necessary? *)
       E |= (new Tc args t) ~: T @ q
 
@@ -150,111 +135,86 @@ where "E |= T ~< D @ q" := (expands E q T D)
 
 
 with sub_tp : env -> quality -> tp -> tp -> Prop :=
-(* only needed for preservation: rewrite paths in case for CTX-Sel -- in subtyping so typing inversion lemma's don't need to account for two different kinds of typing slack: subtyping and path rewriting *)
-   | sub_tp_path_eq : forall E T p p', (* precise subtyping is like type equality *) 
-      path_eq E p p' ->
-      sub_tp E precise (T ^tp^ p') (T ^tp^ p)
-
   | sub_tp_rfn_intro : forall E q T DS,
       expands E q T DS -> 
-      sub_tp E q T (tp_rfn T DS)
+      E |= T ~<: (tp_rfn T DS) @ q
 
-(* factored in since coq can't handle combined scheme that involves sub_decls -- some weird error in decomposing products
-  | sub_tp_rfn_sub : forall L E q T DS1 DS2,
-      (forall z, z \notin L -> sub_decls (ctx_bind E z T) q (DS1 ^ds^ z) (DS2 ^ds^ z)) ->
-      sub_tp E q (tp_rfn T DS1) (tp_rfn T DS2)
-*)
+  | sub_tp_rfn_elim : forall E T DS, (* not redundant with sub_tp_rfn even though it can derive the empty refinement T{}; T{} and T would be unrelated without sub_tp_rfn_elim*)
+      E |= (tp_rfn T DS) ~<: T @ subsumed
 
-  | sub_tp_rfn_sub_precise : forall L E T DS1 DS2,
-      List.Forall (fun d1 => List.Exists (same_label d1) DS2) DS1 -> (* we didn't lose any members *)
-      (forall z, z \notin L -> 
-        (forall d1 d2, In d1 (DS1 ^ds^ z) -> In d2 (DS2 ^ds^ z) -> same_label d1 d2 -> sub_decl (ctx_bind E z T) precise d1 d2)) ->
-      sub_tp E precise (tp_rfn T DS1) (tp_rfn T DS2)
+  | sub_tp_rfn : forall L E T DS1 DS2,
+      ldom DS2 [<l=] ldom DS1 -> (* subsumption may lose members *)
+      (forall z, z \notin L -> (forall l d1 d2, lbinds l d1 DS1 -> lbinds l d2 DS2 -> exists q,
+        sub_decl (ctx_bind E z T) q (d1 ^d^ z) (d2 ^d^ z)))       ->
+      E |= (tp_rfn T DS1) ~<: (tp_rfn T DS2) @ subsumed
 
-  | sub_tp_rfn_sub : forall L E T DS1 DS2,
-      (forall z, z \notin L -> 
-        (forall d1 d2, In d1 (DS1 ^ds^ z) -> In d2 (DS2 ^ds^ z) -> same_label d1 d2 -> exists q, sub_decl (ctx_bind E z T) q d1 d2))  ->
-      sub_tp E subsumed (tp_rfn T DS1) (tp_rfn T DS2)
-
-  | sub_tp_rfn_parent : forall E T DS, (* not redundant since T{} and T are unrelated, the empty refinement T{} can be derived using sub_tp_rfn_sub *)
-      sub_tp E subsumed (tp_rfn T DS) T
+  | sub_tp_rfn_precise : forall L E T DS1 DS2,
+      ldom DS2 [=l=] ldom DS1 -> (* we didn't lose any members *)
+      (forall z, z \notin L -> (forall l d1 d2, lbinds l d1 DS1 -> lbinds l d2 DS2 ->
+        sub_decl (ctx_bind E z T) precise (d1 ^d^ z) (d2 ^d^ z))) ->
+      E |= (tp_rfn T DS1) ~<: (tp_rfn T DS2) @ precise
 
   | sub_tp_tpsel_lower : forall E p T' q1 DS q2 L S U,
-(*      E |= p ~mem~ (decl_tp L S U) @ q -> *)  (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
-      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> In (decl_tp L S U) DS ->
-      sub_tp E subsumed (S ^tp^ p) (tp_sel p L) (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
-(* TODO: is it sound to have `sub_tp E q S (tp_sel p L)` ?? *)
+      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> lbinds L (decl_tp S U) DS ->
+      E |= (S ^tp^ p) ~<: (tp_sel p L) @ subsumed (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
+            (* subsuming a lower bound to its type member selection loses members irrespective of the membership quality *)
 
   | sub_tp_tpsel_upper : forall E p T' q1 DS q2 L S U,
-(*      E |= p ~mem~ (decl_tp L S U) @ q -> *) (* no need to further subsume bounds: membership may use subsumption which may use sub_tp_rfn_r *)
-      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> In (decl_tp L S U) DS ->
-      sub_tp E (q1 & q2) (tp_sel p L) (U ^tp^ p) (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
+      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> lbinds L (decl_tp S U) DS ->
+      E |= (tp_sel p L) ~<: (U ^tp^ p) @ (q1 & q2) (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
 
 (* we can't have unfettered transitivity, because that foil typing_new's well-formedness check that all type members have conforming bounds:
    "S <: T because p.L : S..T said so", not because they actually are -- with the current path safety check, p can only cause transitivity after it's been all patted down and shit *)
   | sub_tp_trans : forall E q1 q2 TMid T T',
-(*      (forall p L, TMid = tp_sel p L -> E |= p safe) -> no sneaky middlemen: type members may only be selected on paths that have been checked by typing_new *)
+  (*      (forall p L, TMid = tp_sel p L -> E |= p safe) -> no sneaky middlemen: type members may only be selected on paths that have been checked by typing_new *)
       (forall p L, TMid <> tp_sel p L) ->  (* unless p is rooted in an object reference that has been checked by typing_new, there's no guarantuee its lowerbound is a subtype of its upperbound
                                               if it is safe, can recover the same judgement from the bounds directly without going through the path selection *)
       E |= T ~<: TMid        @  q1      ->
       E |=       TMid ~<: T' @       q2 ->
       E |= T          ~<: T' @ (q1 & q2)
 
+(* only needed for preservation: rewrite paths in case for CTX-Sel -- in subtyping so typing inversion lemma's don't need to account for two different kinds of typing slack: subtyping and path rewriting *)
+  | sub_tp_path_eq : forall E T p p', (* precise subtyping is like type equality *) 
+    path_eq E p p' ->
+    E |= (T ^tp^ p') ~<: (T ^tp^ p) @ precise
+
 (* what follows is standard: reflexivity (precise!), function types, intersection, union, top and bottom *)
-  | sub_tp_refl : forall E T,
-      sub_tp E precise T T
+  | sub_tp_refl : forall E T, E |= T ~<: T @ precise
+  | sub_tp_top  : forall E T, E |= T ~<: tp_top @ subsumed
+  | sub_tp_bot  : forall E T, E |= tp_bot ~<: T @ subsumed
   | sub_tp_fun : forall E q1 q2 S1 S2 T1 T2,
-      sub_tp E q1 S2 S1 ->
-      sub_tp E q2 T1 T2 ->
-      sub_tp E (q1 & q2) (tp_fun S1 T1) (tp_fun S2 T2) 
+      E |= S2 ~<: S1 @ q1 -> E |= T1 ~<: T2 @ q2->
+      E |= (tp_fun S1 T1) ~<: (tp_fun S2 T2) @ (q1 & q2)
   | sub_tp_and_r : forall E q1 q2 T T1 T2,
-      sub_tp E q1 T T1 ->
-      sub_tp E q2 T T2 ->
-      sub_tp E (q1 & q2) T (tp_and T1 T2)
+      E |= T ~<: T1 @ q1 -> E |= T ~<: T2 @ q2->
+      E |= T ~<: (tp_and T1 T2) @ (q1 & q2)
   | sub_tp_or_l : forall E q1 q2 T T1 T2,
-      sub_tp E q1 T T1 ->
-      sub_tp E q2 T T2 ->
-      sub_tp E (q1 & q2) (tp_or T1 T2) T
+      E |= T ~<: T1 @ q1 -> E |= T ~<: T2 @ q2->
+      E |= (tp_or T1 T2) ~<: T @ (q1 & q2)
   | sub_tp_and_l1 : forall E q T T1 T2,
-      sub_tp E q T1 T ->
-      sub_tp E subsumed (tp_and T1 T2) T
+      E |= T1 ~<: T @ q ->
+      E |= (tp_and T1 T2) ~<: T @ subsumed
   | sub_tp_and_l2 : forall E q T T1 T2,
-      sub_tp E q T2 T ->
-      sub_tp E subsumed (tp_and T1 T2) T
+      E |= T2 ~<: T @ q ->
+      E |= (tp_and T1 T2) ~<: T @ subsumed
   | sub_tp_or_r1 : forall E q T T1 T2,
-      sub_tp E q T T1 ->
-      sub_tp E subsumed T (tp_or T1 T2) 
+      E |= T ~<: T1 @ q ->
+      E |= T ~<: (tp_or T1 T2) @ subsumed
   | sub_tp_or_r2 : forall E q T T1 T2,
-      sub_tp E q T T2 ->
-      sub_tp E subsumed T (tp_or T1 T2) 
-  | sub_tp_top : forall E T,
-      sub_tp E subsumed T tp_top
-  | sub_tp_bot : forall E T,
-      sub_tp E subsumed tp_bot T
+      E |= T ~<: T2 @ q ->
+      E |= T ~<: (tp_or T1 T2) @ subsumed
 
 where "E |= T1 ~<: T2 @ q" := (sub_tp E q T1 T2)
 
 with sub_decl : env -> quality -> decl -> decl -> Prop :=
-  | sub_decl_tp : forall E q1 q2 l S1 T1 S2 T2,
-(*     sub_tp E S1 T1 ->  -- subsumed by well-formedness assumption? *)
+  | sub_decl_tp : forall E q1 q2 S1 T1 S2 T2,
+(*     sub_tp E S1 T1 ->  -- subsumed by well-formedness assumption *)
      sub_tp E q1 S2 S1 ->
      sub_tp E q2 T1 T2 ->
-     sub_decl E (q1 & q2) (decl_tp l S1 T1) (decl_tp l S2 T2) 
-  | sub_decl_tm : forall E q l T1 T2,
+     sub_decl E (q1 & q2) (decl_tp S1 T1) (decl_tp S2 T2) 
+  | sub_decl_tm : forall E q T1 T2,
      sub_tp E q T1 T2 ->
-     sub_decl E q (decl_tm l T1) (decl_tm l T2) 
-
-(* trips up combined scheme
-with sub_decls : env -> quality -> decls -> decls -> Prop :=
-  | sub_decls_precise : forall E DS1 DS2,
-      (forall d2, In d2 DS2 -> (exists d1, In d1 DS1 /\ sub_decl E precise d1 d2))  ->
-      (forall d1, In d1 DS1 -> (exists d2, In d2 DS2 /\ same_label d1 d2)) ->
-      sub_decls E precise DS1 DS2
-  | sub_decls_subsumed : forall E DS1 DS2,
-      (forall d2, In d2 DS2 -> (exists d1, exists q, In d1 DS1 /\ sub_decl E q d1 d2)) ->
-      sub_decls E subsumed DS1 DS2
-*)
-
+     sub_decl E q (decl_tm T1) (decl_tm T2) 
 
 (* path equality is needed for preservation because evaluation changes types that cannot be related otherwise *)
 with path_eq : env -> tm -> tm -> Prop :=
@@ -283,8 +243,8 @@ with wf_ctx : ctx -> Prop :=
   | wf_ctx_nil : wf_ctx nil
   | wf_ctx_cons_tp : forall E x U,
      wf_ctx E ->
-     x \notin dom E -> 
-     (forall x, x \notin dom E -> x \notin fv_tp U)-> 
+     x `notin` dom E -> 
+     (forall x, x `notin` dom E -> x `notin` fv_tp U)-> 
      wf_ctx (x ~ U ++ E)
      
      (*(exists T, U = ctx_tp T    -> x \notin fv_tp T) /\
@@ -301,10 +261,10 @@ with wf_pex : ctx -> pex -> Prop :=
 (* TODO: prove wf_tp E T implies lc_tp T  *)
 with wf_tp : env -> tp -> Prop :=
   | wf_rfn : forall L E T DS,
-      NoDupBy decl_getLabel DS ->
+      decls_ok DS -> (* no dups or invalid label/decl combos *)
       wf_tp E T ->
-      (forall z, z \notin L ->
-          forall d, In d (DS ^ds^ z) -> (wf_decl (ctx_bind E z (tp_rfn T DS)) d)) ->
+      (forall z, z `notin` L ->
+          forall l d, lbinds l d DS -> (wf_decl (ctx_bind E z (tp_rfn T DS)) (d ^d^ z))) ->
       wf_tp E (tp_rfn T DS)
   | wf_lam : forall E T1 T2,
       wf_tp E T1 -> 
@@ -313,14 +273,14 @@ with wf_tp : env -> tp -> Prop :=
   | wf_tsel : forall E q1 q2 T' DS p L S U,
       path p ->
 (*      E |= p ~mem~ (decl_tp L S U) @ q -> *)
-      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> In (decl_tp L S U) (DS ^ds^ p) ->
-      wf_tp E S -> 
-      wf_tp E U ->
+      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> lbinds L (decl_tp S U) DS ->
+      wf_tp E (S ^tp^ p) -> 
+      wf_tp E (U ^tp^ p) ->
       wf_tp E (tp_sel p L)
   | wf_tsel_cls : forall E q1 q2 T' DS p L U,
       path p ->
 (*      E |= p ~mem~ (decl_tp L tp_bot U) @ q -> *)
-      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> In (decl_tp L tp_bot U) (DS ^ds^ p) ->
+      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> lbinds L (decl_tp tp_bot U) DS ->
       wf_tp E (tp_sel p L)
   | wf_and : forall E T1 T2,
       wf_tp E T1 -> 
@@ -334,15 +294,13 @@ with wf_tp : env -> tp -> Prop :=
   | wf_top : forall E, wf_tp E tp_top
   
 with wf_decl : env -> decl -> Prop :=
-  | wf_decl_tp : forall E L S U,
+  | wf_decl_tp : forall E S U,
      wf_tp E S ->
      wf_tp E U ->
-     valid_label (decl_tp L S U) ->
-     wf_decl E (decl_tp L S U)
-  | wf_decl_tm : forall E l T,
+     wf_decl E (decl_tp S U)
+  | wf_decl_tm : forall E T,
      wf_tp E T ->
-     valid_label (decl_tm l T) ->
-     wf_decl E (decl_tm l T).
+     wf_decl E (decl_tm T).
 
 Scheme typing_indm         := Induction for typing Sort Prop 
   with expands_indm        := Induction for expands Sort Prop
@@ -426,18 +384,14 @@ Definition typing_store E s :=
           /\  concrete Tc (* see typing_new, replacing implication by conjunction and forall by exists *)
           /\  E |= Tc ~< ds @ precise
           /\  exists L, (forall x, x \notin L ->  
-                 NoDupBy fst args -> (* ctor args are unique by label *)
-        (*         NoDupBy decl_getLabel ds ->  -- redundant with expands Tc and Tc wf: that ensures decls are unique by label *)
-                 List.Forall (fun l_v => List.Exists (fun d => decl_getLabel d = fst l_v) ds) args -> (* all ctor args must have declaration with same label*)
-                 (forall d, In d ds -> 
-                        (forall L U T, d ^d^ x = decl_tp L T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
-                          (exists q, (ctx_bind E x Tc) |= T ~<: U @ q)) /\
-                        (forall l T, d ^d^ x = decl_tm l T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
-                          exists l_v, In l_v args /\ (fst l_v = l /\ 
-                                                  value ((snd l_v) ^^ x) /\ (exists q, (ctx_bind E x Tc) |= ((snd l_v) ^^ x) ~: T @ q)
-                                                 ))
-                ))).
-(*          /\  E |= (ref a) ~: Tc @ precise           TODO: this is redundant since all locations in the store are also in the environment, moreover the store does not need to track Tc *)
+                luniq args -> (* ctor args are unique by label *)
+                (ldom ds) [=l=] (ldom args) -> (* all ctor args must have declaration with same label*)
+                (forall l d, lbinds l d ds -> 
+                  (forall U T, d ^d^ x = decl_tp T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
+                    (exists q, (ctx_bind E x Tc) |= T ~<: U @ q)) /\
+                  (forall v T, d ^d^ x = decl_tm T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
+                    lbinds l v args /\ value (v ^^ x) /\ (exists q, (ctx_bind E x Tc) |= (v ^^ x) ~: T @ q))
+      ))).
 
 Notation "E |== s" := (typing_store E s) (at level 68).
 
@@ -457,7 +411,37 @@ Definition progress := forall P t T q s,
   (nil, P) |== s ->
      value t \/ exists t', exists s', s |~ t ~~> t' ~| s'.
 
-  
+
+
+(* trips up combined scheme -- sub_decls was factored into sub_tp since coq can't handle the resulting combined scheme  -- some weird error in decomposing products
+  | sub_tp_rfn_sub : forall L E q T DS1 DS2,
+      (forall z, z \notin L -> sub_decls (ctx_bind E z T) q (DS1 ^ds^ z) (DS2 ^ds^ z)) ->
+      sub_tp E q (tp_rfn T DS1) (tp_rfn T DS2)
+
+with sub_decls : env -> quality -> decls -> decls -> Prop :=
+  | sub_decls_precise : forall E DS1 DS2,
+      (forall d2, In d2 DS2 -> (exists d1, In d1 DS1 /\ sub_decl E precise d1 d2))  ->
+      (forall d1, In d1 DS1 -> (exists d2, In d2 DS2 /\ same_label d1 d2)) ->
+      sub_decls E precise DS1 DS2
+  | sub_decls_subsumed : forall E DS1 DS2,
+      (forall d2, In d2 DS2 -> (exists d1, exists q, In d1 DS1 /\ sub_decl E q d1 d2)) ->
+      sub_decls E subsumed DS1 DS2
+*)  
+
+
+(*
+Inductive safe_path : env -> tm -> Prop :=
+   | safe_path_ref_ok : forall E a T,
+      ctx_binds_ok E a T ->
+      safe_path E (ref a)
+   | safe_path_fvar_ok : forall E x T,
+      ctx_binds_ok E x T ->
+      safe_path E (fvar x)
+   | safe_path_sel : forall E p l,
+      safe_path E p -> safe_path E (sel p l).
+
+Notation "E |= t 'safe'" := (safe_path E t) (at level 69).
+*)
 
 
 (*
