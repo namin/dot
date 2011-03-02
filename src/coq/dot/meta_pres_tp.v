@@ -2,11 +2,8 @@ Set Implicit Arguments.
 Require Import List.
 Require Import syntax_binding theory.
 Require Import Metatheory LibTactics_sf support.
-Require Import meta_pres_subst meta_weakening meta_inversion.
+Require Import meta_pres_subst meta_weakening meta_inversion meta_binding.
 Require Import Coq.Program.Equality.
-
-
-Lemma open_lc_decl_ident: forall d t, lc_decl d -> open_decl_cond d t d. Admitted.
 
 
 Lemma red_pres_path: forall s t t' s' E' T q DS q', 
@@ -15,7 +12,7 @@ Lemma red_pres_path: forall s t t' s' E' T q DS q',
 Proof.
   introv HStoTp Hpath Hred Htp HX. generalize dependent q'. generalize dependent q. generalize dependent T. generalize dependent DS. induction Hred; intros; inverts Hpath; eauto. inverts H2 (*value v*); auto.
 
-  destruct (invert_typing_lam HStoTp Htp) as [? [? [? [? [? [? HSubFun]]]]]]. 
+  destruct (invert_typing_lam HStoTp Htp) as [? [? [? [? [? [? [? HSubFun]]]]]]]. 
   set (expands_sub_safe HStoTp HSubFun HX) as HXF. destruct HXF as [qq HXF']. set (invert_expands_fun HXF'). tauto.
   apply path_sel. 
 
@@ -132,51 +129,34 @@ Focus.
 
   (*app*) intros HTFun IHTFun HTArg IHTArg. introv. intros HStoTp HRed. inverts HRed.
     SCase "red_beta". exists E. split; auto. split; auto. unfold AtomSetImpl.Subset. auto. clear IHTArg IHTFun.
-      destruct (invert_typing_lam HStoTp HTFun) as [q0 [L [Tr' [HT [HWf [? Hsubfun]]]]]]. 
+      destruct (invert_typing_lam HStoTp HTFun) as [q0 [L [Tr' [HT [HWf [HLcT [? Hsubfun]]]]]]]. 
+      assert (exists T1', exists T2', subsumes_fun_tp (tp_fun Ta Tr) T1' T2' /\ (exists q, E |= T1' ~<: T @ q /\ (exists q0, E |= Tr' ~<: T2' @ q0))) as [T1' [T2' [HSFT [qa [HSubArg [qr HSubRes]]]]]]. 
+        destruct (invert_subtyping_fun) as [_ InvSubFun]. 
+        eapply (InvSubFun E x (tp_fun T Tr') (tp_fun Ta Tr)  Hsubfun); eauto.
+        unfold not. intros. inverts H.
+     inverts HSFT.
 
-(*
+     assert (exists q, E |= t ^^ ta ~: Tr' ^tp^ ta @ q).
+      pick fresh z for L. set (HT z Fr) as HT'. 
+      apply subst_pres_typing with (x := z) (Tx := T); eauto. 
+      replace (Tr' ^tp^ z) with (Tr'); [idtac | apply open_lc_is_noop; eauto]. eexists; eauto.
+      eexists; eapply typing_sub; eauto.
+    replace (Tr' ^tp^ ta) with (Tr') in H; [idtac | apply open_lc_is_noop; eauto]. 
+    destruct H. eexists; eapply typing_sub; eauto.
 
-  E |= tp_fun T Tr' ~<: U @ q
-  ============================ invert_subtyping_fun
-  E |= U ~<: tp_fun T Tr' @ q
-  E |= Ta <: T /\   E |= Tr' <: Tr
-
-  E |== s
-  Hsubfun : E |= tp_fun T Tr' <: tp_fun Ta Tr @ x
-  ============================ invert_subtyping_fun
-  E |= Ta <: T /\   E |= Tr' <: Tr
-
-  HTArg : E |= ta ~: Ta @ q'
-  ===== typing_sub
-  E |= ta ~: T @ q''
-
-  HT : forall x : atom, x `notin` L -> ctx_bind E x T |= t ^^ x ~: Tr' @ q0
-  === pick fresh x for HT
-  ctx_bind E x0 T |= t ^ x0 ~: Tr' @ q0
-  
-  H6 : value ta
-  E |= ta ~: T @ q''
-  ===== subst_pres_typing
-  E |= t ^^ ta ~: Tr' @ q0
-  
-  E |= Tr' <: Tr
-  ===== typing_sub
-  E |= t ^^ ta ~: Tr @ q0'
-
-  s' : store
-  T : tp
-  t : tm
-  H1 : wf_store s'
-  H3 : lc_tm (lam T t)
-  HStoTp : E |== s'
-*)
- 
     SCase "red_app_fun".
+      destruct (IHTFun e' s s' HStoTp H5) as [E' [HStoTp' [HDom [qf' HTFun']]]].
+      exists E'. split; eauto. split; eauto. exists qf'. 
+        assert (exists q, E' |= ta ~: Ta @ q) as [qa HTa] by (eapply weakening_typing; eauto). 
+        eapply typing_app; eauto.
 
     SCase "red_app_arg".
+      destruct (IHTArg e' s s' HStoTp H5) as [E' [HStoTp' [HDom [qa' HTArg']]]].
+      exists E'. split; eauto. split; eauto. 
+        assert (exists q, E' |= tf ~: tp_fun Ta Tr @ q) as [qf HTf] by (eapply weakening_typing; eauto). 
+        exists qf. eapply typing_app; eauto.
 
-destruct (IHT t' s s' HStoTp HRed) as [E' [HStoTp' [HDom HT']]]. 
-  
+  (* lam *)  
 
 End Section.
 
