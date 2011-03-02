@@ -52,6 +52,7 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
    However, a lambda with an illegal type for its argument cannot be applied, and the illegal type is confined to its body *)
    | typing_lam : forall L E q S t T,
       (forall x, x \notin L -> (ctx_bind E x S) |= (t ^^ x) ~: T @ q) -> (* x notin FV(T) follows from the stronger x \notin L forall L *)
+      lc_tp T -> (* XXX necessary? *)
       wf_tp E (tp_fun S T) ->
       E |= (lam S t) ~: (tp_fun S T) @ q
 

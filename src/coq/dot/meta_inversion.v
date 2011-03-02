@@ -148,7 +148,7 @@ Proof. Admitted.
 
 Lemma invert_typing_lam : forall E S t U q s, E |== s -> E |= lam S t ~: U @ q -> 
       exists q1, exists L, exists T, (forall x, x \notin L -> (ctx_bind E x S) |= (t ^^ x) ~: T @ q1) /\
-      wf_tp E (tp_fun S T) /\
+      wf_tp E (tp_fun S T) /\ lc_tp T /\
       exists q2, sub_tp E q2 (tp_fun S T) U.
 Proof. Admitted.
 
