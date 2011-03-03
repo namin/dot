@@ -139,6 +139,7 @@ with expands : env -> quality -> tp -> decls -> Prop :=
       or_decls DS1 DS2 DSM ->
       expands E (q1 & q2) (tp_or T1 T2) DSM
   | expands_top : forall E,
+(*      wf_env E -> *)
       expands E precise tp_top nil
 where "E |= T ~< D @ q" := (expands E q T D)
 
@@ -149,6 +150,8 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=
       E |= T ~<: (tp_rfn T DS) @ q
 
   | sub_tp_rfn_elim : forall E T DS, (* not redundant with sub_tp_rfn even though it can derive the empty refinement T{}; T{} and T would be unrelated without sub_tp_rfn_elim*)
+(*      wf_env E ->
+      lc_tp (tp_rfn T DS) -> *)
       E |= (tp_rfn T DS) ~<: T @ subsumed
 
   | sub_tp_rfn : forall L E T DS1 DS2,
@@ -261,6 +264,7 @@ with wf_ctx : ctx -> Prop :=
                                   (exists T, U = ctx_tp_ok T -> x \notin fv_tp T)) *)
 
 with wf_pex : ctx -> pex -> Prop := 
+  | wf_pex_nil : forall G, wf_pex G nil
   | wf_pex_cons : forall G PS a a' l,
      a \in dom G -> (* this binding does not replace the a : Tc that's already there*)
      a' \in dom G ->

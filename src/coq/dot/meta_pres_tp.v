@@ -2,7 +2,7 @@ Set Implicit Arguments.
 Require Import List.
 Require Import syntax_binding theory.
 Require Import Metatheory LibTactics_sf support.
-Require Import meta_pres_subst meta_weakening meta_inversion meta_binding.
+Require Import meta_pres_subst meta_weakening meta_inversion meta_binding meta_regular.
 Require Import Coq.Program.Equality.
 
 
@@ -156,7 +156,50 @@ Focus.
         assert (exists q, E' |= tf ~: tp_fun Ta Tr @ q) as [qf HTf] by (eapply weakening_typing; eauto). 
         exists qf. eapply typing_app; eauto.
 
-  (* lam *)  
+  (* lam *) intros HTpBody IHBody HLcT HWfFunT _. introv. intros HStoTp HRed. inverts HRed.
+  (* new *) intros HWfTc _ HConcTc HTcX _ IHt HLcT. introv. intros HStoTp HRed. inverts HRed.
+   set (E' := ( a ~ Tc ++ fst E, extract_pex a args ++ snd E)).
+   assert (dom (fst E)[<=]dom (fst E')) by (simpl; fsetdec).
+   destruct (regular_expands HTcX) as [HWfE HLcTc]. inversion HWfE.
+   assert (wf_env E') as HWfE'. 
+     eapply wf_env_; eauto. eapply wf_ctx_cons_tp; eauto. 
+       rewrite <- H3. simpl. auto. 
+       inversion HStoTp as [_ [HDomEnvStoEq _]]. fsetdec.
+       admit. (* forall x : atom, x `notin` dom (fst E) -> x `notin` fv_tp Tc *)
+       inversion HStoTp. rewrite <- H3. simpl. auto. admit.
+(*
+  wf_store s
+  forall (l : label) (v : tm),
+  LabelMapImpl.binds l v args -> value (v ^^ ref a)
+  a `notin` dom s
+  wf_pex G P
+  dom G [=] dom s
+  
+  (forall (a : atom) (Tc : tp) (args' : syntax_binding.args)
+      (ds : decls),
+    binds a (Tc, args') s ->
+    exists args0,
+    args' = args0 ^args^ ref a /\
+    Forall (pex_has (G, P)) (extract_pex a args0))
+ ============================
+   wf_pex ((a, Tc) :: G) (extract_pex a args ++ P)
+*)
+   exists E'. 
+     split; [idtac | split; [simpl; fsetdec | idtac]].
+     SCase "bigger store is well-typed in bigger env".
+     simpl. admit.
+     SCase "opening up the body with (ref a) is well-typed in E'".
+      pick fresh x for L. set (IHt x Fr) as IHT'. 
+      simpl. 
+      unfold ctx_bind in IHT'. 
+      assert (exists q,  ([(x, Tc)] ++ fst E', snd E') |= t ^ x ~: T @ q) as HTpAss. apply weakening_typing with (E := ([(x, Tc)] ++ fst E, snd E)) (q := q). simpl. fsetdec. apply IHT'.
+      replace (T) with (T ^tp^ x) in HTpAss; [idtac | rewrite <- open_lc_is_noop; eauto]. 
+      replace (T) with (T ^tp^ (ref a)); [idtac | rewrite <- open_lc_is_noop; eauto]. 
+      apply subst_pres_typing with (x := x) (Tx := Tc); eauto. 
+      eexists; eapply typing_ref; eauto.
+        (* ctx_binds E' a Tc *) unfold ctx_binds. simpl. auto.
+
+Qed.
 
 End Section.
 
