@@ -106,18 +106,17 @@ Inductive ctx_entry : Set :=
   hopefully this info can be kept separately in the meta-theory -- we'll have to see
 *)
 Definition ctx : Set := (list (atom * tp)). (* gamma *)
-Definition pex : Set := (list (loc * (loc * label))). (* path equalities -- only used for preservation *)
-Definition env : Set := (ctx * pex)%type.
+Definition store : Set := (list (loc * (tp * args))).
+
+(* slightly unconventional: use store itself as store typing, since we need both the type of the location and the values of the object's fields, i.e. the ctor arguments
+ the latter is needed to compute path equalities resulting from object allocation -- only used for preservation *)
+Definition env : Set := (ctx * store)%type.
 
 Definition ctx_binds   : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x T (fst E).
 (*Definition ctx_binds_ok   : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x (ctx_tp_ok T) (fst E).*)
 Definition ctx_bind    : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ T ++ (fst E), snd E).
 (*Definition ctx_bind_ok : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ (ctx_tp_ok T) ++ (fst E), snd E).*)
 Definition ctx_fresh   : env -> atom -> Prop := fun E => fun a => a `notin` dom (fst E).
-
-Definition pex_has : env -> atom * (atom * label) -> Prop := fun E => fun peq => In peq (snd E).
-Definition pex_add : env -> atom * (atom * label) -> env := fun E => fun peq => ((fst E), peq :: (snd E)).
-
 
 Coercion bvar : nat >-> tm.
 Coercion fvar : var >-> tm.

@@ -55,16 +55,14 @@ Section InvSubTop.
   Let P3_ (e : env) (q : quality) (d d0 : decl) (H: sub_decl e q d d0) := True.
   Let P4_ (e : env) (t t0 : tm) (H: path_eq e t t0) := True.
   Let P5_ (e : env) (H: wf_env e) := True.
-  Let P6_ (c : ctx) (H: wf_ctx c) := True.
-  Let P7_ (c : ctx) (p : pex) (H: wf_pex c p) := True.
-  Let P8_ (e : env) (t : tp) (H: wf_tp e t) := True.
-  Let P9_ (e : env) (d : decl) (H: wf_decl e d) := True.
+  Let P6_ (e : env) (t : tp) (H: wf_tp e t) := True.
+  Let P7_ (e : env) (d : decl) (H: wf_decl e d) := True.
 
 Lemma invert_subtyping_top : 
    (forall E q T DS, E |= T ~< DS @ q -> subsumes_top T -> DS = nil) /\
    (forall E q T T', E |= T ~<: T' @ q -> subsumes_top T -> ~ has_tp_sel T' -> subsumes_top T').
 Proof. 
-  mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ P9_; intros; try solve [inverts H;eauto | inverts H0;eauto | inverts H1;eauto | eauto ].
+  mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; intros; try solve [inverts H;eauto | inverts H0;eauto | inverts H1;eauto | eauto ].
 
 (*cases: *)
     (* expands_rfn *) inverts H0. assert (DSP = nil) by auto. subst. apply and_decls_nil_2; assumption.
@@ -104,19 +102,19 @@ Section InvSubFun.
   Let P3_ (e : env) (q : quality) (d d0 : decl) (H: sub_decl e q d d0) := True.
   Let P4_ (e : env) (t t0 : tm) (H: path_eq e t t0) := True.
   Let P5_ (e : env) (H: wf_env e) := True.
-  Let P6_ (c : ctx) (H: wf_ctx c) := True.
-  Let P7_ (c : ctx) (p : pex) (H: wf_pex c p) := True.
-  Let P8_ (e : env) (t : tp) (H: wf_tp e t) := True.
-  Let P9_ (e : env) (d : decl) (H: wf_decl e d) := True.
+  Let P6_ (e : env) (t : tp) (H: wf_tp e t) := True.
+  Let P7_ (e : env) (d : decl) (H: wf_decl e d) := True.
 
 (* this is the first lemma that i tried to prove that relies on E only having x : T for which T has been checked for full well-formedness, as performed by typing_new  *)
 Lemma invert_subtyping_fun : 
    (forall E q T DS, E |= T ~< DS @ q -> exists T1, exists T2, subsumes_fun_tp T T1 T2 -> DS = nil) /\
    (forall E q T T', E |= T ~<: T' @ q -> forall T1 T2, subsumes_fun_tp T T1 T2 -> ~ has_tp_sel T' -> exists T1', exists T2', subsumes_fun_tp T' T1' T2' /\ exists q, E |= T1' ~<: T1 @ q /\ exists q, E |= T2 ~<: T2' @ q).
-Proof. 
-  mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ P9_; intros; try solve [ eauto ].
+Proof. Admitted.
 
-(*Lemma invert_subtyping_fun: forall E S T U S' T' q1 q2 s,  E |== s ->
+(*
+  mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; intros; try solve [ eauto ].
+
+Lemma invert_subtyping_fun: forall E S T U S' T' q1 q2 s,  E |== s ->
   E |= (tp_fun S T) ~<: U @ q1 -> E |= U ~<: (tp_fun S' T') @ q2 -> (~ has_tp_sel U) ->
   exists q1, sub_tp E q1 S' S /\ exists q2, sub_tp E q2 T T'.
 Proof. introv. intros HStoTp HSubL. generalize dependent S'. generalize dependent T'. generalize dependent q2.
@@ -130,7 +128,7 @@ Proof. introv. intros HStoTp HSubL. generalize dependent S'. generalize dependen
     intros. admit. (* fun -> do common thing, then use trans*)
     intros. destruct (invert_subtyping_and_l HSubR) as [HSub1 HSub2]. inverts HSub1. apply IHHSubL1 with (q2 := x); auto. admit. admit. admit. 
 *)
-Admitted.
+
 
 End InvSubFun.
 
@@ -138,36 +136,49 @@ End InvSubFun.
 Lemma invert_expands_fun: forall E S T DS q,  E |= tp_fun S T ~< DS @ q -> DS = nil.
 Proof. Admitted.
 
+Lemma invert_expands_concrete : forall E s Tc DS q, (E, s) |= Tc ~< DS @ q -> concrete Tc -> 
+    exists DS', (E, s) |= Tc ~< DS' @ precise /\ exists q, sub_decls (E, s) q DS' DS.
+Proof. Admitted.
+
+Lemma invert_wf_store_uniq : forall s, wf_store s -> uniq s.
+Proof. Admitted.
 
 
-Lemma sub_tp_trans_safe : forall E s S TMid T q1 q2, E |== s -> E |= S ~<: TMid @ q1 -> E |= TMid ~<: T @ q2 -> exists q3, E |= S ~<: T @ q3.
+(* XXXX probably not provable as-is: what if E has an evil variable binding? that could be used to create an illegal subtyping derivation *)
+Lemma sub_tp_trans_safe : forall E s S TMid T q1 q2, E |== s -> (E, s) |= S ~<: TMid @ q1 -> (E, s) |= TMid ~<: T @ q2 -> exists q3, (E, s) |= S ~<: T @ q3.
 Proof. Admitted. (* intros.  set TMid as TMid'. destruct TMid; try solve [exists (q1 & q2); apply sub_tp_trans with (TMid := TMid'); auto; unfold not; intros ? ? HH; inversion HH | idtac]. clear TMid'.   dependent induction H0.*)
 
-Lemma expands_sub_safe : forall E s S TMid DS q1 q2, E |== s -> E |= S ~<: TMid @ q1 -> E |= TMid ~< DS @ q2 -> exists q3, E |= S ~< DS @ q3.
+Lemma expands_sub_safe : forall E s S TMid DS q1 q2, E |== s -> (E, s) |= S ~<: TMid @ q1 -> (E, s) |= TMid ~< DS @ q2 -> exists q3, (E, s) |= S ~< DS @ q3.
 Proof. Admitted.
 
-Lemma invert_typing_lam : forall E S t U q s, E |== s -> E |= lam S t ~: U @ q -> 
-      exists q1, exists L, exists T, (forall x, x \notin L -> (ctx_bind E x S) |= (t ^^ x) ~: T @ q1) /\
-      wf_tp E (tp_fun S T) /\ lc_tp T /\
-      exists q2, sub_tp E q2 (tp_fun S T) U.
+Lemma invert_typing_lam : forall E S t U q s, E |== s -> (E, s) |= lam S t ~: U @ q -> 
+      exists q1, exists L, exists T, (forall x, x \notin L -> (ctx_bind (E, s) x S) |= (t ^^ x) ~: T @ q1) /\
+      wf_tp (E, s) (tp_fun S T) /\ lc_tp T /\
+      exists q2, (E, s) |= (tp_fun S T) ~<: U @ q2.
 Proof. Admitted.
 
-Lemma invert_typing_sel: forall E t l T q s, E |== s -> E |= sel t l ~: T @ q ->   
-      exists T', exists q1, E |= t ~: T' @ q1 /\
-      exists DS, exists q2, E |= T' ~< DS @ q2 /\
+Lemma invert_typing_sel: forall E t l T q s, E |== s -> (E, s) |= sel t l ~: T @ q ->   
+      exists T', exists q1, (E, s) |= t ~: T' @ q1 /\
+      exists DS, exists q2, (E, s) |= T' ~< DS @ q2 /\
       exists D, LabelMapImpl.binds l D DS /\
       exists S, open_decl_cond D t (decl_tm S) /\
-      exists q3, sub_tp E q3 S T.
+      exists q3, (E, s) |= S ~<: T @ q3.
 Proof.
   introv. intros Hstowf H. dependent induction H. 
     repeat eexists; eauto. apply sub_tp_refl.
-    destruct (IHtyping t l); auto. exists x. 
+    destruct (IHtyping s l t E); auto. exists x. 
     destruct H1 as [q1' [HT [DS [q2' [HX [D [Hin [S0 [HOpen [q3 HSub]]]]]]]]]].
     repeat ((eapply sub_tp_trans_safe; eauto) || (esplit; eauto)).
 Qed.
 
+Lemma invert_typing_ref: forall E s a T q, (E, s) |= ref a ~: T @ q -> 
+    exists T', exists args, binds a (T', args) s /\
+    exists q, (E, s) |= T' ~<: T @ q.
+Proof. Admitted.
 
 
+Lemma inversion_red_store_dom : forall s t t' s', s |~ t ~~> t' ~| s' -> dom s [<=] dom s'.
+Proof. Admitted.
 
 
 (*
@@ -225,3 +236,10 @@ Proof.
 Lemma invert_typing_sel : forall E S t U q, E |= sel t l ~: T @ q -> exists q0, exists q1, exists T, E |= lam S t ~: (tp_fun S T) @ q0 /\ sub_tp E q1 (tp_fun S T) U.
 Admitted.
 *)
+
+(*
+*** Local Variables: ***
+*** coq-prog-name: "coqtop" ***
+*** coq-prog-args: ("-emacs-U" "-I" "../metalib") ***
+*** End: ***
+*)  

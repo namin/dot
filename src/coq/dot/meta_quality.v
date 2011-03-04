@@ -4,42 +4,43 @@
 (*************************************************************************)
 
 Set Implicit Arguments.
-Require Import Metatheory support syntax_binding theory LibTactics_sf.
 Require Import List.
+Require Import syntax_binding theory.
+Require Import Metatheory LibTactics_sf support.
+Require Import meta_pres_subst meta_weakening meta_inversion meta_binding meta_regular meta_decls.
 Require Import Coq.Program.Equality.
 
 
-Notation "E |= D <:DS<: D'" := (List.Forall (fun d => List.Exists (fun dp => exists q, sub_decl E q dp d) D) D') (at level 69).
+Notation "E |= D <:DS<: D'" := (exists q, sub_decls E q D D') (at level 69).
 
   Lemma sub_decls_monotone_or_2 : forall E DS DS' DX DX' DSX DSX', 
     E |= DS <:DS<: DS' ->     E |= DX <:DS<: DX' -> 
     or_decls DS  DX DSX -> or_decls DS' DX' DSX' -> 
     E |= DSX <:DS<: DSX'.
-    Proof.
-  Admitted.
+    Proof. Admitted.
 
   Lemma sub_decls_monotone_and_2 : forall E DS DS' DX DX' DSX DSX', 
     E |= DS <:DS<: DS' ->     E |= DX <:DS<: DX' -> 
     and_decls DS  DX DSX -> and_decls DS' DX' DSX' -> 
     E |= DSX <:DS<: DSX'.
-    Proof.
-  Admitted.
+    Proof. Admitted.
 
   Lemma sub_decls_monotone_and : forall E DS DS' DX DSX DSX', 
     E |= DS <:DS<: DS' -> 
     and_decls DS  DX DSX -> and_decls DS' DX DSX' -> 
     E |= DSX <:DS<: DSX'.
-    Proof.
-  Admitted.
+    Proof. Admitted.
 
 
 Lemma quality_soundness_sub : forall E DS DS' T U q1 q2, 
   E |= T ~< DS @ precise -> 
-  sub_tp E q1 T U -> 
+  E |= T ~<: U @ q1 -> 
   E |= U ~< DS' @ q2 /\
   E |= DS <:DS<: DS'.
-Proof. 
+Proof. Admitted. 
 
+
+(*
 Lemma quality_soundness_sub : forall E DS DS' T U q1 q2, 
   E |= T ~< DS @ precise -> 
   sub_tp E q1 T U -> 
@@ -57,13 +58,15 @@ Focus 2.
   set (IHHX HXp IHHXp). inversion H3; subst; eauto.
   dependent induction HS; subst.
  set (@IHHXp precise q TP0 (sub_tp_refl E TP0) DSP0 HX).
-
+*)
 
 
 (* my precise expansion is better than yours *)
 Theorem quality_soundness : forall E T DS DSp, 
   (exists q, E |= T ~< DS @ q) ->  E |= T ~< DSp @ precise -> E |= DSp <:DS<: DS.
-Proof.
+Proof. Admitted.
+
+(*)
   intros E T DS DSp HX HXp. generalize dependent DS.
   dependent induction HXp; intros DS0 HX; inversion HX; try dependent induction H0.
 (*
@@ -125,6 +128,7 @@ Hint Constructors expands. Hint Constructors sub_tp.
   apply quality_soundness_sub with (T := T) (U := T) (q1 := precise) (q2 := q0 & q3); eauto.
   assert ( E |= T ~< DS @ (precise & precise) ); eauto. 
 Qed.
+*)
 
 (*
 *** Local Variables: ***

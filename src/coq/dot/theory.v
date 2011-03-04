@@ -17,16 +17,14 @@ Inductive has_tp_sel : tp -> Prop :=
 
 Inductive typing : env -> quality -> tm -> tp -> Prop :=
    | typing_var : forall E x T,
-      wf_env E ->
-      lc_tp T -> (* for typing_regular *)
+      wf_env E -> lc_tp T -> (* for typing_regular *)
       ctx_binds E x T ->
       E |= (fvar x) ~: T @ precise
 
-   | typing_ref : forall E x T,
-      wf_env E ->
-      lc_tp T -> (* for typing_regular *)
-      ctx_binds E x T ->
-      E |= (ref x) ~: T @ precise
+   | typing_ref : forall G P a T args, (* this is the only typing rule that peeks into the store, well, the path_eq judgement does as well *)
+      wf_env (G, P) -> lc_tp T -> (* for typing_regular *)
+      binds a (T, args) P ->
+      (G, P) |= (ref a) ~: T @ precise
 
    | typing_sel : forall E q1 q2 t T' D DS l T,
 (*      E |= t ~mem~ (decl_tm l T) @ q ->   *)
@@ -76,31 +74,16 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
       wf_tp E Tc ->
       concrete Tc ->
       E |= Tc ~< ds @ precise ->
-(* check that lowerbounds are subtypes of upperbounds, 
-   arguments are values and they have the type declared in the decls, 
-   all value labels in decls must have corresponding arg (and vice-versa)*)
-      (forall x, x \notin L -> 
-         LabelMapImpl.uniq args /\ (* ctor args are unique by label *)
 (*       decls_ok ds /\  -- implied by expansion of well-formed type *)
-         (LabelMapImpl.dom ds) [=l=] (LabelMapImpl.dom args) /\ (* all ctor args must have declaration with same label*)
-         (forall l d, LabelMapImpl.binds l d ds -> 
-                (forall U T, d ^d^ x = decl_tp T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
-                  (exists q, (ctx_bind E x Tc) |= T ~<: U @ q)) /\
-                (forall T, d ^d^ x = decl_tm T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
-                  (exists v, LabelMapImpl.binds l v args /\ value (v ^^ x) /\ (exists q, (ctx_bind E x Tc) |= (v ^^ x) ~: T @ q)))
-                )  /\
-          (ctx_bind E x Tc) |= (t ^^ x) ~: T @ q) ->  (* in principle, x.L would now be a valid middle man in sub_tp_trans since the type members in Tc's expansion have been checked *)
-      lc_tp T -> (* XXX necessary? *)
+      LabelMapImpl.uniq args -> (* ctor args are unique by label *)
+      (LabelMapImpl.dom ds) [=l=] (LabelMapImpl.dom args) -> (* all ctor args must have declaration with same label*)
+      (forall x, x \notin L -> (forall l d, LabelMapImpl.binds l d ds -> 
+        (forall U T, d ^d^ x = decl_tp T U -> (exists q, (ctx_bind E x Tc) |= T ~<: U @ q)) /\ (* for each type member: its lower bound must be a subtype of its upper bound *)
+        (forall T, d ^d^ x = decl_tm T -> (exists v,  (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
+          LabelMapImpl.binds l v args /\ value (v ^^ x) /\ (exists q, (ctx_bind E x Tc) |= (v ^^ x) ~: T @ q))))) ->
+      (forall x, x \notin L -> (ctx_bind E x Tc) |= (t ^^ x) ~: T @ q) ->  (* in principle, x.L would now be a valid middle man in sub_tp_trans since the type members in Tc's expansion have been checked *)
+      (* lc_tp T ->  not needed -- implied by typing_regular for the above judgement *)
       E |= (new Tc args t) ~: T @ q
-
-(*      
-match d with
-| decl_tp L T U => exists q, sub_tp E q T U (* for each type member: its lower bound must be a subtype of its upper bound *)
-| decl_tm l T => List.Exists (fun l_v => fst l_v = l /\ (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
-                   value (snd l_v) /\ (exists q, E |= (snd l_v) ~: T @ q)
-                 ) Args
-end
-*)
 
 where "E |= t ~: T @ q" := (typing E q t T)
 
@@ -238,10 +221,11 @@ with path_eq : env -> tm -> tm -> Prop :=
       path_eq E p q ->
       path_eq E q p
 
-   | peq_env : forall E a a' l,
-      wf_env E ->
-      pex_has E (a, (a', l)) ->
-      path_eq E (ref a) (sel a' l)
+   | peq_env : forall G P a Tc args l a',
+      wf_env (G, P) ->
+      binds a (Tc, args) P ->
+      LabelMapImpl.binds l (ref a') args ->
+      path_eq (G, P) (ref a') (sel a l)
 
    | peq_sel : forall E p p' l T q,
       path_eq E p p' ->
@@ -249,28 +233,12 @@ with path_eq : env -> tm -> tm -> Prop :=
       path_eq E (sel p l) (sel p' l)
 
 with wf_env : env -> Prop := 
-  | wf_env_ : forall G P,
-     wf_ctx G -> wf_pex G P -> wf_env (G, P)
-
-with wf_ctx : ctx -> Prop := 
-  | wf_ctx_nil : wf_ctx nil
-  | wf_ctx_cons_tp : forall E x U,
-     wf_ctx E ->
+  | wf_env_nil : forall P, wf_env (nil, P)
+  | wf_env_cons : forall E x U P,
+     wf_env (E, P) ->
      x `notin` dom E -> 
      (forall x, x `notin` dom E -> x `notin` fv_tp U)-> 
-     wf_ctx (x ~ U ++ E)
-     
-     (*(exists T, U = ctx_tp T    -> x \notin fv_tp T) /\
-                                  (exists T, U = ctx_tp_ok T -> x \notin fv_tp T)) *)
-
-with wf_pex : ctx -> pex -> Prop := 
-  | wf_pex_nil : forall G, wf_pex G nil
-  | wf_pex_cons : forall G PS a a' l,
-     a \in dom G -> (* this binding does not replace the a : Tc that's already there*)
-     a' \in dom G ->
-     (* exists T, mem (G, nil) a' (decl_tm l T) ->*) (* TODO *)
-     wf_pex G PS ->
-     wf_pex G ((a, (a', l)) :: PS) (* a =path= a'.l since a' was allocated, and has a member l equal to a *)
+     wf_env ((x ~ U ++ E), P)
 
 (* TODO: prove wf_tp E T implies lc_tp T  *)
 with wf_tp : env -> tp -> Prop :=
@@ -318,37 +286,51 @@ with wf_decl : env -> decl -> Prop :=
 
 Scheme typing_indm         := Induction for typing Sort Prop 
   with expands_indm        := Induction for expands Sort Prop
-(*  with mem_indm            := Induction for mem Sort Prop URGH -- why can't Coq just do the right thing for single-ctor inductive definitions *)
   with sub_tp_indm         := Induction for sub_tp Sort Prop
   with sub_decl_indm       := Induction for sub_decl Sort Prop
   with path_eq_indm        := Induction for path_eq Sort Prop
   with wf_env_indm         := Induction for wf_env Sort Prop
-  with wf_ctx_indm         := Induction for wf_ctx Sort Prop
-  with wf_pex_indm         := Induction for wf_pex Sort Prop
   with wf_tp_indm          := Induction for wf_tp Sort Prop
   with wf_decl_indm        := Induction for wf_decl Sort Prop.
 
-Combined Scheme typing_mutind from typing_indm, expands_indm, (*mem_indm,*) sub_tp_indm, sub_decl_indm, path_eq_indm, wf_env_indm, wf_ctx_indm, wf_pex_indm, wf_tp_indm, wf_decl_indm.
+Combined Scheme typing_mutind from typing_indm, expands_indm, sub_tp_indm, sub_decl_indm, path_eq_indm, wf_env_indm, wf_tp_indm, wf_decl_indm.
 
 Require Import LibTactics_sf.
-Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ P9_ :=
-  cut ((forall E q t T (H: E |= t ~: T @ q), (P0_ E q t T H)) /\ (forall E q T DS (H: E |= T ~< DS @ q), (P1_ E q T DS H)) /\ (forall E q T T' (H: E |= T ~<: T' @ q), (P2_  E q T T' H))  /\ (forall (e : env) (q : quality) (d d0 : decl) (H : sub_decl e q d d0), (P3_ e q d d0 H)) /\  (forall (e : env) (t t0 : tm) (H : path_eq e t t0), (P4_ e t t0 H)) /\  (forall (e : env) (H : wf_env e), (P5_ e H)) /\  (forall (c : ctx) (H : wf_ctx c), (P6_ c H)) /\  (forall (c : ctx) (p : pex) (H : wf_pex c p), (P7_ c p H)) /\  (forall (e : env) (t : tp) (H : wf_tp e t), (P8_ e t H)) /\  (forall (e : env) (d : decl) (H : wf_decl e d), (P9_ e d H))); [tauto | 
-  apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ P9_); unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_, P7_, P8_, P9_ in *; clear P0_; clear P1_; clear P2_; clear P3_; clear P4_; clear P5_; clear P6_; clear P7_; clear P8_; clear P9_; [ Case "typing_var" | Case "typing_ref" | Case "typing_sel" | Case "typing_sub" | Case "typing_app" | Case "typing_lam" | Case "typing_new" | Case "expands_sub" | Case "expands_rfn" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "sub_tp_rfn_intro" | Case "sub_tp_rfn_elim" | Case "sub_tp_rfn" | Case "sub_tp_rfn_precise" | Case "sub_tp_tpsel_lower" | Case "sub_tp_tpsel_upper" | Case "sub_tp_trans" | Case "sub_tp_path_eq" | Case "sub_tp_refl" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_tp_fun" | Case "sub_tp_and_r" | Case "sub_tp_or_l" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "peq_refl" | Case "peq_symm" | Case "peq_env" | Case "peq_sel" | Case "wf_env_" | Case "wf_ctx_nil" | Case "wf_ctx_cons_tp" | Case "wf_pex_cons" | Case "wf_rfn" | Case "wf_lam" | Case "wf_tsel" | Case "wf_tsel_cls" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" ]; introv; eauto ].
+Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ :=
+  cut ((forall E q t T (H: E |= t ~: T @ q), (P0_ E q t T H)) /\ 
+  (forall E q T DS (H: E |= T ~< DS @ q), (P1_ E q T DS H)) /\ 
+  (forall E q T T' (H: E |= T ~<: T' @ q), (P2_  E q T T' H))  /\ 
+  (forall (e : env) (q : quality) (d d0 : decl) (H : sub_decl e q d d0), (P3_ e q d d0 H)) /\  
+  (forall (e : env) (t t0 : tm) (H : path_eq e t t0), (P4_ e t t0 H)) /\  
+  (forall (e : env) (H : wf_env e), (P5_ e H)) /\
+  (forall (e : env) (t : tp) (H : wf_tp e t), (P6_ e t H)) /\  
+  (forall (e : env) (d : decl) (H : wf_decl e d), (P7_ e d H))); [tauto | 
+    apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_); unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_, P7_ in *; clear P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; [ 
+      Case "typing_var" | Case "typing_ref" | Case "typing_sel" | Case "typing_sub" | Case "typing_app" | Case "typing_lam" | Case "typing_new" | Case "expands_sub" | Case "expands_rfn" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "sub_tp_rfn_intro" | Case "sub_tp_rfn_elim" | Case "sub_tp_rfn" | Case "sub_tp_rfn_precise" | Case "sub_tp_tpsel_lower" | Case "sub_tp_tpsel_upper" | Case "sub_tp_trans" | Case "sub_tp_path_eq" | Case "sub_tp_refl" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_tp_fun" | Case "sub_tp_and_r" | Case "sub_tp_or_l" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "peq_refl" | Case "peq_symm" | Case "peq_env" | Case "peq_sel" | Case "wf_env_nil" | Case "wf_env_cons" | Case "wf_rfn" | Case "wf_lam" | Case "wf_tsel" | Case "wf_tsel_cls" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" ]; 
+      introv; eauto ].
 
+(* copy/paste from sub_tp_rfn_XXX since Combined Scheme refuses to generate the induction scheme when sub_decls is in the mix *)
+Inductive sub_decls : env -> quality -> decls -> decls -> Prop :=
+  | sub_decls_sub :forall L E DS1 DS2,
+      LabelMapImpl.dom DS2 [<l=] LabelMapImpl.dom DS1 -> (* subsumption may lose members *)
+      (forall z, z \notin L -> (forall l d1 d2, LabelMapImpl.binds l d1 DS1 -> LabelMapImpl.binds l d2 DS2 -> 
+            exists q, sub_decl E q (d1 ^d^ z) (d2 ^d^ z))) ->
+      sub_decls E subsumed DS1 DS2
 
-(* all the info we need about an object is in its ctor arguments
-need to track Tc of some object reference a in the store since we can't recuperate it from Gamma as object allocation and let-binding are collapsed, so that a is never bound in Gamma, it immediately replaces the let-bound variable
-*)
-Notation store := (list (atom * (tp * args))).
+  | sub_decls_precise : forall L E DS1 DS2,
+      LabelMapImpl.dom DS2 [=l=] LabelMapImpl.dom DS1 -> (* we didn't lose any members *)
+      (forall z, z \notin L -> (forall l d1 d2, LabelMapImpl.binds l d1 DS1 -> LabelMapImpl.binds l d2 DS2 ->
+            sub_decl E precise (d1 ^d^ z) (d2 ^d^ z))) ->
+      sub_decls E precise DS1 DS2.
 
 Inductive wf_store : store -> Prop := 
   | wf_store_nil : wf_store nil
-  | wf_store_cons_tp : forall E x Tc ags,
+  | wf_store_cons_tp : forall E x Tc args,
      wf_store E ->
-     List.Forall (fun l_v => value (snd l_v)) ags -> (* the args bind labels to values *) 
+     (forall l v, LabelMapImpl.binds l v args -> value v) -> (* the args bind labels to values *) 
      lc_tp Tc -> concrete Tc ->
      x \notin dom E ->
-     wf_store (x ~ (Tc, ags) ++ E).
+     wf_store (x ~ (Tc, args) ++ E).
 
 Reserved Notation "s |~ a ~~> b  ~| s'" (at level 60).
 
@@ -387,32 +369,30 @@ Inductive red : store -> tm -> store -> tm -> Prop :=
 where "s |~ a ~~> b  ~| s'" := (red s a s' b).
 
 
-Definition extract_pex : loc -> args -> pex := fun a => fun ags =>
-  List.flat_map (fun l_v => match l_v with 
-       | (l, ref al) => (al, (a, l)) :: nil
-       | _ => nil
-       end) ags.
 
-Definition typing_store E s :=
+(*Definition sto_typing P mu :=
+     sto_ok mu 
+  /\ (forall l, l # mu -> l # P)
+  /\ (forall l T, binds l T P -> 
+        exists t, binds l t mu
+               /\ empty ! P |= t ~: T).*)
+Definition typing_store G s :=
      wf_store s 
-  /\ dom (fst E) [=] dom s (* there are no reduction steps under binders, except for the variables representing object references, but these are of course also in the store
-                              this ensures that for all x: T in E, the T's well-formedness has been checked by typing_new *)
-  /\ (forall a Tc args' ds, 
-        binds a (Tc, args') s ->  (* TODO: don't need Tc in store since Gamma it -- bound in store to args with type Tc, where the self variable has been replaced by `a` already  *) 
-              exists args, args' = args ^args^ (ref a) 
-          /\  List.Forall (pex_has E) (extract_pex a args) (* the path equalities derived from the object referenced by a binding its labels to references *)
+  /\ (forall a Tc argsRT, binds a (Tc, argsRT) s ->  (* TODO: don't need Tc in store since Gamma it -- bound in store to args with type Tc, where the self variable has been replaced by `a` already  *) 
+              exists args, argsRT = args ^args^ (ref a)  (* concentrate the burden of uniqueness of store bindings in typing_new case of preservation *)
           /\  concrete Tc (* see typing_new, replacing implication by conjunction and forall by exists *)
-          /\  E |= (ref a) ~: Tc @ precise (* easy to provide in new case of preservation *)
-          /\  E |= Tc ~< ds @ precise
-          /\  exists L, (forall x, x \notin L ->  
-                LabelMapImpl.uniq args /\ (* ctor args are unique by label *)
-                (LabelMapImpl.dom ds) [=l=] (LabelMapImpl.dom args) /\ (* all ctor args must have declaration with same label*)
-                (forall l d, LabelMapImpl.binds l d ds -> 
-                  (forall U T, d ^d^ x = decl_tp T U -> (* for each type member: its lower bound must be a subtype of its upper bound *)
-                    (exists q, (ctx_bind E x Tc) |= T ~<: U @ q)) /\
-                  (forall T, d ^d^ x = decl_tm T -> (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
-                    (exists v, LabelMapImpl.binds l v args /\ value (v ^^ x) /\ (exists q, (ctx_bind E x Tc) |= (v ^^ x) ~: T @ q)))
-      ))).
+          /\  LabelMapImpl.uniq args (* ctor args are unique by label *)
+          /\  exists ds, (G, s) |= Tc ~< ds @ precise
+          /\  (LabelMapImpl.dom ds) [=l=] (LabelMapImpl.dom args) (* all ctor args must have declaration with same label*)
+          /\  (exists L, (forall x, x \notin L -> (forall l d, LabelMapImpl.binds l d ds -> 
+                (forall U T, d ^d^ x = decl_tp T U -> (exists q, (ctx_bind (G, s) x Tc) |= T ~<: U @ q)) /\ (* for each type member: its lower bound must be a subtype of its upper bound *)
+                (forall T, d ^d^ x = decl_tm T -> (exists v,  (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
+                  LabelMapImpl.binds l v args /\ value (v ^^ x) /\ (exists q, (ctx_bind (G, s) x Tc) |= (v ^^ x) ~: T @ q)))))
+              )).
+(* subsumed by (G, s) |= (ref a) ~: Tc @ precise:
+   (* must be able to derive a typing judgement for (ref a) for every location a in the store
+  there are no reduction steps under binders, except for the variables representing object references, but these are of course also in the store this ensures that for all x: T in E, the T's well-formedness has been checked by typing_new *)
+*)
 
 Notation "E |== s" := (typing_store E s) (at level 68).
 
@@ -420,16 +400,17 @@ Notation "E |== s" := (typing_store E s) (at level 68).
    a.l ~~> v does not preserve quality, since a.l may be typed precisely but v's typing comes from T-new, which has to allow subsumption
    quality slack should be okay though, since e.g. the reduction e.l -> e'.l can still reuse the expansion of the typing of e.l since e' has the same type as e, the quality doesn't matter
 *)
-Definition preservation := forall E q t T, E  |=  t ~: T  @ q ->
-  forall t' s s', E  |== s ->
-  s  |~  t ~~> t'  ~| s' ->
-  (exists E', E' |== s' /\ 
-              dom (fst E) [<=] dom (fst E') /\ 
-              exists q', E' |=  t' ~: T @ q'). 
 
-Definition progress := forall P t T q s,
-  (nil, P) |=  t ~: T @ q ->
-  (nil, P) |== s ->
+(* XXX TODO: not urgent since E does not change during preservation (only s does), but must require
+   forall x T DS q, binds x T E /\ (E, s) |= T ~< DS @ q -> (forall l d, LabelMapImpl.binds l d DS -> 
+  (forall U T, d ^d^ x = decl_tp T U -> (exists q, (ctx_bind (E, s) x Tc) |= T ~<: U @ q))) 
+*)
+Definition preservation := forall E_s q t T, E_s |=  t ~: T  @ q -> forall E t' s s', E_s = (E, s) -> 
+  E |== s -> s  |~  t ~~> t'  ~| s' -> (E |== s' /\ exists q', (E, s') |=  t' ~: T @ q'). 
+
+Definition progress := forall s t T q,
+  (nil, s) |=  t ~: T @ q ->
+  nil |== s ->
      value t \/ exists t', exists s', s |~ t ~~> t' ~| s'.
 
 
@@ -462,6 +443,13 @@ Inductive safe_path : env -> tm -> Prop :=
       safe_path E p -> safe_path E (sel p l).
 
 Notation "E |= t 'safe'" := (safe_path E t) (at level 69).
+
+Definition extract_pex : loc -> args -> pex := fun a => fun ags =>
+  List.flat_map (fun l_v => match l_v with 
+       | (l, ref al) => (al, (a, l)) :: nil
+       | _ => nil
+       end) ags.
+
 *)
 
 
