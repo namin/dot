@@ -8,13 +8,6 @@ Reserved Notation "E |= t ~: T @ q" (at level 69).
 Reserved Notation "E |= t ~<: T @ q" (at level 69).
 (*Reserved Notation "E |= t ~mem~ D @ q" (at level 69).*)
 
-Inductive has_tp_sel : tp -> Prop :=
- | hts_tp_sel : forall p L, has_tp_sel (tp_sel p L)
- | hts_and1   : forall T T', has_tp_sel T' -> has_tp_sel (tp_and T' T)
- | hts_and2   : forall T T', has_tp_sel T' -> has_tp_sel (tp_and T T')
- | hts_or1   : forall T T', has_tp_sel T' -> has_tp_sel (tp_or T' T)
- | hts_or2   : forall T T', has_tp_sel T' -> has_tp_sel (tp_or T T').
-
 Inductive typing : env -> quality -> tm -> tp -> Prop :=
    | typing_var : forall E x T,
       wf_env E -> lc_tp T -> (* for typing_regular *)
@@ -78,7 +71,7 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
       LabelMapImpl.uniq args -> (* ctor args are unique by label *)
       (LabelMapImpl.dom ds) [=l=] (LabelMapImpl.dom args) -> (* all ctor args must have declaration with same label*)
       (forall x, x \notin L -> (forall l d, LabelMapImpl.binds l d ds -> 
-        (forall U T, d ^d^ x = decl_tp T U -> (exists q, (ctx_bind E x Tc) |= T ~<: U @ q)) /\ (* for each type member: its lower bound must be a subtype of its upper bound *)
+        (forall U T, d ^d^ x = decl_tp T U -> (exists q, (ctx_bind_unchecked E x Tc) |= T ~<: U @ q)) /\ (* for each type member: its lower bound must be a subtype of its upper bound, `unchecked` says: do not assume this to be true yet *)
         (forall T, d ^d^ x = decl_tm T -> (exists v,  (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
           LabelMapImpl.binds l v args /\ value (v ^^ x) /\ (exists q, (ctx_bind E x Tc) |= (v ^^ x) ~: T @ q))))) ->
       (forall x, x \notin L -> (ctx_bind E x Tc) |= (t ^^ x) ~: T @ q) ->  (* in principle, x.L would now be a valid middle man in sub_tp_trans since the type members in Tc's expansion have been checked *)
@@ -102,7 +95,6 @@ where "E |= t ~mem~ D @ q" := (mem E q t D)
 
 with expands : env -> quality -> tp -> decls -> Prop := 
   | expands_sub : forall E q1 q2 T U DS,
-      (~ has_tp_sel U) -> (* by the same reasoning as sub_tp_trans, the only valid use of p.L for U is when we have checked S <: T  for L : S..T, so that we might as well directly use p.L's upperbound T for U instead of p.L *) 
       E |= T ~<: U  @ q1 ->
       E |=       U ~< DS @ q2 ->
       E |= T       ~< DS  @ (q1 & q2)
@@ -149,22 +141,31 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=
         sub_decl (ctx_bind E z T) precise (d1 ^d^ z) (d2 ^d^ z))) ->
       E |= (tp_rfn T DS1) ~<: (tp_rfn T DS2) @ precise
 
+(* only allow subsuming T to p.L (assuming p has member L: T..U) if it's safe to assume that
+   there's no way to further subsume p.L to a type that's not a supertype of T
+   concretely, using sub_tp_tpsel_upper to get from p.L to U will yield a supertype of p.L, and thus, via transitivity, of T, but 
+   T <: U does not necessarily hold for unchecked paths, which are rooted in a variable that was put in the context during typing_new's 
+   in other words, in typing_new we want to check T <: U without going through p.L, otherwise the bounds of a type member always trivially conform by invoking transitivity with the type member that's being checked as the middleman
+
+   it suffices to interrupt this viscious chain on one side of p.L, so I chose the lower bound
+*)
   | sub_tp_tpsel_lower : forall E p T' q1 DS q2 L S U,
       E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> LabelMapImpl.binds L (decl_tp S U) DS ->
-      E |= (S ^tp^ p) ~<: (tp_sel p L) @ subsumed (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
+      path_safe E p -> (* for regular_typing, as well as to ensure the WF checks in typing_new aren't vacuous *)
+      E |= (S ^tp^ p) ~<: (tp_sel p L) @ subsumed
             (* subsuming a lower bound to its type member selection loses members irrespective of the membership quality *)
 
   | sub_tp_tpsel_upper : forall E p T' q1 DS q2 L S U,
       E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> LabelMapImpl.binds L (decl_tp S U) DS ->
-      E |= (tp_sel p L) ~<: (U ^tp^ p) @ (q1 & q2) (* path p follows from implicit requirement that only well-formed types are compared by subtyping *)
+      path p -> (* for regular_typing *)
+      E |= (tp_sel p L) ~<: (U ^tp^ p) @ (q1 & q2)
 
-(* we can't have unfettered transitivity, because that foil typing_new's well-formedness check that all type members have conforming bounds:
-   "S <: T because p.L : S..T said so", not because they actually are -- with the current path safety check, p can only cause transitivity after it's been all patted down and shit *)
+(*
+we can't be too strict in ruling out middlemen (U) here
+think of the body of a lambda abstraction as a term whose well-typing is predicated on the bound variable (x) having the assumed type,
+AS WELL AS the fact that we can produce a value of this type (which implies T <: U for each type member x.l_0...l_N.L : T..U)
+*)
   | sub_tp_trans : forall E q1 q2 TMid T T',
-  (*      (forall p L, TMid = tp_sel p L -> E |= p safe) -> no sneaky middlemen: type members may only be selected on paths that have been checked by typing_new *)
-      (~ has_tp_sel TMid) ->  (* slightly stronger condition than necessary for soundness to simplify meta-theory: in principle it's enough to check TMid <> tsel p L, since composite TMid (tsel p L /\ Top) as middlemen implies their constituents were middlemen as well
-             unless p is rooted in an object reference that has been checked by typing_new, there's no guarantuee its type members' lowerbounds are a subtypes of the corresponding upperbounds
-             if it is safe, can recover the same judgement from the bounds directly without going through the path selection *)
       E |= T ~<: TMid        @  q1      ->
       E |=       TMid ~<: T' @       q2 ->
       E |= T          ~<: T' @ (q1 & q2)
@@ -234,11 +235,11 @@ with path_eq : env -> tm -> tm -> Prop :=
 
 with wf_env : env -> Prop := 
   | wf_env_nil : forall P, wf_env (nil, P)
-  | wf_env_cons : forall E x U P,
+  | wf_env_cons : forall E x CEntry P,
      wf_env (E, P) ->
      x `notin` dom E -> 
-     (forall x, x `notin` dom E -> x `notin` fv_tp U)-> 
-     wf_env ((x ~ U ++ E), P)
+     (forall x, x `notin` dom E -> (exists U, (CEntry = ctx_tp U \/ CEntry = ctx_tp_unchecked U) -> x `notin` fv_tp U))-> 
+     wf_env ((x ~ CEntry ++ E), P)
 
 (* TODO: prove wf_tp E T implies lc_tp T  *)
 with wf_tp : env -> tp -> Prop :=
@@ -385,7 +386,7 @@ Definition typing_store G s :=
           /\  exists ds, (G, s) |= Tc ~< ds @ precise
           /\  (LabelMapImpl.dom ds) [=l=] (LabelMapImpl.dom args) (* all ctor args must have declaration with same label*)
           /\  (exists L, (forall x, x \notin L -> (forall l d, LabelMapImpl.binds l d ds -> 
-                (forall U T, d ^d^ x = decl_tp T U -> (exists q, (ctx_bind (G, s) x Tc) |= T ~<: U @ q)) /\ (* for each type member: its lower bound must be a subtype of its upper bound *)
+                (forall U T, d ^d^ x = decl_tp T U -> (exists q, (ctx_bind_unchecked (G, s) x Tc) |= T ~<: U @ q)) /\ (* for each type member: its lower bound must be a subtype of its upper bound *)
                 (forall T, d ^d^ x = decl_tm T -> (exists v,  (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
                   LabelMapImpl.binds l v args /\ value (v ^^ x) /\ (exists q, (ctx_bind (G, s) x Tc) |= (v ^^ x) ~: T @ q)))))
               )).

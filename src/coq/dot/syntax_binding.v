@@ -87,14 +87,10 @@ Definition decls := list (label * decl).
 
 Hint Constructors tp decl tm path concrete.
 
-(* for tracking whether the type a variable is assumed to have has been checked for full well-formedness or not 
+(*  track whether the type of a variable is assumed to have been kind-checked or not -- NOTE: wf_tp E T does not imply kinding_ok E T *)
 Inductive ctx_entry : Set :=  
   | ctx_tp : tp -> ctx_entry
-  | ctx_tp_ok : tp -> ctx_entry.  (* once typing_new has checked full well-formedness of a type, its values may be used as middlemen in transitivity
-  until full well-formedness has been checked (and esp., during the final WF check) you may not rely on S <: p.L <: T (where p has L: S..T)
-  iff E |= p safe you may trust its type members as middlemen in sub_tp_trans
-  *)
-*)
+  | ctx_tp_unchecked : tp -> ctx_entry. (* x :-unchecked-: T --> do not trust type member selections rooted in x to have conforming bounds *)
 
 (* the environment is a context + a set of path equalities
   the context tracks which variables are bound in the current scope along with their assumed type
@@ -105,18 +101,26 @@ Inductive ctx_entry : Set :=
   there's an additional fact that we may need to track about variable bindings x : T, namely whether T is known to be OK (its type members have conforming bounds)
   hopefully this info can be kept separately in the meta-theory -- we'll have to see
 *)
-Definition ctx : Set := (list (atom * tp)). (* gamma *)
+Definition ctx : Set := (list (atom * ctx_entry)). (* gamma *)
 Definition store : Set := (list (loc * (tp * args))).
 
 (* slightly unconventional: use store itself as store typing, since we need both the type of the location and the values of the object's fields, i.e. the ctor arguments
  the latter is needed to compute path equalities resulting from object allocation -- only used for preservation *)
 Definition env : Set := (ctx * store)%type.
 
-Definition ctx_binds   : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x T (fst E).
-(*Definition ctx_binds_ok   : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x (ctx_tp_ok T) (fst E).*)
-Definition ctx_bind    : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ T ++ (fst E), snd E).
-(*Definition ctx_bind_ok : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ (ctx_tp_ok T) ++ (fst E), snd E).*)
+Definition ctx_binds   : env -> atom -> tp -> Prop := fun E => fun x => fun T => (binds x (ctx_tp T) (fst E)) \/ (binds x (ctx_tp_unchecked T) (fst E)).
+Definition ctx_bind    : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ (ctx_tp T) ++ (fst E), snd E).
 Definition ctx_fresh   : env -> atom -> Prop := fun E => fun a => a `notin` dom (fst E).
+
+(*Definition ctx_binds_unchecked : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x (ctx_tp_unchecked T) (fst E).*)
+Definition ctx_bind_unchecked  : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ (ctx_tp_unchecked T) ++ (fst E), snd E).
+
+(* *assumed* to be safe, a lambda-bound variable is assumed to be safe since the typing of its body assumes a value can be provided for the argument, which implies the type of the variable is well-kinded *)
+Inductive path_safe : env -> tm -> Prop :=
+  | path_safe_bvar : forall n E, path_safe E (bvar n) (* variable under binder *)
+  | path_safe_ref : forall a Ctor G P, (binds a Ctor P) -> path_safe (G, P) (ref a)   (* free variable that represents a reference *)
+  | path_safe_fvar : forall x T G P, (binds x (ctx_tp T) G) -> path_safe (G, P) (fvar x) (* variable bound in Gamma and not marked as unchecked *)
+  | path_safe_sel : forall p l E, path_safe E p -> path_safe E (sel p l).
 
 Coercion bvar : nat >-> tm.
 Coercion fvar : var >-> tm.
