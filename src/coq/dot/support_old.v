@@ -17,7 +17,7 @@ Lemma Forall_map_fuse: forall A B (f: B -> Prop) (g: A -> B) xs, Forall f (List.
 Proof. intros. rewrite Forall_forall in *. intros. set (H (g x)). rewrite in_map_iff in f0. apply f0; eauto. Qed.
 
 Lemma opening_commutes_in : forall l t ags ta, In (l, t) (ags ^args^ ta) -> exists t', In (l, t') ags /\ t = t' ^^ ta.
-Proof. introv Hin. unfold open_args in Hin. unfold LabelMapImpl.map in Hin. rewrite in_map_iff in Hin. inverts Hin. destruct x. destruct H. inverts H. eauto. Qed.
+Proof. introv Hin. unfold open_args in Hin. unfold lbl.map in Hin. rewrite in_map_iff in Hin. inverts Hin. destruct x. destruct H. inverts H. eauto. Qed.
 
 Lemma opening_pres_nodup : forall ags t, NoDupBy fst (ags ^args^ t) -> NoDupBy fst (ags). Proof. Admitted.
 Lemma nodups_args : forall (ags: args) l t t', NoDupBy fst (ags) -> In (l, t) ags -> In (l, t') ags -> t = t'. Proof. Admitted.

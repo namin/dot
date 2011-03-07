@@ -135,14 +135,13 @@ Coercion fvar : var >-> tm.
 (* operations on members *)
 (*************************)
 
-
 (* only have cases for valid label/decl_XX combinations*)
 Inductive valid_label : label -> decl -> Prop :=
   | valid_label_tp_a : forall n T U, valid_label (la n) (decl_tp T U)
   | valid_label_tp_c : forall n T U, valid_label (lc n) (decl_tp T U)
   | valid_label_tm   : forall n T,   valid_label (lv n) (decl_tm T).
 
-Definition decls_ok (ds: decls) := LabelMapImpl.uniq ds /\ (forall l d, LabelMapImpl.binds l d ds -> valid_label l d).
+Definition decls_ok (ds: decls) := lbl.uniq ds /\ (forall l d, lbl.binds l d ds -> valid_label l d).
 
 Inductive and_decl : decl -> decl -> decl -> Prop :=
   | and_decl_tm : forall S1 S2,
@@ -157,12 +156,12 @@ Inductive or_decl : decl -> decl -> decl -> Prop :=
     or_decl (decl_tp TL1 TU1) (decl_tp TL2 TU2) (decl_tp (tp_and TL1 TL2) (tp_or TU1 TU2)).
 
 Definition and_decls (ds1: decls) (ds2: decls) (dsm: decls) := decls_ok dsm /\ decls_ok ds1 /\ decls_ok ds2 /\
-  (forall l d, (LabelMapImpl.binds l d dsm <-> ((exists d1, exists d2, LabelMapImpl.binds l d1 ds1 /\ LabelMapImpl.binds l d2 ds2 /\ and_decl d1 d2 d)
-                                    \/ LabelMapImpl.binds l d ds1 \/ LabelMapImpl.binds l d ds2))). (* decls_ok prevents duplication in dsm *)
+  (forall l d, (lbl.binds l d dsm <-> ((exists d1, exists d2, lbl.binds l d1 ds1 /\ lbl.binds l d2 ds2 /\ and_decl d1 d2 d)
+                                    \/ lbl.binds l d ds1 \/ lbl.binds l d ds2))). (* decls_ok prevents duplication in dsm *)
 
 (* T1 \/ T2's expansion is the least common denominator of T1 and T2's members *)
 Definition or_decls (ds1: decls) (ds2: decls) (dsm: decls) := decls_ok dsm /\ decls_ok ds1 /\ decls_ok ds2 /\
-  (forall l d, (LabelMapImpl.binds l d dsm <-> (exists d1, exists d2, LabelMapImpl.binds l d1 ds1 /\ LabelMapImpl.binds l d2 ds2 /\ or_decl d1 d2 d))).
+  (forall l d, (lbl.binds l d dsm <-> (exists d1, exists d2, lbl.binds l d1 ds1 /\ lbl.binds l d2 ds2 /\ or_decl d1 d2 d))).
 
 
 
@@ -214,7 +213,7 @@ with open_rec_tp (k : nat) (u : tm) (t : tp) {struct t} : tp :=
   match t with
     | tp_sel e1 l => tp_sel (open_rec_tm k u e1) l
     | tp_rfn parent decls => tp_rfn (open_rec_tp k u parent) 
-           (LabelMapImpl.map (open_rec_decl (k+1)(* go under binder (the self variable) *) u) decls)
+           (lbl.map (open_rec_decl (k+1)(* go under binder (the self variable) *) u) decls)
     | tp_fun f t => tp_fun (open_rec_tp k u f) (open_rec_tp k u t)
     | tp_and t1 t2 => tp_and (open_rec_tp k u t1) (open_rec_tp k u t2)
     | tp_or t1 t2 => tp_or (open_rec_tp k u t1) (open_rec_tp k u t2)
@@ -233,7 +232,7 @@ with open_rec_decl (k : nat) (u : tm) (d : decl) {struct d} : decl :=
 Notation "{ k ~> u } t" := (open_rec_tm k u t) (at level 67).
 Notation "{ k ~tp> u } t" := (open_rec_tp k u t) (at level 67).
 Notation "{ k ~d> u } d" := (open_rec_decl k u d) (at level 67).
-Definition open_rec_decls k u (ds: decls) := LabelMapImpl.map (open_rec_decl k u) ds.
+Definition open_rec_decls k u (ds: decls) := lbl.map (open_rec_decl k u) ds.
 Notation "{ k ~ds> u } ds" := (open_rec_decls k u ds) (at level 67).
 
 (** Many common applications of opening replace index zero with an
@@ -250,7 +249,7 @@ Definition open e u := open_rec_tm 0 u e.
 Definition open_tp e u := open_rec_tp 0 u e.
 Definition open_decl d u := open_rec_decl 0 u d.
 Definition open_decls ds u := open_rec_decls 0 u ds.
-Definition open_args (ags: args) u := LabelMapImpl.map (open_rec_tm 0 u) ags.
+Definition open_args (ags: args) u := lbl.map (open_rec_tm 0 u) ags.
 
 Notation "ags ^args^ u" := (open_args ags u) (at level 67).
 Notation "d ^d^ u" := (open_decl d u) (at level 67).
@@ -395,14 +394,14 @@ Fixpoint subst_tm (z : atom) (u : tm) (e : tm) {struct e} : tm :=
     | fvar x => if x == z then u else (fvar x)
     | lam T b => lam (subst_tp z u T) (subst_tm z u b)
     | app f a => app (subst_tm z u f) (subst_tm z u a)
-    | new T args b => new (subst_tp z u T) (LabelMapImpl.map (subst_tm z u) args) (subst_tm z u b)
+    | new T args b => new (subst_tp z u T) (lbl.map (subst_tm z u) args) (subst_tm z u b)
     | sel e1 l => sel (subst_tm z u e1) l
   end
 
 with subst_tp (z : atom) (u : tm) (t : tp) {struct t} : tp :=
   match t with
     | tp_sel e1 l => tp_sel (subst_tm z u e1) l
-    | tp_rfn parent decls => tp_rfn (subst_tp z u parent) (LabelMapImpl.map (subst_decl z u) decls)
+    | tp_rfn parent decls => tp_rfn (subst_tp z u parent) (lbl.map (subst_decl z u) decls)
     | tp_fun f t => tp_fun (subst_tp z u f) (subst_tp z u t)
     | tp_and t1 t2 => tp_and (subst_tp z u t1) (subst_tp z u t2)
     | tp_or t1 t2 => tp_or (subst_tp z u t1) (subst_tp z u t2)
@@ -459,7 +458,7 @@ Require Import Coq.FSets.FMapInterface.
 Require Import Coq.FSets.FMapWeakList.
 
 Module Import LabelMapImpl : FMapInterface.WSfun LabelDT := FMapWeakList.Make LabelDT.
-Notation labelMap := LabelMapImpl.t.
+Notation labelMap := lbl.t.
 
 (*
 Definition hasLabel (l: label) := (fun (l_d: list*decl) => fst l_d == l).

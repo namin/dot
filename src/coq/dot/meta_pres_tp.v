@@ -9,7 +9,8 @@ Require Import Coq.Program.Equality.
 Section Preservation.
 (* mostly reusable boilerplate for the mutual induction: *)
   Let P0_ (E_s: env) (q: quality) (t: tm) (T: tp) (H: E_s |=  t ~: T  @ q) := forall E t' s s', E_s = (E, s) -> 
-      E |== s -> s  |~  t ~~> t'  ~| s' -> (E |== s' /\ exists q', (E, s') |=  t' ~: T @ q').  
+      E |== s -> (forall x T, ctx_binds E_s x T -> E_s |= T ok) ->
+      s  |~  t ~~> t'  ~| s' -> (E |== s' /\ exists q', (E, s') |=  t' ~: T @ q').  
   Let P1_ (E : env) (q : quality) (T : tp) (DS : decls) (H: E |= T ~< DS @ q) := True.
   Let P2_ (E : env) (q : quality) (T T' : tp) (H: E |= T ~<: T' @ q) := True.
   Let P3_ (e : env) (q : quality) (d d0 : decl) (H: sub_decl e q d d0) := True.
@@ -19,14 +20,14 @@ Section Preservation.
   Let P7_ (e : env) (d : decl) (H: wf_decl e d) := True.
 Lemma preservation : preservation. 
 Proof. unfold preservation. 
-  mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; try solve [intros until s'; intros _ _ HRed; inverts HRed | idtac ].
-  (*sel*) intros H IH HT'X _ Hin HopenD. introv ? Hsto_tp Hred. subst.
-    inverts Hred as. 
+  mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; try solve [intros until s'; intros _ _ _ HRed; inverts HRed | idtac ].
+  (*sel*) intros H IH HT'X _ Hin HopenD. (*presintros*) introv ? HStoTp ? HRed. subst.
+    inverts HRed as. 
     SCase "red_sel". introv Hsto_wf Ha_in_sto HInArgs Hl_in_args. 
       split; auto.  rename t' into v. clear IH.
 
 (* invert store typing to get well-formedness of the selected constructor argument *)
-      inversion Hsto_tp as [_ Hsto_tp']. 
+      inversion HStoTp as [_ Hsto_tp']. 
       destruct (Hsto_tp' a Tc ags Ha_in_sto) as [ags0 [HAgsEq [HTcConc [HDupA [DS0 [HTcX [HSameDomAgsDecls [L Hwf_args]]]]]]]]. clear Hsto_tp'.
       pick fresh x for L. set (Hwf_args x Fr) as Hwfargs.  subst.
 
@@ -45,7 +46,7 @@ set binds_uniq_wf_store (Ha_in_sto' Ha_in_sto Ha_in_sto). subst.
 apply expands_sub_safe
   HTcX : (E0, s') |= Tc ~< DS @ (q & q2)
   HTcConc : concrete Tc
-  Hin : LabelMapImpl.binds l D DS
+  Hin : lbl.binds l D DS
 destruct invert_expands_concrete
   HTcX' : (E0, s') |= Tc ~< DS' @ precise
   sub_decls DS' DS
@@ -56,14 +57,14 @@ destruct expands_precise_concrete_unique
   DS' = DS0
 
   sub_decls DS0 DS
-  Hin : LabelMapImpl.binds l D DS
+  Hin : lbl.binds l D DS
 apply sub_decls_pres_binds
 
-  Hin0 : LabelMapImpl.binds l D' DS0
+  Hin0 : lbl.binds l D' DS0
   sub_decl D' D
 *)
 
-      assert (exists D', LabelMapImpl.binds l D' DS0 /\ exists q, sub_decl (E0, s') q D' D) as [D' [Hin' [qd HSubD]]].
+      assert (exists D', lbl.binds l D' DS0 /\ exists q, sub_decl (E0, s') q D' D) as [D' [Hin' [qd HSubD]]].
       destruct (invert_typing_ref H) as [Ta [ags' [Ha_in_sto' [qa HSubTa]]]].
       set (binds_unique _ a (Tc, ags0 ^args^ ref a) (Ta, ags') s' Ha_in_sto Ha_in_sto' (invert_wf_store_uniq Hsto_wf)) as HH. injsubst HH.
       assert ( exists q3, (E0, s') |= Ta ~< DS @ q3) as HTaX by (eapply expands_sub_safe; eauto).
@@ -71,10 +72,10 @@ apply sub_decls_pres_binds
       destruct (invert_expands_concrete HTaX HTcConc) as [DSa [HXTaP [qsdp Hsubdecls]]].
       assert ((E0, s') |= DS0 <:DS<: DS) as HSubDecls by (eapply quality_soundness; eauto).
 (*
-Hin : LabelMapImpl.binds l D DS
+Hin : lbl.binds l D DS
 HSubDecls : (E0, s') |= DS0 <:DS<: DS
 ====
-Hin : LabelMapImpl.binds l D' DS0
+Hin : lbl.binds l D' DS0
 sub_decl D' D
 *)
       destruct HSubDecls as [qsd HSubDecls]. 
@@ -91,13 +92,13 @@ sub_decl D' D
  
 (* commute opening with label lookup *)
 (*
-  HDupA   : LabelMapImpl.uniq ags0
-  HInArgs : LabelMapImpl.binds l t' (LabelMapImpl.map (open_rec_tm 0 a) ags0)
-  HInArgs': LabelMapImpl.binds l v' ags0
+  HDupA   : lbl.uniq ags0
+  HInArgs : lbl.binds l t' (lbl.map (open_rec_tm 0 a) ags0)
+  HInArgs': lbl.binds l v' ags0
 *)
-      assert (v = ({0 ~> (ref a)}v')) by (eapply LabelMapImpl.binds_unique; eauto; [
-      unfold open_args; apply (LabelMapImpl.binds_map_2 tm tm (open_rec_tm 0 (ref a)) l v' ags0 HInArgs') |
-      apply LabelMapImpl.uniq_map_2; eauto]). subst.
+      assert (v = ({0 ~> (ref a)}v')) by (eapply lbl.binds_unique; eauto; [
+      unfold open_args; apply (lbl.binds_map_2 tm tm (open_rec_tm 0 (ref a)) l v' ags0 HInArgs') |
+      apply lbl.uniq_map_2; eauto]). subst.
       change ({0 ~> (ref a)}v') with (v' ^^ (ref a)). change ({0 ~tp> (ref a)}T) with (T ^tp^ (ref a)).
 
 
@@ -106,8 +107,8 @@ sub_decl D' D
 subtyping_regular
 open_lc_is_noop
 *)
-   destruct (regular_subtyping H4) as [_ [HLcT1 HLcT]].
-   rewrite (@open_lc_is_noop T1 x HLcT1) in H4. rewrite (@open_lc_is_noop T x HLcT) in H4.
+   destruct (regular_subtyping H5) as [_ [HLcT1 HLcT]].
+   rewrite (@open_lc_is_noop T1 x HLcT1) in H5. rewrite (@open_lc_is_noop T x HLcT) in H5.
 
 (* apply the substitution lemma
 
@@ -123,24 +124,23 @@ open_lc_is_noop
         eapply weakening_subtyping; eauto. simpl. fsetdec.
 
    SCase "red_sel_tgt". rename t into t0. rename e' into t0'. 
-      intros Hred0. set (@IH E0 t0' s s' eq_refl Hsto_tp Hred0) as HH. destruct HH as [Hsto_tp' [q1' H']].
+      intros Hred0. destruct (@IH E0 t0' s s' eq_refl HStoTp H1 Hred0) as [Hsto_tp' [q1' H']].
       split; auto.
       exists (q1' & q2).
      
       (* recreate typing judgement for reduced subterm: apply typing_sel to typing judgement from IH, re-use old expansion *)
 
       inverts HopenD. (* was the self variable replaced by t0 in the typing judgement before reduction? *)
-          assert (path t0'). eapply (red_pres_path Hsto_tp' H3 Hred0); eauto. 
-            eapply weakening_expansion_store; eauto. eapply inversion_red_store_dom; eauto.
+          assert (path t0'). eapply (red_pres_path Hsto_tp' H4 Hred0); eauto. 
+            eapply weakening_expansion_store; eauto. eapply invert_red_store_dom; eauto.
             unfold not. intros HDSnil. induction DS; eauto. inversion HDSnil. (* DS <> nil from In D DS*)
-
 
         (* yep, prove path equivalence t0 == t0' and apply typing_peq *) 
         induction D; unfold open_decl in H0; simpl in H0; inverts H0. rename t into T. change ({0 ~tp> t0}T) with (T ^tp^ t0).
 
           assert ((E0, s') |= sel t0' l ~: T ^tp^ t0' @ q1' & q2). 
           apply typing_sel with (T' := T') (D := (decl_tm T)) (DS := DS); try assumption.
-          eapply weakening_expansion_store; eauto. eapply inversion_red_store_dom; eauto.
+          eapply weakening_expansion_store; eauto. eapply invert_red_store_dom; eauto.
 
 
           apply open_decl_path; auto.
@@ -156,6 +156,7 @@ open_lc_is_noop
 
           replace (q1' & q2) with  ((q1' & q2) & precise).
           eapply (typing_sub H0); eauto. eapply sub_tp_path_eq; eauto. 
+          
 (*   Hred0 : s |~ t0 ~~> t0' ~| s'
    path t0
    path t0'
@@ -163,20 +164,21 @@ open_lc_is_noop
    ====== red_implies_peq
    peq E' t0 t0'
 *)
+          admit. (* lc_tp T*)
           eapply red_implies_peq; eauto.
 
           induction qconj; eauto.
 
         (* nope *)
         apply typing_sel with (T' := T') (D := (decl_tm T)) (DS := DS); auto.
-          eapply weakening_expansion_store; eauto. eapply inversion_red_store_dom; eauto.
+          eapply weakening_expansion_store; eauto. eapply invert_red_store_dom; eauto.
           apply open_lc_decl_ident; assumption.
 
-  (*sub*) intros HT IHT HSub _. introv ? HStoTp HRed. subst. destruct (IHT E0 t' s s' eq_refl HStoTp HRed) as [HStoTp' HT']. 
+  (*sub*) intros HT IHT HSub _. (*presintros*) introv ? HStoTp HBoundTOk HRed. subst. destruct (IHT E0 t' s s' eq_refl HStoTp HBoundTOk HRed) as [HStoTp' HT']. 
     inversion HT' as [q' HT'']. split; try assumption. 
-    eexists. eapply typing_sub; eauto. eapply weakening_subtyping_store; eauto; eapply inversion_red_store_dom; eauto.
+    eexists. eapply typing_sub; eauto. eapply weakening_subtyping_store; eauto; eapply invert_red_store_dom; eauto.
 
-  (*app*) intros HTFun IHTFun HTArg IHTArg. introv ? HStoTp HRed. subst. inverts HRed.
+  (*app*) intros HTFun IHTFun HTArg IHTArg. (*presintros*) introv ? HStoTp HBoundTOk HRed. subst. inverts HRed.
     SCase "red_beta". split; auto. clear IHTArg IHTFun.
       destruct (invert_typing_lam HStoTp HTFun) as [q0 [L [Tr' [HT [HWf [HLcT [? Hsubfun]]]]]]]. 
       destruct (invert_subtyping_fun) as [_ InvSubFun]. 
@@ -196,18 +198,18 @@ open_lc_is_noop
     destruct H. eexists; eapply typing_sub; eauto.
 
     SCase "red_app_fun".
-      destruct (IHTFun E0 e' s s' eq_refl HStoTp H5) as [? [qf' HTFun']].
+      destruct (IHTFun E0 e' s s' eq_refl HStoTp HBoundTOk H5) as [? [qf' HTFun']].
       split; auto. exists qf'. 
-        assert (exists q, (E0, s') |= ta ~: Ta @ q) as [qa HTa] by (eapply weakening_typing_store; eauto; eapply inversion_red_store_dom; eauto).
+        assert (exists q, (E0, s') |= ta ~: Ta @ q) as [qa HTa] by (eapply weakening_typing_store; eauto; eapply invert_red_store_dom; eauto).
         eapply typing_app; eauto.
 
     SCase "red_app_arg".
-      destruct (IHTArg E0 e' s s' eq_refl HStoTp H5) as [? [qa' HTArg']].
+      destruct (IHTArg E0 e' s s' eq_refl HStoTp HBoundTOk H5) as [? [qa' HTArg']].
       split; auto. 
-        assert (exists q, (E0, s') |= tf ~: tp_fun Ta Tr @ q) as [qf HTf] by (eapply weakening_typing_store; eauto; eapply inversion_red_store_dom; eauto).
+        assert (exists q, (E0, s') |= tf ~: tp_fun Ta Tr @ q) as [qf HTf] by (eapply weakening_typing_store; eauto; eapply invert_red_store_dom; eauto).
         exists qf. eapply typing_app; eauto.
 
-  (* new *) intros HWfTc _ HConcTc HTcX _ HArgsUniq HDomDsEqArgs HArgsWf HT IHt. introv ? HStoTp HRed. subst. inverts HRed.
+  (* new *) intros HWfTc _ HConcTc HTcX _ HArgsUniq HDomDsEqArgs HArgsWf HT IHt. (*presintros*) introv ? HStoTp HBoundTOk HRed. subst. inverts HRed.
    destruct (regular_expands HTcX) as [HWfE HLcTc].
    split. 
      SCase "extended store is well-typed in extended env".
@@ -215,9 +217,9 @@ open_lc_is_noop
        apply wf_store_cons_tp; auto.
 (*
 TP:
-  HArgsUniq : LabelMapImpl.uniq args
-  H7 : forall (v' : tm), LabelMapImpl.binds l v' args -> value (v' ^^ ref a)
-  H : LabelMapImpl.binds l v (args ^args^ ref a)
+  HArgsUniq : lbl.uniq args
+  H7 : forall (v' : tm), lbl.binds l v' args -> value (v' ^^ ref a)
+  H : lbl.binds l v (args ^args^ ref a)
   =====
   value v
 
@@ -252,8 +254,8 @@ rewrite Heqf. apply H7 with (l := l); auto.
 
      intros. unfold open_args in H. remember (open_rec_tm 0 (ref a)) as f. 
      destruct (binds_map_3 l v f args H) as [v' H'].
-     set (LabelMapImpl.binds_map_2 tm tm f l v' args H') as H''.
-     set (LabelMapImpl.binds_unique tm l v (f v') (LabelMapImpl.map f args) H H'' (LabelMapImpl.uniq_map_2 tm tm f args HArgsUniq)) as Heqvv'.
+     set (lbl.binds_map_2 tm tm f l v' args H') as H''.
+     set (lbl.binds_unique tm l v (f v') (lbl.map f args) H H'' (lbl.uniq_map_2 tm tm f args HArgsUniq)) as Heqvv'.
      rewrite Heqvv'.
      rewrite Heqf. apply H7 with (l := l); auto.
 
@@ -305,7 +307,7 @@ End Preservation.
        inversion HStoTp. rewrite <- H3. simpl. auto. admit.
 (*
   wf_store s
-  forall (l : label) (v : tm), LabelMapImpl.binds l v args -> value (v ^^ ref a)
+  forall (l : label) (v : tm), lbl.binds l v args -> value (v ^^ ref a)
   a `notin` dom s
   wf_pex G P
   dom G [=] dom s

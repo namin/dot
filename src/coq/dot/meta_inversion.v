@@ -1,16 +1,16 @@
 Set Implicit Arguments.
 Require Import List.
 Require Import syntax_binding theory.
-Require Import Metatheory LibTactics_sf support.
+Require Import Metatheory LibTactics_sf support meta_regular meta_binding.
 Require Import Coq.Program.Equality.
 
 Lemma and_decls_nil : forall ds1 ds2, and_decls ds1 ds2 nil -> ds1 = nil /\ ds2 = nil.
 Proof. introv. intros. 
   unfold and_decls in H. destruct H as [_ [HDSOk1 [HDSOk2 H]]]. assert (forall (l : label) (d : decl), (
-      (exists d1 d2, LabelMapImpl.binds l d1 ds1 /\ LabelMapImpl.binds l d2 ds2 /\ and_decl d1 d2 d) \/
-       LabelMapImpl.binds l d ds1 \/ 
-       LabelMapImpl.binds l d ds2) -> LabelMapImpl.binds l d nil). unfold iff in H. apply H.  clear H.  
-        unfold LabelMapImpl.binds in H0. simpl in H0. induction ds1; induction ds2; auto; destruct a. 
+      (exists d1 d2, lbl.binds l d1 ds1 /\ lbl.binds l d2 ds2 /\ and_decl d1 d2 d) \/
+       lbl.binds l d ds1 \/ 
+       lbl.binds l d ds2) -> lbl.binds l d nil). unfold iff in H. apply H.  clear H.  
+        unfold lbl.binds in H0. simpl in H0. induction ds1; induction ds2; auto; destruct a. 
          destruct (H0 l d). right. right. simpl. left. auto.
          destruct (H0 l d). right. left. simpl. left. auto.
          destruct (H0 l d). right. left. simpl. left. auto.
@@ -18,12 +18,12 @@ Qed.
 
 Lemma and_decls_nil_2 : forall ds, and_decls nil nil ds -> ds = nil.
 Proof. introv. intros.   unfold and_decls in H. destruct H as [_ [HDSOk1 [HDSOk2 H]]]. unfold iff in H. assert (forall (l : label) (d : decl),
-      LabelMapImpl.binds l d ds ->
+      lbl.binds l d ds ->
       (exists d1 d2,
-       LabelMapImpl.binds l d1 nil /\
-       LabelMapImpl.binds l d2 nil /\ and_decl d1 d2 d) \/
-      LabelMapImpl.binds l d nil \/ LabelMapImpl.binds l d nil) by apply H. clear H.
-   induction ds; auto. destruct a. unfold LabelMapImpl.binds in H0. destruct (H0 l d); simpl; auto.
+       lbl.binds l d1 nil /\
+       lbl.binds l d2 nil /\ and_decl d1 d2 d) \/
+      lbl.binds l d nil \/ lbl.binds l d nil) by apply H. clear H.
+   induction ds; auto. destruct a. unfold lbl.binds in H0. destruct (H0 l d); simpl; auto.
    destruct H. destruct H. destruct H. destruct H. 
    destruct H. destruct H. destruct H. 
 Qed.
@@ -76,7 +76,7 @@ Proof. Admitted.
     (* expands_and *) inverts H1. assert (DS1 = nil) by auto; assert (DS2 = nil) by auto. subst. apply and_decls_nil_2; assumption.
     (* expands_or *) assert (DS1 = nil \/ DS2 = nil) by (inverts H1; [left; auto | right; auto]). apply or_decls_nil_2 with (ds1 := DS1) (ds2 := DS2); assumption.
     (* sub_tp_rfn_intro *) assert (DS = nil) by auto. subst. inverts H0; auto. 
-    (* sub_tp_rfn *) assert (DS2 = nil). inverts H. unfold LabelSetImpl.Subset in s. simpl in s. induction DS2; auto. destruct a. assert (LabelSetImpl.In l LabelSetImpl.empty). apply (s l). eapply (LabelMapImpl.binds_In); eauto. LabelSetDecide.fsetdec. subst. inverts H. auto.
+    (* sub_tp_rfn *) assert (DS2 = nil). inverts H. unfold LabelSetImpl.Subset in s. simpl in s. induction DS2; auto. destruct a. assert (LabelSetImpl.In l LabelSetImpl.empty). apply (s l). eapply (lbl.binds_In); eauto. LabelSetDecide.fsetdec. subst. inverts H. auto.
     (* sub_tp_rfn_precise *) inverts H0; auto.
       assert (DS2 = nil). unfold LabelSetImpl.Subset in e. simpl in e. induction DS2; auto. destruct a. simpl in e. unfold LabelSetImpl.Equal in e. unfold iff in e. destruct (e l) as [HF _]. assert ( LabelSetImpl.In l LabelSetImpl.empty). LabelSetDecide.fsetdec. rewrite (LabelSetFacts.empty_iff) in H0. contradiction H0. subst. auto.
     (* sub_tp_tpsel_lower *) unfold not in H2. contradiction (H2 (hts_tp_sel _ _)).
@@ -167,12 +167,16 @@ Proof. Admitted.
 Lemma invert_typing_sel: forall E t l T q s, E |== s -> (E, s) |= sel t l ~: T @ q ->   
       exists T', exists q1, (E, s) |= t ~: T' @ q1 /\
       exists DS, exists q2, (E, s) |= T' ~< DS @ q2 /\
-      exists D, LabelMapImpl.binds l D DS /\
+      exists D, lbl.binds l D DS /\
       exists S, open_decl_cond D t (decl_tm S) /\
       exists q3, (E, s) |= S ~<: T @ q3.
 Proof.
   introv. intros Hstowf H. dependent induction H. 
-    repeat eexists; eauto. apply sub_tp_refl.
+    repeat eexists; eauto. 
+    destruct (regular_expands H0) as [HWfE HLcT].
+    apply sub_tp_refl; auto.
+      admit. (* lc_tp T where T is in opened decl *)
+
     destruct (IHtyping s l t E); auto. exists x. 
     destruct H1 as [q1' [HT [DS [q2' [HX [D [Hin [S0 [HOpen [q3 HSub]]]]]]]]]].
     repeat ((eapply sub_tp_trans_safe; eauto) || (esplit; eauto)).
@@ -184,7 +188,7 @@ Lemma invert_typing_ref: forall E s a T q, (E, s) |= ref a ~: T @ q ->
 Proof. Admitted.
 
 
-Lemma inversion_red_store_dom : forall s t t' s', s |~ t ~~> t' ~| s' -> dom s [<=] dom s'.
+Lemma invert_red_store_dom : forall s t t' s', s |~ t ~~> t' ~| s' -> dom s [<=] dom s'.
 Proof. Admitted.
 
 
@@ -200,14 +204,14 @@ Proof. unfold EqDec_eq. decide equality; decide equality; eauto. Defined.
 Set Implicit Arguments.
 Lemma binds_map_3 : forall A B (x: label) (b: B) (f: A -> B) E,
   (forall a b, f a = f b -> a = b) ->
-  LabelMapImpl.uniq E ->
-  LabelMapImpl.binds x b (LabelMapImpl.map f E) ->
-  exists a, LabelMapImpl.binds x a E /\ b = f a.
+  lbl.uniq E ->
+  lbl.binds x b (lbl.map f E) ->
+  exists a, lbl.binds x a E /\ b = f a.
 Proof.
   labelmap induction E; intros HFInjection HUniq HBTail.
-    inversion HBTail. set (LabelMapImpl.binds_map_1 B A f x b HBTail).
-set (LabelMapImpl.binds_app_uniq_1 B x b _ _ HUniq HBTail).
-    unfold LabelMapImpl.binds in *. simpl in *. destruct (x == x0); subst.
+    inversion HBTail. set (lbl.binds_map_1 B A f x b HBTail).
+set (lbl.binds_app_uniq_1 B x b _ _ HUniq HBTail).
+    unfold lbl.binds in *. simpl in *. destruct (x == x0); subst.
       inverts HUniq. exists a. split. left; auto. inverts HBTail; eauto. inverts H; auto.
       right. auto.
 Qed.*)
