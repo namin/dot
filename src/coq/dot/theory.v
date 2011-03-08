@@ -9,6 +9,20 @@ Reserved Notation "E |= t ~<: T @ q" (at level 69).
 (*Reserved Notation "E |= t ~mem~ D @ q" (at level 69).*)
 
 Inductive typing : env -> quality -> tm -> tp -> Prop :=
+(*
+we can only give a precise type to free variables whose exact dynamic type is known statically in gamma
+lambda bound variables allow subsumption because they may be applied to arguments whose dynamic type is a subtype of the statically known type
+
+example of unsound program that would be accepted were all variables treated equal:
+val u = new Top { u =>
+  class A { z =>
+    type L : Bot..Top
+    val oops: z.L => Top
+  }
+  val main: Top
+}(main = (fun x: u.A => val al = new x.L; x.oops al) (new (u.A{type L : Int..Int})(oops = (x: Int) => x + 1))); 
+u.main
+*)
    | typing_var : forall E x T,
       wf_env E -> lc_tp T -> (* for typing_regular *)
       ctx_binds E x T ->
@@ -79,19 +93,6 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
       E |= (new Tc args t) ~: T @ q
 
 where "E |= t ~: T @ q" := (typing E q t T)
-
-(* inlined to make induction easier 
-with mem : env -> quality -> tm -> decl -> Prop :=
-  | mem_ : forall E q1 q2 t T D DS Dopen,
-      E |= t ~: T @ q1 -> (* requiring a precise judgment makes preservation harder without gaining anything afaict *)
-      E |= T ~< DS @ q2 -> In D DS ->
-      open_decl_cond D t Dopen ->
-      mem E (q1 & q2) t Dopen
-
-where "E |= t ~mem~ D @ q" := (mem E q t D)
- (*exists T, exists q1, exists q2, exists DS, exists D', E |= t ~: T @ q1 /\ E |= T ~< DS @ q2 /\ q = q1 & q2 /\ In D' DS /\ open_decl_cond D' t D*)
-*)
-
 
 with expands : env -> quality -> tp -> decls -> Prop := 
   | expands_sub : forall E q1 q2 T U DS,
@@ -288,31 +289,6 @@ with wf_decl : env -> decl -> Prop :=
      wf_tp E T ->
      wf_decl E (decl_tm T).
 
-Scheme typing_indm         := Induction for typing Sort Prop 
-  with expands_indm        := Induction for expands Sort Prop
-  with sub_tp_indm         := Induction for sub_tp Sort Prop
-  with sub_decl_indm       := Induction for sub_decl Sort Prop
-  with path_eq_indm        := Induction for path_eq Sort Prop
-  with wf_env_indm         := Induction for wf_env Sort Prop
-  with wf_tp_indm          := Induction for wf_tp Sort Prop
-  with wf_decl_indm        := Induction for wf_decl Sort Prop.
-
-Combined Scheme typing_mutind from typing_indm, expands_indm, sub_tp_indm, sub_decl_indm, path_eq_indm, wf_env_indm, wf_tp_indm, wf_decl_indm.
-
-Require Import LibTactics_sf.
-Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ :=
-  cut ((forall E q t T (H: E |= t ~: T @ q), (P0_ E q t T H)) /\ 
-  (forall E q T DS (H: E |= T ~< DS @ q), (P1_ E q T DS H)) /\ 
-  (forall E q T T' (H: E |= T ~<: T' @ q), (P2_  E q T T' H))  /\ 
-  (forall (e : env) (q : quality) (d d0 : decl) (H : sub_decl e q d d0), (P3_ e q d d0 H)) /\  
-  (forall (e : env) (t t0 : tm) (H : path_eq e t t0), (P4_ e t t0 H)) /\  
-  (forall (e : env) (H : wf_env e), (P5_ e H)) /\
-  (forall (e : env) (t : tp) (H : wf_tp e t), (P6_ e t H)) /\  
-  (forall (e : env) (d : decl) (H : wf_decl e d), (P7_ e d H))); [tauto | 
-    apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_); unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_, P7_ in *; clear P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; [ 
-      Case "typing_var" | Case "typing_ref" | Case "typing_sel" | Case "typing_sub" | Case "typing_app" | Case "typing_lam" | Case "typing_new" | Case "expands_sub" | Case "expands_rfn" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "sub_tp_rfn_intro" | Case "sub_tp_rfn_elim" | Case "sub_tp_rfn" | Case "sub_tp_rfn_precise" | Case "sub_tp_tpsel_lower" | Case "sub_tp_tpsel_upper" | Case "sub_tp_trans" | Case "sub_tp_path_eq" | Case "sub_tp_refl" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_tp_fun" | Case "sub_tp_and_r" | Case "sub_tp_or_l" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "peq_refl" | Case "peq_symm" | Case "peq_env" | Case "peq_sel" | Case "wf_env_nil" | Case "wf_env_cons" | Case "wf_rfn" | Case "wf_lam" | Case "wf_tsel" | Case "wf_tsel_cls" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" ]; 
-      introv; eauto ].
-
 (* copy/paste from sub_tp_rfn_XXX since Combined Scheme refuses to generate the induction scheme when sub_decls is in the mix *)
 Inductive sub_decls : env -> quality -> decls -> decls -> Prop :=
   | sub_decls_sub :forall L E DS1 DS2,
@@ -407,6 +383,8 @@ Definition kinding E S :=
 
 Notation "E |= T 'ok'" := (kinding E T) (at level 69).
 
+Notation "E |= 'ok'" := (forall x T, ctx_binds E x T -> E |= T ok) (at level 69).
+
 
 (* need to leave some quality-slack here since otherwise preservation/t-sel/e-sel isn't provable: 
    a.l ~~> v does not preserve quality, since a.l may be typed precisely but v's typing comes from T-new, which has to allow subsumption
@@ -418,7 +396,7 @@ Notation "E |= T 'ok'" := (kinding E T) (at level 69).
   (forall U T, d ^d^ x = decl_tp T U -> (exists q, (ctx_bind (E, s) x Tc) |= T ~<: U @ q))) 
 *)
 Definition preservation := forall E_s q t T, E_s |=  t ~: T  @ q -> forall E t' s s', E_s = (E, s) -> 
-  E |== s -> (forall x T, ctx_binds E_s x T -> E_s |= T ok) ->
+  E |== s -> E_s |= ok ->
   s  |~  t ~~> t'  ~| s' -> (E |== s' /\ exists q', (E, s') |=  t' ~: T @ q'). 
 
 Definition progress := forall s t T q,
@@ -427,6 +405,45 @@ Definition progress := forall s t T q,
      value t \/ exists t', exists s', s |~ t ~~> t' ~| s'.
 
 
+(* begin hide *) 
+Scheme typing_indm         := Induction for typing Sort Prop 
+  with expands_indm        := Induction for expands Sort Prop
+  with sub_tp_indm         := Induction for sub_tp Sort Prop
+  with sub_decl_indm       := Induction for sub_decl Sort Prop
+  with path_eq_indm        := Induction for path_eq Sort Prop
+  with wf_env_indm         := Induction for wf_env Sort Prop
+  with wf_tp_indm          := Induction for wf_tp Sort Prop
+  with wf_decl_indm        := Induction for wf_decl Sort Prop.
+
+Combined Scheme typing_mutind from typing_indm, expands_indm, sub_tp_indm, sub_decl_indm, path_eq_indm, wf_env_indm, wf_tp_indm, wf_decl_indm.
+
+Require Import LibTactics_sf.
+Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ :=
+  cut ((forall E q t T (H: E |= t ~: T @ q), (P0_ E q t T H)) /\ 
+  (forall E q T DS (H: E |= T ~< DS @ q), (P1_ E q T DS H)) /\ 
+  (forall E q T T' (H: E |= T ~<: T' @ q), (P2_  E q T T' H))  /\ 
+  (forall (e : env) (q : quality) (d d0 : decl) (H : sub_decl e q d d0), (P3_ e q d d0 H)) /\  
+  (forall (e : env) (t t0 : tm) (H : path_eq e t t0), (P4_ e t t0 H)) /\  
+  (forall (e : env) (H : wf_env e), (P5_ e H)) /\
+  (forall (e : env) (t : tp) (H : wf_tp e t), (P6_ e t H)) /\  
+  (forall (e : env) (d : decl) (H : wf_decl e d), (P7_ e d H))); [tauto | 
+    apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_); unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_, P7_ in *; clear P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; [ 
+      Case "typing_var" | Case "typing_ref" | Case "typing_sel" | Case "typing_sub" | Case "typing_app" | Case "typing_lam" | Case "typing_new" | Case "expands_sub" | Case "expands_rfn" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "sub_tp_rfn_intro" | Case "sub_tp_rfn_elim" | Case "sub_tp_rfn" | Case "sub_tp_rfn_precise" | Case "sub_tp_tpsel_lower" | Case "sub_tp_tpsel_upper" | Case "sub_tp_trans" | Case "sub_tp_path_eq" | Case "sub_tp_refl" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_tp_fun" | Case "sub_tp_and_r" | Case "sub_tp_or_l" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "peq_refl" | Case "peq_symm" | Case "peq_env" | Case "peq_sel" | Case "wf_env_nil" | Case "wf_env_cons" | Case "wf_rfn" | Case "wf_lam" | Case "wf_tsel" | Case "wf_tsel_cls" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" ]; 
+      introv; eauto ].
+
+
+
+(* inlined to make induction easier 
+with mem : env -> quality -> tm -> decl -> Prop :=
+  | mem_ : forall E q1 q2 t T D DS Dopen,
+      E |= t ~: T @ q1 -> (* requiring a precise judgment makes preservation harder without gaining anything afaict *)
+      E |= T ~< DS @ q2 -> In D DS ->
+      open_decl_cond D t Dopen ->
+      mem E (q1 & q2) t Dopen
+
+where "E |= t ~mem~ D @ q" := (mem E q t D)
+ (*exists T, exists q1, exists q2, exists DS, exists D', E |= t ~: T @ q1 /\ E |= T ~< DS @ q2 /\ q = q1 & q2 /\ In D' DS /\ open_decl_cond D' t D*)
+*)
 
 (* trips up combined scheme -- sub_decls was factored into sub_tp since coq can't handle the resulting combined scheme  -- some weird error in decomposing products
   | sub_tp_rfn_sub : forall L E q T DS1 DS2,
@@ -464,8 +481,20 @@ Definition extract_pex : loc -> args -> pex := fun a => fun ags =>
        end) ags.
 
 *)
+(* end hide *)
 
 
+(* ill-typed programs:
+u =>
+  class A { z =>
+    type L : Top..Top
+    val oops: z.L => Top
+  }
+
+  (fun x: u.A => x.oops "meh") (new (u.A{type L : Int..Int})(oops = (x: Int) => x + 1)) // typing_new will fail because the bounds are inconsistent
+
+
+*)
 (*
 *** Local Variables: ***
 *** coq-prog-name: "coqtop" ***
