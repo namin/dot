@@ -11,7 +11,7 @@ Reserved Notation "E |= t ~<: T @ q" (at level 69).
 Inductive typing : env -> quality -> tm -> tp -> Prop :=
 (*
 we can only give a precise type to free variables whose exact dynamic type is known statically in gamma
-lambda bound variables allow subsumption because they may be applied to arguments whose dynamic type is a subtype of the statically known type
+lambda bound variables indirectly admit subsumption because they may be applied to arguments whose dynamic type is a subtype of the statically known type
 
 example of unsound program that would be accepted were all variables treated equal:
 val u = new Top { u =>
@@ -23,10 +23,10 @@ val u = new Top { u =>
 }(main = (fun x: u.A => val al = new x.L; x.oops al) (new (u.A{type L : Int..Int})(oops = (x: Int) => x + 1))); 
 u.main
 *)
-   | typing_var : forall E x T,
-      wf_env E -> lc_tp T -> (* for typing_regular *)
-      ctx_binds E x T ->
-      E |= (fvar x) ~: T @ precise
+   | typing_var : forall G P x T qual trust,
+      wf_env (G, P) -> lc_tp T -> (* for typing_regular *)
+      (*env.*)binds x (T, (qual, trust)) G ->
+      (G, P) |= (fvar x) ~: T @ qual
 
    | typing_ref : forall G P a T args, (* this is the only typing rule that peeks into the store, well, the path_eq judgement does as well *)
       wf_env (G, P) -> lc_tp T -> (* for typing_regular *)
@@ -54,9 +54,12 @@ u.main
       E |= (app tf ta) ~: Tr @ q
 
 (* this judgement may bind a variable to an illegal type (in the environment) 
-   However, a lambda with an illegal type for its argument cannot be applied, and the illegal type is confined to its body *)
+   However, a lambda with an illegal type for its argument cannot be applied, and the illegal type is confined to its body 
+
+  The binding's quality cannot be precise since application allows subsumption. See typing_var.
+*)
    | typing_lam : forall L E q S t T,
-      (forall x, x \notin L -> (ctx_bind E x S) |= (t ^^ x) ~: T @ q) -> (* x notin FV(T) follows from the stronger x \notin L forall L *)
+      (forall x, x \notin L -> (ctx_bind_subsumed E x S) |= (t ^^ x) ~: T @ q) -> (* x notin FV(T) follows from the stronger x \notin L forall L *)
       (* lc_tp T  not necessary: implied by typing_regular *)
       wf_tp E (tp_fun S T) ->
       E |= (lam S t) ~: (tp_fun S T) @ q
@@ -85,7 +88,7 @@ u.main
       lbl.uniq args -> (* ctor args are unique by label *)
       (lbl.dom ds) [=l=] (lbl.dom args) -> (* all ctor args must have declaration with same label*)
       (forall x, x \notin L -> (forall l d, lbl.binds l d ds -> 
-        (forall U T, d ^d^ x = decl_tp T U -> (exists q, (ctx_bind_unchecked E x Tc) |= T ~<: U @ q)) /\ (* for each type member: its lower bound must be a subtype of its upper bound, `unchecked` says: do not assume this to be true yet *)
+        (forall U T, d ^d^ x = decl_tp T U -> (exists q, (ctx_bind_untrusted E x Tc) |= T ~<: U @ q)) /\ (* for each type member: its lower bound must be a subtype of its upper bound, `untrusted` says: do not assume this to be true yet *)
         (forall T, d ^d^ x = decl_tm T -> (exists v,  (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
           lbl.binds l v args /\ value (v ^^ x) /\ (exists q, (ctx_bind E x Tc) |= (v ^^ x) ~: T @ q))))) ->
       (forall x, x \notin L -> (ctx_bind E x Tc) |= (t ^^ x) ~: T @ q) ->  (* in principle, x.L would now be a valid middle man in sub_tp_trans since the type members in Tc's expansion have been checked *)
@@ -145,7 +148,7 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=
 (* only allow subsuming T to p.L (assuming p has member L: T..U) if it's safe to assume that
    there's no way to further subsume p.L to a type that's not a supertype of T
    concretely, using sub_tp_tpsel_upper to get from p.L to U will yield a supertype of p.L, and thus, via transitivity, of T, but 
-   T <: U does not necessarily hold for unchecked paths, which are rooted in a variable that was put in the context during typing_new's 
+   T <: U does not necessarily hold for untrusted paths, which are rooted in a variable that was put in the context during typing_new's 
    in other words, in typing_new we want to check T <: U without going through p.L, otherwise the bounds of a type member always trivially conform by invoking transitivity with the type member that's being checked as the middleman
 
    it suffices to interrupt this viscious chain on one side of p.L, so I chose the lower bound
@@ -237,13 +240,12 @@ with path_eq : env -> tm -> tm -> Prop :=
 
 with wf_env : env -> Prop := 
   | wf_env_nil : forall P, wf_env (nil, P)
-  | wf_env_cons : forall E x CEntry U P,
-     wf_env (E, P) ->
-     x `notin` dom E -> 
-     CEntry = ctx_tp U \/ CEntry = ctx_tp_unchecked U -> 
-     lc_tp U ->
-     (forall x, x `notin` dom E -> x `notin` fv_tp U) -> 
-     wf_env ((x ~ CEntry ++ E), P)
+  | wf_env_cons : forall G P x T bi,
+     wf_env (G, P) ->
+     x `notin` dom G -> 
+     lc_tp T ->
+     (forall x, x `notin` dom G -> x `notin` fv_tp T) -> 
+     wf_env ((x ~ (T, bi) ++ G), P)
 
 (* TODO: prove wf_tp E T implies lc_tp T  *)
 with wf_tp : env -> tp -> Prop :=
@@ -365,7 +367,7 @@ Definition typing_store G s :=
           /\  exists ds, (G, s) |= Tc ~< ds @ precise
           /\  (lbl.dom ds) [=l=] (lbl.dom args) (* all ctor args must have declaration with same label*)
           /\  (exists L, (forall x, x \notin L -> (forall l d, lbl.binds l d ds -> 
-                (forall U T, d ^d^ x = decl_tp T U -> (exists q, (ctx_bind_unchecked (G, s) x Tc) |= T ~<: U @ q)) /\ (* for each type member: its lower bound must be a subtype of its upper bound *)
+                (forall U T, d ^d^ x = decl_tp T U -> (exists q, (ctx_bind_untrusted (G, s) x Tc) |= T ~<: U @ q)) /\ (* for each type member: its lower bound must be a subtype of its upper bound *)
                 (forall T, d ^d^ x = decl_tm T -> (exists v,  (* for each term member there's a ctor argument with the same label that provides a well-typed value *)
                   lbl.binds l v args /\ value (v ^^ x) /\ (exists q, (ctx_bind (G, s) x Tc) |= (v ^^ x) ~: T @ q)))))
               )).
@@ -379,11 +381,11 @@ Notation "E |== s" := (typing_store E s) (at level 68).
 Definition kinding E S :=
   wf_tp E S ->
   (forall ds, E |= S ~< ds @ precise -> forall L x, x \notin L -> forall l d, lbl.binds l d ds -> 
-      (forall U T, d ^d^ x = decl_tp T U -> exists q, (ctx_bind_unchecked E x S) |= T ~<: U @ q)).
+      (forall U T, d ^d^ x = decl_tp T U -> exists q, (ctx_bind_untrusted E x S) |= T ~<: U @ q)).
 
 Notation "E |= T 'ok'" := (kinding E T) (at level 69).
 
-Notation "E |= 'ok'" := (forall x T, ctx_binds E x T -> E |= T ok) (at level 69).
+Notation "E |= 'ok'" := (forall x T bi, (*env.*)binds x (T, bi) (fst E) -> E |= T ok) (at level 69).
 
 
 (* need to leave some quality-slack here since otherwise preservation/t-sel/e-sel isn't provable: 

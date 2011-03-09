@@ -42,7 +42,7 @@ Definition loc := var.
 
 Inductive tp : Set :=
   | tp_sel    : tm -> label -> tp        (* type selection *) (*X tm must be a path *)
-  | tp_rfn    : tp -> list (label*decl) -> tp   (* refinement *)  (* due to fundamental restriction in Coq, can't use a map to represent decls, since that applies decl to a constructor on the left of an arrow.... variable binding is encoded in the open_rec function below*)
+  | tp_rfn    : tp -> list (label * decl) -> tp   (* refinement *)  (* due to fundamental restriction in Coq, can't use a map to represent decls, since that applies decl to a constructor on the left of an arrow.... variable binding is encoded in the open_rec function below*)
   | tp_fun    : tp -> tp -> tp           (* function type *)
   | tp_and    : tp -> tp -> tp           (* intersection type *)
   | tp_or     : tp -> tp -> tp           (* union type *)
@@ -87,48 +87,38 @@ Definition decls := list (label * decl).
 
 Hint Constructors tp decl tm path concrete.
 
-(*  track whether the type of a variable is assumed to have been kind-checked or not -- NOTE: wf_tp E T does not imply kinding_ok E T *)
-Inductive ctx_entry : Set :=  
-  | ctx_tp : tp -> ctx_entry
-  | ctx_tp_unchecked : tp -> ctx_entry. (* x :-unchecked-: T --> do not trust type member selections rooted in x to have conforming bounds *)
 
-(* the environment is a context + a set of path equalities
-  the context tracks which variables are bound in the current scope along with their assumed type
-  path equalities of the shape a = a'.l 
-  such an equlity arises from the allocation of a new object (referenced by a), with a member l that has value a'
-  storing these equalities in the context would cost more than it saves, since we need to maintain the invariant that every variable is bound only once
-  
-  there's an additional fact that we may need to track about variable bindings x : T, namely whether T is known to be OK (its type members have conforming bounds)
-  hopefully this info can be kept separately in the meta-theory -- we'll have to see
+(* the environment is a context + store (only needed for preservation to track types for locations, and path equalities that arise during reduction)
+  the context tracks which variables are bound in the current scope along with their assumed type (and the quality/trust of the binding)
 *)
-Definition ctx : Set := (list (atom * ctx_entry)). (* gamma *)
+Definition binding_info : Set := (quality * bool)%type. (* quality of the binding (`subsumed` for lambda-bound variables) and its trust (false for self variable while kind-checking its type members in typing_new). *)
+Definition ctx : Set := (list (atom * (tp * binding_info))). (* gamma *)
 Definition store : Set := (list (loc * (tp * args))).
+
+(*  track whether the type of a variable is assumed to have been kind-checked or not -- NOTE: wf_tp E T does not imply kinding_ok E T *)
+(* x :-untrusted-: T --> do not trust type member selections rooted in x to have conforming bounds *)
 
 (* slightly unconventional: use store itself as store typing, since we need both the type of the location and the values of the object's fields, i.e. the ctor arguments
  the latter is needed to compute path equalities resulting from object allocation -- only used for preservation *)
 Definition env : Set := (ctx * store)%type.
 
-Definition ctx_binds   : env -> atom -> tp -> Prop := fun E => fun x => fun T => (binds x (ctx_tp T) (fst E)) \/ (binds x (ctx_tp_unchecked T) (fst E)).
-Definition ctx_bind    : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ (ctx_tp T) ++ (fst E), snd E).
-Definition ctx_fresh   : env -> atom -> Prop := fun E => fun a => a `notin` dom (fst E).
+Definition ctx_bind           : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ (T, (precise, true)) ++ (fst E), snd E).
+Definition ctx_bind_untrusted : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ (T, (precise, false)) ++ (fst E), snd E).
+Definition ctx_bind_subsumed  : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ (T, (subsumed, true)) ++ (fst E), snd E).
 
-(*Definition ctx_binds_unchecked : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x (ctx_tp_unchecked T) (fst E).*)
-Definition ctx_bind_unchecked  : env -> atom -> tp -> env := fun E => fun x => fun T => (x ~ (ctx_tp_unchecked T) ++ (fst E), snd E).
+(*Definition ctx_binds_untrusted : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x (ctx_tp_untrusted T) (fst E).*)
 
-(* *assumed* to be safe, a lambda-bound variable is assumed to be safe since the typing of its body assumes a value can be provided for the argument, which implies the type of the variable is well-kinded *)
+(* is this term a path that's *assumed* to be safe? (i.e., can we trust its type members to have conforming bounds?)
+ a lambda-bound variable is assumed to be safe since the typing of its body assumes a value can be provided for the argument, which implies the type of the variable is well-kinded *)
 Inductive path_safe : env -> tm -> Prop :=
   | path_safe_bvar : forall n E, path_safe E (bvar n) (* variable under binder *)
   | path_safe_ref : forall a Ctor G P, (binds a Ctor P) -> path_safe (G, P) (ref a)   (* free variable that represents a reference *)
-  | path_safe_fvar : forall x T G P, (binds x (ctx_tp T) G) -> path_safe (G, P) (fvar x) (* variable bound in Gamma and not marked as unchecked *)
+  | path_safe_fvar : forall x T G P q, (binds x (T, (q, true)) G) -> path_safe (G, P) (fvar x) (* variable bound in Gamma and not marked as untrusted *)
   | path_safe_sel : forall p l E, path_safe E p -> path_safe E (sel p l).
 
 Coercion bvar : nat >-> tm.
 Coercion fvar : var >-> tm.
 (*Coercion ref  : loc >-> tm.*)
-
-(* TODO: do we need to require lc_tm/lc_tp for constituents in path/concrete judgements? *)
-
-
 
 
 (*************************)
@@ -439,6 +429,11 @@ Inductive open_decl_cond : decl -> tm -> decl -> Prop :=
       lc_decl d -> (* D does not contain the self variable: this makes it irrelevant whether p is a path, but asserting this makes preservation/typing_sel/red_sel easier*)
       open_decl_cond d p d.
 
+
+
+
+
+
 (* SCRAPS
 
 Module LabelDT <: UsualDecidableType with Definition t := label.
@@ -576,6 +571,9 @@ Inductive drop_and_decl : decl -> decl -> decls -> decls -> Prop :=
       drop_and_decl d1 d (d2 :: ds2) (d2 :: ds2rest)
   | drop_and_decl_nil : forall d1,
       drop_and_decl d1 d1 nil nil.
+
+(*Definition ctx_binds   : env -> atom -> tp -> Prop := fun E => fun x => fun T => (binds x (ctx_tp T) (fst E)) \/ (binds x (ctx_tp_untrusted T) (fst E)).*)
+(*Definition ctx_fresh   : env -> atom -> Prop := fun E => fun a => a `notin` dom (fst E).*)
 
 
 

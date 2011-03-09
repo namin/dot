@@ -9,7 +9,7 @@ Require Import Coq.Program.Equality.
 Section Preservation.
 (* mostly reusable boilerplate for the mutual induction: *)
   Let P0_ (E_s: env) (q: quality) (t: tm) (T: tp) (H: E_s |=  t ~: T  @ q) := forall E t' s s', E_s = (E, s) -> 
-      E |== s -> (forall x T, ctx_binds E_s x T -> E_s |= T ok) ->
+      E |== s -> E_s |= ok ->
       s  |~  t ~~> t'  ~| s' -> (E |== s' /\ exists q', (E, s') |=  t' ~: T @ q').  
   Let P1_ (E : env) (q : quality) (T : tp) (DS : decls) (H: E |= T ~< DS @ q) := True.
   Let P2_ (E : env) (q : quality) (T T' : tp) (H: E |= T ~<: T' @ q) := True.
