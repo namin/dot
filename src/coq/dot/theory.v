@@ -22,13 +22,46 @@ val u = new Top { u =>
   val main: Top
 }(main = (fun x: u.A => val al = new x.L; x.oops al) (new (u.A{type L : Int..Int})(oops = (x: Int) => x + 1))); 
 u.main
+
+TODO: of course lambda abstraction and function application can be encoded using object instantiation and member selection:
+
+val u = new Top { u =>
+  class A { z =>
+    type L : Bot..Top
+    val oops: z.L => Top
+  }
+  class B { z => val a: u.A }
+  val main: Top
+}( main = 
+    val b = new u.B(a = new u.A{type L : Int..Int}(oops = (x: Int) => x + 1));
+    val al = new b.a.L(); 
+    b.oops al 
+ )
+u.main
+
+the obvious fix is to have value members specify the quality of the typing derivation for the argument that's supplied for this label in a new expression
+
+the Scala fix allows subsumption but ensures that it class members cannot be rebound 
+here, we allow covariant refining of any type member, but in order to instantiate this type member, 
+we must not have used subsumption in typing any of the components of the path that lead to this type member
+
+since DOT doesn't model inheritance, it also doesn't have a notion of overriding, which relies on the total ordering determined by linearisation
+therefore, we cannot use the Scala approach
+
+the original DOT required global uniqueness of type members that are meant to be instantiated, but this seems like a heavy burden and a bad design decision for a real programming language, 
+and certainly removes the calculus quite far from the language
+
+the proposed approach to track the quality of type members provides a smooth migration path to a virtual calculus, where the binary subsumed/precise predicate could be generalised
+to something that tracks whether "instantiatability" was maintained
+
+TODO: [does this make sense?:] overall, i think covariant overriding for all type members should be refined into covariant overriding of output type members and contravariance for input type members, where only contravariant type members may be instantiated
 *)
    | typing_var : forall G P x T qual trust,
       wf_env (G, P) -> lc_tp T -> (* for typing_regular *)
       (*env.*)binds x (T, (qual, trust)) G ->
       (G, P) |= (fvar x) ~: T @ qual
 
-   | typing_ref : forall G P a T args, (* this is the only typing rule that peeks into the store, well, the path_eq judgement does as well *)
+   | typing_ref : forall G P a T args, (* this is the only typing rule that peeks into the store; well, the path_eq judgement does as well *)
       wf_env (G, P) -> lc_tp T -> (* for typing_regular *)
       binds a (T, args) P ->
       (G, P) |= (ref a) ~: T @ precise
@@ -176,7 +209,7 @@ AS WELL AS the fact that we can produce a value of this type (which implies T <:
 
 (* only needed for preservation: rewrite paths in case for CTX-Sel -- in subtyping so typing inversion lemma's don't need to account for two different kinds of typing slack: subtyping and path rewriting *)
   | sub_tp_path_eq : forall E T p p', (* precise subtyping is like type equality *)
-    lc_tp T ->
+    lc_tp (T ^tp^ p) -> lc_tm p' ->
     path_eq E p p' ->
     E |= (T ^tp^ p') ~<: (T ^tp^ p) @ precise
 
