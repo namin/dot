@@ -26,6 +26,14 @@ Require Import List.
 (** * Syntax of DOT *)
 (*********************************************************************)
 
+(* quality is used for taint tracking of judgements, where tainting occurs when
+   members (may) have been forgotten or when their classifiers were subsumed
+   
+   the members of a judgement are the members in the expansion of the types in that judgement
+   or in the expansion of the type of the term in the judgement 
+   
+   instead of indexing judgements we could introduce exact types, but that would require more changes to the calculus without immediate benefit
+*)
 Inductive quality : Set :=
   | precise   : quality
   | subsumed  : quality.
@@ -42,7 +50,7 @@ Definition loc := var.
 
 Inductive tp : Set :=
   | tp_sel    : tm -> label -> tp        (* type selection *) (*X tm must be a path *)
-  | tp_rfn    : tp -> list (label * decl) -> tp   (* refinement *)  (* due to fundamental restriction in Coq, can't use a map to represent decls, since that applies decl to a constructor on the left of an arrow.... variable binding is encoded in the open_rec function below*)
+  | tp_rfn    : tp -> list (label * decl) -> tp   (* refinement *)  (* variable binding is encoded in the open_rec function below -- note: list (label * decl) is the representation of an assoclist; can't use Coq's built-in Map since that results in a "non-strictly positive occurence" of tp *)
   | tp_fun    : tp -> tp -> tp           (* function type *)
   | tp_and    : tp -> tp -> tp           (* intersection type *)
   | tp_or     : tp -> tp -> tp           (* union type *)

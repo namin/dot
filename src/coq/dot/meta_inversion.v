@@ -38,27 +38,47 @@ Inductive has_tp_sel : tp -> Prop :=
  | hts_or1   : forall T T', has_tp_sel T' -> has_tp_sel (tp_or T' T)
  | hts_or2   : forall T T', has_tp_sel T' -> has_tp_sel (tp_or T T').
   
-Inductive subsumes_top : tp -> Prop := 
- | et_tst_op : subsumes_top tp_top
- | st_rfn : forall T, subsumes_top T -> subsumes_top (tp_rfn T nil)
- | st_and : forall T1 T2, subsumes_top T1 -> subsumes_top T2 -> subsumes_top (tp_and T1 T2)
- | st_or1 : forall T1 T2, subsumes_top T1 -> subsumes_top (tp_or T1 T2)
- | st_or2 : forall T1 T2, subsumes_top T2 -> subsumes_top (tp_or T1 T2).
+Inductive subsumes_top : env -> tp -> Prop := 
+ | st_top : forall E,  subsumes_top E tp_top
+ | st_rfn : forall E T, subsumes_top E T -> subsumes_top E (tp_rfn T nil)
+ | st_and : forall E T1 T2, subsumes_top E T1 -> subsumes_top E T2 -> subsumes_top E (tp_and T1 T2)
+ | st_or1 : forall E T1 T2, subsumes_top E T1 -> subsumes_top E (tp_or T1 T2)
+ | st_or2 : forall E T1 T2, subsumes_top E T2 -> subsumes_top E (tp_or T1 T2).
 
-Hint Constructors subsumes_top has_tp_sel.
+(*
+ | st_sel_punt : forall E p L q,
+  E |= tp_top ~<: (tp_sel p L) @ q ->
+  subsumes_top E (tp_sel p L).
+ | st_sel_lower : forall E p T' q1 DS q2 L S U,
+  E |= p ~: T' @ q1 ->
+  E |= T' ~< DS @ q2 ->
+  lbl.binds L (decl_tp S U) DS ->
+  path_safe E p ->
+  subsumes_top E (S ^tp^ p) ->
+  subsumes_top E (tp_sel p L)
+ | st_sel_upper : forall E p T' q1 DS q2 L S U,
+  E |= p ~: T' @ q1 ->
+  E |= T' ~< DS @ q2 ->
+  lbl.binds L (decl_tp S U) DS ->
+  path p ->
+  subsumes_top E (tp_sel p L) ->
+  subsumes_top E (U ^tp^ p).*)
 
+Hint Constructors subsumes_top.
 
-Lemma opening_pres_subsumes_top : forall T p p', subsumes_top (T ^tp^ p) -> subsumes_top (T ^tp^ p'). 
+(*
+Lemma opening_pres_subsumes_top : forall E T p p', path_eq E p p' -> subsumes_top E (T ^tp^ p) -> subsumes_top E (T ^tp^ p'). 
 Proof.
-  intros. unfold open_tp in *; simpl. induction T; try solve [inverts H; simpl; auto].
-    simpl in *. inverts H.
+  introv. intros Hpeq H. unfold open_tp in *; simpl. induction T; try solve [inverts H; simpl; auto].
+    simpl in *. inverts H. eapply st_sel; eauto.
     induction l. simpl. auto. inverts H2.
 Qed.
+*)
 
 Section InvSubTop.
   Let P0_ (E: env) (q: quality) (t: tm) (T: tp) (H: E  |=  t ~: T  @ q) := True.
-  Let P1_ (E : env) (q : quality) (T : tp) (DS : decls) (H: E |= T ~< DS @ q) := subsumes_top T -> DS = nil.
-  Let P2_ (E : env) (q : quality) (T T' : tp) (H: E |= T ~<: T' @ q) := subsumes_top T -> ~ has_tp_sel T' -> subsumes_top T'.
+  Let P1_ (E : env) (q : quality) (T : tp) (DS : decls) (H: E |= T ~< DS @ q) := subsumes_top E T -> DS = nil.
+  Let P2_ (E : env) (q : quality) (T T' : tp) (H: E |= T ~<: T' @ q) := subsumes_top E T -> subsumes_top E T'.
   Let P3_ (e : env) (q : quality) (d d0 : decl) (H: sub_decl e q d d0) := True.
   Let P4_ (e : env) (t t0 : tm) (H: path_eq e t t0) := True.
   Let P5_ (e : env) (H: wf_env e) := True.
@@ -66,25 +86,23 @@ Section InvSubTop.
   Let P7_ (e : env) (d : decl) (H: wf_decl e d) := True.
 
 Lemma invert_subtyping_top : 
-   (forall E q T DS, E |= T ~< DS @ q -> subsumes_top T -> DS = nil) /\
-   (forall E q T T', E |= T ~<: T' @ q -> subsumes_top T -> ~ has_tp_sel T' -> subsumes_top T').
-Proof. Admitted.
-(*  mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; intros; try solve [inverts H;eauto | inverts H0;eauto | inverts H1;eauto | eauto ].
+   (forall E q T DS, E |= T ~< DS @ q -> subsumes_top E T -> DS = nil) /\
+   (forall E q T T', E |= T ~<: T' @ q -> subsumes_top E T -> subsumes_top E T').
+Proof. 
+mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; intros; try solve [inverts H;eauto | inverts H0;eauto | inverts H1;eauto | eauto ].
 
 (*cases: *)
     (* expands_rfn *) inverts H0. assert (DSP = nil) by auto. subst. apply and_decls_nil_2; assumption.
     (* expands_and *) inverts H1. assert (DS1 = nil) by auto; assert (DS2 = nil) by auto. subst. apply and_decls_nil_2; assumption.
     (* expands_or *) assert (DS1 = nil \/ DS2 = nil) by (inverts H1; [left; auto | right; auto]). apply or_decls_nil_2 with (ds1 := DS1) (ds2 := DS2); assumption.
     (* sub_tp_rfn_intro *) assert (DS = nil) by auto. subst. inverts H0; auto. 
-    (* sub_tp_rfn *) assert (DS2 = nil). inverts H. unfold LabelSetImpl.Subset in s. simpl in s. induction DS2; auto. destruct a. assert (LabelSetImpl.In l LabelSetImpl.empty). apply (s l). eapply (lbl.binds_In); eauto. LabelSetDecide.fsetdec. subst. inverts H. auto.
+    (* sub_tp_rfn *) eauto. assert (DS2 = nil). inverts H. unfold LabelSetImpl.Subset in s. simpl in s. induction DS2; auto. destruct a. assert (LabelSetImpl.In l LabelSetImpl.empty). apply (s l). eapply (lbl.binds_In); eauto. LabelSetDecide.fsetdec. subst. inverts H. auto.
     (* sub_tp_rfn_precise *) inverts H0; auto.
       assert (DS2 = nil). unfold LabelSetImpl.Subset in e. simpl in e. induction DS2; auto. destruct a. simpl in e. unfold LabelSetImpl.Equal in e. unfold iff in e. destruct (e l) as [HF _]. assert ( LabelSetImpl.In l LabelSetImpl.empty). LabelSetDecide.fsetdec. rewrite (LabelSetFacts.empty_iff) in H0. contradiction H0. subst. auto.
-    (* sub_tp_tpsel_lower *) unfold not in H2. contradiction (H2 (hts_tp_sel _ _)).
+    (* sub_tp_tpsel_lower *) assert (E |= (S ^tp^ p) ~<: (tp_sel p L) @ subsumed) by (eapply sub_tp_tpsel_lower; eauto). assert (exists q, E |= tp_top ~<: (S ^tp^ p) @ q) as HSubS by admit. destruct HSubS. eapply st_sel_punt. eapply sub_tp_trans; eauto.
+    (* sub_tp_tpsel_upper *) assert (E |= (tp_sel p L) ~<: (U ^tp^ p) @ (q1 & q2)) by (eapply sub_tp_tpsel_upper; eauto). inverts H1 as HSubS. eapply st_sel_punt. eapply sub_tp_trans; eauto.
     (* sub_tp_path_eq *) apply opening_pres_subsumes_top with (p := p'); auto.
-    (* sub_tp_and_r*) unfold not in *. assert (has_tp_sel T1 -> False). intros. apply H2. apply hts_and1; auto. assert (has_tp_sel T2 -> False). intros. apply H2. apply hts_and2; auto. apply st_and; [apply H; auto | apply H0; auto].
-    (* sub_tp_or_r1 *) apply st_or1; eauto. 
-    (* sub_tp_or_r2 *) apply st_or2; eauto.
-Qed.*)
+Qed.
 End InvSubTop.
 
 
