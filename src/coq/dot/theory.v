@@ -8,6 +8,16 @@ Reserved Notation "E |= t ~: T @ q" (at level 69).
 Reserved Notation "E |= t ~<: T @ q" (at level 69).
 (*Reserved Notation "E |= t ~mem~ D @ q" (at level 69).*)
 
+
+Inductive has_tp_sel : tp -> Prop :=
+ | hts_sel  : forall p L, has_tp_sel (tp_sel p L)
+ | hts_rfn  : forall T DS, has_tp_sel T  -> has_tp_sel (tp_rfn T DS)
+ | hts_and1 : forall T T', has_tp_sel T' -> has_tp_sel (tp_and T' T)
+ | hts_and2 : forall T T', has_tp_sel T' -> has_tp_sel (tp_and T T')
+ | hts_or1  : forall T T', has_tp_sel T' -> has_tp_sel (tp_or T' T)
+ | hts_or2  : forall T T', has_tp_sel T' -> has_tp_sel (tp_or T T').
+
+
 Inductive typing : env -> quality -> tm -> tp -> Prop :=
 (*
 we can only give a precise type to free variables whose exact dynamic type is known statically in gamma
@@ -203,6 +213,7 @@ think of the body of a lambda abstraction as a term whose well-typing is predica
 AS WELL AS the fact that we can produce a value of this type (which implies T <: U for each type member x.l_0...l_N.L : T..U)
 *)
   | sub_tp_trans : forall E q1 q2 TMid T T',
+      ~ (has_tp_sel TMid) ->
       E |= T ~<: TMid        @  q1      ->
       E |=       TMid ~<: T' @       q2 ->
       E |= T          ~<: T' @ (q1 & q2)

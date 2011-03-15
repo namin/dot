@@ -164,7 +164,7 @@ open_lc_is_noop
    ====== red_implies_peq
    peq E' t0 t0'
 *)
-          admit. (* lc_tp T*)
+          admit. admit. (* lc_tp T, lc_tm t0'*)
           eapply red_implies_peq; eauto.
 
           induction qconj; eauto.
@@ -294,6 +294,7 @@ rewrite Heqf. apply H7 with (l := l); auto.
 Qed.
 
 End Preservation.
+
 (*
    unfold typing_store.
 
@@ -305,7 +306,7 @@ End Preservation.
        inversion HStoTp as [_ [HDomEnvStoEq _]]. fsetdec.
        admit. (* forall x : atom, x `notin` dom (fst E) -> x `notin` fv_tp Tc *)
        inversion HStoTp. rewrite <- H3. simpl. auto. admit.
-(*
+
   wf_store s
   forall (l : label) (v : tm), lbl.binds l v args -> value (v ^^ ref a)
   a `notin` dom s
@@ -320,7 +321,7 @@ End Preservation.
     Forall (pex_has (G, P)) (extract_pex a args0))
  ============================
    wf_pex ((a, Tc) :: G) (extract_pex a args ++ P)
-*)
+
    exists E'. 
      split; [idtac | split; [simpl; fsetdec | idtac]].
 
