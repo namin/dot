@@ -7,16 +7,16 @@ Require Import Coq.Program.Equality.
 
 
 Lemma red_pres_path: forall s t t' s' E T q DS q', 
-  E |== s' -> path t -> s |~ t ~~> t' ~| s' -> (E, s') |= t' ~: T @ q -> (E, s') |= T ~< DS @ q' -> DS <> nil
+  E |== s' -> (E, s') |= ok -> path t -> s |~ t ~~> t' ~| s' -> (E, s') |= t' ~: T @ q -> (E, s') |= T ~< DS @ q' -> DS <> nil
     -> path t'.
 Proof.
-  introv HStoTp Hpath Hred Htp HX. generalize dependent q'. generalize dependent q. generalize dependent T. generalize dependent DS. induction Hred; intros; inverts Hpath; eauto. inverts H2 (*value v*); auto.
+  introv HStoTp HCtxOk Hpath Hred Htp HX. generalize dependent q'. generalize dependent q. generalize dependent T. generalize dependent DS. induction Hred; intros; inverts Hpath; eauto. inverts H2 (*value v*); auto.
 
-  destruct (invert_typing_lam HStoTp Htp) as [? [? [? [? [? [? [? HSubFun]]]]]]]. 
+  destruct (invert_typing_lam HStoTp HCtxOk Htp) as [? [? [? [? [? [? [? HSubFun]]]]]]]. 
   set (expands_sub_safe HStoTp HSubFun HX) as HXF. destruct HXF as [qq HXF']. set (invert_expands_fun HXF'). tauto.
   apply path_sel. 
 
-  destruct (invert_typing_sel HStoTp Htp) as [T' [q1 [HT [DS' [q2 [HX' [D [HIn [S [Hopen [q3 HSub]]]]]]]]]]].
+  destruct (invert_typing_sel HStoTp HCtxOk Htp) as [T' [q1 [HT [DS' [q2 [HX' [D [HIn [S [Hopen [q3 HSub]]]]]]]]]]].
   eapply IHHred; eauto. unfold not. intros. induction DS'; eauto. inversion H0.
 Qed.
 

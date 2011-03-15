@@ -5,6 +5,13 @@ Require Import Metatheory LibTactics_sf support meta_regular meta_binding.
 Require Import Coq.Program.Equality.
 
 
+(* XXXX probably not provable as-is: what if E has an evil variable binding? that could be used to create an illegal subtyping derivation *)
+Lemma sub_tp_trans_safe : forall E s S TMid T q1 q2, 
+  E |== s -> (E, s) |= ok -> (E, s) |= S ~<: TMid @ q1 -> (E, s) |= TMid ~<: T @ q2 -> exists q3, (E, s) |= S ~<: T @ q3.
+Proof. Admitted. (* intros.  set TMid as TMid'. destruct TMid; try solve [exists (q1 & q2); apply sub_tp_trans with (TMid := TMid'); auto; unfold not; intros ? ? HH; inversion HH | idtac]. clear TMid'.   dependent induction H0.*)
+
+
+
 (*
 Reserved Notation "E |= T1 ~<^ T2" (at level 69).
 
@@ -192,27 +199,24 @@ Lemma invert_wf_store_uniq : forall s, wf_store s -> uniq s.
 Proof. Admitted.
 
 
-(* XXXX probably not provable as-is: what if E has an evil variable binding? that could be used to create an illegal subtyping derivation *)
-Lemma sub_tp_trans_safe : forall E s S TMid T q1 q2, E |== s -> (E, s) |= S ~<: TMid @ q1 -> (E, s) |= TMid ~<: T @ q2 -> exists q3, (E, s) |= S ~<: T @ q3.
-Proof. Admitted. (* intros.  set TMid as TMid'. destruct TMid; try solve [exists (q1 & q2); apply sub_tp_trans with (TMid := TMid'); auto; unfold not; intros ? ? HH; inversion HH | idtac]. clear TMid'.   dependent induction H0.*)
 
 Lemma expands_sub_safe : forall E s S TMid DS q1 q2, E |== s -> (E, s) |= S ~<: TMid @ q1 -> (E, s) |= TMid ~< DS @ q2 -> exists q3, (E, s) |= S ~< DS @ q3.
 Proof. Admitted.
 
-Lemma invert_typing_lam : forall E S t U q s, E |== s -> (E, s) |= lam S t ~: U @ q -> 
+Lemma invert_typing_lam : forall E S t U q s, E |== s -> (E, s) |=  ok -> (E, s) |= lam S t ~: U @ q -> 
       exists q1, exists L, exists T, (forall x, x \notin L -> (ctx_bind (E, s) x S) |= (t ^^ x) ~: T @ q1) /\
       wf_tp (E, s) (tp_fun S T) /\ lc_tp T /\
       exists q2, (E, s) |= (tp_fun S T) ~<: U @ q2.
 Proof. Admitted.
 
-Lemma invert_typing_sel: forall E t l T q s, E |== s -> (E, s) |= sel t l ~: T @ q ->   
+Lemma invert_typing_sel: forall E t l T q s, E |== s -> (E, s) |=  ok -> (E, s) |= sel t l ~: T @ q ->   
       exists T', exists q1, (E, s) |= t ~: T' @ q1 /\
       exists DS, exists q2, (E, s) |= T' ~< DS @ q2 /\
       exists D, lbl.binds l D DS /\
       exists S, open_decl_cond D t (decl_tm S) /\
       exists q3, (E, s) |= S ~<: T @ q3.
 Proof.
-  introv. intros Hstowf H. dependent induction H. 
+  introv. intros Hstowf Hok H. dependent induction H. 
     repeat eexists; eauto. 
     destruct (regular_expands H0) as [HWfE HLcT].
     apply sub_tp_refl; auto.

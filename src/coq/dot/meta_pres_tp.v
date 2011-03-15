@@ -21,7 +21,7 @@ Section Preservation.
 Lemma preservation : preservation. 
 Proof. unfold preservation. 
   mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; try solve [intros until s'; intros _ _ _ HRed; inverts HRed | idtac ].
-  (*sel*) intros H IH HT'X _ Hin HopenD. (*presintros*) introv ? HStoTp ? HRed. subst.
+  (*sel*) intros H IH HT'X _ Hin HopenD. (*presintros*) introv ? HStoTp ?(*H1*) HRed. subst.
     inverts HRed as. 
     SCase "red_sel". introv Hsto_wf Ha_in_sto HInArgs Hl_in_args. 
       split; auto.  rename t' into v. clear IH.
@@ -131,7 +131,8 @@ open_lc_is_noop
       (* recreate typing judgement for reduced subterm: apply typing_sel to typing judgement from IH, re-use old expansion *)
 
       inverts HopenD. (* was the self variable replaced by t0 in the typing judgement before reduction? *)
-          assert (path t0'). eapply (red_pres_path Hsto_tp' H4 Hred0); eauto. 
+          assert ((E0, s') |=ok) as H1' by admit. (* by apply weakening_ctxok_store: H1 says (E0, s) |=ok *)
+          assert (path t0'). eapply (red_pres_path Hsto_tp' H1' H4 Hred0); eauto. 
             eapply weakening_expansion_store; eauto. eapply invert_red_store_dom; eauto.
             unfold not. intros HDSnil. induction DS; eauto. inversion HDSnil. (* DS <> nil from In D DS*)
 
@@ -180,7 +181,7 @@ open_lc_is_noop
 
   (*app*) intros HTFun IHTFun HTArg IHTArg. (*presintros*) introv ? HStoTp HBoundTOk HRed. subst. inverts HRed.
     SCase "red_beta". split; auto. clear IHTArg IHTFun.
-      destruct (invert_typing_lam HStoTp HTFun) as [q0 [L [Tr' [HT [HWf [HLcT [? Hsubfun]]]]]]]. 
+      destruct (invert_typing_lam HStoTp HBoundTOk HTFun) as [q0 [L [Tr' [HT [HWf [HLcT [? Hsubfun]]]]]]]. 
       destruct (invert_subtyping_fun) as [_ InvSubFun]. 
       assert (exists T1', exists T2', subsumes_fun_tp (tp_fun Ta Tr) T1' T2' 
                 /\ (exists q, (E0, s') |= T1' ~<: T @ q 
