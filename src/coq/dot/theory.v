@@ -12,6 +12,8 @@ Reserved Notation "E |= t ~<: T @ q" (at level 69).
 Inductive has_tp_sel : tp -> Prop :=
  | hts_sel  : forall p L, has_tp_sel (tp_sel p L)
  | hts_rfn  : forall T DS, has_tp_sel T  -> has_tp_sel (tp_rfn T DS)
+ | hts_fun1  : forall T T', has_tp_sel T' -> has_tp_sel (tp_fun T' T)
+ | hts_fun2  : forall T T', has_tp_sel T' -> has_tp_sel (tp_fun T T')
  | hts_and1 : forall T T', has_tp_sel T' -> has_tp_sel (tp_and T' T)
  | hts_and2 : forall T T', has_tp_sel T' -> has_tp_sel (tp_and T T')
  | hts_or1  : forall T T', has_tp_sel T' -> has_tp_sel (tp_or T' T)
@@ -142,6 +144,7 @@ where "E |= t ~: T @ q" := (typing E q t T)
 
 with expands : env -> quality -> tp -> decls -> Prop := 
   | expands_sub : forall E q1 q2 T U DS,
+      ~ (has_tp_sel U) -> (* must go deep for invert_subtyping_fun *)
       E |= T ~<: U  @ q1 ->
       E |=       U ~< DS @ q2 ->
       E |= T       ~< DS  @ (q1 & q2)
@@ -213,7 +216,7 @@ think of the body of a lambda abstraction as a term whose well-typing is predica
 AS WELL AS the fact that we can produce a value of this type (which implies T <: U for each type member x.l_0...l_N.L : T..U)
 *)
   | sub_tp_trans : forall E q1 q2 TMid T T',
-      ~ (has_tp_sel TMid) ->
+      ~ (has_tp_sel TMid) -> (* must go deep for invert_subtyping_fun *)
       E |= T ~<: TMid        @  q1      ->
       E |=       TMid ~<: T' @       q2 ->
       E |= T          ~<: T' @ (q1 & q2)
@@ -429,6 +432,9 @@ Definition kinding E S :=
 
 Notation "E |= T 'ok'" := (kinding E T) (at level 69).
 
+(* this must be strengthened to ensure that the type of any path x.l1...ln is ok
+needed by sub_tp_trans_safe
+*)
 Notation "E |= 'ok'" := (forall x T bi, (*env.*)binds x (T, bi) (fst E) -> E |= T ok) (at level 69).
 
 
