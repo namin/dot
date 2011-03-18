@@ -3,6 +3,12 @@ Require Import List.
 Require Import syntax_binding.
 Require Import Metatheory support.
 
+(** printing ~<: %\ensuremath{<:}% *)
+(** printing ~< %\ensuremath{\prec}% *)
+(** printing ~: %\ensuremath{:}% *)
+(** printing |= %\ensuremath{\vdash}% *)
+(** printing notin %\ensuremath{\notin}% *)
+
 Reserved Notation "E |= t ~< T @ q" (at level 69).
 Reserved Notation "E |= t ~: T @ q" (at level 69).
 Reserved Notation "E |= t ~<: T @ q" (at level 69).
