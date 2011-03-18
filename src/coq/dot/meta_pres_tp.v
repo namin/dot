@@ -187,7 +187,7 @@ open_lc_is_noop
                 /\ (exists q, (E0, s') |= T1' ~<: T @ q 
                 /\ (exists q0, (E0, s') |= Tr' ~<: T2' @ q0))) as [T1' [T2' [HSFT [qa [HSubArg [qr HSubRes]]]]]]. 
         eapply (InvSubFun (E0, s') x (tp_fun T Tr') (tp_fun Ta Tr)  Hsubfun); eauto.
-        unfold not. intros. inverts H.
+        unfold not. intros. inverts H. (* urgh... *)
      inverts HSFT.
 
      assert (exists q, (E0, s') |= t ^^ ta ~: Tr' ^tp^ ta @ q).

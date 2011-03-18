@@ -144,7 +144,7 @@ where "E |= t ~: T @ q" := (typing E q t T)
 
 with expands : env -> quality -> tp -> decls -> Prop := 
   | expands_sub : forall E q1 q2 T U DS,
-      ~ (has_tp_sel U) -> (* must go deep for invert_subtyping_fun *)
+(*      ~ (has_tp_sel U) -> (* must go deep for invert_subtyping_fun *) *)
       E |= T ~<: U  @ q1 ->
       E |=       U ~< DS @ q2 ->
       E |= T       ~< DS  @ (q1 & q2)
@@ -216,7 +216,7 @@ think of the body of a lambda abstraction as a term whose well-typing is predica
 AS WELL AS the fact that we can produce a value of this type (which implies T <: U for each type member x.l_0...l_N.L : T..U)
 *)
   | sub_tp_trans : forall E q1 q2 TMid T T',
-      ~ (has_tp_sel TMid) -> (* must go deep for invert_subtyping_fun *)
+(*      ~ (has_tp_sel U) -> (* must go deep for invert_subtyping_fun *) *)
       E |= T ~<: TMid        @  q1      ->
       E |=       TMid ~<: T' @       q2 ->
       E |= T          ~<: T' @ (q1 & q2)
