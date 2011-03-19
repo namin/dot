@@ -48,100 +48,133 @@ move to algorithmic subtyping??
 
 *)
 
+Reserved Notation "E |= t ~<! T @ q" (at level 69).
 
-(* `is_fun T Ta Tr`: does a type correspond T to a function type with argument type Ta and result type Tr?
+Inductive sub_tp_notrans : env -> quality -> tp -> tp -> Prop :=
+    sub_tp_notrans_rfn_intro : forall E q T DS,
+      expands E q T DS -> 
+      E |= T ~<! (tp_rfn T DS) @ q
 
-  this judgement must be syntax-directed because we want to invert it
-  thus, can't say anything about type member selection: since we have both upper and lower bounds,
-  irrespective of the direction of the inversion lemma, including either direction (with the member selection as the subsuming type) 
-  requires including the other direction, where we don't know anything about the shape of the subsuming type
-*)
-Inductive is_fun : tp -> tp -> tp -> Prop :=
- | is_fun_top : is_fun (tp_top) tp_bot tp_top
- | is_fun_fun : forall S T, is_fun (tp_fun S T) S T
- | is_fun_and : forall S T S' T' T1 T2, is_fun T1 S T -> is_fun T2 S' T'-> is_fun (tp_and T1 T2) (tp_or S S') (tp_and T T')
- | is_fun_or1 : forall S T T1 T2, is_fun T1 S T -> is_fun (tp_or T1 T2) S T
- | is_fun_or2 : forall S T T1 T2, is_fun T2 S T -> is_fun (tp_or T1 T2) S T
- | is_fun_rfn_nil : forall T T1 T2, is_fun T T1 T2 -> is_fun (tp_rfn T nil) T1 T2.
- | is_fun_tpsel : -> is_fun (tp_sel p L).
+  | sub_tp_notrans_rfn_elim : forall E q T DS T', (* not redundant with sub_tp_notrans_rfn even though it can derive the empty refinement T{}; T{} and T would be unrelated without sub_tp_notrans_rfn_elim*)
+(*      wf_env E -> lc_tp (tp_rfn T DS) -> for regular_expands/subtyping *)
+      E |= T ~<! T' @ q ->      
+      E |= (tp_rfn T DS) ~<! T' @ subsumed
 
+  | sub_tp_notrans_rfn : forall L E T DS1 DS2,
+      lbl.dom DS2 [<l=] lbl.dom DS1 -> (* subsumption may lose members -- redundant with lbl.binds implication below *)
+      (forall z, z \notin L -> (forall l d1 d2, lbl.binds l d1 DS1 -> lbl.binds l d2 DS2 -> exists q,
+        sub_decl (ctx_bind E z T) q (d1 ^d^ z) (d2 ^d^ z)))       ->
+      E |= (tp_rfn T DS1) ~<! (tp_rfn T DS2) @ subsumed
 
-Hint Constructors is_fun.
+  | sub_tp_notrans_rfn_precise : forall L E T DS1 DS2,
+      lbl.dom DS2 [=l=] lbl.dom DS1 -> (* we didn't lose any members *)
+      (forall z, z \notin L -> (forall l d1 d2, lbl.binds l d1 DS1 -> lbl.binds l d2 DS2 ->
+        sub_decl (ctx_bind E z T) precise (d1 ^d^ z) (d2 ^d^ z))) ->
+      E |= (tp_rfn T DS1) ~<! (tp_rfn T DS2) @ precise
 
-Lemma is_fun_pres_not_has_tp_sel : forall T T1 T2, is_fun T T1 T2 -> ~ has_tp_sel T ->  ~ has_tp_sel T1 /\ ~ has_tp_sel T2.
-Proof. Admitted.
+  | sub_tp_notrans_tpsel_lower : forall E p T' q1 DS q2 L S U T q3,
+      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> lbl.binds L (decl_tp S U) DS ->
+      path_safe E p -> (* for regular_typing, as well as to ensure the WF checks in typing_new aren't vacuous *)
+      E |= T ~<! (S ^tp^ p) @ q3 ->
+      E |= T ~<! (tp_sel p L) @ subsumed
+            (* subsuming a lower bound to its type member selection loses members irrespective of the membership quality *)
 
-Section InvSubFun.
-  Let P1_ (E : env) (q : quality) (T : tp) (DS : decls) (H: E |= T ~< DS @ q) := forall T1 T2, is_fun T T1 T2 -> 
-    DS = nil.
-  Let P2_ (E : env) (q : quality) (S T : tp) (H: E |= S ~<: T @ q) := forall T1 T2, is_fun S T1 T2 ->
-    (exists T1', exists T2', is_fun T T1' T2' /\ (exists q, E |= T1' ~<: T1 @ q /\ exists q, E |= T2 ~<: T2' @ q)).
+  | sub_tp_notrans_tpsel_upper : forall E p T' q1 DS q2 L S U T q3,
+      E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> lbl.binds L (decl_tp S U) DS ->
+      path p -> (* for regular_typing *)
+      E |= (U ^tp^ p) ~<! T @ q3 ->
+      E |= (tp_sel p L) ~<! T @ (q1 & q2) & q3
 
+  | sub_tp_notrans_refl : forall E T, (*lc_tp T -> wf_env E ->*) E |= T ~<! T @ precise
+  | sub_tp_notrans_top  : forall E T, (*lc_tp T -> wf_env E ->*) E |= T ~<! tp_top @ subsumed
+  | sub_tp_notrans_bot  : forall E T, (*lc_tp T -> wf_env E ->*) E |= tp_bot ~<! T @ subsumed
+  | sub_tp_notrans_fun : forall E q1 q2 S1 S2 T1 T2,
+      E |= S2 ~<! S1 @ q1 -> E |= T1 ~<! T2 @ q2->
+      E |= (tp_fun S1 T1) ~<! (tp_fun S2 T2) @ (q1 & q2)
+  | sub_tp_notrans_and_r : forall E q1 q2 T T1 T2,
+      E |= T ~<! T1 @ q1 -> E |= T ~<! T2 @ q2->
+      E |= T ~<! (tp_and T1 T2) @ (q1 & q2)
+  | sub_tp_notrans_or_l : forall E q1 q2 T T1 T2,
+      E |= T1 ~<! T @ q1 -> E |= T2 ~<! T @ q2->
+      E |= (tp_or T1 T2) ~<! T @ (q1 & q2)
+  | sub_tp_notrans_and_l1 : forall E q T T1 T2,
+(*      wf_env E -> lc_tp T2 -> *)
+      E |= T1 ~<! T @ q -> 
+      E |= (tp_and T1 T2) ~<! T @ subsumed
+  | sub_tp_notrans_and_l2 : forall E q T T1 T2,
+(*      wf_env E -> lc_tp T1 ->*)
+      E |= T2 ~<! T @ q -> 
+      E |= (tp_and T1 T2) ~<! T @ subsumed
+  | sub_tp_notrans_or_r1 : forall E q T T1 T2,
+(*      wf_env E -> lc_tp T2 -> *)
+      E |= T ~<! T1 @ q -> 
+      E |= T ~<! (tp_or T1 T2) @ subsumed
+  | sub_tp_notrans_or_r2 : forall E q T T1 T2,
+(*      wf_env E -> lc_tp T1 ->*)
+      E |= T ~<! T2 @ q -> 
+      E |= T ~<! (tp_or T1 T2) @ subsumed
+
+where "E |= T1 ~<! T2 @ q" := (sub_tp_notrans E q T1 T2).
+
+Section NoTransSoundComplete.
+
+Hint Constructors sub_tp.
+Hint Constructors sub_tp_notrans.
+
+(* the motivation for the notrans version of subtyping: inversion *)
+Lemma invert_fun_notrans : forall E q Sa Sr Ta Tr,
+  E |= tp_fun Sa Sr ~<! tp_fun Ta Tr @ q ->
+  exists q, E |= Ta ~<! Sa @ q /\  exists q, E |= Sr ~<! Tr @ q.
+Proof.
+intros.
+assert (wf_env E) by admit. assert (lc_tp Ta) by admit. assert (lc_tp Tr) by admit.
+inverts H; repeat esplit; eauto. 
+Qed.
+
+Lemma notrans_is_sound : forall E q T1 T2, wf_env E -> lc_tp T1 -> lc_tp T2 -> E |= T1 ~<! T2 @ q -> exists q, E |= T1 ~<: T2 @ q.
+Proof.
+introv HWf HLc1 HLc2 H. induction H; eauto; try solve [destruct IHsub_tp_notrans; eexists; eauto | destruct IHsub_tp_notrans1; destruct IHsub_tp_notrans2; eexists;eauto].
+Admitted.
+
+(* this will need an "Induction/inversion principle" as explained in 4.2.1. of http://www.msr-inria.inria.fr/~gares/jar09.pdf -- YAY! apparently dependent induction provides automation for exactly this! *)
+Lemma sub_tp_notrans_trans : forall E q1 q2 T TMid T',
+  E |= T ~<! TMid @ q1 -> E |= TMid ~<! T' @ q2 -> exists q, E |= T ~<! T' @ q.
+Proof.
+introv. intros HSubL HSubR. generalize dependent T'.
+dependent induction HSubL. admit. intros.
+destruct (IHHSubL T'0 HSubR). eauto.
+intros.
+
+  Let P2_ (E : env) (q : quality) (S T : tp) (H: E |= S ~<: T @ q) := exists q, E |= S ~<! T @ q.
   Let P0_ (E: env) (q: quality) (t: tm) (T: tp) (H: E  |=  t ~: T  @ q) := True.
+  Let P1_ (E : env) (q : quality) (T : tp) (DS : decls) (H: E |= T ~< DS @ q) := True.
   Let P3_ (e : env) (q : quality) (d d0 : decl) (H: sub_decl e q d d0) := True.
   Let P4_ (e : env) (t t0 : tm) (H: path_eq e t t0) := True.
   Let P5_ (e : env) (H: wf_env e) := True.
   Let P6_ (e : env) (t : tp) (H: wf_tp e t) := True.
   Let P7_ (e : env) (d : decl) (H: wf_decl e d) := True.
+(* only hard case is sub_tp_trans, which is proven above *)
+Lemma notrans_is_complete : (forall E q S T, E |= S ~<: T @ q -> exists q, E |= S ~<! T@ q).
+Proof.
+mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; intros. 
+eexists; eapply sub_tp_notrans_rfn_elim; eauto. inverts l. eauto.
+assert (lc_tp (S ^tp^ p)) by admit. assert (wf_env E) by admit. eauto. 
+assert (lc_tp (U ^tp^ p)) by admit. assert (wf_env E) by admit. eauto. 
+(* main case: transitivity: *)
 
-Lemma invert_subtyping_fun : 
-   (forall E q T DS, E |= T ~< DS @ q -> forall T1 T2, is_fun T T1 T2 -> DS = nil) /\
-   (forall E q S T, E |= S ~<: T @ q -> forall T1 T2, is_fun S T1 T2 ->
-      (exists T1', exists T2', is_fun T T1' T2' /\ (exists q, E |= T1' ~<: T1 @ q /\ exists q, E |= T2 ~<: T2' @ q))).
-Proof.  (* provable with ~has_tp_sel version of expands_sub and sub_tp_trans, but then not usable in preservation since we can't guarantee the function type doesn't contain type selections, but once you start excluding those in the typing rules/this lemma, function types must be type-selection free as well *)
-mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; intros; try solve [inverts H;eauto | inverts H0;eauto | inverts H1;eauto | eauto ].
-admit. admit. admit.  admit.
-rewrite -> (H T1 T2 H0) in *. admit.
-admit. admit. admit. 
-(* sub_tp_tpsel_lower: stuck
-  t : E |= p ~: T' @ q1
-  e : E |= T' ~< DS @ q2
-  H0 : forall T1 T2 : tp, is_fun T' T1 T2 -> DS = nil
-  b : lbl.binds L (decl_tp S U) DS
-  H1 : is_fun (S ^tp^ p) T1 T2
-  ============================
-   exists T1' T2',
-   is_fun (tp_sel p L) T1' T2' /\
-   (exists q, E |= T1' ~<: T1 @ q /\ (exists q0, E |= T2 ~<: T2' @ q0))
-*)
-admit.
+admit. (* obsolete: path_eq was moved to typing *)
+destruct H. destruct H0. eauto.
+destruct H. destruct H0. eauto.
+destruct H. destruct H0. eauto.
+destruct H. eauto.
+assert (lc_tp T) by admit. assert (wf_env E) by admit. eauto. 
+destruct H. assert (lc_tp T) by admit. assert (wf_env E) by admit. eauto. 
+destruct H. assert (lc_tp T) by admit. assert (wf_env E) by admit. eauto. 
+destruct H. assert (lc_tp T) by admit. assert (wf_env E) by admit. eauto. 
+Qed.
 
-(* trans:
- destruct (H T1 T2 H1) as [[T1' [T2' [HFunTMid [qma [HSubMA [qmr HSubMR]]]]]] | HEqSel]. 
-destruct (H0 T1' T2' HFunTMid) as [[T1'0 [T2'0 [HFunT' [q0a [HSub0A [q0r HSub0R]]]]]] | HEqSel']. 
-left. repeat eexists; eauto. *) 
-(*stuck: piecing back together requires full transitivity for the argument and result types, but we can't be sure they're not type selections --> middleman must not *contain* typeselection
+End NoTransSoundComplete.
 
-  case := "sub_tp_trans" : String.string
-  n : forall (p : tm) (L : label), TMid <> tp_sel p L
-  s : E |= T ~<: TMid @ q1   s0 : E |= TMid ~<: T' @ q2
-  H1 : is_fun T T1 T2
-  HFunTMid : is_fun TMid T1' T2'
-  HFunT' : is_fun T' T1'0 T2'0
-  HSub0A : E |= T1'0 ~<: T1' @ q0a   HSubMA : E |= T1' ~<: T1 @ qma
-  ============================
-   E |= T1'0 ~<: T1 @ ?4997
- *)
-destruct (H T1 T2 H1) as [T1' [T2' [HFunTMid [qma [HSubMA [qmr HSubMR]]]]]].
-destruct (H0 T1' T2' HFunTMid) as [T1'0 [T2'0 [HFunT' [q0a [HSub0A [q0r HSub0R]]]]]].
-exists T1'0 T2'0.
-repeat esplit; eauto; eapply sub_tp_trans; eauto.
-
-admit. 
-admit.
-admit.
-inverts H1. exists S2 T2. split; eauto.
-destruct (H T0 T3 H1) as [T1' [T2' [HSubs1 [q1a [HSub1A [q1r HSub1R]]]]]]. clear H.
-destruct (H0 T0 T3 H1) as [T1'' [T2'' [HSubs2 [q2a [HSub2A [q2r HSub2R]]]]]]. clear H0.
-repeat eexists; [eapply is_fun_and; eauto | eapply sub_tp_or_l; eauto | eapply sub_tp_and_r; eauto].
-
-inverts H0. destruct (H S T4 H3) as [T1' [T2' [HSubs1 [q1a [HSub1A [q1r HSub1R]]]]]]. clear H.
-exists T1' T2'. repeat esplit; eauto. eapply sub_tp_or_r1; eauto. admit.eapply sub_tp_and_l1; eauto. admit.
-admit. (* motivation for has_tp_sel to include tp_and *)
-admit.
-admit.
-
-End InvSubFun.
 
 (* more convenient interface to above *)
 Lemma invert_expands_fun: forall E S T DS q,  E |= tp_fun S T ~< DS @ q -> DS = nil.

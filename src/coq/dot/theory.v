@@ -91,6 +91,13 @@ TODO: [does this make sense?:] overall, i think covariant overriding for all typ
       E |= S ~<: T @ q2 ->
       E |= t ~: T @ q1 & q2
 
+(* only needed for preservation: rewrite paths in case for CTX-Sel -- in typing to simplify subtyping inversion, which is pretty hairy as it is 
+   (downside: typing inversion lemma's need to account for two different kinds of type slack: subtyping and path rewriting) *)
+  | typing_peq : forall E q t T p p', (* precise subtyping is like type equality *)
+      E |= t ~: (T ^tp^ p) @ q ->
+      path_eq E p' p -> (*lc_tm p' ->*)
+      E |= t ~: (T ^tp^ p') @ q
+
 (* the quality of the argument type does not contribute to the quality of the typing of the application, 
    in fact, typing of applications is entirely irrelevant since applications cannot occur in paths *)
    | typing_app : forall E q q' tf Ta Tr ta,
@@ -180,7 +187,7 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=
       E |= (tp_rfn T DS) ~<: T @ subsumed
 
   | sub_tp_rfn : forall L E T DS1 DS2,
-      lbl.dom DS2 [<l=] lbl.dom DS1 -> (* subsumption may lose members *)
+      lbl.dom DS2 [<l=] lbl.dom DS1 -> (* subsumption may lose members -- redundant with lbl.binds implication below *)
       (forall z, z \notin L -> (forall l d1 d2, lbl.binds l d1 DS1 -> lbl.binds l d2 DS2 -> exists q,
         sub_decl (ctx_bind E z T) q (d1 ^d^ z) (d2 ^d^ z)))       ->
       E |= (tp_rfn T DS1) ~<: (tp_rfn T DS2) @ subsumed
@@ -221,12 +228,6 @@ AS WELL AS the fact that we can produce a value of this type (which implies T <:
       E |=       TMid ~<: T' @       q2 ->
       E |= T          ~<: T' @ (q1 & q2)
 
-(* only needed for preservation: rewrite paths in case for CTX-Sel -- in subtyping so typing inversion lemma's don't need to account for two different kinds of typing slack: subtyping and path rewriting *)
-  | sub_tp_path_eq : forall E T p p', (* precise subtyping is like type equality *)
-    lc_tp (T ^tp^ p) -> lc_tm p' ->
-    path_eq E p p' ->
-    E |= (T ^tp^ p') ~<: (T ^tp^ p) @ precise
-
 (* what follows is standard: reflexivity (precise!), function types, intersection, union, top and bottom *)
   | sub_tp_refl : forall E T, lc_tp T -> wf_env E -> E |= T ~<: T @ precise
   | sub_tp_top  : forall E T, lc_tp T -> wf_env E -> E |= T ~<: tp_top @ subsumed
@@ -241,17 +242,17 @@ AS WELL AS the fact that we can produce a value of this type (which implies T <:
       E |= T1 ~<: T @ q1 -> E |= T2 ~<: T @ q2->
       E |= (tp_or T1 T2) ~<: T @ (q1 & q2)
   | sub_tp_and_l1 : forall E q T T1 T2,
-      E |= T1 ~<: T @ q -> lc_tp T2 ->
-      E |= (tp_and T1 T2) ~<: T @ subsumed
+      wf_env E -> lc_tp T1 -> lc_tp T2 -> 
+      E |= (tp_and T1 T2) ~<: T1 @ subsumed
   | sub_tp_and_l2 : forall E q T T1 T2,
-      E |= T2 ~<: T @ q -> lc_tp T1 ->
-      E |= (tp_and T1 T2) ~<: T @ subsumed
+      wf_env E -> lc_tp T1 -> lc_tp T2 -> 
+      E |= (tp_and T1 T2) ~<: T2 @ subsumed
   | sub_tp_or_r1 : forall E q T T1 T2,
-      E |= T ~<: T1 @ q -> lc_tp T2 ->
-      E |= T ~<: (tp_or T1 T2) @ subsumed
+      wf_env E -> lc_tp T1 -> lc_tp T2 -> 
+      E |= T1 ~<: (tp_or T1 T2) @ subsumed
   | sub_tp_or_r2 : forall E q T T1 T2,
-      E |= T ~<: T2 @ q -> lc_tp T1 ->
-      E |= T ~<: (tp_or T1 T2) @ subsumed
+      wf_env E -> lc_tp T1 -> lc_tp T2 -> 
+      E |= T2 ~<: (tp_or T1 T2) @ subsumed
 
 where "E |= T1 ~<: T2 @ q" := (sub_tp E q T1 T2)
 
