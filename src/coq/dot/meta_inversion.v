@@ -55,7 +55,7 @@ Inductive sub_tp_notrans : env -> quality -> tp -> tp -> Prop :=
       expands E q T DS -> 
       E |= T ~<! (tp_rfn T DS) @ q
 
-  | sub_tp_notrans_rfn_elim : forall E q T DS T', (* not redundant with sub_tp_notrans_rfn even though it can derive the empty refinement T{}; T{} and T would be unrelated without sub_tp_notrans_rfn_elim*)
+  | sub_tp_notrans_rfn_elim : forall E q T DS T',
 (*      wf_env E -> lc_tp (tp_rfn T DS) -> for regular_expands/subtyping *)
       E |= T ~<! T' @ q ->      
       E |= (tp_rfn T DS) ~<! T' @ subsumed
@@ -77,7 +77,6 @@ Inductive sub_tp_notrans : env -> quality -> tp -> tp -> Prop :=
       path_safe E p -> (* for regular_typing, as well as to ensure the WF checks in typing_new aren't vacuous *)
       E |= T ~<! (S ^tp^ p) @ q3 ->
       E |= T ~<! (tp_sel p L) @ subsumed
-            (* subsuming a lower bound to its type member selection loses members irrespective of the membership quality *)
 
   | sub_tp_notrans_tpsel_upper : forall E p T' q1 DS q2 L S U T q3,
       E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> lbl.binds L (decl_tp S U) DS ->
