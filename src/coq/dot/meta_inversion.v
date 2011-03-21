@@ -48,101 +48,137 @@ move to algorithmic subtyping??
 
 *)
 
-Reserved Notation "E |= t ~<! T @ q" (at level 69).
+Reserved Notation "E |= t ~<! T" (at level 69).
 
-Inductive sub_tp_notrans : env -> quality -> tp -> tp -> Prop :=
-    sub_tp_notrans_rfn_intro : forall E q T DS,
-      expands E q T DS -> 
-      E |= T ~<! (tp_rfn T DS) @ q
+Inductive sub_tp_notrans : env -> tp -> tp -> Prop :=
+  | sub_tp_notrans_rfn_l : forall L E T T' DS1 DS2 q,
+      E |= T ~< DS1 @ q ->
+      E |= T ~<! T' ->
+      (forall z, z \notin L -> (forall l d1, lbl.binds l d1 DS1 -> exists d2, lbl.binds l d2 DS2 /\ exists q,
+        sub_decl (ctx_bind E z T) q (d1 ^d^ z) (d2 ^d^ z)))       -> (* TODO: add sub_decl_! that uses ~<!*)
+      E |= T ~<! (tp_rfn T' DS2) 
 
-  | sub_tp_notrans_rfn_elim : forall E q T DS T',
+  | sub_tp_notrans_rfn_r : forall E T DS T', (* not redundant with sub_tp_notrans_rfn even though it can derive the empty refinement T{}; T{} and T would be unrelated without sub_tp_notrans_rfn_elim*)
 (*      wf_env E -> lc_tp (tp_rfn T DS) -> for regular_expands/subtyping *)
-      E |= T ~<! T' @ q ->      
-      E |= (tp_rfn T DS) ~<! T' @ subsumed
+      E |= T ~<! T' ->      
+      E |= (tp_rfn T DS) ~<! T'
 
-  | sub_tp_notrans_rfn : forall L E T DS1 DS2,
-      lbl.dom DS2 [<l=] lbl.dom DS1 -> (* subsumption may lose members -- redundant with lbl.binds implication below *)
-      (forall z, z \notin L -> (forall l d1 d2, lbl.binds l d1 DS1 -> lbl.binds l d2 DS2 -> exists q,
-        sub_decl (ctx_bind E z T) q (d1 ^d^ z) (d2 ^d^ z)))       ->
-      E |= (tp_rfn T DS1) ~<! (tp_rfn T DS2) @ subsumed
 
-  | sub_tp_notrans_rfn_precise : forall L E T DS1 DS2,
-      lbl.dom DS2 [=l=] lbl.dom DS1 -> (* we didn't lose any members *)
-      (forall z, z \notin L -> (forall l d1 d2, lbl.binds l d1 DS1 -> lbl.binds l d2 DS2 ->
-        sub_decl (ctx_bind E z T) precise (d1 ^d^ z) (d2 ^d^ z))) ->
-      E |= (tp_rfn T DS1) ~<! (tp_rfn T DS2) @ precise
-
-  | sub_tp_notrans_tpsel_lower : forall E p T' q1 DS q2 L S U T q3,
+  | sub_tp_notrans_tpsel_lower : forall E p T' q1 DS q2 L S U T,
       E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> lbl.binds L (decl_tp S U) DS ->
       path_safe E p -> (* for regular_typing, as well as to ensure the WF checks in typing_new aren't vacuous *)
-      E |= T ~<! (S ^tp^ p) @ q3 ->
-      E |= T ~<! (tp_sel p L) @ subsumed
+      E |= T ~<! (S ^tp^ p) ->
+      E |= T ~<! (tp_sel p L)
+            (* subsuming a lower bound to its type member selection loses members irrespective of the membership quality *)
 
-  | sub_tp_notrans_tpsel_upper : forall E p T' q1 DS q2 L S U T q3,
+  | sub_tp_notrans_tpsel_upper : forall E p T' q1 DS q2 L S U T,
       E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> lbl.binds L (decl_tp S U) DS ->
       path p -> (* for regular_typing *)
-      E |= (U ^tp^ p) ~<! T @ q3 ->
-      E |= (tp_sel p L) ~<! T @ (q1 & q2) & q3
+      E |= (U ^tp^ p) ~<! T ->
+      E |= (tp_sel p L) ~<! T
 
-  | sub_tp_notrans_refl : forall E T, (*lc_tp T -> wf_env E ->*) E |= T ~<! T @ precise
-  | sub_tp_notrans_top  : forall E T, (*lc_tp T -> wf_env E ->*) E |= T ~<! tp_top @ subsumed
-  | sub_tp_notrans_bot  : forall E T, (*lc_tp T -> wf_env E ->*) E |= tp_bot ~<! T @ subsumed
-  | sub_tp_notrans_fun : forall E q1 q2 S1 S2 T1 T2,
-      E |= S2 ~<! S1 @ q1 -> E |= T1 ~<! T2 @ q2->
-      E |= (tp_fun S1 T1) ~<! (tp_fun S2 T2) @ (q1 & q2)
-  | sub_tp_notrans_and_r : forall E q1 q2 T T1 T2,
-      E |= T ~<! T1 @ q1 -> E |= T ~<! T2 @ q2->
-      E |= T ~<! (tp_and T1 T2) @ (q1 & q2)
-  | sub_tp_notrans_or_l : forall E q1 q2 T T1 T2,
-      E |= T1 ~<! T @ q1 -> E |= T2 ~<! T @ q2->
-      E |= (tp_or T1 T2) ~<! T @ (q1 & q2)
-  | sub_tp_notrans_and_l1 : forall E q T T1 T2,
-(*      wf_env E -> lc_tp T2 -> *)
-      E |= T1 ~<! T @ q -> 
-      E |= (tp_and T1 T2) ~<! T @ subsumed
-  | sub_tp_notrans_and_l2 : forall E q T T1 T2,
-(*      wf_env E -> lc_tp T1 ->*)
-      E |= T2 ~<! T @ q -> 
-      E |= (tp_and T1 T2) ~<! T @ subsumed
-  | sub_tp_notrans_or_r1 : forall E q T T1 T2,
-(*      wf_env E -> lc_tp T2 -> *)
-      E |= T ~<! T1 @ q -> 
-      E |= T ~<! (tp_or T1 T2) @ subsumed
-  | sub_tp_notrans_or_r2 : forall E q T T1 T2,
-(*      wf_env E -> lc_tp T1 ->*)
-      E |= T ~<! T2 @ q -> 
-      E |= T ~<! (tp_or T1 T2) @ subsumed
+  | sub_tp_notrans_refl : forall E T, (*lc_tp T -> wf_env E ->*) E |= T ~<! T
+  | sub_tp_notrans_top  : forall E T, (*lc_tp T -> wf_env E ->*) E |= T ~<! tp_top
+  | sub_tp_notrans_bot  : forall E T, (*lc_tp T -> wf_env E ->*) E |= tp_bot ~<! T
+  | sub_tp_notrans_fun : forall E S1 S2 T1 T2,
+      E |= S2 ~<! S1 -> E |= T1 ~<! T2 ->
+      E |= (tp_fun S1 T1) ~<! (tp_fun S2 T2)
+  | sub_tp_notrans_and_r : forall E T T1 T2,
+      E |= T ~<! T1 -> E |= T ~<! T2 ->
+      E |= T ~<! (tp_and T1 T2)
+  | sub_tp_notrans_or_l : forall E T T1 T2,
+      E |= T1 ~<! T -> E |= T2 ~<! T ->
+      E |= (tp_or T1 T2) ~<! T
+  | sub_tp_notrans_and_l1 : forall E T T1 T2,(*      wf_env E -> lc_tp T2 -> *)
+      E |= T1 ~<! T -> 
+      E |= (tp_and T1 T2) ~<! T
+  | sub_tp_notrans_and_l2 : forall E T T1 T2,(*      wf_env E -> lc_tp T1 ->*)
+      E |= T2 ~<! T -> 
+      E |= (tp_and T1 T2) ~<! T
+  | sub_tp_notrans_or_r1 : forall E T T1 T2,(*      wf_env E -> lc_tp T2 -> *)
+      E |= T ~<! T1 -> 
+      E |= T ~<! (tp_or T1 T2)
+  | sub_tp_notrans_or_r2 : forall E T T1 T2, (*      wf_env E -> lc_tp T1 ->*)
+      E |= T ~<! T2 -> 
+      E |= T ~<! (tp_or T1 T2)
 
-where "E |= T1 ~<! T2 @ q" := (sub_tp_notrans E q T1 T2).
+where "E |= T1 ~<! T2" := (sub_tp_notrans E T1 T2).
 
 Section NoTransSoundComplete.
 
 Hint Constructors sub_tp.
 Hint Constructors sub_tp_notrans.
 
-(* the motivation for the notrans version of subtyping: inversion *)
-Lemma invert_fun_notrans : forall E q Sa Sr Ta Tr,
-  E |= tp_fun Sa Sr ~<! tp_fun Ta Tr @ q ->
-  exists q, E |= Ta ~<! Sa @ q /\  exists q, E |= Sr ~<! Tr @ q.
+
+(* Coq provides "dependent induction" to perform "Induction/inversion principle"; 4.2.1. of http://www.msr-inria.inria.fr/~gares/jar09.pdf explains the latter is needed to perform a proof like this *)
+Lemma sub_tp_notrans_trans : forall E T TMid T',
+  E |= T ~<! TMid -> E |= TMid ~<! T' -> E |= T ~<! T'.
 Proof.
-intros.
-assert (wf_env E) by admit. assert (lc_tp Ta) by admit. assert (lc_tp Tr) by admit.
-inverts H; repeat esplit; eauto. 
+introv HSubL HSubR. generalize dependent T'.
+ dependent induction HSubL; [Case "sub_tp_notrans_rfn_l" | Case "sub_tp_notrans_rfn_r" | Case "sub_tp_notrans_tpsel_lower" | Case "sub_tp_notrans_tpsel_upper" | Case "sub_tp_notrans_refl" | Case "sub_tp_notrans_top" | Case "sub_tp_notrans_bot" | Case "sub_tp_notrans_fun" | Case "sub_tp_notrans_and_r" | Case "sub_tp_notrans_or_l" | Case "sub_tp_notrans_and_l1" | Case "sub_tp_notrans_and_l2" | Case "sub_tp_notrans_or_r1" | Case "sub_tp_notrans_or_r2"];
+  intros; dependent induction HSubR; subst; try solve [ apply IHHSubR; eauto | apply sub_tp_notrans_or_l; eauto | eauto].
+
+(* ok: eapply sub_tp_notrans_rfn_l; eauto. and then rework sub_decls *)
+admit. 
+
+(* ok: switch to expands_sub that uses ~<! *)
+assert (E |= T ~<! (tp_sel p L)) by (eapply IHHSubL; eauto).
+assert (exists q, E |= T ~< DS1 @ q) as [qx HX] by admit.
+eapply sub_tp_notrans_rfn_l with (L := L0); eauto.
+admit. (*rework decls*)
+
+(* TODO: tpsel_lower*)
+admit. 
+
+(* TODO: invert expansion of tp_top?? *)
+admit. 
+
+(* TODO: invert expansion of tp_fun?? *)
+admit.
+
+(* TODO: IH too weak to vary type on left side for argument type *)
+apply sub_tp_notrans_fun; auto. admit. 
+
+(* ok: switch to expands_sub that uses ~<! *)
+assert (E |= T ~<! (tp_and T1 T2)) by (eapply sub_tp_notrans_and_r; eauto). 
+assert (exists q, E |= T ~< DS1 @ q) as [qx HX] by admit.
+eapply sub_tp_notrans_rfn_l with (L := L). eauto. eapply (IHHSubR T1 T2); eauto.
+admit. (*rework decls*)
+
+(* ok: switch to expands_sub that uses ~<! *)
+assert (E |= T ~<! (tp_or T1 T2)) by (eapply sub_tp_notrans_or_r1; eauto).
+assert (exists q, E |= T ~< DS1 @ q) as [qx HX] by admit.
+eapply sub_tp_notrans_rfn_l with (L := L). eauto. eapply (IHHSubR T1 T2); eauto.
+admit. (*rework decls*)
+
+(* ok: switch to expands_sub that uses ~<! *)
+assert (E |= T ~<! (tp_or T1 T2)) by (eapply sub_tp_notrans_or_r2; eauto).
+assert (exists q, E |= T ~< DS1 @ q) as [qx HX] by admit.
+eapply sub_tp_notrans_rfn_l with (L := L). eauto. eapply (IHHSubR T1 T2); eauto.
+admit. (*rework decls*)
 Qed.
 
-Lemma notrans_is_sound : forall E q T1 T2, wf_env E -> lc_tp T1 -> lc_tp T2 -> E |= T1 ~<! T2 @ q -> exists q, E |= T1 ~<: T2 @ q.
-Proof.
-introv HWf HLc1 HLc2 H. induction H; eauto; try solve [destruct IHsub_tp_notrans; eexists; eauto | destruct IHsub_tp_notrans1; destruct IHsub_tp_notrans2; eexists;eauto].
-Admitted.
 
-(* this will need an "Induction/inversion principle" as explained in 4.2.1. of http://www.msr-inria.inria.fr/~gares/jar09.pdf -- YAY! apparently dependent induction provides automation for exactly this! *)
-Lemma sub_tp_notrans_trans : forall E q1 q2 T TMid T',
-  E |= T ~<! TMid @ q1 -> E |= TMid ~<! T' @ q2 -> exists q, E |= T ~<! T' @ q.
+(* the motivation for the notrans version of subtyping: inversion *)
+Lemma invert_fun_notrans : forall E Sa Sr Ta Tr,
+  E |= tp_fun Sa Sr ~<! tp_fun Ta Tr ->
+  E |= Ta ~<! Sa  /\  E |= Sr ~<! Tr.
 Proof.
-introv. intros HSubL HSubR. generalize dependent T'.
-dependent induction HSubL. admit. intros.
-destruct (IHHSubL T'0 HSubR). eauto.
 intros.
+(*assert (wf_env E) by admit. assert (lc_tp Ta) by admit. assert (lc_tp Tr) by admit.*)
+inverts H; splits; auto. 
+Qed.
+
+Lemma notrans_is_sound : forall E T1 T2, wf_env E -> lc_tp T1 -> lc_tp T2 -> E |= T1 ~<! T2 -> exists q, E |= T1 ~<: T2 @ q.
+Proof. Admitted.
+ (* TODO: deal with regularity 
+introv HWf HLc1 HLc2 H. induction H; eauto try solve [destruct IHsub_tp_notrans; eexists; eauto | destruct IHsub_tp_notrans1; destruct IHsub_tp_notrans2; eexists; eauto].
+*)
+
+
+
+
+eexists. eapply sub_tp_notrans_tpsel_lower; eauto.
 
   Let P2_ (E : env) (q : quality) (S T : tp) (H: E |= S ~<: T @ q) := exists q, E |= S ~<! T @ q.
   Let P0_ (E: env) (q: quality) (t: tm) (T: tp) (H: E  |=  t ~: T  @ q) := True.

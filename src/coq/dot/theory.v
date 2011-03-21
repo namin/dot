@@ -3,12 +3,6 @@ Require Import List.
 Require Import syntax_binding.
 Require Import Metatheory support.
 
-(** printing ~<: %\ensuremath{<:}% *)
-(** printing ~< %\ensuremath{\prec}% *)
-(** printing ~: %\ensuremath{:}% *)
-(** printing |= %\ensuremath{\vdash}% *)
-(** printing notin %\ensuremath{\notin}% *)
-
 Reserved Notation "E |= t ~< T @ q" (at level 69).
 Reserved Notation "E |= t ~: T @ q" (at level 69).
 Reserved Notation "E |= t ~<: T @ q" (at level 69).
@@ -30,7 +24,6 @@ Inductive typing : env -> quality -> tm -> tp -> Prop :=
 (*
 we can only give a precise type to free variables whose exact dynamic type is known statically in gamma
 lambda bound variables indirectly admit subsumption because they may be applied to arguments whose dynamic type is a subtype of the statically known type
-
 example of unsound program that would be accepted were all variables treated equal:
 val u = new Top { u =>
   class A { z =>
@@ -40,7 +33,6 @@ val u = new Top { u =>
   val main: Top
 }(main = (fun x: u.A => val al = new x.L; x.oops al) (new (u.A{type L : Int..Int})(oops = (x: Int) => x + 1))); 
 u.main
-
 TODO: of course lambda abstraction and function application can be encoded using object instantiation and member selection:
 
 val u = new Top { u =>
@@ -53,42 +45,33 @@ val u = new Top { u =>
 }( main = 
     val b = new u.B(a = new u.A{type L : Int..Int}(oops = (x: Int) => x + 1));
     val al = new b.a.L(); 
-    b.oops al 
+    b.oops al
  )
 u.main
-
 the obvious fix is to have value members specify the quality of the typing derivation for the argument that's supplied for this label in a new expression
-
-the Scala fix allows subsumption but ensures that it class members cannot be rebound 
+the Scala fix allows subsumption but ensures that it class members cannot be rebound
 here, we allow covariant refining of any type member, but in order to instantiate this type member, 
 we must not have used subsumption in typing any of the components of the path that lead to this type member
-
 since DOT doesn't model inheritance, it also doesn't have a notion of overriding, which relies on the total ordering determined by linearisation
 therefore, we cannot use the Scala approach
-
 the original DOT required global uniqueness of type members that are meant to be instantiated, but this seems like a heavy burden and a bad design decision for a real programming language, 
 and certainly removes the calculus quite far from the language
-
 the proposed approach to track the quality of type members provides a smooth migration path to a virtual calculus, where the binary subsumed/precise predicate could be generalised
 to something that tracks whether "instantiatability" was maintained
-
 TODO: [does this make sense?:] overall, i think covariant overriding for all type members should be refined into covariant overriding of output type members and contravariance for input type members, where only contravariant type members may be instantiated
 *)
    | typing_var : forall G P x T qual trust,
       wf_env (G, P) -> lc_tp T -> (* for typing_regular *)
       (*env.*)binds x (T, (qual, trust)) G ->
       (G, P) |= (fvar x) ~: T @ qual
-
    | typing_ref : forall G P a T args, (* this is the only typing rule that peeks into the store; well, the path_eq judgement does as well *)
       wf_env (G, P) -> lc_tp T -> (* for typing_regular *)
       binds a (T, args) P ->
       (G, P) |= (ref a) ~: T @ precise
-
    | typing_sel : forall E q1 q2 t T' D DS l T,
 (*      E |= t ~mem~ (decl_tm l T) @ q ->   *)
       E |= t ~: T' @ q1 -> E |= T' ~< DS @ q2 -> lbl.binds l D DS -> open_decl_cond D t (decl_tm T) ->
       E |= (sel t l) ~: T @ q1 & q2
-
 (* it could be simpler to  disallow chaining of subsumption by requiring a precise typing judgement;
    chained subsumption would be replaced by transitivity in the subtyping judgement
    however, member selection might need subsumed typing in order for expansion to be derivable *)
@@ -96,24 +79,20 @@ TODO: [does this make sense?:] overall, i think covariant overriding for all typ
       E |= t ~:  S @ q1 ->
       E |= S ~<: T @ q2 ->
       E |= t ~: T @ q1 & q2
-
-(* only needed for preservation: rewrite paths in case for CTX-Sel -- in typing to simplify subtyping inversion, which is pretty hairy as it is 
+(* only needed for preservation: rewrite paths in case for CTX-Sel -- in typing to simplify subtyping inversion, which is pretty hairy as it is
    (downside: typing inversion lemma's need to account for two different kinds of type slack: subtyping and path rewriting) *)
   | typing_peq : forall E q t T p p', (* precise subtyping is like type equality *)
       E |= t ~: (T ^tp^ p) @ q ->
       path_eq E p' p -> (*lc_tm p' ->*)
       E |= t ~: (T ^tp^ p') @ q
-
 (* the quality of the argument type does not contribute to the quality of the typing of the application, 
    in fact, typing of applications is entirely irrelevant since applications cannot occur in paths *)
    | typing_app : forall E q q' tf Ta Tr ta,
       E |= tf ~: (tp_fun Ta Tr) @ q ->
       E |= ta ~: Ta @ q' ->
       E |= (app tf ta) ~: Tr @ q
-
 (* this judgement may bind a variable to an illegal type (in the environment) 
-   However, a lambda with an illegal type for its argument cannot be applied, and the illegal type is confined to its body 
-
+   However, a lambda with an illegal type for its argument cannot be applied, and the illegal type is confined to its body
   The binding's quality cannot be precise since application allows subsumption. See typing_var.
 *)
    | typing_lam : forall L E q S t T,
@@ -121,14 +100,11 @@ TODO: [does this make sense?:] overall, i think covariant overriding for all typ
       (* lc_tp T  not necessary: implied by typing_regular *)
       wf_tp E (tp_fun S T) ->
       E |= (lam S t) ~: (tp_fun S T) @ q
-
 (* here, variables are bound to potentially illegal types while checking their legality, 
    when the legality is established, the variable is put in the context to type the scope of the let-binding
-
    T ok (legal) means the lowerbounds of all of T's type members are subtypes of their corresponding upperbounds
-    
    T ok doesn't really guarantuee anything about T's value members since they may be initalised to a lambda bound variable
-   nonetheless, value members either point to 
+   nonetheless, value members either point to
      - objects of type T' (T' ok), 
      - lambda's (irrelevant since cannot occur in paths), 
      - or variables (lambda-bound or self): 
@@ -152,7 +128,6 @@ TODO: [does this make sense?:] overall, i think covariant overriding for all typ
       (forall x, x \notin L -> (ctx_bind E x Tc) |= (t ^^ x) ~: T @ q) ->  (* in principle, x.L would now be a valid middle man in sub_tp_trans since the type members in Tc's expansion have been checked *)
       (* lc_tp T ->  not needed -- implied by typing_regular for the above judgement *)
       E |= (new Tc args t) ~: T @ q
-
 where "E |= t ~: T @ q" := (typing E q t T)
 
 with expands : env -> quality -> tp -> decls -> Prop := 
@@ -183,33 +158,21 @@ where "E |= T ~< D @ q" := (expands E q T D)
 
 
 with sub_tp : env -> quality -> tp -> tp -> Prop :=
-  | sub_tp_rfn_intro : forall E q T DS,
-      expands E q T DS -> 
-      E |= T ~<: (tp_rfn T DS) @ q
-
-  | sub_tp_rfn_elim : forall E T DS, (* not redundant with sub_tp_rfn even though it can derive the empty refinement T{}; T{} and T would be unrelated without sub_tp_rfn_elim*)
-      wf_env E ->
-      lc_tp (tp_rfn T DS) -> (* for regular_expands/subtyping *)
-      E |= (tp_rfn T DS) ~<: T @ subsumed
-
-  | sub_tp_rfn : forall L E T DS1 DS2,
-      lbl.dom DS2 [<l=] lbl.dom DS1 -> (* subsumption may lose members -- redundant with lbl.binds implication below *)
-      (forall z, z \notin L -> (forall l d1 d2, lbl.binds l d1 DS1 -> lbl.binds l d2 DS2 -> exists q,
+  | sub_tp_rfn : forall L E T T' DS1 DS2 q1 q2 qs q,
+      E |= T ~< DS1 @ q1 ->
+      E |= T ~<: T' @ q2 ->
+      (forall z, z \notin L -> (forall l d1, lbl.binds l d1 DS1 -> exists d2, lbl.binds l d2 DS2 /\ exists q, List.In q qs /\
         sub_decl (ctx_bind E z T) q (d1 ^d^ z) (d2 ^d^ z)))       ->
-      E |= (tp_rfn T DS1) ~<: (tp_rfn T DS2) @ subsumed
-
-  | sub_tp_rfn_precise : forall L E T DS1 DS2,
-      lbl.dom DS2 [=l=] lbl.dom DS1 -> (* we didn't lose any members *)
-      (forall z, z \notin L -> (forall l d1 d2, lbl.binds l d1 DS1 -> lbl.binds l d2 DS2 ->
-        sub_decl (ctx_bind E z T) precise (d1 ^d^ z) (d2 ^d^ z))) ->
-      E |= (tp_rfn T DS1) ~<: (tp_rfn T DS2) @ precise
-
+      (q = precise -> lbl.dom DS2 [=l=] lbl.dom DS1 /\ ~ (List.In subsumed (q1 :: q2 :: qs))) -> (* we didn't lose any members and all subderivations were precise *)
+      E |= T ~<: (tp_rfn T' DS2) @ q
+(* not redundant with sub_tp_rfn even though it can derive the empty refinement T{}; T{} and T would be unrelated without sub_tp_rfn_elim*)
+  | sub_tp_rfn_elim : forall E T DS, wf_env E ->  lc_tp (tp_rfn T DS) -> (* for regular_expands/subtyping *)
+      E |= (tp_rfn T DS) ~<: T @ subsumed
 (* only allow subsuming T to p.L (assuming p has member L: T..U) if it's safe to assume that
    there's no way to further subsume p.L to a type that's not a supertype of T
-   concretely, using sub_tp_tpsel_upper to get from p.L to U will yield a supertype of p.L, and thus, via transitivity, of T, but 
-   T <: U does not necessarily hold for untrusted paths, which are rooted in a variable that was put in the context during typing_new's 
+   concretely, using sub_tp_tpsel_upper to get from p.L to U will yield a supertype of p.L, and thus, via transitivity, of T, but
+   T <: U does not necessarily hold for untrusted paths, which are rooted in a variable that was put in the context during typing_new's
    in other words, in typing_new we want to check T <: U without going through p.L, otherwise the bounds of a type member always trivially conform by invoking transitivity with the type member that's being checked as the middleman
-
    it suffices to interrupt this viscious chain on one side of p.L, so I chose the lower bound
 *)
   | sub_tp_tpsel_lower : forall E p T' q1 DS q2 L S U,
@@ -235,31 +198,29 @@ AS WELL AS the fact that we can produce a value of this type (which implies T <:
       E |= T          ~<: T' @ (q1 & q2)
 
 (* what follows is standard: reflexivity (precise!), function types, intersection, union, top and bottom *)
-  | sub_tp_refl : forall E T, lc_tp T -> wf_env E -> E |= T ~<: T @ precise
-  | sub_tp_top  : forall E T, lc_tp T -> wf_env E -> E |= T ~<: tp_top @ subsumed
-  | sub_tp_bot  : forall E T, lc_tp T -> wf_env E -> E |= tp_bot ~<: T @ subsumed
-  | sub_tp_fun : forall E q1 q2 S1 S2 T1 T2,
-      E |= S2 ~<: S1 @ q1 -> E |= T1 ~<: T2 @ q2->
-      E |= (tp_fun S1 T1) ~<: (tp_fun S2 T2) @ (q1 & q2)
-  | sub_tp_and_r : forall E q1 q2 T T1 T2,
-      E |= T ~<: T1 @ q1 -> E |= T ~<: T2 @ q2->
-      E |= T ~<: (tp_and T1 T2) @ (q1 & q2)
-  | sub_tp_or_l : forall E q1 q2 T T1 T2,
-      E |= T1 ~<: T @ q1 -> E |= T2 ~<: T @ q2->
-      E |= (tp_or T1 T2) ~<: T @ (q1 & q2)
-  | sub_tp_and_l1 : forall E q T T1 T2,
-      wf_env E -> lc_tp T1 -> lc_tp T2 -> 
-      E |= (tp_and T1 T2) ~<: T1 @ subsumed
-  | sub_tp_and_l2 : forall E q T T1 T2,
-      wf_env E -> lc_tp T1 -> lc_tp T2 -> 
-      E |= (tp_and T1 T2) ~<: T2 @ subsumed
-  | sub_tp_or_r1 : forall E q T T1 T2,
-      wf_env E -> lc_tp T1 -> lc_tp T2 -> 
-      E |= T1 ~<: (tp_or T1 T2) @ subsumed
-  | sub_tp_or_r2 : forall E q T T1 T2,
-      wf_env E -> lc_tp T1 -> lc_tp T2 -> 
+  | sub_tp_refl : forall E T,                              (*lc_tp T -> wf_env E ->             *) (* TODO: deal with regularity*)
+      E |= T ~<: T @ precise                               (*                                   *)
+  | sub_tp_top  : forall E T,                              (*lc_tp T -> wf_env E ->             *)
+      E |= T ~<: tp_top @ subsumed                         (*                                   *)
+  | sub_tp_bot  : forall E T,                              (*lc_tp T -> wf_env E ->             *)
+     E |= tp_bot ~<: T @ subsumed                          (*                                   *)
+  | sub_tp_fun : forall E q1 q2 S1 S2 T1 T2,               (*                                   *)
+      E |= S2 ~<: S1 @ q1 -> E |= T1 ~<: T2 @ q2->         (*                                   *)
+      E |= (tp_fun S1 T1) ~<: (tp_fun S2 T2) @ (q1 & q2)   (*                                   *)
+  | sub_tp_and_r : forall E q1 q2 T T1 T2,                 (*                                   *)
+      E |= T ~<: T1 @ q1 -> E |= T ~<: T2 @ q2->           (*                                   *)
+      E |= T ~<: (tp_and T1 T2) @ (q1 & q2)                (*                                   *)
+  | sub_tp_or_l : forall E q1 q2 T T1 T2,                  (*                                   *)
+      E |= T1 ~<: T @ q1 -> E |= T2 ~<: T @ q2->           (*                                   *)
+      E |= (tp_or T1 T2) ~<: T @ (q1 & q2)                 (*                                   *)
+  | sub_tp_and_l1 : forall E T1 T2,                        (*wf_env E -> lc_tp T1 -> lc_tp T2 ->*)
+      E |= (tp_and T1 T2) ~<: T1 @ subsumed                (*                                   *)
+  | sub_tp_and_l2 : forall E T1 T2,                        (*wf_env E -> lc_tp T1 -> lc_tp T2 ->*)
+      E |= (tp_and T1 T2) ~<: T2 @ subsumed                (*                                   *)
+  | sub_tp_or_r1 : forall E T1 T2,                         (*wf_env E -> lc_tp T1 -> lc_tp T2 ->*)
+      E |= T1 ~<: (tp_or T1 T2) @ subsumed                 (*                                   *)
+  | sub_tp_or_r2 : forall E T1 T2,                         (*wf_env E -> lc_tp T1 -> lc_tp T2 ->*)
       E |= T2 ~<: (tp_or T1 T2) @ subsumed
-
 where "E |= T1 ~<: T2 @ q" := (sub_tp E q T1 T2)
 
 with sub_decl : env -> quality -> decl -> decl -> Prop :=
@@ -276,11 +237,9 @@ with sub_decl : env -> quality -> decl -> decl -> Prop :=
 with path_eq : env -> tm -> tm -> Prop :=
    | peq_refl : forall E p, (* TODO: only needed if proof of preservation depends on it *)
       wf_env E -> path_eq E p p
-
    | peq_symm : forall E p q, (* used in invert_subtyping_fun *)
       path_eq E p q ->
       path_eq E q p
-
    | peq_env : forall G P a Tc args l a',
       wf_env (G, P) ->
       binds a (Tc, args) P ->
@@ -335,7 +294,6 @@ with wf_tp : env -> tp -> Prop :=
       wf_tp E (tp_or T1 T2)
   | wf_bot : forall E, wf_tp E tp_bot
   | wf_top : forall E, wf_tp E tp_top
-  
 with wf_decl : env -> decl -> Prop :=
   | wf_decl_tp : forall E S U,
      wf_tp E S ->
@@ -352,7 +310,6 @@ Inductive sub_decls : env -> quality -> decls -> decls -> Prop :=
       (forall z, z \notin L -> (forall l d1 d2, lbl.binds l d1 DS1 -> lbl.binds l d2 DS2 -> 
             exists q, sub_decl E q (d1 ^d^ z) (d2 ^d^ z))) ->
       sub_decls E subsumed DS1 DS2
-
   | sub_decls_precise : forall L E DS1 DS2,
       lbl.dom DS2 [=l=] lbl.dom DS1 -> (* we didn't lose any members *)
       (forall z, z \notin L -> (forall l d1 d2, lbl.binds l d1 DS1 -> lbl.binds l d2 DS2 ->
@@ -407,13 +364,13 @@ where "s |~ a ~~> b  ~| s'" := (red s a s' b).
 
 
 (*Definition sto_typing P mu :=
-     sto_ok mu 
+     sto_ok mu
   /\ (forall l, l # mu -> l # P)
   /\ (forall l T, binds l T P -> 
         exists t, binds l t mu
                /\ empty ! P |= t ~: T).*)
 Definition typing_store G s :=
-     wf_store s 
+     wf_store s
   /\ (forall a Tc argsRT, binds a (Tc, argsRT) s ->  (* TODO: don't need Tc in store since Gamma it -- bound in store to args with type Tc, where the self variable has been replaced by `a` already  *) 
               exists args, argsRT = args ^args^ (ref a)  (* concentrate the burden of uniqueness of store bindings in typing_new case of preservation *)
           /\  concrete Tc (* see typing_new, replacing implication by conjunction and forall by exists *)
@@ -465,7 +422,7 @@ Definition progress := forall s t T q,
 
 
 (* begin hide *) 
-Scheme typing_indm         := Induction for typing Sort Prop 
+Scheme typing_indm         := Induction for typing Sort Prop
   with expands_indm        := Induction for expands Sort Prop
   with sub_tp_indm         := Induction for sub_tp Sort Prop
   with sub_decl_indm       := Induction for sub_decl Sort Prop
@@ -492,14 +449,13 @@ Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ :=
 
 
 
-(* inlined to make induction easier 
+(* inlined to make induction easier
 with mem : env -> quality -> tm -> decl -> Prop :=
   | mem_ : forall E q1 q2 t T D DS Dopen,
       E |= t ~: T @ q1 -> (* requiring a precise judgment makes preservation harder without gaining anything afaict *)
       E |= T ~< DS @ q2 -> In D DS ->
       open_decl_cond D t Dopen ->
       mem E (q1 & q2) t Dopen
-
 where "E |= t ~mem~ D @ q" := (mem E q t D)
  (*exists T, exists q1, exists q2, exists DS, exists D', E |= t ~: T @ q1 /\ E |= T ~< DS @ q2 /\ q = q1 & q2 /\ In D' DS /\ open_decl_cond D' t D*)
 *)
@@ -534,7 +490,7 @@ Inductive safe_path : env -> tm -> Prop :=
 Notation "E |= t 'safe'" := (safe_path E t) (at level 69).
 
 Definition extract_pex : loc -> args -> pex := fun a => fun ags =>
-  List.flat_map (fun l_v => match l_v with 
+  List.flat_map (fun l_v => match l_v with
        | (l, ref al) => (al, (a, l)) :: nil
        | _ => nil
        end) ags.
@@ -551,8 +507,6 @@ u =>
   }
 
   (fun x: u.A => x.oops "meh") (new (u.A{type L : Int..Int})(oops = (x: Int) => x + 1)) // typing_new will fail because the bounds are inconsistent
-
-
 *)
 (*
 *** Local Variables: ***
