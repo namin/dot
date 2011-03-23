@@ -161,7 +161,7 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=
   | sub_tp_rfn : forall L E T T' DS1 DS2 q1 q2 qs q,
       E |= T ~< DS1 @ q1 ->
       E |= T ~<: T' @ q2 ->
-      (forall z, z \notin L -> (forall l d1, lbl.binds l d1 DS1 -> exists d2, lbl.binds l d2 DS2 /\ exists q, List.In q qs /\
+      (forall z, z \notin L -> (forall l d2, lbl.binds l d2 DS2 -> exists d1, lbl.binds l d1 DS1 /\ exists q, List.In q qs /\
         sub_decl (ctx_bind E z T) q (d1 ^d^ z) (d2 ^d^ z)))       ->
       (q = precise -> lbl.dom DS2 [=l=] lbl.dom DS1 /\ ~ (List.In subsumed (q1 :: q2 :: qs))) -> (* we didn't lose any members and all subderivations were precise *)
       E |= T ~<: (tp_rfn T' DS2) @ q

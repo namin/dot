@@ -54,15 +54,13 @@ Inductive sub_tp_notrans : env -> tp -> tp -> Prop :=
   | sub_tp_notrans_rfn_l : forall L E T T' DS1 DS2 q,
       E |= T ~< DS1 @ q ->
       E |= T ~<! T' ->
-      (forall z, z \notin L -> (forall l d1, lbl.binds l d1 DS1 -> exists d2, lbl.binds l d2 DS2 /\ exists q,
+      (forall z, z \notin L -> (forall l d2, lbl.binds l d2 DS2 -> exists d1, lbl.binds l d1 DS1 /\ exists q,
         sub_decl (ctx_bind E z T) q (d1 ^d^ z) (d2 ^d^ z)))       -> (* TODO: add sub_decl_! that uses ~<!*)
       E |= T ~<! (tp_rfn T' DS2) 
 
-  | sub_tp_notrans_rfn_r : forall E T DS T', (* not redundant with sub_tp_notrans_rfn even though it can derive the empty refinement T{}; T{} and T would be unrelated without sub_tp_notrans_rfn_elim*)
-(*      wf_env E -> lc_tp (tp_rfn T DS) -> for regular_expands/subtyping *)
-      E |= T ~<! T' ->      
+  | sub_tp_notrans_rfn_r : forall E T DS T', (* wf_env E -> lc_tp (tp_rfn T DS) -> for regular_expands/subtyping *)
+      E |= T ~<! T' -> 
       E |= (tp_rfn T DS) ~<! T'
-
 
   | sub_tp_notrans_tpsel_lower : forall E p T' q1 DS q2 L S U T,
       E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> lbl.binds L (decl_tp S U) DS ->
@@ -80,8 +78,9 @@ Inductive sub_tp_notrans : env -> tp -> tp -> Prop :=
   | sub_tp_notrans_refl : forall E T, (*lc_tp T -> wf_env E ->*) E |= T ~<! T
   | sub_tp_notrans_top  : forall E T, (*lc_tp T -> wf_env E ->*) E |= T ~<! tp_top
   | sub_tp_notrans_bot  : forall E T, (*lc_tp T -> wf_env E ->*) E |= tp_bot ~<! T
-  | sub_tp_notrans_fun : forall E S1 S2 T1 T2,
-      E |= S2 ~<! S1 -> E |= T1 ~<! T2 ->
+  | sub_tp_notrans_fun : forall E S1 T1 S2 T2,
+      E |= S2 ~<! S1 ->
+      E |= T1 ~<! T2 -> 
       E |= (tp_fun S1 T1) ~<! (tp_fun S2 T2)
   | sub_tp_notrans_and_r : forall E T T1 T2,
       E |= T ~<! T1 -> E |= T ~<! T2 ->
@@ -104,58 +103,88 @@ Inductive sub_tp_notrans : env -> tp -> tp -> Prop :=
 
 where "E |= T1 ~<! T2" := (sub_tp_notrans E T1 T2).
 
+Notation sub_decls_under L E S DS1 DS2 :=
+      (forall z : atom,  z `notin` L -> forall (l : label) (d2 : decl),
+       lbl.binds l d2 DS2 ->
+       exists d1,
+       lbl.binds l d1 DS1 /\
+       (exists q,
+        sub_decl (ctx_bind E z S) q (d1 ^d^ z) (d2 ^d^ z))).
+
+Notation "E |= DS1 <:< DS2 ~under~ T L" := (sub_decls_under L E T DS1 DS2) (at level 69).
+
 Section NoTransSoundComplete.
 
 Hint Constructors sub_tp.
 Hint Constructors sub_tp_notrans.
+
+Tactic Notation "gen_eq" constr(c) "as" ident(x) ident(H) :=
+  set (x := c); assert (H : x = c) by reflexivity; clearbody x.
+
+
+Lemma sub_tp_notrans_trans_tpsel : forall E q1 q2 q3 q4 p T DS l S U T' DS' S' U' Ta Tb,
+  path_safe E p ->
+
+  E |= p ~: T @ q1 ->
+  E |= T ~< DS @ q2 ->
+  lbl.binds l (decl_tp S U) DS ->
+
+  E |= p ~: T' @ q3 -> 
+  E |= T' ~< DS' @ q4 ->
+  lbl.binds l (decl_tp S' U') DS' ->
+
+  E |= Ta ~<! S ^tp^ p ->
+  E |= U' ^tp^ p ~<! Tb ->
+
+  E |= Ta ~<! Tb.
+Proof. Admitted.
+
+Lemma strengthen_sub_decls: forall L E S T DS1 DS2, E |=  S ~<! T -> 
+      sub_decls_under L E T DS1 DS2 -> 
+      sub_decls_under L E S DS1 DS2.
+Proof. Admitted.
+
+
+Lemma rework_sub_decls : forall L E S T DS1 q DS2 S',
+  E |= S  ~<! T ->
+  E |= T ~< DS1 @ q ->
+  sub_decls_under L E T DS1 DS2 ->
+  E |= S ~<! S' ->
+  E |= S ~<! tp_rfn S' DS2.
+Proof. intros. 
+  assert (exists q, E |= S ~< DS1 @ q) as [qx HX] by admit. 
+  eapply sub_tp_notrans_rfn_l with (L := L); eauto using strengthen_sub_decls. 
+Qed.
+
+
+(* need mutual induction on expands and sub? *)
+Lemma sub_tp_notrans_trans_rfn_rfn : forall L L0 E T TMid DS1 q DSM T' DS0 q0 DS2,
+            E |= T ~<! TMid ->
+            E |= T ~< DS1 @ q ->
+            sub_decls_under L E T DS1 DSM -> (* T <: tp_rfn TMid DSM *)
+
+            E |= tp_rfn TMid DSM ~<! T' ->
+            E |= tp_rfn TMid DSM ~< DS0 @ q0 ->
+            sub_decls_under L0 E (tp_rfn TMid DSM) DS0 DS2 -> (* tp_rfn TMid DSM <: tp_rfn T' DS2 *)
+
+            E |= T ~<! tp_rfn T' DS2.
+Proof. Admitted.
 
 
 (* Coq provides "dependent induction" to perform "Induction/inversion principle"; 4.2.1. of http://www.msr-inria.inria.fr/~gares/jar09.pdf explains the latter is needed to perform a proof like this *)
 Lemma sub_tp_notrans_trans : forall E T TMid T',
   E |= T ~<! TMid -> E |= TMid ~<! T' -> E |= T ~<! T'.
 Proof.
-introv HSubL HSubR. generalize dependent T'.
- dependent induction HSubL; [Case "sub_tp_notrans_rfn_l" | Case "sub_tp_notrans_rfn_r" | Case "sub_tp_notrans_tpsel_lower" | Case "sub_tp_notrans_tpsel_upper" | Case "sub_tp_notrans_refl" | Case "sub_tp_notrans_top" | Case "sub_tp_notrans_bot" | Case "sub_tp_notrans_fun" | Case "sub_tp_notrans_and_r" | Case "sub_tp_notrans_or_l" | Case "sub_tp_notrans_and_l1" | Case "sub_tp_notrans_and_l2" | Case "sub_tp_notrans_or_r1" | Case "sub_tp_notrans_or_r2"];
-  intros; dependent induction HSubR; subst; try solve [ apply IHHSubR; eauto | apply sub_tp_notrans_or_l; eauto | eauto].
+ introv HSubL HSubR. gen E T T'. gen_eq TMid as TMid' eq. gen TMid' eq. 
+ induction TMid; intros TMid' EQ; intros;
+   dependent induction HSubL; try discriminate; inversions EQ;
+     intros; dependent induction HSubR; subst; 
+       try solve [ apply IHHSubR; eauto | 
+                   apply sub_tp_notrans_or_l; eauto | 
+                   eapply sub_tp_notrans_trans_tpsel with (T' := T'); eauto |
+                   eapply sub_tp_notrans_trans_rfn_rfn; eauto |
+                   eauto using rework_sub_decls]. (* 7 min *)
 
-(* ok: eapply sub_tp_notrans_rfn_l; eauto. and then rework sub_decls *)
-admit. 
-
-(* ok: switch to expands_sub that uses ~<! *)
-assert (E |= T ~<! (tp_sel p L)) by (eapply IHHSubL; eauto).
-assert (exists q, E |= T ~< DS1 @ q) as [qx HX] by admit.
-eapply sub_tp_notrans_rfn_l with (L := L0); eauto.
-admit. (*rework decls*)
-
-(* TODO: tpsel_lower*)
-admit. 
-
-(* TODO: invert expansion of tp_top?? *)
-admit. 
-
-(* TODO: invert expansion of tp_fun?? *)
-admit.
-
-(* TODO: IH too weak to vary type on left side for argument type *)
-apply sub_tp_notrans_fun; auto. admit. 
-
-(* ok: switch to expands_sub that uses ~<! *)
-assert (E |= T ~<! (tp_and T1 T2)) by (eapply sub_tp_notrans_and_r; eauto). 
-assert (exists q, E |= T ~< DS1 @ q) as [qx HX] by admit.
-eapply sub_tp_notrans_rfn_l with (L := L). eauto. eapply (IHHSubR T1 T2); eauto.
-admit. (*rework decls*)
-
-(* ok: switch to expands_sub that uses ~<! *)
-assert (E |= T ~<! (tp_or T1 T2)) by (eapply sub_tp_notrans_or_r1; eauto).
-assert (exists q, E |= T ~< DS1 @ q) as [qx HX] by admit.
-eapply sub_tp_notrans_rfn_l with (L := L). eauto. eapply (IHHSubR T1 T2); eauto.
-admit. (*rework decls*)
-
-(* ok: switch to expands_sub that uses ~<! *)
-assert (E |= T ~<! (tp_or T1 T2)) by (eapply sub_tp_notrans_or_r2; eauto).
-assert (exists q, E |= T ~< DS1 @ q) as [qx HX] by admit.
-eapply sub_tp_notrans_rfn_l with (L := L). eauto. eapply (IHHSubR T1 T2); eauto.
-admit. (*rework decls*)
 Qed.
 
 
