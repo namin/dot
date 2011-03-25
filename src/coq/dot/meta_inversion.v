@@ -433,25 +433,13 @@ Admitted.
 
 End Soundness.
 
-Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ ::=
-  cut ((forall E q t T (H: E |= t ~: T @ q), (P0_ E q t T H)) /\ 
-  (forall E q T DS (H: E |= T ~< DS @ q), (P1_ E q T DS H)) /\ 
-  (forall E q T T' (H: E |= T ~<: T' @ q), (P2_  E q T T' H))  /\ 
-  (forall (e : env) (q : quality) (d d0 : decl) (H : sub_decl e q d d0), (P3_ e q d d0 H)) /\  
-  (forall (e : env) (t t0 : tm) (H : path_eq e t t0), (P4_ e t t0 H)) /\  
-  (forall (e : env) (H : wf_env e), (P5_ e H)) /\
-  (forall (e : env) (t : tp) (H : wf_tp e t), (P6_ e t H)) /\  
-  (forall (e : env) (d : decl) (H : wf_decl e d), (P7_ e d H))); [tauto | 
-    apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_); unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_, P7_ in *; clear P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; [ 
-      Case "typing_var" | Case "typing_ref" | Case "typing_sel" | Case "typing_sub" | Case "typing_app" | Case "typing_lam" | Case "typing_new" | Case "expands_sub" | Case "expands_rfn" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "sub_tp_rfn_intro" | Case "sub_tp_rfn_elim" | Case "sub_tp_rfn" | Case "sub_tp_tpsel_lower" | Case "sub_tp_tpsel_upper" | Case "sub_tp_trans" | Case "sub_tp_path_eq" | Case "sub_tp_refl" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_tp_fun" | Case "sub_tp_and_r" | Case "sub_tp_or_l" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "peq_refl" | Case "peq_symm" | Case "peq_env" | Case "peq_sel" | Case "wf_env_nil" | Case "wf_env_cons" | Case "wf_rfn" | Case "wf_lam" | Case "wf_tsel" | Case "wf_tsel_cls" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" ]; 
-      introv; eauto ].
 
 Section Completeness.
 
   Let P2_ (E : env) (q : quality) (S T : tp) (H: E |= S ~<: T @ q) := E |= S ~<! T.
+  Let P1_ (E : env) (q : quality) (T : tp) (DS : decls) (H: E |= T ~< DS @ q) := E |= T ~<! tp_rfn tp_top DS.
 
   Let P0_ (E_s: env) (q: quality) (t: tm) (T: tp) (H: E_s |=  t ~: T  @ q) := True.
-  Let P1_ (E : env) (q : quality) (T : tp) (DS : decls) (H: E |= T ~< DS @ q) := True.
   Let P3_ (e : env) (q : quality) (d d0 : decl) (H: sub_decl e q d d0) := True.
   Let P4_ (e : env) (t t0 : tm) (H: path_eq e t t0) := True.
   Let P5_ (e : env) (H: wf_env e) := True.
@@ -459,24 +447,26 @@ Section Completeness.
   Let P7_ (e : env) (d : decl) (H: wf_decl e d) := True.
 
 (* only hard case is sub_tp_trans, which is proven above *)
-Lemma notrans_is_complete : (forall E q S T, E |= S ~<: T @ q -> E |= S ~<! T).
+Lemma notrans_is_complete : (forall E q S T, E |= S ~<: T @ q -> E |= S ~<! T) /\ (forall E q T DS, E |= T ~< DS @ q -> E |= T ~<! tp_rfn tp_top DS).
 Proof.
-mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; intros; try destruct H; try destruct H0; eauto. 
-eexists; eapply sub_tp_notrans_rfn_elim; eauto. inverts l. eauto.
+  cut ((forall E q t T (H: E |= t ~: T @ q), (@P0_ E q t T H)) /\ 
+  (forall E q T DS (H: E |= T ~< DS @ q), (@P1_ E q T DS H)) /\ 
+  (forall E q T T' (H: E |= T ~<: T' @ q), (@P2_  E q T T' H))  /\ 
+  (forall (e : env) (q : quality) (d d0 : decl) (H : sub_decl e q d d0), (@P3_ e q d d0 H)) /\  
+  (forall (e : env) (t t0 : tm) (H : path_eq e t t0), (@P4_ e t t0 H)) /\  
+  (forall (e : env) (H : wf_env e), (@P5_ e H)) /\
+  (forall (e : env) (t : tp) (H : wf_tp e t), (@P6_ e t H)) /\  
+  (forall (e : env) (d : decl) (H : wf_decl e d), (@P7_ e d H))); [tauto | 
+    apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_); unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_, P7_ in *; clear P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_]; intros; eauto 3. 
 
-assert (lc_tp (S ^tp^ p)) by admit. assert (wf_env E) by admit. eauto. 
-assert (lc_tp (U ^tp^ p)) by admit. assert (wf_env E) by admit. eauto. 
-(* main case: transitivity: *)
+apply sub_tp_notrans_trans with (TMid := U); eauto.
+eapply sub_tp_notrans_rfn_r; eauto. 
+skip. (* TODO: sub_decl_refl *)
+eapply sub_tp_notrans_rfn_r with (DS1 := DS1); eauto. 
+skip. (* TODO: IH for sub_Decls *)
+apply and_decls_nil_1.
+apply sub_tp_notrans_trans with (TMid := TMid); eauto.
 
-admit. (* obsolete: path_eq was moved to typing *)
-destruct H. destruct H0. eauto.
-destruct H. destruct H0. eauto.
-destruct H. destruct H0. eauto.
-destruct H. eauto.
-assert (lc_tp T) by admit. assert (wf_env E) by admit. eauto. 
-destruct H. assert (lc_tp T) by admit. assert (wf_env E) by admit. eauto. 
-destruct H. assert (lc_tp T) by admit. assert (wf_env E) by admit. eauto. 
-destruct H. assert (lc_tp T) by admit. assert (wf_env E) by admit. eauto. 
 Qed.
 
 End NoTransSoundComplete.
