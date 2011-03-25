@@ -55,6 +55,11 @@ prove soundness and completeness wrt the original relations (where expansion has
 Reserved Notation "E |= t ~<! T" (at level 69).
 
 (*
+subtyping from a parallel universe where transitivity is unheard of; also, to simplify the proof, expansion and sub_decl are rolled into subtyping, and quality is glossed over, since inversion doesn't need to preserve quality
+(and inversion is why we have sub_tp_notrans in the first place -- you try inverting something with an explicit rule for transivity some time)
+
+the order of the rules, and especially the order of the hypotheses in sub_tp_notrans_rfn_r is tuned for eauto 
+as used in the proof of transitivity, sub_tp_notrans_trans (more constraining hypotheses come first) 
 *)
 Inductive sub_tp_notrans : env -> tp -> tp -> Prop :=
   | sub_tp_notrans_fun : forall E S1 T1 S2 T2,
@@ -68,7 +73,6 @@ Inductive sub_tp_notrans : env -> tp -> tp -> Prop :=
       path_safe E p ->
       E |= T ~<! (tp_sel p L)
 
-
   | sub_tp_notrans_rfn_r : forall L E T T' Tpar DSP DS DS1 DS2, (* T' = tp_top and DS1 = DS2 --> recover expands_rfn*)
       E |= T ~<! T' ->
       (* sub_decls_under L E T DS1 DS2 *) (forall z, z \notin L -> (forall l d2, lbl.binds l d2 DS2 -> exists d1, lbl.binds l d1 DS1 /\
@@ -77,20 +81,16 @@ Inductive sub_tp_notrans : env -> tp -> tp -> Prop :=
            (forall T1 T2, ((d1 ^d^ z) = (decl_tm T1) /\ (d2 ^d^ z) = (decl_tm T2)) -> 
               (ctx_bind E z T) |= T1 ~<! T2)
           )) ->
-      and_decls DSP DS DS1 -> (* order of rules tuned for eauto*)
+      and_decls DSP DS DS1 ->
       E |= T ~<! (tp_rfn Tpar DS) -> E |= Tpar ~<! (tp_rfn tp_top DSP) ->  (* was E |= T ~< DS1 *)
-(* or, to get rid of expands_top:
-         ((Tpar <> tp_top -> (E |= Tpar ~<! (tp_rfn tp_top DSP) /\ and_decls DSP DS DS1)) /\
-         (Tpar = tp_top  -> (DSP = nil /\ DS = DS1))) ->
-*)
-
       E |= T ~<! (tp_rfn T' DS2) 
 
-
-(*  | expands_rfn : forall E Tpar DSP DS DSM,
+(* subsumed by sub_tp_notrans_rfn_r 
+   | expands_rfn : forall E Tpar DSP DS DSM,
       E |= T ~<! (tp_rfn Tpar DS) ->
       E |= Tpar ~<! (tp_rfn tp_top DSP) -> and_decls DSP DS DSM ->
       E |= T ~<! (tp_rfn tp_top DSM) *)
+
 
   | sub_tp_notrans_and_r : forall E T T1 T2,
       E |= T ~<! T1 -> E |= T ~<! T2 ->
@@ -141,7 +141,6 @@ Inductive sub_tp_notrans : env -> tp -> tp -> Prop :=
 
   | sub_tp_notrans_bot  : forall E T, E |= tp_bot ~<! T
 
-
 where "E |= T1 ~<! T2" := (sub_tp_notrans E T1 T2).
 
 Definition sub_decls_under L E T DS1 DS2 :=
@@ -161,6 +160,7 @@ Tactic Notation "gen_eq" constr(c) "as" ident(x) ident(H) :=
   set (x := c); assert (H : x = c) by reflexivity; clearbody x.
 
 Hint Constructors sub_tp_notrans.
+(*Hint Resolve sub_tp_notrans_fun sub_tp_notrans_tpsel_r sub_tp_notrans_rfn_r expands_rfn sub_tp_notrans_and_r expands_and sub_tp_notrans_or_r1 sub_tp_notrans_or_r2 expands_or sub_tp_notrans_refl sub_tp_notrans_top expands_top sub_tp_notrans_tpsel_l sub_tp_notrans_rfn_l sub_tp_notrans_and_l1 sub_tp_notrans_and_l2 sub_tp_notrans_or_l. *)
 
 (*
 rename t into p. rename T into Ta. rename T0 into Tb. rename T'0 into T.
@@ -181,6 +181,10 @@ clear IHHSubR1 IHHSubR2 IHHSubL1 IHHSubL2.
 eapply sub_tp_notrans_trans_tpsel with (T' := T'); eauto.
 *)
 
+(* no way this can be a rule -- the transitivity proof peterait un plomb 
+
+not clear how i'm going to prove this... TODO: add E |== s and E |= ok judgements
+*)
 Lemma sub_tp_notrans_trans_tpsel : forall E q1 q2 p T DS l S U T' DS' S' U' Ta Tb,
   path_safe E p ->
 
@@ -198,6 +202,7 @@ Lemma sub_tp_notrans_trans_tpsel : forall E q1 q2 p T DS l S U T' DS' S' U' Ta T
   E |= Ta ~<! Tb.
 Proof. Admitted.
 
+(* TODO: T well-formedness/kindedness hypotheses? *)
 Lemma strengthen_sub_decls: forall L E S T DS1 DS2,  
      (forall z, z \notin L -> (forall l d2, lbl.binds l d2 DS2 -> exists d1, lbl.binds l d1 DS1 /\
            (forall S1 T1 S2 T2, ((d1 ^d^ z) = (decl_tp S1 T1) /\ (d2 ^d^ z) = (decl_tp S2 T2)) -> 
@@ -302,30 +307,163 @@ intros.
 inverts H; splits; auto. 
 Qed.
 
-Lemma notrans_is_sound : forall E T1 T2, wf_env E -> lc_tp T1 -> lc_tp T2 -> E |= T1 ~<! T2 -> exists q, E |= T1 ~<: T2 @ q.
+Section Soundness.
+ (* TODO: deal with regularity  *)
+Lemma wf_ax : forall E, wf_env E. Proof. Admitted.
+Lemma lc_ax : forall T, lc_tp T. Proof. Admitted.
+Hint Resolve wf_ax lc_ax.
+
+Hint Constructors expands.
+Hint Resolve sub_tp_rfn sub_tp_rfn_elim sub_tp_tpsel_lower sub_tp_tpsel_upper sub_tp_refl sub_tp_top sub_tp_bot sub_tp_fun sub_tp_and_r sub_tp_or_l sub_tp_and_l1 sub_tp_and_l2 sub_tp_or_r1 sub_tp_or_r2. (*but not transitivity*)
+
+Lemma and_decls_nil: and_decls nil nil nil.
 Proof. Admitted.
- (* TODO: deal with regularity 
-introv HWf HLc1 HLc2 H. induction H; eauto try solve [destruct IHsub_tp_notrans; eexists; eauto | destruct IHsub_tp_notrans1; destruct IHsub_tp_notrans2; eexists; eauto].
+
+Lemma and_decls_nil_1: forall DS, and_decls nil DS DS.
+Proof. Admitted.
+
+Lemma and_decls_nil_2: forall DS, and_decls DS nil DS.
+Proof. Admitted.
+
+Lemma or_decls_nil: or_decls nil nil nil.
+Proof. Admitted.
+
+Lemma or_decls_nil_1: forall DS, or_decls nil DS nil.
+Proof. Admitted.
+
+Lemma or_decls_nil_2: forall DS, or_decls DS nil nil.
+Proof. Admitted.
+
+Lemma sub_decls_refl : forall L E DS qs T,
+   forall z : atom,
+   z `notin` L ->
+   forall (l : label) (d2 : decl),
+   lbl.binds l d2 DS ->
+   exists d1,
+   lbl.binds l d1 DS /\
+   (exists q,
+    In q qs /\
+    sub_decl (ctx_bind E z T) q (d1 ^d^ z) (d2 ^d^ z)).
+Proof. Admitted.
+
+Hint Resolve and_decls_nil and_decls_nil_1 and_decls_nil_2 or_decls_nil or_decls_nil_1 or_decls_nil_2 sub_decls_refl.
+
+(* specialize hypotheses with satisfiable embedded equalities, drop the unsatisfiable ones *)
+Ltac shyps :=
+  repeat match goal with H: ?T |- _ => 
+    match T with
+    | forall x, ?a = _ -> _  => 
+      match type of a with
+        | ?x => try (let h := fresh in lets h: H (@eq_refl x); generalizes h); clear H
+      end
+    | _ => generalizes H
+    end
+  end.
+
+Ltac simplhyps :=  jauto_set_hyps; intros; shyps; intros; jauto_set_hyps; intros.
+
+Ltac sub_tp_rfn_top DS := eapply sub_tp_rfn with (DS1 := DS) (DS2 := DS) (qs := subsumed :: nil) (q := subsumed); eauto; intros; discriminate.
+
+(*
+ (forall z : atom,
+       z `notin` L ->
+       forall (l : label) (d2 : decl),
+       lbl.binds l d2 DS0 ->
+       exists d1,
+       lbl.binds l d1 DS1 /\
+       (forall S1 T1 S2 T2 : tp,
+        d1 ^d^ z = decl_tp S1 T1 /\ d2 ^d^ z = decl_tp S2 T2 ->
+        ctx_bind E z T |= S2 ~<! S1 /\ ctx_bind E z T |= T1 ~<! T2) /\
+       (forall T1 T2 : tp,
+        d1 ^d^ z = decl_tm T1 /\ d2 ^d^ z = decl_tm T2 ->
+        ctx_bind E z T |= T1 ~<! T2)) ->
+   (exists qs, forall z : atom,
+   z `notin` L ->
+   forall (l : label) (d2 : decl),
+   lbl.binds l d2 DS0 ->
+   exists d1,
+   lbl.binds l d1 DS1 /\
+   (exists q,
+    In q qs /\
+    sub_decl (ctx_bind E z (tp_rfn Tpar DS)) q (d1 ^d^ z) (d2 ^d^ z)))
+
 *)
+Lemma notrans_is_sound : forall E T1 T2, E |= T1 ~<! T2 -> (exists q, E |= T1 ~<: T2 @ q) /\ 
+  (forall DS, T2 = tp_rfn tp_top DS -> exists q, E |= T1 ~< DS @ q). 
+Proof. 
+introv H. gen E T1 T2.
+ dependent induction H; (split; [ 
+   simplhyps; eauto 3 |
+   introv HEq; try injsubst HEq; subst; try destructs IHsub_tp_notrans1; try destructs IHsub_tp_notrans2; try destructs IHsub_tp_notrans; simplhyps; try solve [ discriminate | eexists; intros; eauto 3]]).
 
+eexists; eapply sub_tp_trans with (TMid := S ^tp^ p); eauto.
 
+eexists; eapply sub_tp_rfn with (DS1 := DS1) (DS2 := DS2) (qs := subsumed :: nil) (q := subsumed); eauto 3. 
+skip. (* TODO: IH for sub_decls *)
+intros; discriminate.
 
+forwards: (@sub_tp_rfn L E T tp_top DS1 DS0 (x & x1) subsumed (subsumed :: nil) subsumed); eauto 3.
+skip. (* TODO: IH for sub_decls *)
+intros. discriminate.
+eexists; eauto.
 
-eexists. eapply sub_tp_notrans_tpsel_lower; eauto.
+eexists; eapply sub_tp_trans with (TMid := tp_and T1 T2); [ eauto | sub_tp_rfn_top DSM].
 
-  Let P2_ (E : env) (q : quality) (S T : tp) (H: E |= S ~<: T @ q) := exists q, E |= S ~<! T @ q.
-  Let P0_ (E: env) (q: quality) (t: tm) (T: tp) (H: E  |=  t ~: T  @ q) := True.
+eexists; eapply sub_tp_trans with (TMid := T1); eauto.
+
+eexists; eapply sub_tp_trans with (TMid := T2); eauto.
+
+eexists; eapply sub_tp_trans with (TMid := tp_or T1 T2); [eauto | sub_tp_rfn_top DSM].
+
+eexists; sub_tp_rfn_top (nil : decls).
+
+eexists; eapply sub_tp_trans with (TMid := U ^tp^ p); eauto.
+
+eexists; eapply sub_tp_trans with (TMid := T); eauto. 
+
+eexists; eapply sub_tp_trans with (TMid := T1); eauto. 
+
+eexists; eapply sub_tp_trans with (TMid := T2); eauto. 
+
+eexists; eapply expands_sub with (U := tp_rfn tp_top DS); eauto. 
+
+admit. (* TODO: there's no actual rule to expand tp_bot, instead use expands_sub to whatever subtype that has an expansion *)
+
+Admitted.
+
+End Soundness.
+
+Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ ::=
+  cut ((forall E q t T (H: E |= t ~: T @ q), (P0_ E q t T H)) /\ 
+  (forall E q T DS (H: E |= T ~< DS @ q), (P1_ E q T DS H)) /\ 
+  (forall E q T T' (H: E |= T ~<: T' @ q), (P2_  E q T T' H))  /\ 
+  (forall (e : env) (q : quality) (d d0 : decl) (H : sub_decl e q d d0), (P3_ e q d d0 H)) /\  
+  (forall (e : env) (t t0 : tm) (H : path_eq e t t0), (P4_ e t t0 H)) /\  
+  (forall (e : env) (H : wf_env e), (P5_ e H)) /\
+  (forall (e : env) (t : tp) (H : wf_tp e t), (P6_ e t H)) /\  
+  (forall (e : env) (d : decl) (H : wf_decl e d), (P7_ e d H))); [tauto | 
+    apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_); unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_, P7_ in *; clear P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; [ 
+      Case "typing_var" | Case "typing_ref" | Case "typing_sel" | Case "typing_sub" | Case "typing_app" | Case "typing_lam" | Case "typing_new" | Case "expands_sub" | Case "expands_rfn" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "sub_tp_rfn_intro" | Case "sub_tp_rfn_elim" | Case "sub_tp_rfn" | Case "sub_tp_tpsel_lower" | Case "sub_tp_tpsel_upper" | Case "sub_tp_trans" | Case "sub_tp_path_eq" | Case "sub_tp_refl" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_tp_fun" | Case "sub_tp_and_r" | Case "sub_tp_or_l" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "peq_refl" | Case "peq_symm" | Case "peq_env" | Case "peq_sel" | Case "wf_env_nil" | Case "wf_env_cons" | Case "wf_rfn" | Case "wf_lam" | Case "wf_tsel" | Case "wf_tsel_cls" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" ]; 
+      introv; eauto ].
+
+Section Completeness.
+
+  Let P2_ (E : env) (q : quality) (S T : tp) (H: E |= S ~<: T @ q) := E |= S ~<! T.
+
+  Let P0_ (E_s: env) (q: quality) (t: tm) (T: tp) (H: E_s |=  t ~: T  @ q) := True.
   Let P1_ (E : env) (q : quality) (T : tp) (DS : decls) (H: E |= T ~< DS @ q) := True.
   Let P3_ (e : env) (q : quality) (d d0 : decl) (H: sub_decl e q d d0) := True.
   Let P4_ (e : env) (t t0 : tm) (H: path_eq e t t0) := True.
   Let P5_ (e : env) (H: wf_env e) := True.
   Let P6_ (e : env) (t : tp) (H: wf_tp e t) := True.
   Let P7_ (e : env) (d : decl) (H: wf_decl e d) := True.
+
 (* only hard case is sub_tp_trans, which is proven above *)
-Lemma notrans_is_complete : (forall E q S T, E |= S ~<: T @ q -> exists q, E |= S ~<! T@ q).
+Lemma notrans_is_complete : (forall E q S T, E |= S ~<: T @ q -> E |= S ~<! T).
 Proof.
-mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; intros. 
+mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; intros; try destruct H; try destruct H0; eauto. 
 eexists; eapply sub_tp_notrans_rfn_elim; eauto. inverts l. eauto.
+
 assert (lc_tp (S ^tp^ p)) by admit. assert (wf_env E) by admit. eauto. 
 assert (lc_tp (U ^tp^ p)) by admit. assert (wf_env E) by admit. eauto. 
 (* main case: transitivity: *)
