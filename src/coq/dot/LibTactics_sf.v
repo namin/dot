@@ -1714,6 +1714,26 @@ Tactic Notation "gen_eq" ident(X1) ":" constr(E1) ","
   ident(X2) ":" constr(E2) "," ident(X3) ":" constr(E3) :=
   gen_eq X3: E3; gen_eq X2: E2; gen_eq X1: E1.
 
+(**
+  [gen_eq c as x H] takes all occurrences of [c] in the current goal's
+  conclusion, replaces them by the variable [x], and introduces the equality
+  [x = c] as the hypothesis H.  Useful if one needs to generalize the goal
+  prior to applying an induction tactic.
+*)
+
+Tactic Notation "gen_eq" constr(c) "as" ident(x) ident(H) :=
+  set (x := c); assert (H : x = c) by reflexivity; clearbody x.
+
+(**
+  A variation on the above in which all occurrences of [c] in the goal are
+  replaced, not only those in the conclusion.
+*)
+
+Tactic Notation "gen_eq" constr(c) "as" ident(x) :=
+  set (x := c) in *;
+  let H := fresh in (assert (H : x = c) by reflexivity; clearbody x; revert H).
+
+
 (** [sets_let X] finds the first let-expression in the goal
     and names its body [X]. [sets_eq_let X] is similar,
     except that it generates an explicit equality.
