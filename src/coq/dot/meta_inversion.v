@@ -5,25 +5,6 @@ Require Import Metatheory LibTactics_sf support meta_regular meta_binding.
 Require Import Coq.Program.Equality.
 
 
-(**
-  [gen_eq c as x H] takes all occurrences of [c] in the current goal's
-  conclusion, replaces them by the variable [x], and introduces the equality
-  [x = c] as the hypothesis H.  Useful if one needs to generalize the goal
-  prior to applying an induction tactic.
-*)
-
-Tactic Notation "gen_eq" constr(c) "as" ident(x) ident(H) :=
-  set (x := c); assert (H : x = c) by reflexivity; clearbody x.
-
-(**
-  A variation on the above in which all occurrences of [c] in the goal are
-  replaced, not only those in the conclusion.
-*)
-
-Tactic Notation "gen_eq" constr(c) "as" ident(x) :=
-  set (x := c) in *;
-  let H := fresh in (assert (H : x = c) by reflexivity; clearbody x; revert H).
-
 
 (* FAILED attempts at inversion lemma for subtyping of function types:
 
@@ -334,13 +315,13 @@ Lemma sub_narrowing_aux : forall TMid s F E z Sz Tz S T,
   (E ++ z ~ (Tz, (precise, true)) ++ F, s) |= S ~<! T ->
   (E, s) |= Sz ~<! Tz ->
   (E ++ z ~ (Sz, (precise, true)) ++ F, s) |= S ~<! T.
-Proof.
+Proof. Admitted. (*
   introv HTrans HSubL HSubZ.
   gen_eq (E ++ z ~ (Tz, (precise, true)) ++ F, s) as G. gen F.
   induction HSubL; introv EQ; subst; eauto 5.
 
   eapply sub_tp_notrans_tpsel_r; eauto. eapply typing_sub with (S := T').
-  skip. eapply IHHSubL2; eauto.
+  skip. eapply IHHSubL2; eauto.*)
 
 
 Lemma narrow_sub_decls: forall L E S T DS1 DS2,  
@@ -370,9 +351,9 @@ Hint Resolve narrow_sub_decls.
 Lemma sub_tp_notrans_trans : forall TMid, transitivity_on TMid.
 Proof.
  introv HSubL HSubR. gen E T T'. gen_eq TMid as TMid' eq. gen TMid' eq. 
- induction TMid; intros TMid' EQ; intros;
-   dependent induction HSubL; try discriminate; inversions EQ;
-     intros; dependent induction HSubR; subst; auto; try solve [ 
+ induction TMid; intros TMid' EQ E T HSubL;
+   induction HSubL; try discriminate; inversions EQ;
+     intros; generalize_eqs_vars HSubR; induction HSubR; simplify_dep_elim; subst; auto; try solve [ 
        eapply sub_tp_notrans_rfn_r; eauto 2; eapply narrow_sub_decls; eauto 2 |
        eapply sub_tp_notrans_and_r; eauto 2 | 
        eapply sub_tp_notrans_and_l1; eapply IHHSubL; eauto 2 |
