@@ -8,17 +8,12 @@ Reserved Notation "E |= t ~: T @ q" (at level 69).
 Reserved Notation "E |= t ~<: T @ q" (at level 69).
 (*Reserved Notation "E |= t ~mem~ D @ q" (at level 69).*)
 
+(* TODO: it could be interesting to factor out quality into a separate higher-order judgement,
+so proofs that now have to existentially quantify over qualities (since they don't matter / relations are too complex to prove)
+could simply ignore them -- proofs with existentials are harder because I haven't found a way to make automation destruct them in a useful way
 
-Inductive has_tp_sel : tp -> Prop :=
- | hts_sel  : forall p L, has_tp_sel (tp_sel p L)
- | hts_rfn  : forall T DS, has_tp_sel T  -> has_tp_sel (tp_rfn T DS)
- | hts_fun1  : forall T T', has_tp_sel T' -> has_tp_sel (tp_fun T' T)
- | hts_fun2  : forall T T', has_tp_sel T' -> has_tp_sel (tp_fun T T')
- | hts_and1 : forall T T', has_tp_sel T' -> has_tp_sel (tp_and T' T)
- | hts_and2 : forall T T', has_tp_sel T' -> has_tp_sel (tp_and T T')
- | hts_or1  : forall T T', has_tp_sel T' -> has_tp_sel (tp_or T' T)
- | hts_or2  : forall T T', has_tp_sel T' -> has_tp_sel (tp_or T T').
-
+downside: would have to be mutually defined with typing/subtyping/... making the mutual induction principle even bigger
+*)
 
 Inductive typing : env -> quality -> tm -> tp -> Prop :=
 (*
@@ -496,6 +491,20 @@ Definition extract_pex : loc -> args -> pex := fun a => fun ags =>
        end) ags.
 
 *)
+
+
+
+(*Inductive has_tp_sel : tp -> Prop :=
+ | hts_sel  : forall p L, has_tp_sel (tp_sel p L)
+ | hts_rfn  : forall T DS, has_tp_sel T  -> has_tp_sel (tp_rfn T DS)
+ | hts_fun1  : forall T T', has_tp_sel T' -> has_tp_sel (tp_fun T' T)
+ | hts_fun2  : forall T T', has_tp_sel T' -> has_tp_sel (tp_fun T T')
+ | hts_and1 : forall T T', has_tp_sel T' -> has_tp_sel (tp_and T' T)
+ | hts_and2 : forall T T', has_tp_sel T' -> has_tp_sel (tp_and T T')
+ | hts_or1  : forall T T', has_tp_sel T' -> has_tp_sel (tp_or T' T)
+ | hts_or2  : forall T T', has_tp_sel T' -> has_tp_sel (tp_or T T').*)
+ 
+ 
 (* end hide *)
 
 
@@ -508,6 +517,8 @@ u =>
 
   (fun x: u.A => x.oops "meh") (new (u.A{type L : Int..Int})(oops = (x: Int) => x + 1)) // typing_new will fail because the bounds are inconsistent
 *)
+
+
 (*
 *** Local Variables: ***
 *** coq-prog-name: "coqtop" ***

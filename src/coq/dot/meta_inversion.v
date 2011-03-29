@@ -351,9 +351,9 @@ Hint Resolve narrow_sub_decls.
 Lemma sub_tp_notrans_trans : forall TMid, transitivity_on TMid.
 Proof.
  introv HSubL HSubR. gen E T T'. gen_eq TMid as TMid' eq. gen TMid' eq. 
- induction TMid; intros TMid' EQ E T HSubL;
-   induction HSubL; try discriminate; inversions EQ;
-     intros; generalize_eqs_vars HSubR; induction HSubR; simplify_dep_elim; subst; auto; try solve [ 
+ induction TMid; intros; gen T';
+   induction HSubL; try discriminate; inversions eq; intros; 
+     generalize_eqs_vars HSubR; induction HSubR; simplify_dep_elim; subst; auto; try solve [ 
        eapply sub_tp_notrans_rfn_r; eauto 2; eapply narrow_sub_decls; eauto 2 |
        eapply sub_tp_notrans_and_r; eauto 2 | 
        eapply sub_tp_notrans_and_l1; eapply IHHSubL; eauto 2 |
