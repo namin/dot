@@ -15,6 +15,14 @@ could simply ignore them -- proofs with existentials are harder because I haven'
 downside: would have to be mutually defined with typing/subtyping/... making the mutual induction principle even bigger
 *)
 
+Definition forall_decls (E: env) (DS1: decls) (DS2: decls) (P : env -> decl -> decl -> Prop) :=
+      (forall l d1 d2, lbl.binds l d2 DS2 -> lbl.binds l d1 DS1 -> P E d1 d2).
+
+(* avoid existentially qualifying over qualities: it makes Coq sad (induction principles are not generated fully, proofs get harder,...) *)
+Inductive sub_qual : quality -> quality -> Prop :=
+ | sub_qual_precise : forall q, sub_qual precise q
+ | sub_qual_subsumed : forall q, sub_qual q subsumed.
+
 Inductive typing : env -> quality -> tm -> tp -> Prop :=
 (*
 we can only give a precise type to free variables whose exact dynamic type is known statically in gamma
@@ -149,16 +157,22 @@ with expands : env -> quality -> tp -> decls -> Prop :=
   | expands_top : forall E,
       wf_env E -> (* for regular_expands/subtyping *)
       expands E precise tp_top nil
+  | expands_bot : forall E DS,
+      wf_env E -> (* for regular_expands/subtyping  TODO: DS must be well-formed as well*)
+      expands E subsumed tp_bot DS
 where "E |= T ~< D @ q" := (expands E q T D)
 
-
 with sub_tp : env -> quality -> tp -> tp -> Prop :=
-  | sub_tp_rfn : forall L E T T' DS1 DS2 q1 q2 qs q,
-      E |= T ~< DS1 @ q1 ->
+(* ok: the induction principle exposes the sub_decl in sub_tp_rfn (verify using Print sub_tp_indm)
+ (f12 : ...., (forall (z : atom) (n : z `notin` L) (l : label) (d1 d2 : decl) (b : lbl.binds l d2 (DS2 ^ds^ z)) (b0 : lbl.binds l d1 (DS1 ^ds^ z)),
+          P2 (ctx_bind E z T) q d1 d2 (f12 z n l d1 d2 b b0)) -> ... -> P1 E q T (tp_rfn T' DS2) (sub_tp_rfn DS2 s e f12 s0 a))
+*)
+  | sub_tp_rfn : forall L E T T' DS1 DS2 q1 q2 q,
       E |= T ~<: T' @ q2 ->
-      (forall z, z \notin L -> (forall l d2, lbl.binds l d2 DS2 -> exists d1, lbl.binds l d1 DS1 /\ exists q, List.In q qs /\
-        sub_decl (ctx_bind E z T) q (d1 ^d^ z) (d2 ^d^ z)))       ->
-      (q = precise -> lbl.dom DS2 [=l=] lbl.dom DS1 /\ ~ (List.In subsumed (q1 :: q2 :: qs))) -> (* we didn't lose any members and all subderivations were precise *)
+      E |= T ~< DS1 @ q1 ->
+      (forall z, z \notin L -> forall_decls (ctx_bind E z T) (DS1 ^ds^ z) (DS2 ^ds^ z) (fun E => fun d1 => fun d2 => sub_decl E q d1 d2)) ->
+      lbl.dom DS2 [<l=] lbl.dom DS1 -> (* no longer implied by sub_decls, but that forall/exists construction made induction impractical *)
+      (q = precise -> lbl.dom DS2 [=l=] lbl.dom DS1 /\ q1 & q2 = precise ) -> (* we didn't lose any members and all subderivations were precise *)
       E |= T ~<: (tp_rfn T' DS2) @ q
 (* not redundant with sub_tp_rfn even though it can derive the empty refinement T{}; T{} and T would be unrelated without sub_tp_rfn_elim*)
   | sub_tp_rfn_elim : forall E T DS, wf_env E ->  lc_tp (tp_rfn T DS) -> (* for regular_expands/subtyping *)
@@ -168,7 +182,7 @@ with sub_tp : env -> quality -> tp -> tp -> Prop :=
    concretely, using sub_tp_tpsel_upper to get from p.L to U will yield a supertype of p.L, and thus, via transitivity, of T, but
    T <: U does not necessarily hold for untrusted paths, which are rooted in a variable that was put in the context during typing_new's
    in other words, in typing_new we want to check T <: U without going through p.L, otherwise the bounds of a type member always trivially conform by invoking transitivity with the type member that's being checked as the middleman
-   it suffices to interrupt this viscious chain on one side of p.L, so I chose the lower bound
+   it suffices to interrupt this vicious chain on one side of p.L, so I chose the lower bound
 *)
   | sub_tp_tpsel_lower : forall E p T' q1 DS q2 L S U,
       E |= p ~: T' @ q1 -> E |= T' ~< DS @ q2 -> lbl.binds L (decl_tp S U) DS ->
@@ -219,13 +233,15 @@ AS WELL AS the fact that we can produce a value of this type (which implies T <:
 where "E |= T1 ~<: T2 @ q" := (sub_tp E q T1 T2)
 
 with sub_decl : env -> quality -> decl -> decl -> Prop :=
-  | sub_decl_tp : forall E q1 q2 S1 T1 S2 T2,
+  | sub_decl_tp : forall E q q1 q2 S1 T1 S2 T2,
 (*     sub_tp E S1 T1 ->  -- subsumed by well-formedness assumption *)
      sub_tp E q1 S2 S1 ->
      sub_tp E q2 T1 T2 ->
-     sub_decl E (q1 & q2) (decl_tp S1 T1) (decl_tp S2 T2) 
-  | sub_decl_tm : forall E q T1 T2,
-     sub_tp E q T1 T2 ->
+     sub_qual (q1 & q2) q -> (* to simplify sub_tp_rfn_r *)
+     sub_decl E q (decl_tp S1 T1) (decl_tp S2 T2) 
+  | sub_decl_tm : forall E q q1 T1 T2,
+     sub_tp E q1 T1 T2 ->
+     sub_qual q1 q -> (* to simplify sub_tp_rfn_r *)
      sub_decl E q (decl_tm T1) (decl_tm T2) 
 
 (* path equality is needed for preservation because evaluation changes types that cannot be related otherwise *)
@@ -298,18 +314,12 @@ with wf_decl : env -> decl -> Prop :=
      wf_tp E T ->
      wf_decl E (decl_tm T).
 
-(* copy/paste from sub_tp_rfn_XXX since Combined Scheme refuses to generate the induction scheme when sub_decls is in the mix *)
-Inductive sub_decls : env -> quality -> decls -> decls -> Prop :=
-  | sub_decls_sub :forall L E DS1 DS2,
-      lbl.dom DS2 [<l=] lbl.dom DS1 -> (* subsumption may lose members *)
-      (forall z, z \notin L -> (forall l d1 d2, lbl.binds l d1 DS1 -> lbl.binds l d2 DS2 -> 
-            exists q, sub_decl E q (d1 ^d^ z) (d2 ^d^ z))) ->
-      sub_decls E subsumed DS1 DS2
-  | sub_decls_precise : forall L E DS1 DS2,
-      lbl.dom DS2 [=l=] lbl.dom DS1 -> (* we didn't lose any members *)
-      (forall z, z \notin L -> (forall l d1 d2, lbl.binds l d1 DS1 -> lbl.binds l d2 DS2 ->
-            sub_decl E precise (d1 ^d^ z) (d2 ^d^ z))) ->
-      sub_decls E precise DS1 DS2.
+(* copy/paste from sub_tp_rfn_XXX since Combined Scheme refuses to generate the induction scheme when sub_decls is in the mix 
+Definition sub_decls E q T DS1 DS2 := forall z, z \notin L -> 
+  forall_decls (ctx_bind E z T) (DS1 ^ds^ z) (DS2 ^ds^ z) (fun E => fun d1 => fun d2 => sub_decl E q d1 d2) ->
+  lbl.dom DS2 [<l=] lbl.dom DS1 -> (* no longer implied by sub_decls, but that forall/exists construction made induction impractical *)
+  (q = precise -> lbl.dom DS2 [=l=] lbl.dom DS1). (* we didn't lose any members *)
+*)
 
 Inductive wf_store : store -> Prop := 
   | wf_store_nil : wf_store nil

@@ -5,10 +5,9 @@ Require Import Metatheory LibTactics_sf support meta_regular meta_binding.
 Require Import Coq.Program.Equality.
 
 
+(* attempts at inversion lemma for subtyping of function types:
 
-(* FAILED attempts at inversion lemma for subtyping of function types:
-
-(1)
+(1) FAILED
 Lemma invert_subtyping_fun : 
    (forall E q T DS, E |= T ~< DS @ q -> forall T1 T2, is_fun T T1 T2 -> DS = nil) /\
    (forall E q S T, E |= S ~<: T @ q -> forall T1 T2, is_fun S T1 T2 ->
@@ -36,7 +35,7 @@ then the problem becomes:
 we could induct and we'd be fine , but we don't have it
 
 
-(2)
+(2) FAILED
 if we exclude type selections as the middleman in our sub_tp_trans (and expands_sub), we can prove the lemma ignoring these annoying types,
 but we can't use it in preservation since we can't invert S -> T <: S' <: T' if any of those types contains a type selection...
 
@@ -45,12 +44,12 @@ excluding type selection is contagious: as soon as we exclude it anywhere, need 
 if transitivity excludes type selection as its middlemen, the constituents of the original function type need to exclude type selections as well)
 
 
-(3)
+(3) OK?
 this seems succesful so far:
 have alternate subtyping/expansion relations that don't have transitivity
 they also don't track quality, to avoid nested existentials in the induction hypotheses in the proof -- I cannot figure out how to make coq's automation open existentials
 
-prove soundness and completeness wrt the original relations (where expansion has been merged into subtyping so we can induct)
+prove soundness and completeness wrt the original relations (where expansion has been merged into subtyping so we can induct more easily)
 
 *)
 
@@ -79,13 +78,9 @@ Inductive sub_tp_notrans : env -> tp -> tp -> Prop :=
 
   | sub_tp_notrans_rfn_r : forall L E T T' Tpar DSP DS DS1 DS2, (* T' = tp_top and DS1 = DS2 --> recover expands_rfn*)
       E |= T ~<! T' ->
-      (* sub_decls_under L E T DS1 DS2 *) (forall z, z \notin L -> (forall l d2, lbl.binds l d2 DS2 -> exists d1, lbl.binds l d1 DS1 /\
-           (forall S1 T1 S2 T2, ((d1 ^d^ z) = (decl_tp S1 T1) /\ (d2 ^d^ z) = (decl_tp S2 T2)) -> 
-              (ctx_bind E z T) |= S2 ~<! S1 /\ (ctx_bind E z T) |= T1 ~<! T2 ) /\
-           (forall T1 T2, ((d1 ^d^ z) = (decl_tm T1) /\ (d2 ^d^ z) = (decl_tm T2)) -> 
-              (ctx_bind E z T) |= T1 ~<! T2)
-          )) ->
+      (forall z, z \notin L -> forall_decls (ctx_bind E z T) (DS1 ^ds^ z) (DS2 ^ds^ z) sub_decl_notrans) ->
       and_decls DSP DS DS1 ->
+      lbl.dom DS2 [<l=] lbl.dom DS1 -> (* no longer implied by sub_decls, but that forall/exists construction made induction impractical *)
       E |= T ~<! (tp_rfn Tpar DS) -> E |= Tpar ~<! (tp_rfn tp_top DSP) ->  (* was E |= T ~< DS1 *)
       E |= T ~<! (tp_rfn T' DS2) 
 
@@ -137,20 +132,25 @@ Inductive sub_tp_notrans : env -> tp -> tp -> Prop :=
 
   | sub_tp_notrans_bot  : forall E T, E |= tp_bot ~<! T (* hide bottom down here, where it belongs *)
 
-where "E |= T1 ~<! T2" := (sub_tp_notrans E T1 T2).
+where "E |= T1 ~<! T2" := (sub_tp_notrans E T1 T2)
 
-Definition sub_decls_under L E T DS1 DS2 :=
-      (forall z, z \notin L -> (forall l d2, lbl.binds l d2 DS2 -> exists d1, lbl.binds l d1 DS1 /\
-         (forall S1 T1 S2 T2, ((d1 ^d^ z) = (decl_tp S1 T1) /\ (d2 ^d^ z) = (decl_tp S2 T2)) -> 
-            (ctx_bind E z T) |= S2 ~<! S1 /\ (ctx_bind E z T) |= T1 ~<! T2 ) /\
-         (forall T1 T2, ((d1 ^d^ z) = (decl_tm T1) /\ (d2 ^d^ z) = (decl_tm T2)) -> 
-            (ctx_bind E z T) |= T1 ~<! T2)
-        )).
+with sub_decl_notrans : env -> decl -> decl -> Prop :=
+  | sub_decl_notrans_tp : forall E S1 T1 S2 T2,
+      E |= S2 ~<! S1 ->
+      E |= T1 ~<! T2 ->
+      sub_decl_notrans E (decl_tp S1 T1) (decl_tp S2 T2) (*(q1 & q2) *)
+  | sub_decl_notrans_tm : forall E T1 T2,
+      E |= T1 ~<! T2 ->
+      sub_decl_notrans E (decl_tm T1) (decl_tm T2).
+
+Scheme sub_tp_notrans_indm   := Induction for sub_tp_notrans Sort Prop
+  with sub_decl_notrans_indm := Induction for sub_decl_notrans Sort Prop.
+
+Combined Scheme sub_tp_notrans_mutind from sub_tp_notrans_indm, sub_decl_notrans_indm.
 
 
 
-Hint Constructors sub_tp_notrans.
-(*Hint Resolve sub_tp_notrans_fun sub_tp_notrans_tpsel_r sub_tp_notrans_rfn_r expands_rfn sub_tp_notrans_and_r expands_and sub_tp_notrans_or_r1 sub_tp_notrans_or_r2 expands_or sub_tp_notrans_refl sub_tp_notrans_top expands_top sub_tp_notrans_tpsel_l sub_tp_notrans_rfn_l sub_tp_notrans_and_l1 sub_tp_notrans_and_l2 sub_tp_notrans_or_l. *)
+Hint Constructors sub_tp_notrans sub_decl_notrans.
 
 Section Soundness.
   (* TODO: deal with regularity  *)
@@ -158,7 +158,7 @@ Section Soundness.
   Lemma lc_ax : forall T, lc_tp T. Proof. Admitted.
   Hint Resolve wf_ax lc_ax.
 
-  Hint Constructors expands.
+  Hint Constructors expands sub_decl sub_qual.
   Hint Resolve sub_tp_rfn sub_tp_rfn_elim sub_tp_tpsel_lower sub_tp_tpsel_upper sub_tp_refl sub_tp_top sub_tp_bot sub_tp_fun sub_tp_and_r sub_tp_or_l sub_tp_and_l1 sub_tp_and_l2 sub_tp_or_r1 sub_tp_or_r2. (*but not transitivity*)
 
   Lemma and_decls_nil: and_decls nil nil nil.            Proof. Admitted.
@@ -168,19 +168,46 @@ Section Soundness.
   Lemma or_decls_nil_1: forall DS, or_decls nil DS nil.  Proof. Admitted.
   Lemma or_decls_nil_2: forall DS, or_decls DS nil nil.  Proof. Admitted.
 
-  (* TODO: proof will need decls_ok from well formedness of the type that expanded to DS *)
-  Lemma sub_decls_refl : forall L E DS qs T,
-     forall z : atom, z `notin` L -> forall (l : label) (d2 : decl), lbl.binds l d2 DS -> exists d1, lbl.binds l d1 DS /\ 
-     (exists q, In q qs /\ sub_decl (ctx_bind E z T) q (d1 ^d^ z) (d2 ^d^ z)).
-  Proof. Admitted.
+  (* TODO: proof will need decls_ok from well formedness of the type that expanded to DS for uniqueness of labels, and wf_env for sub_tp_refl *)
+  Lemma sub_decls_refl : forall L E T DS,
+     forall z : atom,
+     z `notin` L ->
+     forall_decls (ctx_bind E z T) (DS ^ds^ z) 
+       (DS ^ds^ z)
+       (fun (E0 : env) (d1 d2 : decl) => sub_decl E0 subsumed d1 d2).
+  Proof. Admitted. (*
+    unfold forall_decls. intros. set (DS' := DS ^ds^ z) in *. 
+    gen d1 d2.
+    decls induction DS'; intros. 
+      inversion H1.
 
-  Hint Resolve and_decls_nil and_decls_nil_1 and_decls_nil_2 or_decls_nil or_decls_nil_1 or_decls_nil_2 sub_decls_refl.
+      assert (lbl.uniq DS') as HUnique by admit. (* wf_decls *)
+      forwards: (lbl.binds_cons_uniq_1 _ _ _ _ _ _ HUnique H0); eauto. forwards: (lbl.binds_cons_uniq_1 _ _ _ _ _ _ HUnique H1); eauto.
+      destruct H2 as [[HEq HEq'] | IH']; destruct H3 as [[HEq1 HEq1'] | IH1']; subst; eauto.
+      skip. (*refl*)
+      eapply IHDS'; eauto.
+*)
+
+Lemma sub_decls_sound : forall L E DS1 DS2 T,
+  (forall z : atom, z `notin` L -> forall (l : label) (d1 d2 : decl),
+   lbl.binds l d2 (DS2 ^ds^ z) -> lbl.binds l d1 (DS1 ^ds^ z) ->
+     exists q, sub_decl (ctx_bind E z T) q d1 d2) ->
+  (forall z : atom, z `notin` L ->
+   forall_decls (ctx_bind E z T) (DS1 ^ds^ z) (DS2 ^ds^ z)
+     (fun (E0 : env) (d1 d2 : decl) => sub_decl E0 subsumed d1 d2)).
+Proof.
+  unfold forall_decls. intros. destruct (H z H0 l d1 d2 H1 H2) as [q Hsub].
+  inverts Hsub; [ apply sub_decl_tp with (q1 := q1) (q2 := q2) (q := subsumed); eauto |
+    apply sub_decl_tm with (q1 := q1) (q := subsumed); eauto].
+Qed.
+
+  Hint Resolve and_decls_nil and_decls_nil_1 and_decls_nil_2 or_decls_nil or_decls_nil_1 or_decls_nil_2 sub_decls_refl sub_decls_sound.
 
   (* specialize hypotheses with satisfiable embedded equalities, drop the unsatisfiable ones *)
   Ltac sphyps :=
     repeat match goal with H: ?T |- _ => 
       match T with
-      | forall x, ?a = _ -> _  => 
+      | forall x, ?a = _ -> _  =>  (* TODO: why does generalized `context [ ?a = _ ] ` version not work? *)
         match type of a with
           | ?x => try (let h := fresh in lets h: H (@eq_refl x); generalizes h); clear H
         end
@@ -189,77 +216,32 @@ Section Soundness.
     end.
   Ltac simplhyps :=  jauto_set_hyps; intros; sphyps; intros; jauto_set_hyps; intros.
 
-  (* TODO: how do we expose the subtyping judgements in sub_decls, so that we get an IH??
-   (forall z : atom,
-         z `notin` L ->
-         forall (l : label) (d2 : decl),
-         lbl.binds l d2 DS0 ->
-         exists d1,
-         lbl.binds l d1 DS1 /\
-         (forall S1 T1 S2 T2 : tp,
-          d1 ^d^ z = decl_tp S1 T1 /\ d2 ^d^ z = decl_tp S2 T2 ->
-          ctx_bind E z T |= S2 ~<! S1 /\ ctx_bind E z T |= T1 ~<! T2) /\
-         (forall T1 T2 : tp,
-          d1 ^d^ z = decl_tm T1 /\ d2 ^d^ z = decl_tm T2 ->
-          ctx_bind E z T |= T1 ~<! T2)) ->
-     (exists qs, forall z : atom,
-     z `notin` L ->
-     forall (l : label) (d2 : decl),
-     lbl.binds l d2 DS0 ->
-     exists d1,
-     lbl.binds l d1 DS1 /\
-     (exists q,
-      In q qs /\
-      sub_decl (ctx_bind E z (tp_rfn Tpar DS)) q (d1 ^d^ z) (d2 ^d^ z)))
+  Ltac trans T := eexists; eapply sub_tp_trans with (TMid := T); eauto.
+  Ltac sub_tp_rfn_top DS := 
+    eapply sub_tp_rfn with (DS1 := DS) (DS2 := DS) (q := subsumed); [
+      eauto | eauto | pick fresh z and apply sub_decls_refl | fsetdec | intros; discriminate].
 
-  *)
-  Lemma notrans_is_sound : forall E T1 T2, E |= T1 ~<! T2 -> (exists q, E |= T1 ~<: T2 @ q) /\ 
-    (forall DS, T2 = tp_rfn tp_top DS -> exists q, E |= T1 ~< DS @ q). 
-  Proof. 
-    introv H. gen E T1 T2.
-     dependent induction H; (split; [ 
-       simplhyps; eauto 3 | (* subtyping *)
-       introv HEq; try injsubst HEq; subst;  (* expansion *)
-         try destructs IHsub_tp_notrans1; try destructs IHsub_tp_notrans2; try destructs IHsub_tp_notrans; 
-         simplhyps; try solve [ discriminate | eexists; intros; eauto 3] ]).
+  Let P (E : env) (T1 T2 : tp) (H : E |= T1 ~<! T2) := (exists q, E |= T1 ~<: T2 @ q) /\ (forall DS, T2 = tp_rfn tp_top DS -> exists q, E |= T1 ~< DS @ q).
+  Let P0 (E : env) (D1 D2 : decl) (H : sub_decl_notrans E D1 D2) := exists q, sub_decl E q D1 D2.
 
-    eexists; eapply sub_tp_trans with (TMid := S ^tp^ p); eauto.
-
-    eexists; eapply sub_tp_rfn with (DS1 := DS1) (DS2 := DS2) (qs := subsumed :: nil) (q := subsumed); eauto 3. 
-    skip. (* TODO: IH for sub_decls *)
-    intros; discriminate.
-
-    forwards: (@sub_tp_rfn L E T tp_top DS1 DS0 (x & x1) subsumed (subsumed :: nil) subsumed); eauto 3.
-    skip. (* TODO: IH for sub_decls *)
-    intros. discriminate.
-    
-    eexists; eauto.
-
-    Ltac sub_tp_rfn_top DS := eapply sub_tp_rfn with (DS1 := DS) (DS2 := DS) (qs := subsumed :: nil) (q := subsumed); eauto; intros; discriminate.
-
-    eexists; eapply sub_tp_trans with (TMid := tp_and T1 T2); [ eauto | sub_tp_rfn_top DSM].
-
-    eexists; eapply sub_tp_trans with (TMid := T1); eauto.
-
-    eexists; eapply sub_tp_trans with (TMid := T2); eauto.
-
-    eexists; eapply sub_tp_trans with (TMid := tp_or T1 T2); [eauto | sub_tp_rfn_top DSM].
-
-    eexists; sub_tp_rfn_top (nil : decls).
-
-    eexists; eapply sub_tp_trans with (TMid := U ^tp^ p); eauto.
-
-    eexists; eapply sub_tp_trans with (TMid := T); eauto. 
-
-    eexists; eapply sub_tp_trans with (TMid := T1); eauto. 
-
-    eexists; eapply sub_tp_trans with (TMid := T2); eauto. 
-
-    eexists; eapply expands_sub with (U := tp_rfn tp_top DS); eauto. 
-
-    admit. (* TODO: the old system does not have an explicit rule to expand tp_bot since expands_sub subsumes to any supertype that has an expansion *)
-
-  Admitted.
+  Lemma notrans_is_sound : (forall (E : env) (T1 T2 : tp) (H : E |= T1 ~<! T2), @P E T1 T2 H) /\
+              (forall (E : env) (D1 D2 : decl) (H : sub_decl_notrans E D1 D2), @P0 E D1 D2 H). 
+  Proof. unfold P, P0. clear P P0.
+    apply sub_tp_notrans_mutind; first [
+      (split; [ 
+           (* subtyping *) simplhyps; try solve [ eauto 3 | trans (S ^tp^ p) | trans T1 | trans T2 | trans (U ^tp^ p) | trans T  ]  (* brute-force trans *)
+         | (* expansion *) introv HEq; try injsubst HEq; subst; 
+             try destructs IHsub_tp_notrans1; try destructs IHsub_tp_notrans2; try destructs IHsub_tp_notrans; 
+             simplhyps; try solve [ discriminate | eexists; intros; eauto 3]]) 
+      | (* sub_decl *) intros; exists subsumed; simplhyps; eauto ] ; [ (* trickier subtyping cases: *)
+          eexists; eapply sub_tp_rfn with (L := L) (DS1 := DS1) (DS2 := DS2) (q := subsumed); eauto 3; intros; discriminate
+        | forwards: (@sub_tp_rfn L E T tp_top DS1 DS0 (x & x1) subsumed subsumed); eauto 5; [intros; discriminate]
+        | trans (tp_and T1 T2); sub_tp_rfn_top DSM
+        | trans (tp_or T1 T2); sub_tp_rfn_top DSM
+        | eexists; sub_tp_rfn_top (nil : decls)
+        | eexists; eapply expands_sub with (U := tp_rfn tp_top DS); eauto]. 
+  Qed. (* 45s *)
+    (* TODO: get rid of brute-force trans above; can make it more directed, since we know what its argument should be: for a subgoal that needs to show `exists q, E |= T ~<: tp_sel p L @ q`, the argument is `S` if there is a hypothesis `E |= T ~<! ?S` -- it would be nice if Coq provided tacticals that allowed iterating over hypotheses etc, see e.g. http://permalink.gmane.org/gmane.science.mathematics.logic.coq.club/5128*)
 End Soundness.
 
 
@@ -306,24 +288,62 @@ eapply sub_tp_notrans_trans_tpsel with (T' := T'); eauto.
 *)
 
 
-
 Definition transitivity_on TMid := forall E T T',  E |= T ~<! TMid -> E |= TMid ~<! T' -> E |= T ~<! T'.
 Hint Unfold transitivity_on.
 
-Lemma sub_narrowing_aux : forall TMid s F E z Sz Tz S T,
+Section NarrowingTyping.
+
+  Let P (Ez : env) (S T : tp) (H : Ez |= S ~<: T) := forall E F s z Sz Tz, Ez = (E ++ [(z, (Tz, (precise, true)))] ++ F, s) -> (E ++ [(z, (Sz, (precise, true)))] ++ F, s) |= S ~<! T.
+
+  Let P0 (Ez : env) (D1 D2 : decl) (H : sub_decl_notrans Ez D1 D2) := forall E F s z Sz Tz, Ez = (E ++ [(z, (Tz, (precise, true)))] ++ F, s) -> sub_decl_notrans (E ++ [(z, (Sz, (precise, true)))] ++ F, s) D1 D2.
+
+Lemma sub_narrowing_typing : forall TMid s E Sz Tz,
   transitivity_on TMid ->
-  (E ++ z ~ (Tz, (precise, true)) ++ F, s) |= S ~<! T ->
+  (E, s) |= Sz ~<: Tz ->
+    (forall (E : env) (q: quality) (t: tm) (T : tp) (H : E |= t ~: T @ q), @P E T1 T2 H) /\
+    (forall (E : env) (T1 T2 : tp) (H : E |= T1 ~<: T2), @P E T1 T2 H) /\
+    (forall (E : env) (D1 D2 : decl) (H : sub_decl E D1 D2), @P0 E D1 D2 H).
+Proof. 
+
+Section Narrowing.
+  (* specialize hypotheses with satisfiable embedded equalities, drop the unsatisfiable ones *)
+  Ltac sphyps :=
+    repeat match goal with H: ?T |- _ => 
+      match T with
+      | context [?a = _]  => 
+        match type of a with
+          | ?x => try (let h := fresh in lets h: H (@eq_refl x); generalizes h); clear H
+        end
+      | _ => generalizes H
+      end
+    end.
+  Ltac simplhyps :=  jauto_set_hyps; intros; sphyps; intros; jauto_set_hyps; intros.
+
+  Let P (Ez : env) (S T : tp) (H : Ez |= S ~<! T) := forall E F s z Sz Tz, Ez = (E ++ [(z, (Tz, (precise, true)))] ++ F, s) -> (E ++ [(z, (Sz, (precise, true)))] ++ F, s) |= S ~<! T.
+
+  Let P0 (Ez : env) (D1 D2 : decl) (H : sub_decl_notrans Ez D1 D2) := forall E F s z Sz Tz, Ez = (E ++ [(z, (Tz, (precise, true)))] ++ F, s) -> sub_decl_notrans (E ++ [(z, (Sz, (precise, true)))] ++ F, s) D1 D2.
+
+Lemma sub_narrowing_aux : forall TMid s E Sz Tz,
+  transitivity_on TMid ->
   (E, s) |= Sz ~<! Tz ->
-  (E ++ z ~ (Sz, (precise, true)) ++ F, s) |= S ~<! T.
-Proof. Admitted. (*
-  introv HTrans HSubL HSubZ.
-  gen_eq (E ++ z ~ (Tz, (precise, true)) ++ F, s) as G. gen F.
-  induction HSubL; introv EQ; subst; eauto 5.
+    (forall (E : env) (T1 T2 : tp) (H : E |= T1 ~<! T2), @P E T1 T2 H) /\
+    (forall (E : env) (D1 D2 : decl) (H : sub_decl_notrans E D1 D2), @P0 E D1 D2 H).
+Proof. 
+  unfold P, P0. clear P P0. introv HTrans HSubZ.
+  apply sub_tp_notrans_mutind; intros; subst; simplhyps; eauto 4.
 
-  eapply sub_tp_notrans_tpsel_r; eauto. eapply typing_sub with (S := T').
-  skip. eapply IHHSubL2; eauto.*)
+  eapply sub_tp_notrans_tpsel_r; eauto. (** TODO: need to mutually induct with typing... *)
+    skip. skip.
+  
+  eapply sub_tp_notrans_rfn_r; eauto.   
+  unfold forall_decls. intros. forwards: H1; eauto; unfold ctx_bind; simpl. 
+    f_equal. skip. 
+    simpl in H6. skip.
 
+  eapply sub_tp_notrans_tpsel_l; eauto. (** TODO: need to mutually induct with typing... *)
+    skip.
 
+  
 Lemma narrow_sub_decls: forall L E S T DS1 DS2,  
      (forall z, z \notin L -> (forall l d2, lbl.binds l d2 DS2 -> exists d1, lbl.binds l d1 DS1 /\
            (forall S1 T1 S2 T2, ((d1 ^d^ z) = (decl_tp S1 T1) /\ (d2 ^d^ z) = (decl_tp S2 T2)) -> 
