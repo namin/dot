@@ -5,6 +5,31 @@ Require Import Metatheory LibTactics_sf support meta_regular meta_binding.
 Require Import Coq.Program.Equality.
 
 
+
+Section NarrowingTyping.
+  Hint Constructors sub_decl sub_qual path_eq wf_env wf_tp wf_decl.
+  Hint Resolve typing_var typing_ref typing_sel typing_peq typing_app typing_lam typing_new expands_rfn expands_and expands_or expands_top expands_bot 
+sub_tp_rfn sub_tp_rfn_elim sub_tp_tpsel_lower sub_tp_tpsel_upper sub_tp_refl sub_tp_top sub_tp_bot sub_tp_fun sub_tp_and_r sub_tp_or_l sub_tp_and_l1 sub_tp_and_l2 sub_tp_or_r1 sub_tp_or_r2. (* typing/expands/subtyping minus transitivity-like rules *)
+
+  Let Ptyp (E_s: env) (q: quality) (t: tm) (T: tp) (H: E_s |=  t ~: T  @ q) := True.  
+  Let Pexp (E : env) (q : quality) (T : tp) (DS : decls) (H: E |= T ~< DS @ q) := True.
+  Let Psub (E : env) (q : quality) (T T' : tp) (H: E |= T ~<: T' @ q) := True.
+  Let Psbd (e : env) (q : quality) (d d0 : decl) (H: sub_decl e q d d0) := True.
+  Let Ppeq (e : env) (t t0 : tm) (H: path_eq e t t0) := True.
+  Let Pwfe (e : env) (H: wf_env e) := True.
+  Let Pwft (e : env) (t : tp) (H: wf_tp e t) := True.
+  Let Pwfd (e : env) (d : decl) (H: wf_decl e d) := True.
+
+
+  Let P (Ez : env) (S T : tp) (H : Ez |= S ~<: T) := forall E F s z Sz Tz, Ez = (E ++ [(z, (Tz, (precise, true)))] ++ F, s) -> (E ++ [(z, (Sz, (precise, true)))] ++ F, s) |= S ~<! T.
+
+  Let P0 (Ez : env) (D1 D2 : decl) (H : sub_decl_notrans Ez D1 D2) := forall E F s z Sz Tz, Ez = (E ++ [(z, (Tz, (precise, true)))] ++ F, s) -> sub_decl_notrans (E ++ [(z, (Sz, (precise, true)))] ++ F, s) D1 D2.
+
+Lemma sub_narrowing_typing : forall TMid s E Sz Tz,
+  (E, s) |= Sz ~<: Tz @ qz ->
+Proof. 
+ mutind_typing Ptyp Pexp Psub Psbd Ppeq Pwfe Pwft Pwfd; intros; auto.
+
 (* attempts at inversion lemma for subtyping of function types:
 
 (1) FAILED
@@ -290,20 +315,6 @@ eapply sub_tp_notrans_trans_tpsel with (T' := T'); eauto.
 
 Definition transitivity_on TMid := forall E T T',  E |= T ~<! TMid -> E |= TMid ~<! T' -> E |= T ~<! T'.
 Hint Unfold transitivity_on.
-
-Section NarrowingTyping.
-
-  Let P (Ez : env) (S T : tp) (H : Ez |= S ~<: T) := forall E F s z Sz Tz, Ez = (E ++ [(z, (Tz, (precise, true)))] ++ F, s) -> (E ++ [(z, (Sz, (precise, true)))] ++ F, s) |= S ~<! T.
-
-  Let P0 (Ez : env) (D1 D2 : decl) (H : sub_decl_notrans Ez D1 D2) := forall E F s z Sz Tz, Ez = (E ++ [(z, (Tz, (precise, true)))] ++ F, s) -> sub_decl_notrans (E ++ [(z, (Sz, (precise, true)))] ++ F, s) D1 D2.
-
-Lemma sub_narrowing_typing : forall TMid s E Sz Tz,
-  transitivity_on TMid ->
-  (E, s) |= Sz ~<: Tz ->
-    (forall (E : env) (q: quality) (t: tm) (T : tp) (H : E |= t ~: T @ q), @P E T1 T2 H) /\
-    (forall (E : env) (T1 T2 : tp) (H : E |= T1 ~<: T2), @P E T1 T2 H) /\
-    (forall (E : env) (D1 D2 : decl) (H : sub_decl E D1 D2), @P0 E D1 D2 H).
-Proof. 
 
 Section Narrowing.
   (* specialize hypotheses with satisfiable embedded equalities, drop the unsatisfiable ones *)

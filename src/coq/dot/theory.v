@@ -449,9 +449,23 @@ Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ :=
   (forall (e : env) (t : tp) (H : wf_tp e t), (P6_ e t H)) /\  
   (forall (e : env) (d : decl) (H : wf_decl e d), (P7_ e d H))); [tauto | 
     apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_); unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_, P7_ in *; clear P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; [ 
-      Case "typing_var" | Case "typing_ref" | Case "typing_sel" | Case "typing_sub" | Case "typing_app" | Case "typing_lam" | Case "typing_new" | Case "expands_sub" | Case "expands_rfn" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "sub_tp_rfn" | Case "sub_tp_rfn_elim" | Case "sub_tp_tpsel_lower" | Case "sub_tp_tpsel_upper" | Case "sub_tp_trans" | Case "sub_tp_refl" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_tp_fun" | Case "sub_tp_and_r" | Case "sub_tp_or_l" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "peq_refl" | Case "peq_symm" | Case "peq_env" | Case "peq_sel" | Case "wf_env_nil" | Case "wf_env_cons" | Case "wf_rfn" | Case "wf_lam" | Case "wf_tsel" | Case "wf_tsel_cls" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" ]; 
+      Case "typing_var" | Case "typing_refs" | Case "typing_sel" | Case "typing_sub" | Case "typing_peq" | Case "typing_app" | Case "typing_lam" | Case "typing_new" | Case "expands_sub" | Case "expands_rfn" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "expands_bot" | Case "sub_tp_rfn" | Case "sub_tp_rfn_elim" | Case "sub_tp_tpsel_lower" | Case "sub_tp_tpsel_upper" | Case "sub_tp_trans" | Case "sub_tp_refl" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_tp_fun" | Case "sub_tp_and_r" | Case "sub_tp_or_l" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "peq_refl" | Case "peq_symm" | Case "peq_env" | Case "peq_sel" | Case "wf_env_nil" | Case "wf_env_cons" | Case "wf_rfn" | Case "wf_lam" | Case "wf_tsel" | Case "wf_tsel_cls" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" ]; 
       introv; eauto ].
 
+
+Section TestMutInd.
+(* mostly reusable boilerplate for the mutual induction: *)
+  Let Ptyp (E_s: env) (q: quality) (t: tm) (T: tp) (H: E_s |=  t ~: T  @ q) := True.  
+  Let Pexp (E : env) (q : quality) (T : tp) (DS : decls) (H: E |= T ~< DS @ q) := True.
+  Let Psub (E : env) (q : quality) (T T' : tp) (H: E |= T ~<: T' @ q) := True.
+  Let Psbd (e : env) (q : quality) (d d0 : decl) (H: sub_decl e q d d0) := True.
+  Let Ppeq (e : env) (t t0 : tm) (H: path_eq e t t0) := True.
+  Let Pwfe (e : env) (H: wf_env e) := True.
+  Let Pwft (e : env) (t : tp) (H: wf_tp e t) := True.
+  Let Pwfd (e : env) (d : decl) (H: wf_decl e d) := True.
+Lemma EnsureMutindTypingTacticIsUpToDate : True. 
+Proof. mutind_typing Ptyp Pexp Psub Psbd Ppeq Pwfe Pwft Pwfd; intros; auto. Qed.
+End TestMutInd.
 
 
 (* inlined to make induction easier
