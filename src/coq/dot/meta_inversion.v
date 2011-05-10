@@ -1,9 +1,24 @@
 Set Implicit Arguments.
 Require Import List.
 Require Import syntax_binding theory.
-Require Import Metatheory LibTactics_sf support meta_regular meta_binding.
+Require Import Metatheory LibTactics_sf support meta_regular meta_binding meta_weakening.
 Require Import Coq.Program.Equality.
+Require Import Coq.Classes.Equivalence.
+Require Import Coq.Classes.EquivDec.
+Require Import Coq.Logic.Decidable.
 
+
+Definition sub_decls E q DS1 DS2 := forall_decls E DS1 DS2 (fun E => fun d1 => fun d2 => sub_decl E q d1 d2).
+
+(* E, z : Tz, F on paper is reversed in the mechanisation, since new bindings are prepended*)
+Definition splice_env (E: ctx) z F (s: store) Tz := (F ++ [(z, (Tz, (precise, true)))] ++ E, s).
+
+Instance EqDec_eq_atom `(@EqDec atom eq eq_equivalence) : EqDec_eq atom.
+Proof. trivial. Defined.
+
+Lemma inversion_wf_env_uniq : forall E s, wf_env (E, s) -> uniq E.
+Proof. Admitted.
+Hint Resolve inversion_wf_env_uniq.
 
 
 Section NarrowingTyping.
@@ -11,24 +26,140 @@ Section NarrowingTyping.
   Hint Resolve typing_var typing_ref typing_sel typing_peq typing_app typing_lam typing_new expands_rfn expands_and expands_or expands_top expands_bot 
 sub_tp_rfn sub_tp_rfn_elim sub_tp_tpsel_lower sub_tp_tpsel_upper sub_tp_refl sub_tp_top sub_tp_bot sub_tp_fun sub_tp_and_r sub_tp_or_l sub_tp_and_l1 sub_tp_and_l2 sub_tp_or_r1 sub_tp_or_r2. (* typing/expands/subtyping minus transitivity-like rules *)
 
-  Let Ptyp (E_s: env) (q: quality) (t: tm) (T: tp) (H: E_s |=  t ~: T  @ q) := True.  
-  Let Pexp (E : env) (q : quality) (T : tp) (DS : decls) (H: E |= T ~< DS @ q) := True.
-  Let Psub (E : env) (q : quality) (T T' : tp) (H: E |= T ~<: T' @ q) := True.
-  Let Psbd (e : env) (q : quality) (d d0 : decl) (H: sub_decl e q d d0) := True.
-  Let Ppeq (e : env) (t t0 : tm) (H: path_eq e t t0) := True.
-  Let Pwfe (e : env) (H: wf_env e) := True.
-  Let Pwft (e : env) (t : tp) (H: wf_tp e t) := True.
-  Let Pwfd (e : env) (d : decl) (H: wf_decl e d) := True.
+  Lemma quality_subsumption : forall E t T q, E |= t ~: T @ precise -> E |= t ~: T @ q.
+  Proof.  intros. replace q with (precise & q). eapply typing_sub; eauto. induction q; unfold qconj; simpl; eauto. Qed.
+
+  Lemma path_safe_implies_path : forall E p, path_safe E p -> path p.
+  Proof. intros. Hint Constructors path. dependent induction H; auto. Qed.
+  Hint Resolve path_safe_implies_path.
+
+  Lemma path_eq_implies_path : forall E p p', path_eq E p p' -> path p /\ path p'.
+  Proof. intros. Hint Constructors path. dependent induction H; jauto. Qed.
+  Hint Resolve path_eq_implies_path.
+
+  Let Ptyp (E: ctx) (s: store) (Sz Tz: tp) (Ez : env) (q: quality) (t: tm) (T: tp) (H: Ez |=  t ~: T  @ q) :=  forall F z,
+    Ez = splice_env E z F s Tz -> path t -> exists q, (splice_env E z F s Sz) |= t ~: T @ q. 
+  Let Pexp (E: ctx) (s: store) (Sz Tz: tp) (Ez : env) (q : quality) (T : tp) (DS : decls) (H: Ez |= T ~< DS @ q) := forall F z,
+    Ez = splice_env E z F s Tz -> exists q, (splice_env E z F s Sz) |= T ~< DS @ q.
+  Let Psub (E: ctx) (s: store) (Sz Tz: tp) (Ez : env) (q : quality) (T1 T2 : tp) (H: Ez |= T1 ~<: T2 @ q) := forall F z,
+    Ez = splice_env E z F s Tz -> exists q, (splice_env E z F s Sz) |= T1 ~<: T2 @ q.
+  Let Psbd (E: ctx) (s: store) (Sz Tz: tp) (Ez : env) (q : quality) (d1 d2 : decl) (H: sub_decl Ez q d1 d2) :=  forall F z ,
+    Ez = splice_env E z F s Tz -> exists q, sub_decl (splice_env E z F s Sz) q d1 d2.
+  Let Ppeq (E: ctx) (s: store) (Sz Tz: tp) (Ez : env) (t1 t2 : tm) (H: path_eq Ez t1 t2) :=  forall F z , 
+    Ez = splice_env E z F s Tz -> path_eq (splice_env E z F s Sz) t1 t2.
+  Let Pwfe (E: ctx) (s: store) (Sz Tz: tp) (Ez : env) (H: wf_env Ez) :=  forall F z , 
+    Ez = splice_env E z F s Tz -> wf_env (splice_env E z F s Sz).
+  Let Pwft (E: ctx) (s: store) (Sz Tz: tp) (Ez : env) (T : tp) (H: wf_tp Ez T) :=  forall F z , 
+    Ez = splice_env E z F s Tz -> wf_tp (splice_env E z F s Sz) T.
+  Let Pwfd (E: ctx) (s: store) (Sz Tz: tp) (Ez : env) (d : decl) (H: wf_decl Ez d) :=  forall F z , 
+    Ez = splice_env E z F s Tz -> wf_decl (splice_env E z F s Sz) d.
 
 
-  Let P (Ez : env) (S T : tp) (H : Ez |= S ~<: T) := forall E F s z Sz Tz, Ez = (E ++ [(z, (Tz, (precise, true)))] ++ F, s) -> (E ++ [(z, (Sz, (precise, true)))] ++ F, s) |= S ~<! T.
-
-  Let P0 (Ez : env) (D1 D2 : decl) (H : sub_decl_notrans Ez D1 D2) := forall E F s z Sz Tz, Ez = (E ++ [(z, (Tz, (precise, true)))] ++ F, s) -> sub_decl_notrans (E ++ [(z, (Sz, (precise, true)))] ++ F, s) D1 D2.
-
-Lemma sub_narrowing_typing : forall TMid s E Sz Tz,
+Lemma sub_narrowing_typing : forall E s Sz Tz qz,
   (E, s) |= Sz ~<: Tz @ qz ->
+ ((forall Ez q t T (H: Ez |= t ~: T @ q), (@Ptyp E s Sz Tz Ez q t T H)) /\ 
+  (forall Ez q T DS (H: Ez |= T ~< DS @ q), (@Pexp E s Sz Tz Ez q T DS H)) /\ 
+  (forall Ez q T T' (H: Ez |= T ~<: T' @ q), (@Psub E s Sz Tz Ez q T T' H))  /\ 
+  (forall (Ez : env) (q : quality) (d d0 : decl) (H : sub_decl Ez q d d0), (@Psbd E s Sz Tz Ez q d d0 H)) /\  
+  (forall (Ez : env) (t t0 : tm) (H : path_eq Ez t t0), (@Ppeq E s Sz Tz Ez t t0 H)) /\  
+  (forall (Ez : env) (H : wf_env Ez), (@Pwfe E s Sz Tz Ez H)) /\
+  (forall (Ez : env) (t : tp) (H : wf_tp Ez t), (@Pwft E s Sz Tz Ez t H)) /\  
+  (forall (Ez : env) (d : decl) (H : wf_decl Ez d), (@Pwfd E s Sz Tz Ez d H))).
 Proof. 
- mutind_typing Ptyp Pexp Psub Psbd Ppeq Pwfe Pwft Pwfd; intros; auto.
+  (* specialize hypotheses with satisfiable embedded equalities, drop the unsatisfiable ones *)
+  Ltac sphyps :=
+    repeat match goal with H: ?T |- _ => 
+      match T with
+      | context [?a = _]  => 
+        match type of a with
+          | ?x => try (let h := fresh in lets h: H (@eq_refl x); generalizes h); clear H
+        end
+      | _ => generalizes H
+      end
+    end.
+  Ltac simplhyps :=  jauto_set_hyps; intros; sphyps; intros; jauto_set_hyps; intros.
+  introv HSubZ.
+  mutind_typing (@Ptyp E s Sz Tz) (@Pexp E s Sz Tz) (@Psub E s Sz Tz) (@Psbd E s Sz Tz) (@Ppeq E s Sz Tz) (@Pwfe E s Sz Tz) (@Pwft E s Sz Tz) (@Pwfd E s Sz Tz); unfold Ptyp, Pexp, Psub, Psbd, Ppeq, Pwfe, Pwft, Pwfd; clear Ptyp Pexp Psub Psbd Ppeq Pwfe Pwft Pwfd; intros; unfold splice_env in *; subst; try solve [eauto | idtac].
+  (* typing_var *)
+    injsubst H0.
+    destruct (x == z). 
+      (* x === z *) destruct e. 
+        (* recover that Tz = T from binding in hypothesis b *)
+        analyze_binds_uniq b; eauto; injsubst BindsTacVal.
+
+        (* first construct precise typing for x : Sz *)
+        forwards Hprecise : typing_var (F ++ [(x, (Sz, (precise, true)))] ++ E) s x Sz precise; eauto. 
+          simpl in H. eapply H; eauto.  (* wf_env *)
+          destructs (regular_subtyping HSubZ); auto. 
+
+        eexists; eapply typing_sub; eauto. 
+          eapply weakening_subtyping; eauto; simpl; simpl_alist; fsetdec.
+
+      (* x =/= z *) unfold equiv, complement in *.
+        eexists; eapply typing_var; eauto. 
+          analyze_binds_uniq b; eauto. 
+
+  (* typing_ref *)      
+  injsubst H0. eexists; eapply typing_ref; eauto.
+
+  (* typing_sel *)
+    forwards [qtp Htp]: H; auto. 
+      inversion H2; auto.
+    forwards [qx HX]: H0; auto.
+    eauto.
+
+  (* typing_sub *)
+    forwards [qtp Htp]: H; eauto. 
+    forwards [qs HSub]: H0; eauto. 
+    eexists; eapply typing_sub with (S := S); eauto.
+
+  (* typing_peq *) forwards [qtp Htp]: H; auto. eauto.
+  inversion H2. (* app: not a path *)
+  inversion H2. (* lam: not a path *)
+  inversion H3. (* new: not a path *)
+
+  forwards [qs Hs]: H; auto. forwards [qx Hx]: H0; auto. eexists; eapply expands_sub with (U := U); eauto.
+  forwards [qx Hx]: H; auto. eauto.
+  forwards [qx Hx]: H; auto. forwards [qx0 Hx0]: H0; auto. eauto.
+  forwards [qx Hx]: H; auto. forwards [qx0 Hx0]: H0; auto. eauto.
+
+
+  forwards [qtp Htp]: H; auto. forwards [qx Hx]: H0; auto. 
+
+  GAAAH juggling around existentials again  
+  eexists; eapply sub_tp_rfn; eauto. unfold forall_decls. intros. 
+  specialize (H1 z0 H2 l d1 d2 H3 H4 ((z0, (T, (precise, true))) :: F) z). forwards [qsd Hsd] : H1.
+  unfold ctx_bind. simpl. f_equal. simpl in *. eapply Hsd.
+
+
+  forwards [qtp Htp]: H; eauto. forwards [qx Hx]: H0; eauto. eexists; eapply sub_tp_tpsel_lower; eauto.
+    skip. (* narrowing for path_safe
+   path_safe (F ++ [(z, (Tz, (precise, true)))] ++ E, s) p
+  ============================
+   path_safe (F ++ [(z, (Sz, (precise, true)))] ++ E, s) p
+  *)
+
+  forwards [qtp Htp]: H; auto. forwards [qx Hx]: H0; auto. eauto.
+  forwards [qtp Htp]: H; auto. forwards [qs Hs]: H0; auto. eexists; eapply sub_tp_trans with (TMid := TMid); eauto.
+  forwards [qsa Hsa]: H; auto. forwards [qsf Hsf]: H0; auto. eauto.
+  forwards [qs Hs]: H; auto. forwards [qs0 Hs0]: H0; auto. eauto.
+  forwards [qs Hs]: H; auto. forwards [qs0 Hs0]: H0; auto. eauto.
+  forwards [qs Hs]: H; auto. forwards [qs0 Hs0]: H0; auto. eauto.
+  forwards [qs Hs]: H; auto. eauto.
+  injsubst H0. eauto.
+  forwards Hpeq: H; auto. destruct (path_eq_implies_path p0). forwards [qtp Htp]: H0; auto.  eauto.
+
+  injsubst H. forwards : app_cons_not_nil (z, (Tz, (precise, true))) F E. unfold not in *. forwards : H; eauto. tauto.
+
+  skip.
+
+  eapply wf_rfn; eauto. intros. forwards Hwf : H0 z0 l d0 H2; eauto.
+  unfold ctx_bind. simpl. f_equal. instantiate (1 := z). instantiate (1 := (z0, (tp_rfn T DS, (precise, true))) :: F). trivial. unfold ctx_bind. simpl. apply Hwf.
+ 
+  forwards [qtp Htp]: H; auto. forwards [qs Hs]: H0; auto. eauto.
+  forwards [qtp Htp]: H; auto. forwards [qx Hx]: H0; auto. eauto.
+
+Qed.
 
 (* attempts at inversion lemma for subtyping of function types:
 
@@ -254,19 +385,26 @@ Qed.
   Proof. unfold P, P0. clear P P0.
     apply sub_tp_notrans_mutind; first [
       (split; [ 
-           (* subtyping *) simplhyps; try solve [ eauto 3 | trans (S ^tp^ p) | trans T1 | trans T2 | trans (U ^tp^ p) | trans T  ]  (* brute-force trans *)
+           (* subtyping *) simplhyps; try solve [ eauto 3 | idtac ]  
          | (* expansion *) introv HEq; try injsubst HEq; subst; 
              try destructs IHsub_tp_notrans1; try destructs IHsub_tp_notrans2; try destructs IHsub_tp_notrans; 
              simplhyps; try solve [ discriminate | eexists; intros; eauto 3]]) 
-      | (* sub_decl *) intros; exists subsumed; simplhyps; eauto ] ; [ (* trickier subtyping cases: *)
-          eexists; eapply sub_tp_rfn with (L := L) (DS1 := DS1) (DS2 := DS2) (q := subsumed); eauto 3; intros; discriminate
-        | forwards: (@sub_tp_rfn L E T tp_top DS1 DS0 (x & x1) subsumed subsumed); eauto 5; [intros; discriminate]
-        | trans (tp_and T1 T2); sub_tp_rfn_top DSM
-        | trans (tp_or T1 T2); sub_tp_rfn_top DSM
-        | eexists; sub_tp_rfn_top (nil : decls)
-        | eexists; eapply expands_sub with (U := tp_rfn tp_top DS); eauto]. 
-  Qed. (* 45s *)
-    (* TODO: get rid of brute-force trans above; can make it more directed, since we know what its argument should be: for a subgoal that needs to show `exists q, E |= T ~<: tp_sel p L @ q`, the argument is `S` if there is a hypothesis `E |= T ~<! ?S` -- it would be nice if Coq provided tacticals that allowed iterating over hypotheses etc, see e.g. http://permalink.gmane.org/gmane.science.mathematics.logic.coq.club/5128*)
+      | (* sub_decl *) intros; exists subsumed; simplhyps; eauto ]; [  (* trickier subtyping cases: *)
+            trans (S ^tp^ p)
+          | eexists; eapply sub_tp_rfn with (L := L) (DS1 := DS1) (DS2 := DS2) (q := subsumed); eauto 3; intros; discriminate
+          | forwards: (@sub_tp_rfn L E T tp_top DS1 DS0 (x & x1) subsumed subsumed); eauto 5; [intros; discriminate]
+          | eexists; eapply sub_tp_trans with (TMid := tp_and T1 T2); [eauto 2 | sub_tp_rfn_top DSM]
+          | trans T1
+          | trans T2
+          | eexists; eapply sub_tp_trans with (TMid := tp_or T1 T2); [eauto 2 | sub_tp_rfn_top DSM]
+          | eexists; sub_tp_rfn_top (nil : decls)
+          | trans (U ^tp^ p)
+          | trans T
+          | trans T1
+          | trans T2
+          | eexists; eapply expands_sub with (U := tp_rfn tp_top DS); eauto].
+  Qed. (* 15s *)
+    (* TODO: can automate most uses of trans (all except for the trans T one, probably), since we know what its argument should be: for a subgoal that needs to show `exists q, E |= T ~<: tp_sel p L @ q`, the argument is `S` if there is a hypothesis `E |= T ~<! ?S` -- it would be nice if Coq provided tacticals that allowed iterating over hypotheses etc, see e.g. http://permalink.gmane.org/gmane.science.mathematics.logic.coq.club/5128*)
 End Soundness.
 
 

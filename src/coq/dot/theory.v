@@ -206,9 +206,10 @@ AS WELL AS the fact that we can produce a value of this type (which implies T <:
       E |=       TMid ~<: T' @       q2 ->
       E |= T          ~<: T' @ (q1 & q2)
 
-(* what follows is standard: reflexivity (precise!), function types, intersection, union, top and bottom *)
-  | sub_tp_refl : forall E T,                              (*lc_tp T -> wf_env E ->             *) (* TODO: deal with regularity*)
-      E |= T ~<: T @ precise                               (*                                   *)
+(* what follows is standard: reflexivity (can be precise, but do not constrain quality so that we can achieve quality-subsumption using typing_sub and sub_tp_refl), 
+function types, intersection, union, top and bottom *)
+  | sub_tp_refl : forall E T q,                              (*lc_tp T -> wf_env E ->             *) (* TODO: deal with regularity*)
+      E |= T ~<: T @ q                                     (*                                   *)
   | sub_tp_top  : forall E T,                              (*lc_tp T -> wf_env E ->             *)
       E |= T ~<: tp_top @ subsumed                         (*                                   *)
   | sub_tp_bot  : forall E T,                              (*lc_tp T -> wf_env E ->             *)
@@ -247,6 +248,7 @@ with sub_decl : env -> quality -> decl -> decl -> Prop :=
 (* path equality is needed for preservation because evaluation changes types that cannot be related otherwise *)
 with path_eq : env -> tm -> tm -> Prop :=
    | peq_refl : forall E p, (* TODO: only needed if proof of preservation depends on it *)
+      path p ->
       wf_env E -> path_eq E p p
    | peq_symm : forall E p q, (* used in invert_subtyping_fun *)
       path_eq E p q ->
@@ -448,7 +450,7 @@ Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ :=
   (forall (e : env) (H : wf_env e), (P5_ e H)) /\
   (forall (e : env) (t : tp) (H : wf_tp e t), (P6_ e t H)) /\  
   (forall (e : env) (d : decl) (H : wf_decl e d), (P7_ e d H))); [tauto | 
-    apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_); unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_, P7_ in *; clear P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; [ 
+    apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_); try unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_, P7_ in *; try clear P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_; [  (* only try unfolding and clearing in case the PN_ aren't just identifiers *)
       Case "typing_var" | Case "typing_refs" | Case "typing_sel" | Case "typing_sub" | Case "typing_peq" | Case "typing_app" | Case "typing_lam" | Case "typing_new" | Case "expands_sub" | Case "expands_rfn" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "expands_bot" | Case "sub_tp_rfn" | Case "sub_tp_rfn_elim" | Case "sub_tp_tpsel_lower" | Case "sub_tp_tpsel_upper" | Case "sub_tp_trans" | Case "sub_tp_refl" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_tp_fun" | Case "sub_tp_and_r" | Case "sub_tp_or_l" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "peq_refl" | Case "peq_symm" | Case "peq_env" | Case "peq_sel" | Case "wf_env_nil" | Case "wf_env_cons" | Case "wf_rfn" | Case "wf_lam" | Case "wf_tsel" | Case "wf_tsel_cls" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" ]; 
       introv; eauto ].
 
