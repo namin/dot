@@ -341,7 +341,83 @@ with lc_args : args -> Prop :=
       lc_tm t -> lc_args cs -> lc_args ((l, t) :: cs).
 
 
+(* locally closed, and free variables are bound in the environment/store *)
+Inductive  vars_ok_tp : env -> tp -> Prop :=
+  | vars_ok_tp_sel : forall E tgt l, 
+      vars_ok_tm E tgt ->
+      vars_ok_tp E (tp_sel tgt l)
+  | vars_ok_tp_rfn : forall E L t ds,
+      vars_ok_tp E t ->
+      (forall x: atom, x \notin L -> vars_ok_decls (ctx_bind E x t) (ds ^ds^ x)) ->
+      vars_ok_tp E (tp_rfn t ds)
+  | vars_ok_tp_fun : forall E f a,
+      vars_ok_tp E f ->
+      vars_ok_tp E a ->
+      vars_ok_tp E (tp_fun f a)
+  | vars_ok_tp_and : forall E t1 t2,
+      vars_ok_tp E t1 ->
+      vars_ok_tp E t2 ->
+      vars_ok_tp E (tp_and t1 t2)
+  | vars_ok_tp_or : forall E t1 t2,
+      vars_ok_tp E t1 ->
+      vars_ok_tp E t2 ->
+      vars_ok_tp E (tp_or t1 t2)
+  | vars_ok_tp_top : forall E, vars_ok_tp E (tp_top)
+  | vars_ok_tp_bot : forall E, vars_ok_tp E (tp_bot)
 
+with vars_ok_decl : env -> decl -> Prop :=
+  | vars_ok_decl_tp : forall E t1 t2,
+      vars_ok_tp E t1 ->
+      vars_ok_tp E t2 ->
+      vars_ok_decl E (decl_tp t1 t2)
+  | vars_ok_decl_tm : forall E t1,
+      vars_ok_tp E t1 ->
+      vars_ok_decl E (decl_tm t1)
+
+with vars_ok_tm : env -> tm -> Prop :=
+  | vars_ok_var : forall G P x bi,
+      binds x bi G ->
+      vars_ok_tm (G, P) (fvar x)
+  | vars_ok_ref : forall G P a obj,
+      binds a obj P ->
+      vars_ok_tm (G, P) (ref a)
+  | vars_ok_lam : forall E L t b,
+      vars_ok_tp E t ->
+      (forall x: var, x \notin L -> vars_ok_tm (ctx_bind E x t) (b ^^ x)) ->
+      vars_ok_tm E (lam t b)
+  | vars_ok_app : forall E f a,
+      vars_ok_tm E f ->
+      vars_ok_tm E a ->
+      vars_ok_tm E (app f a)
+  | vars_ok_new : forall E L t cas b,
+      vars_ok_tp E t ->
+      (forall x: var, x \notin L -> vars_ok_args (ctx_bind E x t) (cas ^args^ x)) ->
+      (forall x: var, x \notin L -> vars_ok_tm (ctx_bind E x t) (b ^^ x)) ->
+      vars_ok_tm E (new t cas b)
+  | vars_ok_sel : forall E tgt l,
+      vars_ok_tm E tgt ->
+      vars_ok_tm E (sel tgt l)
+
+with vars_ok_decls : env -> decls -> Prop :=
+  | vars_ok_decl_nil : forall E,
+      vars_ok_decls E (nil)
+  | vars_ok_decl_cons : forall E l d ds,
+      vars_ok_decl E d -> vars_ok_decls E ds -> vars_ok_decls E ((l, d) :: ds)
+
+with vars_ok_args : env -> args -> Prop :=
+  | vars_ok_args_nil : forall E,
+      vars_ok_args E (nil)
+  | vars_ok_args_cons : forall E l t cs,
+      vars_ok_tm E t -> vars_ok_args E cs -> vars_ok_args E ((l, t) :: cs).
+
+
+Scheme   vars_ok_tp_indm   := Induction for vars_ok_tp Sort Prop
+ with  vars_ok_decl_indm   := Induction for vars_ok_decl Sort Prop
+ with    vars_ok_tm_indm   := Induction for vars_ok_tm Sort Prop
+ with vars_ok_decls_indm   := Induction for vars_ok_decls Sort Prop
+ with  vars_ok_args_indm   := Induction for vars_ok_args Sort Prop.
+
+Combined Scheme vars_ok_mutind from vars_ok_tp_indm, vars_ok_decl_indm, vars_ok_tm_indm, vars_ok_decls_indm, vars_ok_args_indm.
 
 (*************************************************************************)
 (** * Free variables *)

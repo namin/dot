@@ -268,9 +268,8 @@ with wf_env : env -> Prop :=
   | wf_env_nil : forall P, wf_env (nil, P)
   | wf_env_cons : forall G P x T bi,
      wf_env (G, P) ->
+     vars_ok_tp (G, P) T ->
      x `notin` dom G -> 
-     lc_tp T ->
-     (forall x, x `notin` dom G -> x `notin` fv_tp T) -> 
      wf_env ((x ~ (T, bi) ++ G), P)
 
 (* TODO: prove wf_tp E T implies lc_tp T  *)
@@ -307,6 +306,7 @@ with wf_tp : env -> tp -> Prop :=
       wf_tp E (tp_or T1 T2)
   | wf_bot : forall E, wf_tp E tp_bot
   | wf_top : forall E, wf_tp E tp_top
+
 with wf_decl : env -> decl -> Prop :=
   | wf_decl_tp : forall E S U,
      wf_tp E S ->
@@ -427,8 +427,7 @@ Definition progress := forall s t T q,
   nil |== s ->
      value t \/ exists t', exists s', s |~ t ~~> t' ~| s'.
 
-
-(* begin hide *) 
+(* begin hide *)
 Scheme typing_indm         := Induction for typing Sort Prop
   with expands_indm        := Induction for expands Sort Prop
   with sub_tp_indm         := Induction for sub_tp Sort Prop

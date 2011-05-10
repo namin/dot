@@ -20,6 +20,87 @@ Lemma inversion_wf_env_uniq : forall E s, wf_env (E, s) -> uniq E.
 Proof. Admitted.
 Hint Resolve inversion_wf_env_uniq.
 
+  (* specialize hypotheses with satisfiable embedded equalities, drop the unsatisfiable ones *)
+
+  Ltac sphyps :=
+    repeat match goal with H: ?T |- _ => 
+      match T with
+      | context [?a = _]  => 
+        match type of a with
+          | ?x => try (let h := fresh in lets h: H (@eq_refl x); generalizes h); clear H
+        end
+      | _ => generalizes H
+      end
+    end.
+  Ltac simplhyps :=  jauto_set_hyps; intros; sphyps; intros; jauto_set_hyps; intros.
+
+Hint Unfold ctx_bind.
+
+Section VarsOk.
+
+Let P (e : env) (t : tp)   (v : vars_ok_tp e t)     := forall X bi E s bi' F, e = ((F ++ X ~ bi ++ E), s) -> vars_ok_tp ((F ++ X ~ bi' ++ E), s) t.
+
+Let P0 (e : env) (d : decl) (v : vars_ok_decl e d)  := forall X bi E s bi' F, e = ((F ++ X ~ bi ++ E), s) -> vars_ok_decl ((F ++ X ~ bi' ++ E), s) d.
+Let P1 (e : env) (t : tm)   (v : vars_ok_tm e t)    := forall X bi E s bi' F, e = ((F ++ X ~ bi ++ E), s) -> vars_ok_tm ((F ++ X ~ bi' ++ E), s) t.
+Let P2 (e : env) (d : decls)(v : vars_ok_decls e d) := forall X bi E s bi' F, e = ((F ++ X ~ bi ++ E), s) -> vars_ok_decls ((F ++ X ~ bi' ++ E), s) d.
+Let P3 (e : env) (a : args) (v : vars_ok_args e a)  := forall X bi E s bi' F, e = ((F ++ X ~ bi ++ E), s) -> vars_ok_args ((F ++ X ~ bi' ++ E), s) a.
+
+Hint Constructors vars_ok_tp vars_ok_decl vars_ok_tm vars_ok_decls vars_ok_args.
+Lemma vars_ok_narrowing : 
+ (forall (e : env) (t : tp)   (v : vars_ok_tp e t), @P e t v) /\
+ (forall (e : env) (d : decl) (v : vars_ok_decl e d), @P0 e d v) /\
+ (forall (e : env) (t : tm)   (v : vars_ok_tm e t), @P1 e t v) /\
+ (forall (e : env) (d : decls)(v : vars_ok_decls e d), @P2 e d v) /\
+ (forall (e : env) (a : args) (v : vars_ok_args e a), @P3 e a v).
+Proof with simpl_env; eauto.
+  apply vars_ok_mutind; intros; unfold P, P0, P1, P2, P3 in *; subst; clear P P0 P1 P2 P3; eauto; intros; subst.
+
+  simplhyps. eapply vars_ok_tp_rfn; eauto; intros x Fr; unfold ctx_bind in *; simpl in *; eapply H1 with (F0 := ((x, (t, (precise, true))) :: F)); simpl; eauto.
+
+  injsubst H. analyze_binds b...
+  injsubst H. analyze_binds b...
+
+  simplhyps. eapply vars_ok_lam; eauto; intros x Fr; unfold ctx_bind in *; simpl in *; eapply H1 with (F0 := ((x, (t, (precise, true))) :: F)); simpl; eauto.
+
+  eapply vars_ok_new; eauto; intros x Fr; unfold ctx_bind in *; simpl in *; [
+    eapply H0 with (F0 := ((x, (t, (precise, true))) :: F)) |
+    eapply H1 with (F0 := ((x, (t, (precise, true))) :: F)) ]; simpl; eauto.
+Qed.
+End VarsOk.
+
+Lemma narrowing_vars_ok_tp : forall X bi E s bi' F T, vars_ok_tp ((F ++ X ~ bi ++ E), s) T -> vars_ok_tp ((F ++ X ~ bi' ++ E), s) T. 
+Proof. intros. destructs vars_ok_narrowing. eapply H0; eauto. Qed.
+
+Lemma narrowing_path_safe : forall F z bi bi' E s p,
+ path_safe (F ++ z ~ bi ++ E, s) p -> path_safe (F ++ z ~ bi' ++ E, s) p.
+Proof. Admitted. 
+
+Lemma regular_sub_tp_vars_ok_1 : forall E S T q, 
+ E |= S ~<: T @ q -> vars_ok_tp E S.
+Proof. Admitted.
+
+
+Lemma exists_forall_sub_decls : forall q L DS1 DS2 F z Tz E s T Sz,
+ (forall z0 : atom,
+       z0 `notin` L ->
+       forall (l : label) (d1 d2 : decl),
+       lbl.binds l d2 (DS2 ^ds^ z0) ->
+       lbl.binds l d1 (DS1 ^ds^ z0) ->
+       forall (F0 : list (atom * (tp * (quality * bool)))) (z1 : atom),
+       ctx_bind (F ++ [(z, (Tz, (precise, true)))] ++ E, s) z0 T =
+       (F0 ++ [(z1, (Tz, (precise, true)))] ++ E, s) ->
+       exists q,
+       sub_decl (F0 ++ [(z1, (Sz, (precise, true)))] ++ E, s) q d1 d2)
+  -> ( exists q', forall z0 : atom,
+       z0 `notin` L ->
+       forall (l : label) (d1 d2 : decl),
+       lbl.binds l d2 (DS2 ^ds^ z0) ->
+       lbl.binds l d1 (DS1 ^ds^ z0) ->
+       forall (F0 : list (atom * (tp * (quality * bool)))) (z1 : atom),
+       ctx_bind (F ++ [(z, (Tz, (precise, true)))] ++ E, s) z0 T =
+       (F0 ++ [(z1, (Tz, (precise, true)))] ++ E, s) ->
+       sub_decl (F0 ++ [(z1, (Sz, (precise, true)))] ++ E, s) (q & q') d1 d2 ).
+Proof. Admitted.
 
 Section NarrowingTyping.
   Hint Constructors sub_decl sub_qual path_eq wf_env wf_tp wf_decl.
@@ -36,6 +117,8 @@ sub_tp_rfn sub_tp_rfn_elim sub_tp_tpsel_lower sub_tp_tpsel_upper sub_tp_refl sub
   Lemma path_eq_implies_path : forall E p p', path_eq E p p' -> path p /\ path p'.
   Proof. intros. Hint Constructors path. dependent induction H; jauto. Qed.
   Hint Resolve path_eq_implies_path.
+
+  Hint Resolve narrowing_vars_ok_tp narrowing_path_safe regular_sub_tp_vars_ok_1.
 
   Let Ptyp (E: ctx) (s: store) (Sz Tz: tp) (Ez : env) (q: quality) (t: tm) (T: tp) (H: Ez |=  t ~: T  @ q) :=  forall F z,
     Ez = splice_env E z F s Tz -> path t -> exists q, (splice_env E z F s Sz) |= t ~: T @ q. 
@@ -66,20 +149,33 @@ Lemma sub_narrowing_typing : forall E s Sz Tz qz,
   (forall (Ez : env) (t : tp) (H : wf_tp Ez t), (@Pwft E s Sz Tz Ez t H)) /\  
   (forall (Ez : env) (d : decl) (H : wf_decl Ez d), (@Pwfd E s Sz Tz Ez d H))).
 Proof. 
-  (* specialize hypotheses with satisfiable embedded equalities, drop the unsatisfiable ones *)
-  Ltac sphyps :=
-    repeat match goal with H: ?T |- _ => 
-      match T with
-      | context [?a = _]  => 
-        match type of a with
-          | ?x => try (let h := fresh in lets h: H (@eq_refl x); generalizes h); clear H
-        end
-      | _ => generalizes H
-      end
-    end.
-  Ltac simplhyps :=  jauto_set_hyps; intros; sphyps; intros; jauto_set_hyps; intros.
   introv HSubZ.
-  mutind_typing (@Ptyp E s Sz Tz) (@Pexp E s Sz Tz) (@Psub E s Sz Tz) (@Psbd E s Sz Tz) (@Ppeq E s Sz Tz) (@Pwfe E s Sz Tz) (@Pwft E s Sz Tz) (@Pwfd E s Sz Tz); unfold Ptyp, Pexp, Psub, Psbd, Ppeq, Pwfe, Pwft, Pwfd; clear Ptyp Pexp Psub Psbd Ppeq Pwfe Pwft Pwfd; intros; unfold splice_env in *; subst; try solve [eauto | idtac].
+  mutind_typing  (@Ptyp E s Sz Tz) (@Pexp E s Sz Tz) (@Psub E s Sz Tz) (@Psbd E s Sz Tz) (@Ppeq E s Sz Tz) (@Pwfe E s Sz Tz) (@Pwft E s Sz Tz) (@Pwfd E s Sz Tz);  unfold Ptyp, Pexp, Psub, Psbd, Ppeq, Pwfe, Pwft, Pwfd in *; clear Ptyp Pexp Psub Psbd Ppeq Pwfe Pwft Pwfd; unfold splice_env in *; intros; subst;
+    try solve [ auto 
+              | inversion H; subst; symmetry in H1; contradiction (app_cons_not_nil _ (z, (Tz, (precise, true))) F E H1) (* wf_env_nil *)
+              | exists precise; eauto (* sub_tp_refl *)
+(* eauto messes up on the previous two cases, so they must be handled separately -- see below *)
+              | eauto ]. 
+
+(* Coq complains "Error: Attempt to save a proof with existential variables still non-instantiated" even though there are no subgoals left because eauto discharges goals while leaving existentials uninstantiated in certain cases
+
+diagnosed using Show Proof.  -- relevant excerpts:
+  (let case := "sub_tp_refl" in
+          fun (E0 : env) (T : tp) (q : quality)
+            (F : list (atom * (tp * (quality * bool)))) 
+            (z : atom) (_ : E0 = (F ++ [(z, (Tz, (precise, true)))] ++ E, s)) =>
+          ex_intro
+            (fun q0 : quality =>
+             (F ++ [(z, (Sz, (precise, true)))] ++ E, s) |= T ~<: T @ q0)
+            ?28778
+            (sub_tp_refl (F ++ [(z, (Sz, (precise, true)))] ++ E, s) T ?28778))
+  (let case := "wf_env_nil" in
+          fun (P : store) (F : list (atom * (tp * (quality * bool))))
+            (z : atom)
+            (H : (nil, P) = (F ++ [(z, (Tz, (precise, true)))] ++ E, s)) =>
+          ?35 E s Sz Tz qz HSubZ P F z H)
+*)
+
   (* typing_var *)
     injsubst H0.
     destruct (x == z). 
@@ -97,7 +193,7 @@ Proof.
 
       (* x =/= z *) unfold equiv, complement in *.
         eexists; eapply typing_var; eauto. 
-          analyze_binds_uniq b; eauto. 
+          analyze_binds_uniq b; eauto.
 
   (* typing_ref *)      
   injsubst H0. eexists; eapply typing_ref; eauto.
@@ -126,20 +222,18 @@ Proof.
 
   forwards [qtp Htp]: H; auto. forwards [qx Hx]: H0; auto. 
 
-  GAAAH juggling around existentials again  
-  eexists; eapply sub_tp_rfn; eauto. unfold forall_decls. intros. 
-  specialize (H1 z0 H2 l d1 d2 H3 H4 ((z0, (T, (precise, true))) :: F) z). forwards [qsd Hsd] : H1.
-  unfold ctx_bind. simpl. f_equal. simpl in *. eapply Hsd.
+(*  induction q; induction qtp; induction qx.
+  forwards : H1  ((z0, (T, (precise, true))) :: F); unfold ctx_bind in *; simpl in *; eauto.
+  exists precise. eapply sub_tp_rfn; try unfold forall_decls; intros; eauto. 
+*)
 
+  forwards [q1' H1'] : exists_forall_sub_decls ((q & qtp) & qx) H1; eauto.
+  exists (((q & qtp) & qx) & q1'); eapply sub_tp_rfn; eauto. 
+    unfold forall_decls; intros; unfold ctx_bind in *; simpl in *; eapply H1' with (F0 := ((z0, (T, (precise, true))) :: F)); simpl; eauto.
+    intros; induction q; induction qtp; induction qx; induction q1'; unfold qconj; simpl in *; split; eauto; forwards [Hdom Hq] : a; auto; try inversion H2.
 
-  forwards [qtp Htp]: H; eauto. forwards [qx Hx]: H0; eauto. eexists; eapply sub_tp_tpsel_lower; eauto.
-    skip. (* narrowing for path_safe
-   path_safe (F ++ [(z, (Tz, (precise, true)))] ++ E, s) p
-  ============================
-   path_safe (F ++ [(z, (Sz, (precise, true)))] ++ E, s) p
-  *)
-
-  forwards [qtp Htp]: H; auto. forwards [qx Hx]: H0; auto. eauto.
+  forwards [qtp Htp]: H; eauto. forwards [qx Hx]: H0; auto. eexists; eauto.
+  forwards [qtp Htp]: H; auto. forwards [qx Hx]: H0; auto. eexists; eauto. 
   forwards [qtp Htp]: H; auto. forwards [qs Hs]: H0; auto. eexists; eapply sub_tp_trans with (TMid := TMid); eauto.
   forwards [qsa Hsa]: H; auto. forwards [qsf Hsf]: H0; auto. eauto.
   forwards [qs Hs]: H; auto. forwards [qs0 Hs0]: H0; auto. eauto.
@@ -149,15 +243,17 @@ Proof.
   injsubst H0. eauto.
   forwards Hpeq: H; auto. destruct (path_eq_implies_path p0). forwards [qtp Htp]: H0; auto.  eauto.
 
-  injsubst H. forwards : app_cons_not_nil (z, (Tz, (precise, true))) F E. unfold not in *. forwards : H; eauto. tauto.
-
-  skip.
+  induction F. 
+    inverts H0. replace (nil ++ [(z, (Sz, (precise, true)))] ++ E) with ([(z, (Sz, (precise, true)))] ++ E); auto. eapply wf_env_cons; eauto.
+    inverts H0. simpl_env in *. forwards : H F z; eauto.
 
   eapply wf_rfn; eauto. intros. forwards Hwf : H0 z0 l d0 H2; eauto.
   unfold ctx_bind. simpl. f_equal. instantiate (1 := z). instantiate (1 := (z0, (tp_rfn T DS, (precise, true))) :: F). trivial. unfold ctx_bind. simpl. apply Hwf.
  
   forwards [qtp Htp]: H; auto. forwards [qs Hs]: H0; auto. eauto.
   forwards [qtp Htp]: H; auto. forwards [qx Hx]: H0; auto. eauto.
+
+(* uninstantiated existentials left due to rules without hypotheses, thus induction scheme does not generate a case... need to supply a dummy one to typing_mutind ? *)
 
 Qed.
 
