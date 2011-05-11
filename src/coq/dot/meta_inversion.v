@@ -8,7 +8,20 @@ Require Import Coq.Classes.EquivDec.
 Require Import Coq.Logic.Decidable.
 
 
-Definition sub_decls E q DS1 DS2 := forall_decls E DS1 DS2 (fun E => fun d1 => fun d2 => sub_decl E q d1 d2).
+Lemma path_from_path_eq : forall E p p', path_eq E p p' -> path p /\ path p'.
+Proof. intros. Hint Constructors path. dependent induction H; jauto. Qed.
+
+Lemma path_from_path_safe : forall E p, path_safe E p -> path p.
+Proof. intros. Hint Constructors path. dependent induction H; auto. Qed.
+Hint Resolve path_from_path_safe.
+
+Hint Extern 1 (path ?p) =>
+  match goal with
+  | H: path (sel p ?l) |- _ => inversion H
+  | H: path_eq _ p _ |- _ => apply (proj1 (path_from_path_eq H)); auto
+  | H: path_eq _ _ p |- _ => apply (proj2 (path_from_path_eq H)); auto
+  end.
+
 
 (* E, z : Tz, F on paper is reversed in the mechanisation, since new bindings are prepended*)
 Definition splice_env (E: ctx) z F (s: store) Tz := (F ++ [(z, (Tz, (precise, true)))] ++ E, s).
@@ -43,6 +56,30 @@ Ltac sphyps :=
 Ltac simplhyps :=  jauto_set_hyps; intros; sphyps; intros; jauto_set_hyps; intros.
 Ltac simplhyps_except H :=  jauto_set_hyps; intros; generalize H; sphyps; intros; jauto_set_hyps; intros.
 
+(* the resulting quality is precise iff the q' for each member was precise, otherwise subsumed
+  intuitively, collect all the qualities for the individual members, find the minimum, and presto!
+  now, how to convince coq? *)
+Lemma sub_decls_from_exists_sub_decl : forall L E T DS1 DS2,
+ (forall z : atom, z `notin` L ->
+    forall (l : label) (d1 d2 : decl),
+    lbl.binds l d2 (DS2 ^ds^ z) ->
+    lbl.binds l d1 (DS1 ^ds^ z) ->
+    exists q', sub_decl (ctx_bind E z T) q' d1 d2)
+ -> exists q, 
+   (forall z, z \notin L -> forall_decls (ctx_bind E z T) (DS1 ^ds^ z) (DS2 ^ds^ z) (fun E => fun d1 => fun d2 => sub_decl E q d1 d2)).
+Proof. 
+  intros. pick fresh z for L. specialize (H z Fr).
+Lemma forall_decls_nil_1 : forall E q DS,
+ forall_decls E nil DS  (fun (E0 : env) (d1 d2 : decl) => sub_decl E0 q d1 d2).
+Proof. Admitted.
+Lemma forall_decls_nil_2 : forall E q DS,
+ forall_decls E DS nil (fun (E0 : env) (d1 d2 : decl) => sub_decl E0 q d1 d2).
+Proof. Admitted.
+Hint Resolve forall_decls_nil_1 forall_decls_nil_2.
+induction DS1; induction DS2; try solve [simpl in *; eauto | idtac]. 
+
+  destruct a. destruct a0. 
+Admitted.
 
 
 Section VarsOk.
@@ -95,54 +132,16 @@ Proof. intros.
         analyze_binds H; eauto.
 Qed.
 
-Lemma exists_forall_sub_decls : forall q L DS1 DS2 F z Tz E s T Sz,
- (forall z0 : atom,
-       z0 `notin` L ->
-       forall (l : label) (d1 d2 : decl),
-       lbl.binds l d2 (DS2 ^ds^ z0) ->
-       lbl.binds l d1 (DS1 ^ds^ z0) ->
-       forall (F0 : list (atom * (tp * (quality * bool)))) (z1 : atom),
-       ctx_bind (F ++ [(z, (Tz, (precise, true)))] ++ E, s) z0 T =
-       (F0 ++ [(z1, (Tz, (precise, true)))] ++ E, s) ->
-       exists q,
-       sub_decl (F0 ++ [(z1, (Sz, (precise, true)))] ++ E, s) q d1 d2)
-  -> ( exists q', forall z0 : atom,
-       z0 `notin` L ->
-       forall (l : label) (d1 d2 : decl),
-       lbl.binds l d2 (DS2 ^ds^ z0) ->
-       lbl.binds l d1 (DS1 ^ds^ z0) ->
-       forall (F0 : list (atom * (tp * (quality * bool)))) (z1 : atom),
-       ctx_bind (F ++ [(z, (Tz, (precise, true)))] ++ E, s) z0 T =
-       (F0 ++ [(z1, (Tz, (precise, true)))] ++ E, s) ->
-       sub_decl (F0 ++ [(z1, (Sz, (precise, true)))] ++ E, s) (q & q') d1 d2 ).
-Proof.
- intros.
 
- Admitted. (* TODO *)
-
-Lemma path_eq_implies_path : forall E p p', path_eq E p p' -> path p /\ path p'.
-Proof. intros. Hint Constructors path. dependent induction H; jauto. Qed.
-
-Hint Extern 1 (path ?p) =>
-  match goal with
-  | H: path (sel p ?l) |- _ => inversion H
-  | H: path_eq _ p _ |- _ => apply (proj1 (path_eq_implies_path H)); auto
-  | H: path_eq _ _ p |- _ => apply (proj2 (path_eq_implies_path H)); auto
-  end.
+Lemma quality_subsumption : forall E t T q, E |= t ~: T @ precise -> E |= t ~: T @ q.
+Proof.  Hint Resolve sub_tp_refl.
+intros. replace q with (precise & q). eapply typing_sub; eauto. induction q; unfold qconj; simpl; eauto. Qed.
 
 Section NarrowingTyping.
   Hint Constructors sub_decl sub_qual path_eq wf_env wf_tp wf_decl.
   Hint Resolve typing_var typing_ref typing_sel typing_peq typing_app typing_lam typing_new expands_rfn expands_and expands_or expands_top expands_bot 
 sub_tp_rfn sub_tp_rfn_elim sub_tp_tpsel_lower sub_tp_tpsel_upper sub_tp_refl sub_tp_top sub_tp_bot sub_tp_fun sub_tp_and_r sub_tp_or_l sub_tp_and_l1 sub_tp_and_l2 sub_tp_or_r1 sub_tp_or_r2. (* typing/expands/subtyping minus transitivity-like rules *)
   Hint Resolve narrowing_vars_ok_tp narrowing_path_safe.
-
-  Lemma quality_subsumption : forall E t T q, E |= t ~: T @ precise -> E |= t ~: T @ q.
-  Proof.  intros. replace q with (precise & q). eapply typing_sub; eauto. induction q; unfold qconj; simpl; eauto. Qed.
-
-  Lemma path_safe_implies_path : forall E p, path_safe E p -> path p.
-  Proof. intros. Hint Constructors path. dependent induction H; auto. Qed.
-  Hint Resolve path_safe_implies_path.
-
 
   Let Ptyp (E: ctx) (s: store) (Sz Tz: tp) (Ez : env) (q: quality) (t: tm) (T: tp) (H: Ez |=  t ~: T  @ q) :=  forall F z,
     Ez = splice_env E z F s Tz -> path t -> exists q, (splice_env E z F s Sz) |= t ~: T @ q. 
@@ -210,35 +209,48 @@ Proof.
 
   (* sub_tp_rfn *) 
   simplhyps_except a; simplhyps_except a. rename x into qtp. rename x0 into qx. 
+  
+Lemma narrow_sub_decls_from_narrow_sub_decl_pt1 : forall L DS1 DS2 F z Tz E s T Sz,
+ (forall z0 : atom,
+       z0 `notin` L ->
+       forall (l : label) (d1 d2 : decl),
+       lbl.binds l d2 (DS2 ^ds^ z0) ->
+       lbl.binds l d1 (DS1 ^ds^ z0) ->
+       forall (F0 : list (atom * (tp * (quality * bool)))) (z1 : atom),
+       ctx_bind (F ++ [(z, (Tz, (precise, true)))] ++ E, s) z0 T = (F0 ++ [(z1, (Tz, (precise, true)))] ++ E, s) ->
+       exists q,
+       sub_decl (F0 ++ [(z1, (Sz, (precise, true)))] ++ E, s) q d1 d2)
+ ->
+ (forall z0 : atom,
+       z0 `notin` L ->
+       forall (l : label) (d1 d2 : decl),
+       lbl.binds l d2 (DS2 ^ds^ z0) ->
+       lbl.binds l d1 (DS1 ^ds^ z0) ->
+       exists q,
+       sub_decl (ctx_bind (F ++ [(z, (Sz, (precise, true)))] ++ E, s) z0 T) q d1 d2).
+Proof. intros.
+  forwards : H; eauto; [ 
+    unfold ctx_bind; simpl; f_equal; instantiate (1 := z); instantiate (1 := ((z0, (T, (precise, true))) :: F)); trivial
+    | eapply H3].
+Qed.
+ 
+set (@narrow_sub_decls_from_narrow_sub_decl_pt1 L DS1 DS2 F z Tz E s T Sz H2) as Hds0.
+remember ((F ++ [(z, (Sz, (precise, true)))] ++ E, s)) as Eds in Hds0.
+replace ((F ++ [(z, (Sz, (precise, true)))] ++ E, s)) with Eds in *.
 
-  forwards [q1' H1'] : exists_forall_sub_decls ((q & qtp) & qx) H2; eauto.
 
-  eexists; eapply sub_tp_rfn; eauto; 
-   [ unfold forall_decls; intros; unfold ctx_bind in *; simpl in *; eapply H1' with (F0 := ((z0, (T, (precise, true))) :: F)); eauto 
-   | intros; induction q; induction qtp; induction qx; split; forwards [Hdom Hq] : a; auto
-   ].
+  destruct (@sub_decls_from_exists_sub_decl L _ _ DS1 DS2 Hds0) as [qds Hds].
 
-(*
-  H1' : forall z0 : atom,
-        z0 `notin` L ->
-        forall (l : label) (d1 d2 : decl),
-        lbl.binds l d2 (DS2 ^ds^ z0) ->
-        lbl.binds l d1 (DS1 ^ds^ z0) ->
-        forall (F0 : list (atom * (tp * (quality * bool)))) (z1 : atom),
-        ((z0, (T, (precise, true))) :: F ++ (z, (Tz, (precise, true))) :: E,
-        s) = (F0 ++ (z1, (Tz, (precise, true))) :: E, s) ->
-        sub_decl (F0 ++ (z1, (Sz, (precise, true))) :: E, s)
-          (((q & qtp) & qx) & q1') d1 d2
+Lemma  narrow_sub_decls_from_narrow_sub_decl_pt2 : forall L E T DS1 DS2 q q',
+   (forall z, z \notin L -> forall_decls (ctx_bind E z T) (DS1 ^ds^ z) (DS2 ^ds^ z) (fun E => fun d1 => fun d2 => sub_decl E q d1 d2))
+->
+   (forall z, z \notin L -> forall_decls (ctx_bind E z T) (DS1 ^ds^ z) (DS2 ^ds^ z) (fun E => fun d1 => fun d2 => sub_decl E (q & q') d1 d2)).
+Proof.
+  intros. unfold forall_decls in *; intros. forwards : H; eauto. induction q; induction q'; unfold qconj in *; simpl in *; induction H3; eauto.
+Qed.
 
-  ============================
-   sub_decl
-     ((z0, (T, (precise, true))) :: F ++ (z, (Sz, (precise, true))) :: E, s)
-     ?53981 d1 d2
-*)
-
-  exists (((q & qtp) & qx) & q1'); eapply sub_tp_rfn; eauto; [
-    unfold forall_decls; intros; unfold ctx_bind in *; simpl in *; eapply H1' with (F0 := ((z0, (T, (precise, true))) :: F)); simpl; eauto |
-    intros; induction q; induction qtp; induction qx; induction q1'; unfold qconj; simpl in *; split; eauto; first [ forwards [Hdom Hq] : a | inversion H1 ]; auto]. 
+  set (@narrow_sub_decls_from_narrow_sub_decl_pt2 L Eds T DS1 DS2 qds (q & (qtp & qx)) Hds) as Hsubds.
+  eexists; eapply sub_tp_rfn; eauto; intros; induction q; induction qds; induction qtp; induction qx; split; forwards [Hdom Hq] : a; auto.
 
 
   (* sub_tp_tpsel_lower *) (* Ltac just drives me MAD -- why is this case not covered by simplhyps; simplhyps? good luck finding out *)
@@ -318,6 +330,8 @@ they also don't track quality, to avoid nested existentials in the induction hyp
 prove soundness and completeness wrt the original relations (where expansion has been merged into subtyping so we can induct more easily)
 
 *)
+
+Definition sub_decls E q DS1 DS2 := forall_decls E DS1 DS2 (fun E => fun d1 => fun d2 => sub_decl E q d1 d2).
 
 Reserved Notation "E |= t ~<! T" (at level 69).
 
