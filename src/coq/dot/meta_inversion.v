@@ -70,20 +70,20 @@ Lemma sub_decls_from_exists_sub_decl : forall L E T DS1 DS2,
 Proof. 
   intros. pick fresh z for L. specialize (H z Fr).
   (* try to construct H's other premises, so we can get to the goodies *)
+(*    
   Lemma forall_decls_nil_1 : forall E q DS,
    forall_decls E nil DS  (fun (E0 : env) (d1 d2 : decl) => sub_decl E0 q d1 d2).
-  Proof. Admitted.
+  Proof. 
   Lemma forall_decls_nil_2 : forall E q DS,
    forall_decls E DS nil (fun (E0 : env) (d1 d2 : decl) => sub_decl E0 q d1 d2).
-  Proof. Admitted.
+  Proof. 
   Hint Resolve forall_decls_nil_1 forall_decls_nil_2.
-(*    
   induction DS1; induction DS2; try solve [simpl in *; eauto | idtac]. 
 
   destruct a. destruct a0. simpl_env in *.
   forwards : H ; eauto.*)
 
-Admitted.
+Admitted. (* TODO: meh, should be a mere technical Coq hurdle -- obviously true, right? what could possibly go wrong *)
 
 
 Section VarsOk.
@@ -287,6 +287,7 @@ diagnosed using Show Proof.  -- relevant excerpts:
           ?35 E s Sz Tz qz HSubZ P F z H)
 *)
 Qed.
+End NarrowingTyping.
 
 (* attempts at inversion lemma for subtyping of function types:
 
@@ -443,8 +444,8 @@ Section Soundness.
   Lemma lc_ax : forall T, lc_tp T. Proof. Admitted. (* TODO: used in cases for sub_tp_rfn_elim *) 
   Hint Resolve wf_ax lc_ax.
 
-  Hint Constructors sub_decl sub_qual.
-  Hint Resolve sub_tp_rfn sub_tp_rfn_elim sub_tp_tpsel_lower sub_tp_tpsel_upper sub_tp_top sub_tp_bot sub_tp_fun sub_tp_and_r sub_tp_or_l sub_tp_and_l1 sub_tp_and_l2 sub_tp_or_r1 sub_tp_or_r2 theory.expands_rfn theory.expands_and theory.expands_or theory.expands_top theory.expands_bot. (*but not transitivity*)
+  Hint Constructors sub_decl sub_qual path_eq wf_env wf_tp wf_decl.
+  Hint Resolve sub_tp_rfn sub_tp_rfn_elim sub_tp_tpsel_lower sub_tp_tpsel_upper sub_tp_top sub_tp_bot sub_tp_fun sub_tp_and_r sub_tp_or_l sub_tp_and_l1 sub_tp_and_l2 sub_tp_or_r1 sub_tp_or_r2 theory.expands_rfn theory.expands_and theory.expands_or theory.expands_top theory.expands_bot sub_tp_refl. (*but not transitivity*)
 
   Lemma and_decls_nil: and_decls nil nil nil.            Proof. Admitted. (* TODO *)
   Lemma and_decls_nil_1: forall DS, and_decls nil DS DS. Proof. Admitted. (* TODO *)
@@ -501,19 +502,19 @@ Qed.
     end.
   Ltac simplhyps :=  jauto_set_hyps; intros; sphyps; intros; jauto_set_hyps; intros.
 
-  (* automate most uses of trans (all except for the trans T one, probably), since we know what its argument should be: for a subgoal that needs to show `exists q, E |= T ~<: tp_sel p L @ q`, the argument is `S` if there is a hypothesis `E |= T ~<! ?S` *)
-  Ltac trans T := eexists; eapply sub_tp_trans with (TMid := T); eauto 3.
+  (* automate most uses of trans (all except for the trans T one, probably), since we know what its argument should be: for a subgoal that needs to show `exists q, E |= T ~<: tp_sel p L @ q`, the argument is `S` if there is a hypothesis `E |= T ~<! ?S` 
+   also, these hints avoid uninstantiated existentials that would arise if we were to let eauto have at it with expands_sub and sub_tp_trans *)
   Hint Extern 2 (exists q, ?E |= ?T ~<: _ @ q) =>
     match goal with
-    | H: E |= T ~<! ?S |- _ => trans S
+    | H: E |= T ~<! ?S |- _ => eexists; eapply sub_tp_trans with (TMid := S); eauto 3
     end.
   Hint Extern 2 (exists q, ?E |= _ ~<: ?T @ q) =>
     match goal with
-    | H: E |= ?S ~<! T |- _ => trans S
+    | H: E |= ?S ~<! T |- _ => eexists; eapply sub_tp_trans with (TMid := S); eauto 3
     end.
   Hint Extern 2 (exists q, ?E |= _ ~< ?DS @ q) =>
     match goal with
-    | H: E |= ?S ~< DS @ _ |- _ => eexists; eapply expands_sub with (U := S); eauto
+    | H: E |= ?S ~< DS @ _ |- _ => eexists; eapply expands_sub with (U := S); eauto 3
     end.
 
   Ltac sub_tp_rfn_top DS := 
@@ -527,7 +528,7 @@ Qed.
               (forall (E : env) (D1 D2 : decl) (H : sub_decl_notrans E D1 D2), @P0 E D1 D2 H). 
   Proof. unfold P, P0. clear P P0.
     apply sub_tp_notrans_mutind; first [ (split; 
-         [ (* subtyping *) simplhyps; try solve [ exists precise; eauto | eauto 3 | idtac ]  
+         [ (* subtyping *) simplhyps; try solve [ exists precise; eauto (* to instantiate sub_tp_refl's existential quality *) | eauto 3 | idtac ]
          | (* expansion *) introv HEq; try injsubst HEq; subst; 
              try destructs IHsub_tp_notrans1; try destructs IHsub_tp_notrans2; try destructs IHsub_tp_notrans; 
              simplhyps; try solve [ discriminate | eauto 2 | eexists; eapply expands_sub; eauto 2 | eexists; intros; eauto 3]]) 
@@ -541,7 +542,7 @@ Qed.
       | eexists; eapply expands_sub with (U := tp_rfn tp_top DS); eauto].
   Qed. (* 5s *)
 End Soundness.
-
+(* Show Existentials is your friend when combatting uninstantiated existentials before Coq will let you Qed *)
 
 
 (* no way this can be a rule -- the transitivity proof peterait un plomb 
@@ -564,24 +565,6 @@ Lemma sub_tp_notrans_trans_tpsel : forall E q1 q2 p T DS l S U T' DS' S' U' Ta T
 
   E |= Ta ~<! Tb.
 Proof. Admitted. (* TODO *)
-(*
-rename t into p. rename T into Ta. rename T0 into Tb. rename T'0 into T.
-rename DS0 into DS'. rename S0 into S'. rename U0 into U'.
-clear IHHSubR1 IHHSubR2 IHHSubL1 IHHSubL2.
-
-  H : path_safe E p
-  H4 : E |= p ~: T' @ q0
-  HSubR1 : E |= T' ~<! tp_rfn tp_top DS'
-  H2 : lbl.binds l (decl_tp S' U') DS'
-  HSubR2 : E |= U' ^tp^ p ~<! Tb
-
-  H0 : E |= p ~: T @ q1
-  HSubL1 : E |= T ~<! tp_rfn tp_top DS
-  H1 : lbl.binds l (decl_tp S U) DS
-  HSubL2 : E |= Ta ~<! S ^tp^ p
-
-eapply sub_tp_notrans_trans_tpsel with (T' := T'); eauto.
-*)
 
 
 Definition transitivity_on TMid := forall E T T',  E |= T ~<! TMid -> E |= TMid ~<! T' -> E |= T ~<! T'.
@@ -601,46 +584,57 @@ Section Narrowing.
     end.
   Ltac simplhyps :=  jauto_set_hyps; intros; sphyps; intros; jauto_set_hyps; intros.
 
-  Let P (Ez : env) (S T : tp) (H : Ez |= S ~<! T) := forall E F s z Sz Tz, Ez = (E ++ [(z, (Tz, (precise, true)))] ++ F, s) -> (E ++ [(z, (Sz, (precise, true)))] ++ F, s) |= S ~<! T.
+  Hint Unfold splice_env.
 
-  Let P0 (Ez : env) (D1 D2 : decl) (H : sub_decl_notrans Ez D1 D2) := forall E F s z Sz Tz, Ez = (E ++ [(z, (Tz, (precise, true)))] ++ F, s) -> sub_decl_notrans (E ++ [(z, (Sz, (precise, true)))] ++ F, s) D1 D2.
+  Let P (E: ctx) (s: store) (Sz Tz: tp) (Ez : env) (S T : tp) (H : Ez |= S ~<! T) := forall F z, 
+    Ez = splice_env E z F s Tz -> (splice_env E z F s Sz) |= S ~<! T.
 
-Lemma sub_narrowing_aux : forall TMid s E Sz Tz,
-  transitivity_on TMid ->
+  Let P0 (E: ctx) (s: store) (Sz Tz: tp) (Ez : env) (D1 D2 : decl) (H : sub_decl_notrans Ez D1 D2) := forall F z,
+    Ez = splice_env E z F s Tz -> sub_decl_notrans (splice_env E z F s Sz) D1 D2.
+
+Lemma sub_narrowing_aux : forall s E Sz Tz,
+(*  transitivity_on Tz -> *)
   (E, s) |= Sz ~<! Tz ->
-    (forall (E : env) (T1 T2 : tp) (H : E |= T1 ~<! T2), @P E T1 T2 H) /\
-    (forall (E : env) (D1 D2 : decl) (H : sub_decl_notrans E D1 D2), @P0 E D1 D2 H).
+    (forall (Ez : env) (T1 T2 : tp) (H : Ez |= T1 ~<! T2), @P E s Sz Tz Ez T1 T2 H) /\
+    (forall (Ez : env) (D1 D2 : decl) (H : sub_decl_notrans Ez D1 D2), @P0 E s Sz Tz Ez D1 D2 H).
 Proof. 
-  unfold P, P0. clear P P0. introv HTrans HSubZ.
+  unfold P, P0. clear P P0. introv (*HTrans*) HSubZ. 
+  destruct (proj1 ((proj1 notrans_is_sound) _ _ _ HSubZ)) as [qsz Hsz].
+
   apply sub_tp_notrans_mutind; intros; subst; simplhyps; eauto 4.
 
-  eapply sub_tp_notrans_tpsel_r; eauto. (** TODO: need to mutually induct with typing... *)
-    skip. skip.
+(*Hint Extern 1 (splice_env ?E ?z ?F ?s ?Sz |= ?p ~: ?T @ ?q) =>
+  match goal with
+  | H:  splice_env E z F s ?Tz |= p ~: T @ ?q' |- _ => (idtac; match goal with
+     | Hsz: (E, s) |= Sz ~<: Tz @ ?qs |- _ => 
+         let qn := fresh in let Hn := fresh in
+         lets [qn Hn] : ((proj1 (sub_narrowing_typing Hsz)) _ _ _ _ H F z); [auto | eauto 2 | eapply Hn]
+    end)
+  end.*)
   
+  Hint Resolve narrowing_vars_ok_tp narrowing_path_safe.
+  forwards [qn Hn] : (proj1 (sub_narrowing_typing Hsz)); eauto 2.
+  eapply sub_tp_notrans_tpsel_r; unfold splice_env in *; eauto. 
+
   eapply sub_tp_notrans_rfn_r; eauto.   
-  unfold forall_decls. intros. forwards: H1; eauto; unfold ctx_bind; simpl. 
-    f_equal. skip. 
-    simpl in H6. skip.
+    intros zd Frd.  specialize (H1 zd Frd). 
+    unfold forall_decls, ctx_bind, splice_env in *. simpl in *. simpl_env in *.
+  intros. forwards : H1; eauto. simpl; f_equal. instantiate (1 := z). instantiate (1 :=  (zd, (T, (precise, true))) :: F). trivial. simpl_env in *. trivial.
 
-  eapply sub_tp_notrans_tpsel_l; eauto. (** TODO: need to mutually induct with typing... *)
-    skip.
-
-  
+  forwards [qn Hn] : (proj1 (sub_narrowing_typing Hsz)); eauto 2.
+Qed.
+  End Narrowing.
 Lemma narrow_sub_decls: forall L E S T DS1 DS2,  
-     (forall z, z \notin L -> (forall l d2, lbl.binds l d2 DS2 -> exists d1, lbl.binds l d1 DS1 /\
-           (forall S1 T1 S2 T2, ((d1 ^d^ z) = (decl_tp S1 T1) /\ (d2 ^d^ z) = (decl_tp S2 T2)) -> 
-              (ctx_bind E z T) |= S2 ~<! S1 /\ (ctx_bind E z T) |= T1 ~<! T2 ) /\
-           (forall T1 T2, ((d1 ^d^ z) = (decl_tm T1) /\ (d2 ^d^ z) = (decl_tm T2)) -> 
-              (ctx_bind E z T) |= T1 ~<! T2)
-          )) -> 
-      E |=  S ~<! T ->
-     (forall z, z \notin L -> (forall l d2, lbl.binds l d2 DS2 -> exists d1, lbl.binds l d1 DS1 /\
-           (forall S1 T1 S2 T2, ((d1 ^d^ z) = (decl_tp S1 T1) /\ (d2 ^d^ z) = (decl_tp S2 T2)) -> 
-              (ctx_bind E z S) |= S2 ~<! S1 /\ (ctx_bind E z S) |= T1 ~<! T2 ) /\
-           (forall T1 T2, ((d1 ^d^ z) = (decl_tm T1) /\ (d2 ^d^ z) = (decl_tm T2)) -> 
-              (ctx_bind E z S) |= T1 ~<! T2)
-          )).
-Proof. Admitted. (* TODO *)
+(*  transitivity_on T ->*)
+  E |=  S ~<! T ->
+  (forall z : atom, z `notin` L ->
+     forall_decls (ctx_bind E z T) (DS1 ^ds^ z) (DS2 ^ds^ z) sub_decl_notrans) -> 
+  (forall z : atom, z `notin` L ->
+     forall_decls (ctx_bind E z S) (DS1 ^ds^ z) (DS2 ^ds^ z) sub_decl_notrans).
+Proof. 
+  unfold forall_decls. intros. forwards : H0; eauto. unfold ctx_bind in *. destruct E. simpl in *. 
+  forwards : (proj2 (sub_narrowing_aux H)); eauto. unfold splice_env; simpl; f_equal. instantiate (1 := z). instantiate (1 := nil). auto. eapply H5.
+Qed.
 
 Hint Resolve narrow_sub_decls.
 
@@ -667,46 +661,28 @@ Proof.
        eapply sub_tp_notrans_fun; eauto 2 using IHTMid1, IHTMid2 |
        eauto 3]. (* less than 2 minutes*)
 
-(* admitted case:
-  H2 : lbl.binds l (decl_tp S0 U0) DS0
-  HSubR1 : E |= U0 ^tp^ t ~<! T0
-  H3 : E |= t ~: T' @ q0
-  HSubR2 : E |= T' ~<! tp_rfn tp_top DS0
-  H4 : path t
-  IHHSubR1 : forall (t0 : tm) (l : label),
-             E |= T'0 ~<! tp_rfn tp_top DS ->
-             (tp_rfn tp_top DS = tp_sel t0 l ->
-              forall T' : tp, E |= tp_rfn tp_top DS ~<! T' -> E |= T'0 ~<! T') ->
-             lbl.binds l (decl_tp S U) DS ->
-             E |= T ~<! S ^tp^ t0 ->
-             E |= t0 ~: T'0 @ q1 ->
-             path_safe E t0 ->
-             (S ^tp^ t0 = tp_sel t0 l ->
-              forall T' : tp, E |= S ^tp^ t0 ~<! T' -> E |= T ~<! T') ->
-             U0 ^tp^ t = tp_sel t0 l -> E |= T ~<! T0
-  IHHSubR2 : forall (t : tm) (l : label),
-             E |= T'0 ~<! tp_rfn tp_top DS ->
-             (tp_rfn tp_top DS = tp_sel t l ->
-              forall T' : tp, E |= tp_rfn tp_top DS ~<! T' -> E |= T'0 ~<! T') ->
-             lbl.binds l (decl_tp S U) DS ->
-             E |= T ~<! S ^tp^ t ->
-             E |= t ~: T'0 @ q1 ->
-             path_safe E t ->
-             (S ^tp^ t = tp_sel t l ->
-              forall T' : tp, E |= S ^tp^ t ~<! T' -> E |= T ~<! T') ->
-             T' = tp_sel t l -> E |= T ~<! tp_rfn tp_top DS0
-  HSubL2 : E |= T'0 ~<! tp_rfn tp_top DS
-  IHHSubL2 : tp_rfn tp_top DS = tp_sel t l ->
-             forall T' : tp, E |= tp_rfn tp_top DS ~<! T' -> E |= T'0 ~<! T'
+(* TODO: the core case... do we need to introduce some kind of sub_tp_notrans rule? as in fsub? *)
+rename t into p. rename T into Ta. rename T0 into Tb'. rename T' into Twoele. rename T'0 into T'. rename Twoele into T.
+rename DS0 into DS'. rename S0 into S'. rename U0 into U'. rename q0 into q'. rename q1 into q.
+clear IHHSubR1 IHHSubR2 IHHSubL1 IHHSubL2.
+(*
+  H1 : path_safe E p
+  H4 : path p
+
+  H0 : E |= p ~: T @ q
+  HSubL2 : E |= T ~<! tp_rfn tp_top DS
   H : lbl.binds l (decl_tp S U) DS
-  HSubL1 : E |= T ~<! S ^tp^ t
-  H0 : E |= t ~: T'0 @ q1
-  H1 : path_safe E t
-  IHHSubL1 : S ^tp^ t = tp_sel t l ->
-             forall T' : tp, E |= S ^tp^ t ~<! T' -> E |= T ~<! T'
+
+  H3 : E |= p ~: T' @ q'
+  HSubR2 : E |= T' ~<! tp_rfn tp_top DS'
+  H2 : lbl.binds l (decl_tp S' U') DS'
+
+  HSubL1 : E |= Ta ~<! S ^tp^ p
+  HSubR1 : E |= U' ^tp^ p ~<! Tb'
   ============================
-   E |= T ~<! T0
+   E |= Ta ~<! Tb
 *)
+
  eapply sub_tp_notrans_trans_tpsel with (T' := T'); eauto.
 Qed.
 
@@ -759,9 +735,9 @@ Section Completeness.
 
     apply sub_tp_notrans_trans with (TMid := U); eauto.
     eapply sub_tp_notrans_rfn_r; eauto. 
-    skip. (* TODO: sub_decl_refl *)
-    eapply sub_tp_notrans_rfn_r with (DS1 := DS1); eauto. 
-    skip. (* TODO: IH for sub_decls *)
+    skip. (* TODO: sub_decls_notrans_refl *) skip.
+    eapply sub_tp_notrans_rfn_r with (DS1 := DS1); eauto 2. 
+    skip. (* TODO: IH for sub_decls (change from True above to something useful) *)
     apply and_decls_nil_1.
     apply sub_tp_notrans_trans with (TMid := TMid); eauto.
   Qed.
