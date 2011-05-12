@@ -69,16 +69,20 @@ Lemma sub_decls_from_exists_sub_decl : forall L E T DS1 DS2,
    (forall z, z \notin L -> forall_decls (ctx_bind E z T) (DS1 ^ds^ z) (DS2 ^ds^ z) (fun E => fun d1 => fun d2 => sub_decl E q d1 d2)).
 Proof. 
   intros. pick fresh z for L. specialize (H z Fr).
-Lemma forall_decls_nil_1 : forall E q DS,
- forall_decls E nil DS  (fun (E0 : env) (d1 d2 : decl) => sub_decl E0 q d1 d2).
-Proof. Admitted.
-Lemma forall_decls_nil_2 : forall E q DS,
- forall_decls E DS nil (fun (E0 : env) (d1 d2 : decl) => sub_decl E0 q d1 d2).
-Proof. Admitted.
-Hint Resolve forall_decls_nil_1 forall_decls_nil_2.
-induction DS1; induction DS2; try solve [simpl in *; eauto | idtac]. 
+  (* try to construct H's other premises, so we can get to the goodies *)
+  Lemma forall_decls_nil_1 : forall E q DS,
+   forall_decls E nil DS  (fun (E0 : env) (d1 d2 : decl) => sub_decl E0 q d1 d2).
+  Proof. Admitted.
+  Lemma forall_decls_nil_2 : forall E q DS,
+   forall_decls E DS nil (fun (E0 : env) (d1 d2 : decl) => sub_decl E0 q d1 d2).
+  Proof. Admitted.
+  Hint Resolve forall_decls_nil_1 forall_decls_nil_2.
+(*    
+  induction DS1; induction DS2; try solve [simpl in *; eauto | idtac]. 
 
-  destruct a. destruct a0. 
+  destruct a. destruct a0. simpl_env in *.
+  forwards : H ; eauto.*)
+
 Admitted.
 
 
@@ -132,10 +136,11 @@ Proof. intros.
         analyze_binds H; eauto.
 Qed.
 
-
+Section Q.
 Lemma quality_subsumption : forall E t T q, E |= t ~: T @ precise -> E |= t ~: T @ q.
 Proof.  Hint Resolve sub_tp_refl.
 intros. replace q with (precise & q). eapply typing_sub; eauto. induction q; unfold qconj; simpl; eauto. Qed.
+End Q.
 
 Section NarrowingTyping.
   Hint Constructors sub_decl sub_qual path_eq wf_env wf_tp wf_decl.
@@ -434,12 +439,12 @@ Hint Constructors sub_tp_notrans sub_decl_notrans.
 
 Section Soundness.
   (* TODO: deal with regularity  *)
-  Lemma wf_ax : forall E, wf_env E. Proof. Admitted. (* TODO *)
-  Lemma lc_ax : forall T, lc_tp T. Proof. Admitted. (* TODO *)
+  Lemma wf_ax : forall E, wf_env E. Proof. Admitted. (* TODO: used in cases for expands_top and expands_bot *)
+  Lemma lc_ax : forall T, lc_tp T. Proof. Admitted. (* TODO: used in cases for sub_tp_rfn_elim *) 
   Hint Resolve wf_ax lc_ax.
 
-  Hint Constructors expands sub_decl sub_qual.
-  Hint Resolve sub_tp_rfn sub_tp_rfn_elim sub_tp_tpsel_lower sub_tp_tpsel_upper sub_tp_refl sub_tp_top sub_tp_bot sub_tp_fun sub_tp_and_r sub_tp_or_l sub_tp_and_l1 sub_tp_and_l2 sub_tp_or_r1 sub_tp_or_r2. (*but not transitivity*)
+  Hint Constructors sub_decl sub_qual.
+  Hint Resolve sub_tp_rfn sub_tp_rfn_elim sub_tp_tpsel_lower sub_tp_tpsel_upper sub_tp_top sub_tp_bot sub_tp_fun sub_tp_and_r sub_tp_or_l sub_tp_and_l1 sub_tp_and_l2 sub_tp_or_r1 sub_tp_or_r2 theory.expands_rfn theory.expands_and theory.expands_or theory.expands_top theory.expands_bot. (*but not transitivity*)
 
   Lemma and_decls_nil: and_decls nil nil nil.            Proof. Admitted. (* TODO *)
   Lemma and_decls_nil_1: forall DS, and_decls nil DS DS. Proof. Admitted. (* TODO *)
@@ -448,7 +453,7 @@ Section Soundness.
   Lemma or_decls_nil_1: forall DS, or_decls nil DS nil.  Proof. Admitted. (* TODO *)
   Lemma or_decls_nil_2: forall DS, or_decls DS nil nil.  Proof. Admitted. (* TODO *)
 
-  (* TODO: proof will need decls_ok from well formedness of the type that expanded to DS for uniqueness of labels, and wf_env for sub_tp_refl *)
+  (* TODO: proof will need decls_ok DS from well formedness of the type that expanded to DS for uniqueness of labels, and wf_env for sub_tp_refl *)
   Lemma sub_decls_refl : forall L E T DS,
      forall z : atom,
      z `notin` L ->
@@ -496,42 +501,46 @@ Qed.
     end.
   Ltac simplhyps :=  jauto_set_hyps; intros; sphyps; intros; jauto_set_hyps; intros.
 
-  Ltac trans T := eexists; eapply sub_tp_trans with (TMid := T); eauto.
+  (* automate most uses of trans (all except for the trans T one, probably), since we know what its argument should be: for a subgoal that needs to show `exists q, E |= T ~<: tp_sel p L @ q`, the argument is `S` if there is a hypothesis `E |= T ~<! ?S` *)
+  Ltac trans T := eexists; eapply sub_tp_trans with (TMid := T); eauto 3.
+  Hint Extern 2 (exists q, ?E |= ?T ~<: _ @ q) =>
+    match goal with
+    | H: E |= T ~<! ?S |- _ => trans S
+    end.
+  Hint Extern 2 (exists q, ?E |= _ ~<: ?T @ q) =>
+    match goal with
+    | H: E |= ?S ~<! T |- _ => trans S
+    end.
+  Hint Extern 2 (exists q, ?E |= _ ~< ?DS @ q) =>
+    match goal with
+    | H: E |= ?S ~< DS @ _ |- _ => eexists; eapply expands_sub with (U := S); eauto
+    end.
+
   Ltac sub_tp_rfn_top DS := 
     eapply sub_tp_rfn with (DS1 := DS) (DS2 := DS) (q := subsumed); [
-      eauto | eauto | pick fresh z and apply sub_decls_refl | fsetdec | intros; discriminate].
+      eauto 3 | eauto 3 | pick fresh z and apply sub_decls_refl | fsetdec | intros; discriminate].
+
 
   Let P (E : env) (T1 T2 : tp) (H : E |= T1 ~<! T2) := (exists q, E |= T1 ~<: T2 @ q) /\ (forall DS, T2 = tp_rfn tp_top DS -> exists q, E |= T1 ~< DS @ q).
   Let P0 (E : env) (D1 D2 : decl) (H : sub_decl_notrans E D1 D2) := exists q, sub_decl E q D1 D2.
-
   Lemma notrans_is_sound : (forall (E : env) (T1 T2 : tp) (H : E |= T1 ~<! T2), @P E T1 T2 H) /\
               (forall (E : env) (D1 D2 : decl) (H : sub_decl_notrans E D1 D2), @P0 E D1 D2 H). 
   Proof. unfold P, P0. clear P P0.
-    apply sub_tp_notrans_mutind; first [
-      (split; [ 
-           (* subtyping *) simplhyps; try solve [ eauto 3 | idtac ]  
+    apply sub_tp_notrans_mutind; first [ (split; 
+         [ (* subtyping *) simplhyps; try solve [ exists precise; eauto | eauto 3 | idtac ]  
          | (* expansion *) introv HEq; try injsubst HEq; subst; 
              try destructs IHsub_tp_notrans1; try destructs IHsub_tp_notrans2; try destructs IHsub_tp_notrans; 
-             simplhyps; try solve [ discriminate | eexists; intros; eauto 3]]) 
-      | (* sub_decl *) intros; exists subsumed; simplhyps; eauto ]; [  (* trickier subtyping cases: *)
-            trans (S ^tp^ p)
-          | eexists; eapply sub_tp_rfn with (L := L) (DS1 := DS1) (DS2 := DS2) (q := subsumed); eauto 3; intros; discriminate
-          | forwards: (@sub_tp_rfn L E T tp_top DS1 DS0 (x & x1) subsumed subsumed); eauto 5; [intros; discriminate]
-          | eexists; eapply sub_tp_trans with (TMid := tp_and T1 T2); [eauto 2 | sub_tp_rfn_top DSM]
-          | trans T1
-          | trans T2
-          | eexists; eapply sub_tp_trans with (TMid := tp_or T1 T2); [eauto 2 | sub_tp_rfn_top DSM]
-          | eexists; sub_tp_rfn_top (nil : decls)
-          | trans (U ^tp^ p)
-          | trans T
-          | trans T1
-          | trans T2
-          | eexists; eapply expands_sub with (U := tp_rfn tp_top DS); eauto].
-  Qed. (* 15s *)
-    (* TODO: can automate most uses of trans (all except for the trans T one, probably), since we know what its argument should be: for a subgoal that needs to show `exists q, E |= T ~<: tp_sel p L @ q`, the argument is `S` if there is a hypothesis `E |= T ~<! ?S` -- it would be nice if Coq provided tacticals that allowed iterating over hypotheses etc, see e.g. http://permalink.gmane.org/gmane.science.mathematics.logic.coq.club/5128*)
+             simplhyps; try solve [ discriminate | eauto 2 | eexists; eapply expands_sub; eauto 2 | eexists; intros; eauto 3]]) 
+         | (* sub_decl *) intros; exists subsumed; simplhyps; eauto 
+      ];
+      [ eexists; eapply sub_tp_rfn with (L := L) (DS1 := DS1) (DS2 := DS2) (q := subsumed); eauto 3 using expands_sub; intros; discriminate
+      | eexists; eapply expands_sub with (U := tp_rfn tp_top DS0); eauto; eapply sub_tp_rfn with (q1 := x & x1); eauto using expands_sub; intros; discriminate
+      | eexists; eapply sub_tp_trans with (TMid := tp_and T1 T2); [eauto 2 | sub_tp_rfn_top DSM]
+      | eexists; eapply sub_tp_trans with (TMid := tp_or T1 T2); [eauto 2 | sub_tp_rfn_top DSM]
+      | eexists; sub_tp_rfn_top (nil : decls); eauto using expands_sub
+      | eexists; eapply expands_sub with (U := tp_rfn tp_top DS); eauto].
+  Qed. (* 5s *)
 End Soundness.
-
-
 
 
 
