@@ -357,7 +357,7 @@ Inductive sub_tp_notrans : env -> tp -> tp -> Prop :=
       E |= (tp_fun S1 T1) ~<! (tp_fun S2 T2)
 
   | sub_tp_notrans_tpsel_r : forall E p T' q1 DS L S U T,
-      lbl.binds L (decl_tp S U) DS -> E |= T ~<! (S ^tp^ p) ->
+      lbl.binds L (decl_tp S U) DS -> E |= T ~<! (S ^tp^ p) -> 
       E |= p ~: T' @ q1 -> E |= T' ~<! (tp_rfn tp_top DS) ->
       path_safe E p ->
       E |= T ~<! (tp_sel p L)
@@ -395,6 +395,7 @@ Inductive sub_tp_notrans : env -> tp -> tp -> Prop :=
   | sub_tp_notrans_top  : forall E T, E |= T ~<! tp_top
   | expands_top : forall E T, E |= T ~<! (tp_rfn tp_top nil)  (* see e.g, rework_sub_decls' use of sub_tp_notrans_rfn_r*)
 
+(* this rule has the same structure as FSub's Sa-Trans-Tvar (p. 422) *)
   | sub_tp_notrans_tpsel_l : forall E p T' q1 DS L S U T,
       lbl.binds L (decl_tp S U) DS -> E |= (U ^tp^ p) ~<! T ->
       E |= p ~: T' @ q1 -> E |= T' ~<! (tp_rfn tp_top DS) -> 
@@ -433,6 +434,15 @@ Scheme sub_tp_notrans_indm   := Induction for sub_tp_notrans Sort Prop
   with sub_decl_notrans_indm := Induction for sub_decl_notrans Sort Prop.
 
 Combined Scheme sub_tp_notrans_mutind from sub_tp_notrans_indm, sub_decl_notrans_indm.
+
+(* the motivation for the notrans version of subtyping: inversion *)
+Lemma invert_fun_notrans : forall E Sa Sr Ta Tr,
+  E |= tp_fun Sa Sr ~<! tp_fun Ta Tr ->
+  E |= Ta ~<! Sa  /\  E |= Sr ~<! Tr.
+Proof.
+intros.
+inverts H; splits; auto using sub_tp_notrans_refl.
+Qed.
 
 
 
@@ -473,7 +483,7 @@ Section Soundness.
       skip. (*refl*)
       eapply IHDS'; eauto.
 *)
-
+6
 Lemma sub_decls_sound : forall L E DS1 DS2 T,
   (forall z : atom, z `notin` L -> forall (l : label) (d1 d2 : decl),
    lbl.binds l d2 (DS2 ^ds^ z) -> lbl.binds l d1 (DS1 ^ds^ z) ->
@@ -534,7 +544,9 @@ Qed.
              simplhyps; try solve [ discriminate | eauto 2 | eexists; eapply expands_sub; eauto 2 | eexists; intros; eauto 3]]) 
          | (* sub_decl *) intros; exists subsumed; simplhyps; eauto 
       ];
-      [ eexists; eapply sub_tp_rfn with (L := L) (DS1 := DS1) (DS2 := DS2) (q := subsumed); eauto 3 using expands_sub; intros; discriminate
+      [ eexists; eapply sub_tp_trans with (TMid := tp_sel p L); eauto using sub_tp_trans
+      | eexists; eapply expands_sub with (U := tp_sel p L); eauto  using sub_tp_trans
+      | eexists; eapply sub_tp_rfn with (L := L) (DS1 := DS1) (DS2 := DS2) (q := subsumed); eauto 3 using expands_sub; intros; discriminate
       | eexists; eapply expands_sub with (U := tp_rfn tp_top DS0); eauto; eapply sub_tp_rfn with (q1 := x & x1); eauto using expands_sub; intros; discriminate
       | eexists; eapply sub_tp_trans with (TMid := tp_and T1 T2); [eauto 2 | sub_tp_rfn_top DSM]
       | eexists; eapply sub_tp_trans with (TMid := tp_or T1 T2); [eauto 2 | sub_tp_rfn_top DSM]
@@ -544,27 +556,6 @@ Qed.
 End Soundness.
 (* Show Existentials is your friend when combatting uninstantiated existentials before Coq will let you Qed *)
 
-
-(* no way this can be a rule -- the transitivity proof peterait un plomb 
-
-not clear how i'm going to prove this... TODO: add E |== s and E |= ok judgements
-*)
-Lemma sub_tp_notrans_trans_tpsel : forall E q1 q2 p T DS l S U T' DS' S' U' Ta Tb,
-  path_safe E p ->
-
-  E |= p ~: T @ q1 ->
-  E |= T ~<! tp_rfn tp_top DS ->
-  lbl.binds l (decl_tp S U) DS ->
-
-  E |= p ~: T' @ q2 -> 
-  E |= T' ~<! tp_rfn tp_top DS' ->
-  lbl.binds l (decl_tp S' U') DS' ->
-
-  E |= Ta ~<! S ^tp^ p ->
-  E |= U' ^tp^ p ~<! Tb ->
-
-  E |= Ta ~<! Tb.
-Proof. Admitted. (* TODO *)
 
 
 Definition transitivity_on TMid := forall E T T',  E |= T ~<! TMid -> E |= TMid ~<! T' -> E |= T ~<! T'.
@@ -639,6 +630,109 @@ Qed.
 Hint Resolve narrow_sub_decls.
 
 
+(* the trouble with sub_tp_notrans_trans
+
+the problem with the current formulation is that it doesn't generate the appropriate IH for cases involving type selection:
+
+[abbreviated]
+
+p : {L : S..U}     p : {L : S'..U'}
+    T <: S^p                    U'^p <: T'
+--------------     ----------------------
+T <: p.L           p.L <: T'
+
+NTS: T <: T'
+
+To see where we go wrong, consider the analogous case in Fsub, using Dot notation -- dropping the lower bound of course
+
+p : {L : U'}
+         U^p <: T    [any case]
+------------------   ----------
+p.L <: T             T <: T'                        
+
+NTS: p.L <: T'
+
+the induction goes through because the sub-derivation U^p <: T generates the IH: forall S, T <: S -> U^p <: S
+so, picking T' for the IH's S, we can easily construct a derivation for p.L <: T'
+
+
+p : {L : U'}
+         U^p <: T'
+------------------
+p.L <: T'          
+
+
+we're stuck in current Dot because there is no subderivation on the shared "middleman" (T in Fsub), so no IH
+
+however, the middleman is lurking right around the corner! if you squint just right, you can already see him up there
+
+suppose we reformulate the rules for subtyping of a "type selection" on the left and right (now represented as the corresponding bounds):  
+
+    
+U <: T
+------------[Sub-Bound-L]   
+[S..U] <: T 
+
+    
+T <: S
+-------------[Sub-Bound-R]
+T <: [S..U]
+
+
+thus, the case becomes (even simpler than Fsub):
+
+U <: T
+------------    -------
+[S..U] <: T     T <: T'
+
+NTS: [S..U] <: T'
+
+from the left derivation, we get the IH forall T', T <: T' -> U <: T' and the required result is easy
+
+
+to get the bounds of a type selection, we need two more subtyping rules, which express that p.L is equivalent to [S^p..U^p] under the obvious conditions
+
+p : {L : S..U}          p : {L : S'..U'}
+------------------     ------------------
+[S^p..U^p] <: p.L      p.L <: [S'^p..U'^p]  
+
+
+in the transitivity proof, these give rise to the original problem with relating type selections
+[S^p..U^p] <: [S'^p..U'^p]  
+
+or U^p <: S'^p
+
+URRRGH did I get the bounds-subtyping rules wrong!?
+
+at least this solves the problem with generating the right induction hypothesis, simplifying the problem to proving that bounds of type selections are consistent
+*)
+
+
+
+
+
+
+(* no way this can be a rule -- the transitivity proof peterait un plomb 
+
+not clear how i'm going to prove this... TODO: add E |== s and E |= ok judgements
+*)
+Lemma sub_tp_notrans_trans_tpsel : forall E q1 q2 p T DS l S U T' DS' S' U' Ta Tb,
+  path_safe E p ->
+
+  E |= p ~: T @ q1 ->
+  E |= T ~<! tp_rfn tp_top DS ->
+  lbl.binds l (decl_tp S U) DS ->
+
+  E |= p ~: T' @ q2 -> 
+  E |= T' ~<! tp_rfn tp_top DS' ->
+  lbl.binds l (decl_tp S' U') DS' ->
+
+  E |= Ta ~<! S ^tp^ p ->
+  E |= U' ^tp^ p ~<! Tb ->
+
+  E |= Ta ~<! Tb.
+Proof. Admitted. (* TODO *)
+
 (* inspired by sub_transitivity from http://www.chargueraud.org/arthur/research/2007/binders/src/Fsub_Soundness.html
 
   Coq provides "dependent induction" to perform "Induction/inversion principle"; 4.2.1. of
@@ -664,6 +758,7 @@ Proof.
 (* TODO: the core case... do we need to introduce some kind of sub_tp_notrans rule? as in fsub? *)
 rename t into p. rename T into Ta. rename T0 into Tb'. rename T' into Twoele. rename T'0 into T'. rename Twoele into T.
 rename DS0 into DS'. rename S0 into S'. rename U0 into U'. rename q0 into q'. rename q1 into q.
+
 clear IHHSubR1 IHHSubR2 IHHSubL1 IHHSubL2.
 (*
   H1 : path_safe E p
@@ -695,15 +790,6 @@ sub_tp_notrans_or_l, sub_tp_notrans_trans_tpsel, sub_tp_notrans_trans_rfn_rfn,
                    eapply sub_tp_notrans_trans_rfn_rfn; eauto |
                    ]. (* 7 min *)
 *)
-
-(* the motivation for the notrans version of subtyping: inversion *)
-Lemma invert_fun_notrans : forall E Sa Sr Ta Tr,
-  E |= tp_fun Sa Sr ~<! tp_fun Ta Tr ->
-  E |= Ta ~<! Sa  /\  E |= Sr ~<! Tr.
-Proof.
-intros.
-inverts H; splits; auto. 
-Qed.
 
 
 
