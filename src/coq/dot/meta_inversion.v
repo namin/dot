@@ -289,53 +289,7 @@ diagnosed using Show Proof.  -- relevant excerpts:
 Qed.
 End NarrowingTyping.
 
-(* attempts at inversion lemma for subtyping of function types:
 
-(1) FAILED
-Lemma invert_subtyping_fun : 
-   (forall E q T DS, E |= T ~< DS @ q -> forall T1 T2, is_fun T T1 T2 -> DS = nil) /\
-   (forall E q S T, E |= S ~<: T @ q -> forall T1 T2, is_fun S T1 T2 ->
-      (exists T1', exists T2', is_fun T T1' T2' /\ (exists q, E |= T1' ~<: T1 @ q /\ exists q, E |= T2 ~<: T2' @ q))).
-
-with subtyping including full transitivity
-
-stuck at the sub_tp_tpsel_lower case: 
-  t : E |= p ~: T' @ q1
-  e : E |= T' ~< DS @ q2
-  H0 : forall T1 T2 : tp, is_fun T' T1 T2 -> DS = nil
-  b : lbl.binds L (decl_tp S U) DS
-  H1 : is_fun (S ^tp^ p) T1 T2
-  ============================
-   exists T1' T2',
-   is_fun (tp_sel p L) T1' T2' /\
-   (exists q, E |= T1' ~<: T1 @ q /\ (exists q0, E |= T2 ~<: T2' @ q0))
-
---> we can't include (tp_sel p L) in is_fun (explained below)
-
---> add promotion to get rid of type selections?
-then the problem becomes: 
-  - unicity/precision of promotion
-  - if we had a subderivation that E |= (S ^tp^ p) ~<: (U ^tp^ p) in the proof context (this is derivable if the store and the context are well-kinded),
-we could induct and we'd be fine , but we don't have it
-
-
-(2) FAILED
-if we exclude type selections as the middleman in our sub_tp_trans (and expands_sub), we can prove the lemma ignoring these annoying types,
-but we can't use it in preservation since we can't invert S -> T <: S' <: T' if any of those types contains a type selection...
-
-excluding type selection is contagious: as soon as we exclude it anywhere, need to exclude it in all the cases of is_fun 
-(e.g, the sub_tp_fun case requires transitivity for the components of the function type, thus, 
-if transitivity excludes type selection as its middlemen, the constituents of the original function type need to exclude type selections as well)
-
-
-(3) OK?
-this seems succesful so far:
-have alternate subtyping/expansion relations that don't have transitivity
-they also don't track quality, to avoid nested existentials in the induction hypotheses in the proof -- I cannot figure out how to make coq's automation open existentials
-
-prove soundness and completeness wrt the original relations (where expansion has been merged into subtyping so we can induct more easily)
-
-*)
 
 Definition sub_decls E q DS1 DS2 := forall_decls E DS1 DS2 (fun E => fun d1 => fun d2 => sub_decl E q d1 d2).
 
@@ -443,6 +397,30 @@ Proof.
 intros.
 inverts H; splits; auto using sub_tp_notrans_refl.
 Qed.
+
+
+
+
+
+
+(*  TODO: add E |== s and E |= ok judgements
+*)
+Lemma sub_tp_notrans_trans_tpsel : forall E q1 q2 p T DS l S U T' DS' S' U' Ta Tb,
+  path_safe E p ->
+
+  E |= p ~:! T ->
+  E |= T ~<! tp_rfn tp_top DS ->
+  lbl.binds l (decl_tp S U) DS ->
+
+  E |= p ~:! T' -> 
+  E |= T' ~<! tp_rfn tp_top DS' ->
+  lbl.binds l (decl_tp S' U') DS' ->
+
+  E |= S ^tp^ p ~<! U' ^tp^ p.
+Proof. Admitted. (* TODO *)
+
+
+
 
 
 
@@ -630,91 +608,39 @@ Qed.
 Hint Resolve narrow_sub_decls.
 
 
-(* the trouble with sub_tp_notrans_trans
+(* strategy for sub_tp_notrans_trans_tpsel
 
-the problem with the current formulation is that it doesn't generate the appropriate IH for cases involving type selection:
+(`expose p.L S U` is short for   p : T0 {... L : S'..U' ...} where S = S' ^^ p, U = U' ^^ p)
 
-[abbreviated]
+[case for sub_tp_notrans_trans: type selection on the inside]
 
-p : {L : S..U}     p : {L : S'..U'}
-    T <: S^p                    U'^p <: T'
---------------     ----------------------
-T <: p.L           p.L <: T'
+                 expose p.L S U       expose p.L S' U'
+[sub_tp_tpsel_r]----------------     ----------------[sub_tp_tpsel_l]
+                     S <: p.L          p.L <: U'
 
-NTS: T <: T'
+NTS: S <: U'
 
-To see where we go wrong, consider the analogous case in Fsub, using Dot notation -- dropping the lower bound of course
+required lemma's, which hopefully do not require transitivity
 
-p : {L : U'}
-         U^p <: T    [any case]
-------------------   ----------
-p.L <: T             T <: T'                        
+splice: expose p.L S U -> expose p.L S' U' -> expose p.L S U'
 
-NTS: p.L <: T'
+  this should be provable by inverting the typing/subtyping judgements that derive exposure, 
+  cutting each of them in half (if they derive new bounds for L, there must be a sub_decl judgement involved, 
+  which is simply subtyping of the lower and upper bound according to variance, thus we can piece together
+  a new sub_decl judgement from the right halves of each one) and splicing them back together to get the required mongrel
 
-the induction goes through because the sub-derivation U^p <: T generates the IH: forall S, T <: S -> U^p <: S
-so, picking T' for the IH's S, we can easily construct a derivation for p.L <: T'
+invert_expose: expose p.L S U' -> S <: U' (under suitable side conditions of well-formedness of the context)
 
 
-p : {L : U'}
-         U^p <: T'
-------------------
-p.L <: T'          
+[case for sub_tp_notrans_trans: type selection on the outside -- actually two symmetric cases]
 
+                expose p.L S U
+[sub_tp_tpsel_l]----------------   ----------[??]
+                    p.L <: U         U <: T
 
-we're stuck in current Dot because there is no subderivation on the shared "middleman" (T in Fsub), so no IH
+invert the sub_tp_notrans_rfn_r in expose p.L S U, reconstruct new one by incorporating U <: T
+done
 
-however, the middleman is lurking right around the corner! if you squint just right, you can already see him up there
-
-suppose we reformulate the rules for subtyping of a "type selection" on the left and right (now represented as the corresponding bounds):  
-
-    
-U <: T
-------------[Sub-Bound-L]   
-[S..U] <: T 
-
-    
-T <: S
--------------[Sub-Bound-R]
-T <: [S..U]
-
-
-thus, the case becomes (even simpler than Fsub):
-
-U <: T
-------------    -------
-[S..U] <: T     T <: T'
-
-NTS: [S..U] <: T'
-
-from the left derivation, we get the IH forall T', T <: T' -> U <: T' and the required result is easy
-
-
-to get the bounds of a type selection, we need two more subtyping rules, which express that p.L is equivalent to [S^p..U^p] under the obvious conditions
-
-p : {L : S..U}          p : {L : S'..U'}
-------------------     ------------------
-[S^p..U^p] <: p.L      p.L <: [S'^p..U'^p]  
-
-
-in the transitivity proof, these give rise to the original problem with relating type selections
-[S^p..U^p] <: [S'^p..U'^p]  
-
-or U^p <: S'^p
-
-URRRGH did I get the bounds-subtyping rules wrong!?
-
-at least this solves the problem with generating the right induction hypothesis, simplifying the problem to proving that bounds of type selections are consistent
-*)
-
-
-
-
-
-
-(* no way this can be a rule -- the transitivity proof peterait un plomb 
-
-not clear how i'm going to prove this... TODO: add E |== s and E |= ok judgements
 *)
 Lemma sub_tp_notrans_trans_tpsel : forall E q1 q2 p T DS l S U T' DS' S' U' Ta Tb,
   path_safe E p ->
