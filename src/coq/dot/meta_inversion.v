@@ -211,7 +211,6 @@ Proof.
         eexists; eapply typing_var; eauto. 
           analyze_binds_uniq b; eauto.
 
-
   (* sub_tp_rfn *) 
   simplhyps_except a; simplhyps_except a. rename x into qtp. rename x0 into qx. 
   
@@ -297,7 +296,7 @@ Lemma invert_fun_notrans : forall E Sa Sr Ta Tr,
   E |= Ta ~<! Sa  /\  E |= Sr ~<! Tr.
 Proof.
 intros.
-inverts H; splits; auto using sub_tp_notrans_refl.
+inverts H; splits; auto using sub_tp_alg_refl.
 Qed.
 
 

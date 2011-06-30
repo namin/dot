@@ -116,7 +116,7 @@ with sub_tp_alg : env -> tp -> tp -> Prop :=
       E |= T ~<! T1 -> E |= T ~<! T2 ->
       E |= T ~<! (tp_and T1 T2)
 
-  | expands_and : forall E T T1 DS1 T2 DS2 DSM,
+  | sub_tp_alg_and_rx : forall E T T1 DS1 T2 DS2 DSM,
       E |= T ~<! (tp_and T1 T2) ->
       E |= T1 ~<! (tp_rfn tp_top DS1) -> E |= T2 ~<! (tp_rfn tp_top DS2) -> and_decls DS1 DS2 DSM ->
       E |= T ~<! (tp_rfn tp_top DSM)
@@ -128,14 +128,14 @@ with sub_tp_alg : env -> tp -> tp -> Prop :=
       E |= T ~<! T2 -> 
       E |= T ~<! (tp_or T1 T2)
 
-  | expands_or : forall E T T1 DS1 T2 DS2 DSM,
+  | sub_tp_alg_or_rx : forall E T T1 DS1 T2 DS2 DSM,
       E |= T ~<! (tp_or T1 T2) ->
       E |= T1 ~<! (tp_rfn tp_top DS1) -> E |= T2 ~<! (tp_rfn tp_top DS2) -> or_decls DS1 DS2 DSM ->
       E |= T ~<! (tp_rfn tp_top DSM)
 
   | sub_tp_alg_refl : forall E T, E |= T ~<! T
   | sub_tp_alg_top  : forall E T, E |= T ~<! tp_top
-  | expands_top : forall E T, E |= T ~<! (tp_rfn tp_top nil)  (* see e.g, rework_sub_decls' use of sub_tp_alg_rfn_r*)
+  | sub_tp_alg_top_rx : forall E T, E |= T ~<! (tp_rfn tp_top nil)  (* see e.g, rework_sub_decls' use of sub_tp_alg_rfn_r*)
 
 (* this rule has the same structure as FSub's Sa-Trans-Tvar (p. 422) *)
   | sub_tp_alg_tpsel_l : forall E p T' DS L S U,
@@ -173,38 +173,38 @@ with sub_decl_alg : env -> decl -> decl -> Prop :=
       sub_decl_alg E (decl_tm T1) (decl_tm T2)
 
 with wf_tp_alg : env -> tp -> Prop :=
-  | wf_rfn : forall L E T DS,
+  | wf_tp_alg_rfn : forall L E T DS,
       decls_ok DS -> (* no dups or invalid label/decl combos *)
       wf_tp_alg E T ->
       (forall z, z `notin` L ->
           forall l d, lbl.binds l d DS -> (wf_decl_alg (ctx_bind E z (tp_rfn T DS)) (d ^d^ z))) ->
       wf_tp_alg E (tp_rfn T DS)
-  | wf_lam : forall E T1 T2,
+  | wf_tp_alg_lam : forall E T1 T2,
       wf_tp_alg E T1 -> 
       wf_tp_alg E T2 ->
       wf_tp_alg E (tp_fun T1 T2)
-  | wf_tsel : forall E T' DS p L S U,
+  | wf_tp_alg_tsel : forall E T' DS p L S U,
       path p ->
 (*      E |= p ~mem~ (decl_tp L S U) -> *)
       E |= p ~:! T' -> E |= T' ~<! tp_rfn tp_top DS -> lbl.binds L (decl_tp S U) DS ->
       wf_tp_alg E (S ^tp^ p) -> 
       wf_tp_alg E (U ^tp^ p) ->
       wf_tp_alg E (tp_sel p L)
-  | wf_tsel_cls : forall E T' DS p L U,
+  | wf_tp_alg_tsel_cls : forall E T' DS p L U,
       path p ->
 (*      E |= p ~mem~ (decl_tp L tp_bot U) -> *)
       E |= p ~:! T' -> E |= T' ~<! tp_rfn tp_top DS -> lbl.binds L (decl_tp tp_bot U) DS ->
       wf_tp_alg E (tp_sel p L)
-  | wf_and : forall E T1 T2,
+  | wf_tp_alg_and : forall E T1 T2,
       wf_tp_alg E T1 -> 
       wf_tp_alg E T2 ->
       wf_tp_alg E (tp_and T1 T2)
-  | wf_or : forall E T1 T2,
+  | wf_tp_alg_or : forall E T1 T2,
       wf_tp_alg E T1 -> 
       wf_tp_alg E T2 ->
       wf_tp_alg E (tp_or T1 T2)
-  | wf_bot : forall E, wf_tp_alg E tp_bot
-  | wf_top : forall E, wf_tp_alg E tp_top
+  | wf_tp_alg_bot : forall E, wf_tp_alg E tp_bot
+  | wf_tp_alg_top : forall E, wf_tp_alg E tp_top
 
 with wf_decl_alg : env -> decl -> Prop :=
   | wf_decl_alg_tp : forall E S U,
