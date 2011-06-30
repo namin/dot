@@ -1,6 +1,6 @@
 Set Implicit Arguments.
 Require Import List.
-Require Import syntax_binding theory.
+Require Import syntax_binding theory theory_alg.
 Require Import Metatheory LibTactics_sf support meta_regular meta_binding meta_weakening.
 Require Import Coq.Program.Equality.
 Require Import Coq.Classes.Equivalence.
@@ -291,104 +291,6 @@ End NarrowingTyping.
 
 
 
-Definition sub_decls E q DS1 DS2 := forall_decls E DS1 DS2 (fun E => fun d1 => fun d2 => sub_decl E q d1 d2).
-
-Reserved Notation "E |= t ~<! T" (at level 69).
-
-(*
-subtyping from a parallel universe where transitivity is unheard of; also, to simplify the proof, expansion and sub_decl are rolled into subtyping,
-and quality is glossed over (need to improve my Ltac-f to bring it back: existentials must be crushed, qualities normalised), 
-since inversion doesn't need to preserve quality this is not urgent, though
-(inversion is why we have sub_tp_notrans in the first place -- you try inverting something with an explicit rule for transivity some time)
-
-the order of the rules, and especially the order of the hypotheses in sub_tp_notrans_rfn_r is tuned for eauto 
-as used in the proof of transitivity, sub_tp_notrans_trans (more constraining hypotheses come first) 
-*)
-Inductive sub_tp_notrans : env -> tp -> tp -> Prop :=
-  | sub_tp_notrans_fun : forall E S1 T1 S2 T2,
-      E |= S2 ~<! S1 ->
-      E |= T1 ~<! T2 -> 
-      E |= (tp_fun S1 T1) ~<! (tp_fun S2 T2)
-
-  | sub_tp_notrans_tpsel_r : forall E p T' q1 DS L S U T,
-      lbl.binds L (decl_tp S U) DS -> E |= T ~<! (S ^tp^ p) -> 
-      E |= p ~: T' @ q1 -> E |= T' ~<! (tp_rfn tp_top DS) ->
-      path_safe E p ->
-      E |= T ~<! (tp_sel p L)
-
-  | sub_tp_notrans_rfn_r : forall L E T T' Tpar DSP DS DS1 DS2, (* T' = tp_top and DS1 = DS2 --> recover expands_rfn*)
-      E |= T ~<! T' ->
-      (forall z, z \notin L -> forall_decls (ctx_bind E z T) (DS1 ^ds^ z) (DS2 ^ds^ z) sub_decl_notrans) ->
-      and_decls DSP DS DS1 ->
-      lbl.dom DS2 [<l=] lbl.dom DS1 -> (* no longer implied by sub_decls, but that forall/exists construction made induction impractical *)
-      E |= T ~<! (tp_rfn Tpar DS) -> E |= Tpar ~<! (tp_rfn tp_top DSP) ->  (* was E |= T ~< DS1 *)
-      E |= T ~<! (tp_rfn T' DS2) 
-
-  | sub_tp_notrans_and_r : forall E T T1 T2,
-      E |= T ~<! T1 -> E |= T ~<! T2 ->
-      E |= T ~<! (tp_and T1 T2)
-
-  | expands_and : forall E T T1 DS1 T2 DS2 DSM,
-      E |= T ~<! (tp_and T1 T2) ->
-      E |= T1 ~<! (tp_rfn tp_top DS1) -> E |= T2 ~<! (tp_rfn tp_top DS2) -> and_decls DS1 DS2 DSM ->
-      E |= T ~<! (tp_rfn tp_top DSM)
-
-  | sub_tp_notrans_or_r1 : forall E T T1 T2,
-      E |= T ~<! T1 -> 
-      E |= T ~<! (tp_or T1 T2)
-  | sub_tp_notrans_or_r2 : forall E T T1 T2,
-      E |= T ~<! T2 -> 
-      E |= T ~<! (tp_or T1 T2)
-
-  | expands_or : forall E T T1 DS1 T2 DS2 DSM,
-      E |= T ~<! (tp_or T1 T2) ->
-      E |= T1 ~<! (tp_rfn tp_top DS1) -> E |= T2 ~<! (tp_rfn tp_top DS2) -> or_decls DS1 DS2 DSM ->
-      E |= T ~<! (tp_rfn tp_top DSM)
-
-  | sub_tp_notrans_refl : forall E T, E |= T ~<! T
-  | sub_tp_notrans_top  : forall E T, E |= T ~<! tp_top
-  | expands_top : forall E T, E |= T ~<! (tp_rfn tp_top nil)  (* see e.g, rework_sub_decls' use of sub_tp_notrans_rfn_r*)
-
-(* this rule has the same structure as FSub's Sa-Trans-Tvar (p. 422) *)
-  | sub_tp_notrans_tpsel_l : forall E p T' q1 DS L S U T,
-      lbl.binds L (decl_tp S U) DS -> E |= (U ^tp^ p) ~<! T ->
-      E |= p ~: T' @ q1 -> E |= T' ~<! (tp_rfn tp_top DS) -> 
-      path p ->
-      E |= (tp_sel p L) ~<! T
-
-  | sub_tp_notrans_rfn_l : forall E T DS T', 
-      E |= T ~<! T' -> 
-      E |= (tp_rfn T DS) ~<! T'
-
-  | sub_tp_notrans_and_l1 : forall E T T1 T2,
-      E |= T1 ~<! T -> 
-      E |= (tp_and T1 T2) ~<! T
-  | sub_tp_notrans_and_l2 : forall E T T1 T2,
-      E |= T2 ~<! T -> 
-      E |= (tp_and T1 T2) ~<! T  
-
-  | sub_tp_notrans_or_l : forall E T T1 T2,
-      E |= T1 ~<! T -> E |= T2 ~<! T ->
-      E |= (tp_or T1 T2) ~<! T
-
-  | sub_tp_notrans_bot  : forall E T, E |= tp_bot ~<! T (* hide bottom down here, where it belongs *)
-
-where "E |= T1 ~<! T2" := (sub_tp_notrans E T1 T2)
-
-with sub_decl_notrans : env -> decl -> decl -> Prop :=
-  | sub_decl_notrans_tp : forall E S1 T1 S2 T2,
-      E |= S2 ~<! S1 ->
-      E |= T1 ~<! T2 ->
-      sub_decl_notrans E (decl_tp S1 T1) (decl_tp S2 T2) (*(q1 & q2) *)
-  | sub_decl_notrans_tm : forall E T1 T2,
-      E |= T1 ~<! T2 ->
-      sub_decl_notrans E (decl_tm T1) (decl_tm T2).
-
-Scheme sub_tp_notrans_indm   := Induction for sub_tp_notrans Sort Prop
-  with sub_decl_notrans_indm := Induction for sub_decl_notrans Sort Prop.
-
-Combined Scheme sub_tp_notrans_mutind from sub_tp_notrans_indm, sub_decl_notrans_indm.
-
 (* the motivation for the notrans version of subtyping: inversion *)
 Lemma invert_fun_notrans : forall E Sa Sr Ta Tr,
   E |= tp_fun Sa Sr ~<! tp_fun Ta Tr ->
@@ -625,9 +527,10 @@ required lemma's, which hopefully do not require transitivity
 splice: expose p.L S U -> expose p.L S' U' -> expose p.L S U'
 
   this should be provable by inverting the typing/subtyping judgements that derive exposure, 
-  cutting each of them in half (if they derive new bounds for L, there must be a sub_decl judgement involved, 
-  which is simply subtyping of the lower and upper bound according to variance, thus we can piece together
-  a new sub_decl judgement from the right halves of each one) and splicing them back together to get the required mongrel
+  cutting each of them in half and splicing them back together to get the required mongrel
+  (if they derive new bounds for L, there must be a sub_decl judgement involved, which is simply 
+  subtyping of the lower and upper bound according to the variance position, thus we can piece together
+  a new sub_decl judgement from the appropriate halves of each one) 
 
 invert_expose: expose p.L S U' -> S <: U' (under suitable side conditions of well-formedness of the context)
 

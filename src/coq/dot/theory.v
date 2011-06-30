@@ -15,9 +15,6 @@ could simply ignore them -- proofs with existentials are harder because I haven'
 downside: would have to be mutually defined with typing/subtyping/... making the mutual induction principle even bigger
 *)
 
-Definition forall_decls (E: env) (DS1: decls) (DS2: decls) (P : env -> decl -> decl -> Prop) :=
-      (forall l d1 d2, lbl.binds l d2 DS2 -> lbl.binds l d1 DS1 -> P E d1 d2).
-
 (* avoid existentially qualifying over qualities: it makes Coq sad (induction principles are not generated fully, proofs get harder,...) *)
 Inductive sub_qual : quality -> quality -> Prop :=
  | sub_qual_precise : forall q, sub_qual precise q
@@ -315,6 +312,10 @@ with wf_decl : env -> decl -> Prop :=
   | wf_decl_tm : forall E T,
      wf_tp E T ->
      wf_decl E (decl_tm T).
+
+
+Definition sub_decls E q DS1 DS2 := forall_decls E DS1 DS2 (fun E => fun d1 => fun d2 => sub_decl E q d1 d2).
+
 
 (* copy/paste from sub_tp_rfn_XXX since Combined Scheme refuses to generate the induction scheme when sub_decls is in the mix 
 Definition sub_decls E q T DS1 DS2 := forall z, z \notin L -> 

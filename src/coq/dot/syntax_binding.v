@@ -116,6 +116,11 @@ Definition ctx_bind_subsumed  : env -> atom -> tp -> env := fun E => fun x => fu
 
 (*Definition ctx_binds_untrusted : env -> atom -> tp -> Prop := fun E => fun x => fun T => binds x (ctx_tp_untrusted T) (fst E).*)
 
+
+Definition forall_decls (E: env) (DS1: decls) (DS2: decls) (P : env -> decl -> decl -> Prop) :=
+      (forall l d1 d2, lbl.binds l d2 DS2 -> lbl.binds l d1 DS1 -> P E d1 d2).
+
+
 (* is this term a path that's *assumed* to be safe? (i.e., can we trust its type members to have conforming bounds?)
  a lambda-bound variable is assumed to be safe since the typing of its body assumes a value can be provided for the argument, which implies the type of the variable is well-kinded *)
 Inductive path_safe : env -> tm -> Prop :=
