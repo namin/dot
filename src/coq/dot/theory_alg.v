@@ -32,9 +32,9 @@ Inductive typing_alg : env -> tm -> tp -> Prop :=
       E |= t ~:! T' -> E |= T' ~<! tp_rfn tp_top DS -> lbl.binds l D DS -> open_decl_cond D t (decl_tm T) ->
       E |= (sel t l) ~:! T
 
-  | typing_alg_peq : forall E t T p p',
-      E |= t ~:! (T ^tp^ p) ->
-      path_eq_alg E p' p -> (*lc_tm p' ->*)
+  | typing_alg_peq : forall E t T T' p p',
+      E |= t ~:! T' ->
+      T' = (T ^tp^ p) -> path_eq_alg E p' p -> (*lc_tm p' ->*)
       E |= t ~:! (T ^tp^ p')
 
    | typing_alg_app : forall E tf Ta Ta' Tr ta,
@@ -226,3 +226,9 @@ Scheme typing_alg_indm   := Induction for typing_alg    Sort Prop
   with wf_decl_alg_indm  := Induction for wf_decl_alg   Sort Prop.
   
 Combined Scheme typing_alg_mutind from typing_alg_indm, path_eq_alg_indm, wf_env_alg_indm, sub_tp_alg_indm, sub_decl_alg_indm, wf_tp_alg_indm.
+
+(* unlikely to be relevant: probably always need to mutually induct over all of the relations using typing_alg_mutind
+Scheme sub_tp_alg_indm_sub   := Induction for sub_tp_alg    Sort Prop
+  with sub_decl_alg_indm_sub := Induction for sub_decl_alg  Sort Prop.
+
+Combined Scheme sub_tp_alg_mutind from sub_tp_alg_indm_sub, sub_decl_alg_indm_sub. *)

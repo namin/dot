@@ -182,7 +182,7 @@ open_lc_is_noop
   (*app*) intros HTFun IHTFun HTArg IHTArg. (*presintros*) introv ? HStoTp HBoundTOk HRed. subst. inverts HRed.
     SCase "red_beta". split; auto. clear IHTArg IHTFun.
       destruct (invert_typing_lam HStoTp HBoundTOk HTFun) as [q0 [L [Tr' [HT [HWf [HLcT [? Hsubfun]]]]]]]. 
-      destruct (invert_subtyping_fun) as [_ InvSubFun]. 
+      destruct (invert_subtyping_fun) as [_ InvSubFun]. (* THIS IS WHAT BRINGS ON THE HURT *)
       assert (exists T1', exists T2', subsumes_fun_tp (tp_fun Ta Tr) T1' T2' 
                 /\ (exists q, (E0, s') |= T1' ~<: T @ q 
                 /\ (exists q0, (E0, s') |= Tr' ~<: T2' @ q0))) as [T1' [T2' [HSFT [qa [HSubArg [qr HSubRes]]]]]]. 
