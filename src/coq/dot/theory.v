@@ -31,7 +31,7 @@ val u = new Top { u =>
     val oops: z.L => Top
   }
   val main: Top
-}(main = (fun x: u.A => val al = new x.L; x.oops al) (new (u.A{type L : Int..Int})(oops = (x: Int) => x + 1))); 
+}(main = (fun x: u.A => val al = new x.L /* does this create a Top or an Int? */; x.oops al) (new (u.A{type L : Int..Int})(oops = (x: Int) => x + 1))); 
 u.main
 TODO: of course lambda abstraction and function application can be encoded using object instantiation and member selection:
 

@@ -46,7 +46,7 @@ with sub_tp_mini : env -> tp -> tp -> Prop :=
   | sub_tp_mini_tpsel_r : forall E p T' DS L S U,
       lbl.binds L (decl_tp S U) DS -> 
       E |= p ~:% T' -> E |= T' ~<% (tp_rfn tp_top DS) ->
-      path_safe E p ->
+      path E p -> (* no need for path_safe when transitivity is not a rule *)
       E |= (S ^tp^ p) ~<% (tp_sel p L) (* no need for slack, it's in sub_tp_mini_rfn_r already through member subsumption *)
 
   | sub_tp_mini_rfn_r : forall L E T T' Tpar DSP DS DS1 DS2, (* T' = tp_top and DS1 = DS2 --> recover expands_rfn*)
@@ -117,4 +117,12 @@ Scheme typing_mini_indm   := Induction for typing_mini    Sort Prop
   with wf_tp_mini_indm    := Induction for wf_tp_mini     Sort Prop
   with wf_decl_mini_indm  := Induction for wf_decl_mini   Sort Prop.
 
-Combined Scheme typing_mini_mutind from typing_mini_indm, wf_env_mini_indm, sub_tp_mini_indm, sub_decl_mini_indm, wf_tp_mini_indm.
+Combined Scheme typing_mini_mutind from typing_mini_indm, wf_env_mini_indm, sub_tp_mini_indm, sub_decl_mini_indm, wf_tp_mini_indm, wf_decl_mini_indm.
+
+
+(*
+*** Local Variables: ***
+*** coq-prog-name: "coqtop" ***
+*** coq-prog-args: ("-emacs-U" "-I" "../metalib") ***
+*** End: ***
+*)  
