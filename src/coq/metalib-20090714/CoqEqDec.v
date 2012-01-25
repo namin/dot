@@ -72,7 +72,6 @@ Proof. intros. unfold decidable. destruct (x == y); auto. Defined.
 
 Class EqDec_eq (A : Type) :=
   eq_dec : forall (x y : A), {x = y} + {x <> y}.
-(*
-Instance EqDec_eq_of_EqDec `(@EqDec A eq eq_equivalence) : EqDec_eq A.
+
+Instance EqDec_eq_of_EqDec {A} `(@EqDec A eq eq_equivalence) : EqDec_eq A.
 Proof. trivial. Defined.
-*)
