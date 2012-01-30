@@ -1479,7 +1479,7 @@ Proof.
 
        - Use [inversion] to rule out impossible cases.
 
-       - The lemma [typing_to_lc_c] will be useful for reasoning
+       - The lemma [typing_c_to_lc_c] will be useful for reasoning
          about local closure.
 
        - In the [typing_app_c] case:
@@ -1517,7 +1517,7 @@ Proof.
 (*************************************************************************)
 
 (* Substitution and weakening together give us a property we call
-   renaming: (see [typing_c_rename below] that we can change the name
+   renaming: (see [typing_c_rename] below that we can change the name
    of the variable used to open an expression in a typing
    derivation. In practice, this means that if a variable is not
    "fresh enough" during a proof, we can use this lemma to rename it
