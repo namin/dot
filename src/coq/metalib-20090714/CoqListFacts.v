@@ -9,6 +9,7 @@
 
 Require Import Coq.Lists.List.
 Require Import Coq.Lists.SetoidList.
+Require Import Coq.Classes.RelationClasses.
 
 Require Import CoqUniquenessTac.
 
@@ -125,9 +126,11 @@ Proof.
 Qed.
 
 Lemma InA_iff_In : forall (A : Type) (x : A) (xs : list A),
-  @Equivalence A eq -> (InA (@eq _) x xs <-> In x xs).
-Proof.
-  split; auto using InA_In, In_InA. Qed.
+  InA (@eq _) x xs <-> In x xs.
+Proof. 
+  split; auto using InA_In. 
+  apply SetoidList.In_InA. apply eq_equivalence.
+Qed.
 
 (** Whether a list is sorted is a decidable proposition. *)
 
@@ -177,19 +180,19 @@ Section SortedListEquality.
     eqlistA (@eq _) xs ys ->
     xs = ys.
   Proof. induction xs; destruct ys; inversion 1; f_equal; auto. Qed.
-(*
-  Lemma Sort_InA_eq : forall (xs ys: list A),
-    @Equivalence A eq ->
+
+  Lemma Sort_InA_eq : forall xs ys,
     Sort xs ->
     Sort ys ->
     (forall a, InA (@eq _) a xs <-> InA (@eq _) a ys) ->
-    xs = ys. 
+    xs = ys.
   Proof.
     intros xs ys ? ? ?.
     cut (eqlistA (@eq _) xs ys).
     auto using eqlist_eq.
-    Check SortA_equivlistA_eqlistA.
-    eauto using trans_eq, SetoidList.SortA_equivlistA_eqlistA.
+    apply SetoidList.SortA_equivlistA_eqlistA with (ltA := ltA); eauto.
+      apply eq_equivalence. firstorder.
+      reduce. subst. split; auto.
   Qed.
 
   Lemma Sort_In_eq : forall xs ys,
@@ -200,9 +203,10 @@ Section SortedListEquality.
   Proof with auto using In_InA, InA_In.
     intros ? ? ? ? H.
     apply Sort_InA_eq...
-    intros a; specialize (H a); intuition...
+    intros a; specialize (H a).
+    split; intros; apply In_InA; intuition...
   Qed.
-*)
+
 End SortedListEquality.
 
 

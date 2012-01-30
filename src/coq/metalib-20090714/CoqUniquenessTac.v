@@ -42,9 +42,9 @@ Definition apply_tuple
   : res.
 (* begin show *)
 Proof.
-  induction xs as [ | ? ? IH ]; simpl; intros res f arg.
+  induction xs as [ | ? ? IH ]; simpl.
   exact f.
-  exact (IH res (f (fst arg)) (snd arg)).
+  exact (IH (f (fst arg)) (snd arg)).
 Defined.
 (* end show *)
 
@@ -75,9 +75,10 @@ Definition tr_tuple_rev
   : tuple (tr_list_rev xs acc).
 (* begin show *)
 Proof.
-  induction xs as [ | ? ? IH ]; simpl; intros ab acc acc'.
+  generalize dependent acc.
+  induction xs as [ | ? ? IH ]; simpl; intros acc acc'.
   exact acc'.
-  exact (IH (snd ab) (cons a acc) (fst ab, acc')).
+  exact (IH (snd ab) (a :: acc) (fst ab, acc')).
 Defined.
 (* end show *)
 

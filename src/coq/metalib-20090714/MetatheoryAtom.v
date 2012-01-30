@@ -107,6 +107,8 @@ End AtomDT.
 Instance EqDec_atom : @EqDec atom eq eq_equivalence.
 Proof. exact eq_atom_dec. Defined.
 
+Instance EqDec_nat : @EqDec nat eq eq_equivalence.
+Proof. exact eq_nat_dec. Defined.
 
 (* ********************************************************************** *)
 (** * Finite sets of atoms *)
@@ -156,7 +158,7 @@ Lemma atom_fresh : forall L : atoms, { x : atom | ~ In x L }.
 Proof.
   intros L. destruct (atom_fresh_for_list (elements L)) as [a H].
   exists a. intros J. contradiction H.
-  rewrite <- CoqListFacts.InA_iff_In. auto using @elements_1.  auto.
+  rewrite <- CoqListFacts.InA_iff_In. auto using @elements_1.
 Qed.
 
 

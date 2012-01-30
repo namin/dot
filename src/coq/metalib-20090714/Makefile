@@ -16,7 +16,7 @@
 ## Paths to executables. Do not include options here.
 ## Modify these to suit your Coq installation, if necessary.
 
-COQC = coqc -compat 8.2
+COQC = coqc
 COQDEP = coqdep
 COQDOC = coqdoc
 

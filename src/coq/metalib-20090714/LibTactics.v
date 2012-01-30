@@ -12,7 +12,7 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Strings.String.
 
-(** Implementation note: We want [string_scopepe] to be available for
+(** Implementation note: We want [string_scope] to be available for
     the [Case] tactics below, but we want "++" to denote list
     concatenation. *)
 
