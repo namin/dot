@@ -17,7 +17,8 @@
   ((Sc Tc) (sel p Lc) (refinement Tc z D ...) (/\ Tc Tc) Top)
   (D (: Lt S U) (: l T))
   (ec hole (ec e) (v ec) (sel ec l))
-  (bool #t #f))
+  (bool #t #f)
+  (Lany Lt l))
 
 (redex-match dot e (term (λ (x Top) x)))
 (redex-match dot e (term (valnew (u (Top)) u)))
@@ -114,7 +115,50 @@
 (define (trace-dot expr)
   (traces red-rr (term (() ,expr))))
 
-(trace-dot (term ((λ (x Top) x) y)))
-(trace-dot (term (valnew (u (Top)) ((λ (x Top) x) y))))
-(trace-dot (term (valnew (u ((refinement Top self (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
+;(trace-dot (term ((λ (x Top) x) y)))
+;(trace-dot (term (valnew (u (Top)) ((λ (x Top) x) y))))
+;(trace-dot (term (valnew (u ((refinement Top self (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
 
+(define value? (redex-match dot v))
+(define (single-step? e)
+  (= (length (apply-reduction-relation red-rr (term (() ,e))))
+     1))
+
+(define-metafunction dot
+  gamma-extend : Gamma x T -> Gamma
+  [(gamma-extend ((x_before T_before) ...) x_new T_new)
+   ((x_before T_before) ... (x_new T_new))])
+
+(define-metafunction dot
+  gamma-lookup : Gamma x -> T or #f
+  [(gamma-lookup ((x_before T_before) ... (x_req T_req)) x_req) T_req]
+  [(gamma-lookup ((x_before T_before) ... (x_last T_last)) x_req) (gamma-lookup ((x_before T_before) ...) x_req)]
+  [(gamma-lookup () x_req) #f])
+
+(define-judgment-form dot
+  #:mode (typeof I I O)
+  #:contract (typeof Gamma e T)
+  [(typeof Gamma x T)
+   (where T (gamma-lookup Gamma x))
+   (found T #t)]
+  [(typeof Gamma (valnew (x (Top)) e) T)
+   (typeof (gamma-extend Gamma x Top) e T)])
+
+(define (typecheck G e)
+  (match (judgment-holds (typeof ,G ,e T) T)
+    [(list) #f]
+    [(list T) T]
+    [_ (error 'typecheck
+              "multiple typing derivations for term ~a in environment ~a"
+              e G)]))
+
+(typecheck (term ()) (term (valnew (u (Top)) u)))
+(typecheck (term ()) (term (valnew (o (Top)) (valnew (o (Top)) o))))
+
+;; progress
+(redex-check dot
+             e
+             (if (typecheck (term ()) (term e))
+                 (or (value? (term e))
+                     (single-step? (term e)))
+                 #t))
