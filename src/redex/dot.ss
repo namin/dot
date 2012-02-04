@@ -17,8 +17,8 @@
   (Lt Lc La)
   (Lc (label-class variable-not-otherwise-mentioned))
   (La (label-abstract-type variable-not-otherwise-mentioned))
-  ((S T U V) (sel p Lt) (refinement T z D ...) (-> T T) (/\ T T) (\/ T T) Top Bottom)
-  ((Sc Tc) (sel p Lc) (refinement Tc z D ...) (/\ Tc Tc) Top)
+  ((S T U V) (sel p Lt) (refinement T z D ...) (-> T T) (intersection T T) (union T T) Top Bottom)
+  ((Sc Tc) (sel p Lc) (refinement Tc z D ...) (intersection Tc Tc) Top)
   (D (: Lt S U) (: l T))
   (ec hole (ec e) (v ec) (sel ec l))
   (bool #t #f)
@@ -126,10 +126,10 @@
 (define (trace-dot expr)
   (traces red-rr (term (() ,expr))))
 
-(trace-dot (term ((λ (x Top) x) (λ (x Top) x))))
-(trace-dot (term (valnew (u (Top)) u)))
-(trace-dot (term (valnew (u (Top)) ((λ (x Top) x) (λ (x Top) x)))))
-(trace-dot (term (valnew (u ((refinement Top self (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
+;(trace-dot (term ((λ (x Top) x) (λ (x Top) x))))
+;(trace-dot (term (valnew (u (Top)) u)))
+;(trace-dot (term (valnew (u (Top)) ((λ (x Top) x) (λ (x Top) x)))))
+;(trace-dot (term (valnew (u ((refinement Top self (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
 
 (define value? (redex-match dot v))
 (define (single-step? e)
@@ -159,17 +159,42 @@
   [(constructor-type-lookup (Tc any ...)) Tc])
 
 (define-judgment-form dot
+  #:mode (wf-type I I)
+  #:contract (wf-type env T)
+  [(wf-type env Top)]
+  [(wf-type env (-> T_1 T_2))
+   (wf-type env T_1)
+   (wf-type env T_2)])
+
+(define-judgment-form dot
+  #:mode (subtype I I I)
+  #:contract (subtype env S T)
+  [(subtype env T T)]
+  [(subtype env T Top)]
+  [(subtype env (-> S_1 S_2) (-> T_1 T_2))
+   (subtype env T_1 S_1)
+   (subtype env S_2 T_2)])
+
+(define-judgment-form dot
   #:mode (typeof I I O)
   #:contract (typeof env e T)
   [(typeof (Gamma store) x T)
    (where T (gamma-lookup Gamma x))
    (found T #t)]
-  [(typeof (Gamma store) (valnew (x (Top)) e) T)
-   (typeof ((gamma-extend Gamma x Top) store) e T)]
+  [(typeof (Gamma store) (valnew (x (Tc)) e) T)
+   (wf-type (Gamma store) Tc)
+   (typeof ((gamma-extend Gamma x Tc) store) e T)]
   [(typeof (Gamma store) (location i) Tc)
    (where c (store-lookup store i))
    (found c #t)
-   (where Tc (constructor-type-lookup c))])
+   (where Tc (constructor-type-lookup c))]
+  [(typeof (Gamma store) (λ (x S) e) (-> S T))
+   (wf-type (Gamma store) S)
+   (typeof ((gamma-extend Gamma x S) store) e T)]
+  [(typeof env (e_1 e_2) T)
+   (typeof env e_1 (-> S T))
+   (typeof env e_2 T_2)
+   (subtype env T_2 S)])
 
 (define (typecheck env e)
   (match (judgment-holds (typeof ,env ,e T) T)
@@ -181,6 +206,8 @@
 
 (typecheck (term (() ())) (term (valnew (u (Top)) u)))
 (typecheck (term (() ())) (term (valnew (o (Top)) (valnew (o (Top)) o))))
+(typecheck (term (() ())) (term (λ (x Top) x)))
+(typecheck (term (() ())) (term ((λ (x Top) x) (λ (x Top) x))))
 
 (define (progress e)
   (if (typecheck (term (() ())) e)
@@ -194,16 +221,17 @@
   (if (and (typecheck (term (() ())) e) (single-step? e))
       (begin
         (printf "preservation: trying ~a\n" e)
-        (let loop ((e e) (store (term ())))
-          (or (value? e)
+        (let loop ((e e) (t (typecheck (term (() ())) e)))
+          (or (and (value? e) t)
               (match (steps-to e)
                 [(list store_to e_to)
-                 (and (equal? (typecheck (term (() ,store)) e) (typecheck (term (() ,store_to)) e_to))
-                      (loop e_to store_to))]
+                 (and (judgment-holds (subtype (() ,store_to) ,(typecheck (term (() ,store_to)) e_to) ,t))
+                      (loop e_to (typecheck (term (() ,store_to)) e_to)))]
                 [_ (error 'preservation "expect match")]))))
       #t))
 
 (preservation (term (valnew (u (Top)) u)))
+(preservation (term ((λ (x Top) x) (λ (x Top) x))))
 
 (redex-check dot e (progress (term e)))
 (redex-check dot e (preservation (term e)))
