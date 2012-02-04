@@ -184,13 +184,23 @@
 
 (define (progress e)
   (if (typecheck (term (() ())) e)
-      (or (value? e)
-          (single-step? e))
+      (begin
+        (printf "progress: trying ~a\n" e)
+        (or (value? e)
+            (single-step? e)))
       #t))
 
 (define (preservation e)
   (if (and (typecheck (term (() ())) e) (single-step? e))
-      (match (steps-to e) [(list store e_to) (equal? (typecheck (term (() ())) e) (typecheck (term (() ,store)) e_to))] [_ (error 'preservation "expect match")])
+      (begin
+        (printf "preservation: trying ~a\n" e)
+        (let loop ((e e) (store (term ())))
+          (or (value? e)
+              (match (steps-to e)
+                [(list store_to e_to)
+                 (and (equal? (typecheck (term (() ,store)) e) (typecheck (term (() ,store_to)) e_to))
+                      (loop e_to store_to))]
+                [_ (error 'preservation "expect match")]))))
       #t))
 
 (preservation (term (valnew (u (Top)) u)))
