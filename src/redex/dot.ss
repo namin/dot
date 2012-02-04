@@ -4,12 +4,16 @@
 (define-language dot
   ((x y z) variable-not-otherwise-mentioned)
   (l (label-value variable-not-otherwise-mentioned))
-  (v x (λ (x T) e))
-  (e v (e e) (valnew (x c) e) (sel e l))
-  (p x (sel p l))
-  (c (Tc (l v) ...))
+  (i natural)
+  (loc (location i))
+  (v loc (λ (x T) e))
+  (vx v x)
+  (e vx (e e) (valnew (x c) e) (sel e l))
+  (p x loc (sel p l))
+  (c (Tc (l vx) ...))
   (Gamma ([x T] ...))
-  (store ([x c] ...))
+  (store (c ...))
+  (env (Gamma store))
   (Lt Lc La)
   (Lc (label-class variable-not-otherwise-mentioned))
   (La (label-abstract-type variable-not-otherwise-mentioned))
@@ -46,9 +50,9 @@
 
     
   ;; do not treat labels as variables
-  [(subst (label-value l_1) x_1 any_1) (label-value l_1)]
-  [(subst (label-class Lc_1) x_1 any_1) (label-class Lc_1)]
-  [(subst (label-abstract-type La_1) x_1 any_1) (label-abstract-type La_1)]
+  [(subst (label-value variable_1) x_1 any_1) (label-value variable_1)]
+  [(subst (label-class variable_1) x_1 any_1) (label-class variable_1)]
+  [(subst (label-abstract-type variable_1) x_1 any_1) (label-abstract-type variable_1)]
 
   ;; 3. replace X_1 with any_1
   [(subst x_1 x_1 any_1) any_1]
@@ -73,15 +77,21 @@
 (term (subst (valnew (u ((refinement Top self (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l))) l x))
 
 (define-metafunction dot
-  store-extend : store x c -> store
-  [(store-extend ((x_before c_before) ...) x_new c_new)
-   ((x_before c_before) ... (x_new c_new))])
+  store-extend : store c -> store
+  [(store-extend (c_before ...) c_new)
+   (c_before ... c_new)])
 
 (define-metafunction dot
-  store-lookup : store x -> c or #f
-  [(store-lookup ((x_before c_before) ... (x_req c_req)) x_req) c_req]
-  [(store-lookup ((x_before c_before) ... (x_last c_last)) x_req) (store-lookup ((x_before c_before) ...) x_req)]
-  [(store-lookup () x_req) #f])
+  store-lookup : store i -> c or #f
+  [(store-lookup (c ...) i)
+   ,(if (< (term i) (length (term (c ...))))
+        (list-ref (term (c ...)) (term i))
+        #f)])
+
+(define-metafunction dot
+  store-fresh-location : store -> loc
+  [(store-fresh-location (c ...))
+   (location ,(length (term (c ...))))])
 
 (define-metafunction dot
   value-label-lookup : c l -> v or #f
@@ -99,9 +109,10 @@
   #:mode (red I I O O)
   #:contract (red store e e store)
   [(red store (in-hole ec ((λ (x T) e) v)) (in-hole ec (subst e x v)) store)] ;; (βv)
-  [(red store (in-hole ec (valnew (x c) e)) (in-hole ec e) (store-extend store x c))] ;; (New)
-  [(red store (in-hole ec (sel x l)) (in-hole ec v) store) ;; (Sel)
-   (where c (store-lookup store x))
+  [(red store (in-hole ec (valnew (x c) e)) (in-hole ec (subst e x loc_new)) (store-extend store (subst c x loc_new)))
+   (where loc_new (store-fresh-location store))] ;; (New)
+  [(red store (in-hole ec (sel (location i) l)) (in-hole ec v) store) ;; (Sel)
+   (where c (store-lookup store i))
    (found c #t)
    (where v (value-label-lookup c l))
    (found v #t)])
@@ -115,14 +126,22 @@
 (define (trace-dot expr)
   (traces red-rr (term (() ,expr))))
 
-;(trace-dot (term ((λ (x Top) x) y)))
-;(trace-dot (term (valnew (u (Top)) ((λ (x Top) x) y))))
-;(trace-dot (term (valnew (u ((refinement Top self (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
+(trace-dot (term ((λ (x Top) x) (λ (x Top) x))))
+(trace-dot (term (valnew (u (Top)) u)))
+(trace-dot (term (valnew (u (Top)) ((λ (x Top) x) (λ (x Top) x)))))
+(trace-dot (term (valnew (u ((refinement Top self (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
 
 (define value? (redex-match dot v))
 (define (single-step? e)
   (= (length (apply-reduction-relation red-rr (term (() ,e))))
      1))
+(define (steps-to e)
+  (match (apply-reduction-relation red-rr (term (() ,e)))
+    [(list) #f]
+    [(list any) any]
+    [_ (error 'steps-to
+              "multiple derivations for term ~a"
+              e)]))
 
 (define-metafunction dot
   gamma-extend : Gamma x T -> Gamma
@@ -135,30 +154,46 @@
   [(gamma-lookup ((x_before T_before) ... (x_last T_last)) x_req) (gamma-lookup ((x_before T_before) ...) x_req)]
   [(gamma-lookup () x_req) #f])
 
+(define-metafunction dot
+  constructor-type-lookup : c -> Tc
+  [(constructor-type-lookup (Tc any ...)) Tc])
+
 (define-judgment-form dot
   #:mode (typeof I I O)
-  #:contract (typeof Gamma e T)
-  [(typeof Gamma x T)
+  #:contract (typeof env e T)
+  [(typeof (Gamma store) x T)
    (where T (gamma-lookup Gamma x))
    (found T #t)]
-  [(typeof Gamma (valnew (x (Top)) e) T)
-   (typeof (gamma-extend Gamma x Top) e T)])
+  [(typeof (Gamma store) (valnew (x (Top)) e) T)
+   (typeof ((gamma-extend Gamma x Top) store) e T)]
+  [(typeof (Gamma store) (location i) Tc)
+   (where c (store-lookup store i))
+   (found c #t)
+   (where Tc (constructor-type-lookup c))])
 
-(define (typecheck G e)
-  (match (judgment-holds (typeof ,G ,e T) T)
+(define (typecheck env e)
+  (match (judgment-holds (typeof ,env ,e T) T)
     [(list) #f]
     [(list T) T]
     [_ (error 'typecheck
               "multiple typing derivations for term ~a in environment ~a"
-              e G)]))
+              e env)]))
 
-(typecheck (term ()) (term (valnew (u (Top)) u)))
-(typecheck (term ()) (term (valnew (o (Top)) (valnew (o (Top)) o))))
+(typecheck (term (() ())) (term (valnew (u (Top)) u)))
+(typecheck (term (() ())) (term (valnew (o (Top)) (valnew (o (Top)) o))))
 
-;; progress
-(redex-check dot
-             e
-             (if (typecheck (term ()) (term e))
-                 (or (value? (term e))
-                     (single-step? (term e)))
-                 #t))
+(define (progress e)
+  (if (typecheck (term (() ())) e)
+      (or (value? e)
+          (single-step? e))
+      #t))
+
+(define (preservation e)
+  (if (and (typecheck (term (() ())) e) (single-step? e))
+      (match (steps-to e) [(list store e_to) (equal? (typecheck (term (() ())) e) (typecheck (term (() ,store)) e_to))] [_ (error 'preservation "expect match")])
+      #t))
+
+(preservation (term (valnew (u (Top)) u)))
+
+(redex-check dot e (progress (term e)))
+(redex-check dot e (preservation (term e)))
