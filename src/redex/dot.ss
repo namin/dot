@@ -24,6 +24,11 @@
   (bool #t #f)
   (Lany Lt l))
 
+(define-extended-language mini-dot dot
+  (c (Tc))
+  ((S T U V) (-> T T) Top)
+  ((Sc Tc) Top))
+
 (redex-match dot e (term (λ (x Top) x)))
 (redex-match dot e (term (valnew (u (Top)) u)))
 (redex-match dot e (term (valnew (u ((refinement Top self (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
@@ -135,8 +140,8 @@
 (define (single-step? e)
   (= (length (apply-reduction-relation red-rr (term (() ,e))))
      1))
-(define (steps-to e)
-  (match (apply-reduction-relation red-rr (term (() ,e)))
+(define (steps-to store e)
+  (match (apply-reduction-relation red-rr (term (,store ,e)))
     [(list) #f]
     [(list any) any]
     [_ (error 'steps-to
@@ -170,7 +175,7 @@
   #:mode (subtype I I I)
   #:contract (subtype env S T)
   [(subtype env T T)]
-  [(subtype env T Top)]
+  [(subtype env (side-condition T (not (equal? (term T) (term Top)))) Top)]
   [(subtype env (-> S_1 S_2) (-> T_1 T_2))
    (subtype env T_1 S_1)
    (subtype env S_2 T_2)])
@@ -212,7 +217,7 @@
 (define (progress e)
   (if (typecheck (term (() ())) e)
       (begin
-        (printf "progress: trying ~a\n" e)
+        ;(printf "progress: trying ~a\n" e)
         (or (value? e)
             (single-step? e)))
       #t))
@@ -220,18 +225,33 @@
 (define (preservation e)
   (if (and (typecheck (term (() ())) e) (single-step? e))
       (begin
-        (printf "preservation: trying ~a\n" e)
-        (let loop ((e e) (t (typecheck (term (() ())) e)))
+        ;(printf "preservation: trying ~a\n" e)
+        (let loop ((e e) (store (term ())) (t (typecheck (term (() ())) e)))
           (or (and (value? e) t)
-              (match (steps-to e)
+              (match (steps-to store e)
                 [(list store_to e_to)
                  (and (judgment-holds (subtype (() ,store_to) ,(typecheck (term (() ,store_to)) e_to) ,t))
-                      (loop e_to (typecheck (term (() ,store_to)) e_to)))]
+                      (loop e_to store_to (typecheck (term (() ,store_to)) e_to)))]
                 [_ (error 'preservation "expect match")]))))
       #t))
 
 (preservation (term (valnew (u (Top)) u)))
 (preservation (term ((λ (x Top) x) (λ (x Top) x))))
 
-(redex-check dot e (progress (term e)))
-(redex-check dot e (preservation (term e)))
+(define-metafunction dot
+  vars : any -> (x ...)
+  [(vars (label-value variable_1)) ()]
+  [(vars (label-class variable_1)) ()]
+  [(vars (label-abstract-type variable_1)) ()]
+  [(vars x_1) (x_1)]
+  [(vars (any_1 ...)) ,(apply append (term ((vars any_1) ...)))]
+  [(vars any_1) ()])
+
+(define (close e)
+  (let loop ((e e) (vs (term (vars ,e))))
+    (if (null? vs)
+        e
+        (loop (term (subst ,e ,(car vs) (λ (x Top) x))) (cdr vs)))))
+
+(redex-check mini-dot e (progress (term e)) #:prepare close)
+(redex-check mini-dot e (preservation (term e)) #:prepare close)
