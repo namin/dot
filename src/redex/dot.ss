@@ -56,8 +56,8 @@
    (where x_3 ,(variable-not-in (term (x_2 c_1 any_1 any_2))
                                 (term x_1)))]
   [(subst (refinement Tc_1 x_1 D_1 ...) x_2 any_2)
-   (refinement Tc_1 x_3 (subst (subst-var D_1 x_1 x_3) x_2 any_2) ...)
-   (where x_3 ,(variable-not-in (term (D_1 ... x_2 any_2))
+   (refinement (subst (subst-var Tc_1 x_1 x_3) x_2 any_2) x_3 (subst (subst-var D_1 x_1 x_3) x_2 any_2) ...)
+   (where x_3 ,(variable-not-in (term (Tc_1 D_1 ... x_2 any_2))
                                 (term x_1)))]
 
   ;; do not treat labels as variables
@@ -75,6 +75,10 @@
 
 (define-metafunction dot
   subst-var : any x x -> any
+  [(subst-var (label-value variable_1) x_1 x_2) (label-value variable_1)]
+  [(subst-var (label-class variable_1) x_1 x_2) (label-class variable_1)]
+  [(subst-var (label-abstract-type variable_1) x_1 x_2) (label-abstract-type variable_1)]
+
   [(subst-var (any_1 ...) x_1 x_2)
    ((subst-var any_1 x_1 x_2) ...)]
   [(subst-var x_1 x_1 x_2) x_2]
@@ -226,6 +230,16 @@
    (subtype env T_1 T_2)])
 
 (define-judgment-form dot
+  #:mode (subdecls I I I)
+  #:contract (subdecls env (D ...) (D ...))
+  [(subdecls env (D_first D_rest ...) ())]
+  [(subdecls env ((: l T_1) D_1 ...) ((: l T_2) D_2 ...))
+   (subtype env T_1 T_2)
+   (subdecls env (D_1 ...) (D_2 ...))]
+  [(subdecls env ((: l_1 T_1) D_1 ...) ((: (side-condition l_2 (not (equal? (term l_1) (term l_2)))) T_2) D_2 ...))
+   (subdecls env (D_1 ...) (D_2 ...))])
+
+(define-judgment-form dot
   #:mode (subtype I I I)
   #:contract (subtype env S T)
   [(subtype env T T)]
@@ -233,6 +247,11 @@
   [(subtype env (-> S_1 S_2) (-> T_1 T_2))
    (subtype env T_1 S_1)
    (subtype env S_2 T_2)]
+  [(subtype env S (side-condition (refinement T z DLt ... Dl ...) (not (equal? (term S) (term (refinement T z DLt ... Dl ...))))))
+   (subtype env S T)
+   (expansion env S (Dl_s ...))
+   (expansion env T (Dl_t ...))
+   (subdecls env (sorted-decls (Dl_s ...)) (sorted-decls (Dl_t ...)))]
   [(subtype env (refinement T_1 z DLt ... Dl ...) (side-condition T_2 (not (equal? (term T_2) (term Top)))))
    (subtype env T_1 T_2)])
 
@@ -282,7 +301,7 @@
 (define (progress e)
   (if (typecheck (term (() ())) e)
       (begin
-        (printf "progress: trying ~a\n" e)
+        ;(printf "progress: trying ~a\n" e)
         (or (value? e)
             (single-step? e)))
       #t))
@@ -290,7 +309,7 @@
 (define (preservation e)
   (if (and (typecheck (term (() ())) e) (single-step? e))
       (begin
-        (printf "preservation: trying ~a\n" e)
+        ;(printf "preservation: trying ~a\n" e)
         (let loop ((e e) (store (term ())) (t (typecheck (term (() ())) e)))
           (or (and (value? e) t)
               (match (steps-to store e)
@@ -332,7 +351,11 @@
   [(massage (x_b ...) (l_b ...) (λ (x_1 T_1) e_2))
    (λ (x_1 T_1) (massage (x_b ... x_1) (l_b ...) e_2))]
   [(massage (x_b ...) (l_b ...) (sel e_1 l_1)) (sel (massage (x_b ...) (l_b ...) e_1) ,(pick-random (term (l_b ...)) (term l_1)))]
-  [(massage (x_b ...) (l_b ...) x_1) ,(pick-random (term (x_b ...)) (term (λ (x Top) x)))]
+  [(massage (x_b ...) (l_b ...) x_1)
+   ,(let ((res (pick-random (term (x_b ... )) (term (λ (x Top) x)))))
+      (if (or (null? (term (l_b ...))) (= 0 (random 1)))
+          res
+          (term (sel ,res ,(pick-random (term (l_b ...)) #f)))))]
   [(massage (x_b ...) (l_b ...) (refinement Tc_1 z_1 D_1 ...)) (refinement Tc_1 z_1 D_1 ...)]
   [(massage (x_b ...) (l_b ...) (any_1 ...)) ((massage (x_b ...) (l_b ...) any_1) ...)]
   [(massage (x_b ...) (l_b ...) any_1) any_1])
@@ -342,3 +365,8 @@
 
 (redex-check mini-dot e (progress (term e)) #:prepare close)
 (redex-check mini-dot e (preservation (term e)) #:prepare close)
+
+(let ([R (reduction-relation mini-dot
+  [--> (valnew (x ((refinement Top z (: l_1 Top) Dl ...) (l vx) ...)) e) (valnew (x ((refinement Top z (: l_1 Top) Dl ...) (l vx) ...)) e)])])
+  (redex-check mini-dot e (progress (term e)) #:source R #:prepare prepare)
+  (redex-check mini-dot e (preservation (term e)) #:source R #:prepare prepare))
