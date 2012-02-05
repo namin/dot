@@ -17,16 +17,18 @@
   (Lt Lc La)
   (Lc (label-class variable-not-otherwise-mentioned))
   (La (label-abstract-type variable-not-otherwise-mentioned))
-  ((S T U V) (sel p Lt) (refinement T z D ...) (-> T T) (intersection T T) (union T T) Top Bottom)
-  ((Sc Tc) (sel p Lc) (refinement Tc z D ...) (intersection Tc Tc) Top)
-  (D (: Lt S U) (: l T))
+  ((S T U V) (sel p Lt) (refinement T z DLt ... Dl ...) (-> T T) (intersection T T) (union T T) Top Bottom)
+  ((Sc Tc) (sel p Lc) (refinement Tc z DLt ... Dl ...) (intersection Tc Tc) Top)
+  (DLt (: Lt S U))
+  (Dl (: l T))
+  (D DLt Dl)
   (ec hole (ec e) (v ec) (sel ec l))
   (bool #t #f)
   (Lany Lt l))
 
 (define-extended-language mini-dot dot
   ((S T U V) (-> T T) Top)
-  ((Sc Tc) (refinement Tc z (: l T) ...) Top))
+  ((Sc Tc) (refinement Tc z Dl ...) (intersection Tc Tc) Top))
 
 (redex-match dot e (term (λ (x Top) x)))
 (redex-match dot e (term (valnew (u (Top)) u)))
