@@ -319,5 +319,26 @@
         e
         (loop (term (subst ,e ,(car vs) (λ (x Top) x))) (cdr vs)))))
 
+(define (pick-random lst def)
+  (if (null? lst)
+      def
+      (list-ref lst (random (length lst)))))
+
+(define-metafunction dot
+  massage : (x ...) (l ...) any -> any
+  [(massage (x_b ...) (l_b ...) (valnew (x_1 (Tc_1 (l_1 vx_1) ...)) e_1))
+   (valnew (x_1 (Tc_1 (l_e ,(pick-random (term (x_b ... x_1)) (term (λ (x Top) x)))) ...)) (massage (x_b ... x_1) (l_b ... l_e ...) e_1))
+   (judgment-holds (expansion (() ()) Tc_1 ((: l_e T_le) ...)))]
+  [(massage (x_b ...) (l_b ...) (λ (x_1 T_1) e_2))
+   (λ (x_1 T_1) (massage (x_b ... x_1) (l_b ...) e_2))]
+  [(massage (x_b ...) (l_b ...) (sel e_1 l_1)) (sel (massage (x_b ...) (l_b ...) e_1) ,(pick-random (term (l_b ...)) (term l_1)))]
+  [(massage (x_b ...) (l_b ...) x_1) ,(pick-random (term (x_b ...)) (term (λ (x Top) x)))]
+  [(massage (x_b ...) (l_b ...) (refinement Tc_1 z_1 D_1 ...)) (refinement Tc_1 z_1 D_1 ...)]
+  [(massage (x_b ...) (l_b ...) (any_1 ...)) ((massage (x_b ...) (l_b ...) any_1) ...)]
+  [(massage (x_b ...) (l_b ...) any_1) any_1])
+
+(define (prepare e)
+  (term (massage () () ,e)))
+
 (redex-check mini-dot e (progress (term e)) #:prepare close)
 (redex-check mini-dot e (preservation (term e)) #:prepare close)
