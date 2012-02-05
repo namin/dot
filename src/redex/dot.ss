@@ -28,7 +28,7 @@
 
 (define-extended-language mini-dot dot
   ((S T U V) (-> T T) Top)
-  ((Sc Tc) (refinement Tc z Dl ...) (intersection Tc Tc) Top))
+  ((Sc Tc) (refinement Tc z Dl ...) Top))
 
 (redex-match dot e (term (λ (x Top) x)))
 (redex-match dot e (term (valnew (u (Top)) u)))
@@ -170,12 +170,60 @@
   [(constructor-type-lookup (Tc any ...)) Tc])
 
 (define-judgment-form dot
+  #:mode (wf-decl I I)
+  #:contract (wf-decl env D)
+  [(wf-decl env (: l T))
+   (wf-type env T)])
+
+(define-judgment-form dot
   #:mode (wf-type I I)
   #:contract (wf-type env T)
   [(wf-type env Top)]
   [(wf-type env (-> T_1 T_2))
    (wf-type env T_1)
-   (wf-type env T_2)])
+   (wf-type env T_2)]
+  [(wf-type (Gamma store) (refinement Tc z Dl ...))
+   (where env_extended ((gamma-extend Gamma z (refinement Tc z Dl ...)) store))
+   (wf-decl env_extended Dl) ...])
+
+(define (sort-decls ds)
+  (sort ds #:key (lambda (x) (symbol->string (cadr (cadr x)))) string<?))
+(define-metafunction dot
+  sorted-decls : (D ...) -> (D ...)
+  [(sorted-decls (D_1 ...)) ,(sort-decls (term (D_1 ...)))])
+  
+(define (sort-assigns as)
+  (sort as #:key (lambda (x) (symbol->string (cadr (car x)))) string<?))
+(define-metafunction dot
+  sorted-assigns : ((l vx) ...) -> ((l vx) ...)
+  [(sorted-assigns ((l_1 vx_1) ...)) ,(sort-assigns (term ((l_1 vx_1) ...)))])
+
+(define-metafunction dot
+  decl-intersection : (D ...) (D ...) -> (D ...)
+  [(decl-intersection (D_1 ...) (D_2 ...)) (D_1 ... D_2 ...)])
+
+(define-metafunction dot
+  membership-lookup : env e l -> T or #f
+  [(membership-lookup env_1 e_1 l_1)
+   T_1
+   (judgment-holds (typeof env_1 e_1 T_e))
+   (judgment-holds (expansion env_1 T_e (D_before ... (: l_1 T_1) D_after ...)))]
+  [(membership-lookup env_1 e_1 l_1)
+   #f])
+                                     
+(define-judgment-form dot
+  #:mode (expansion I I O)
+  #:contract (expansion env T (D ...))
+  [(expansion env Top ())]
+  [(expansion env (-> S T) ())]
+  [(expansion env (refinement T_1 z_1 Dl_1 ...) (decl-intersection (Dl_1 ...) (D_2 ...)))
+   (expansion env T_1 (D_2 ...))])
+  
+(define-judgment-form dot
+  #:mode (subdecl I I I)
+  #:contract (subdecl env D D)
+  [(subdecl env (: l_1 T_1) (: l_1 T_2))
+   (subtype env T_1 T_2)])
 
 (define-judgment-form dot
   #:mode (subtype I I I)
@@ -184,7 +232,9 @@
   [(subtype env (side-condition T (not (equal? (term T) (term Top)))) Top)]
   [(subtype env (-> S_1 S_2) (-> T_1 T_2))
    (subtype env T_1 S_1)
-   (subtype env S_2 T_2)])
+   (subtype env S_2 T_2)]
+  [(subtype env (refinement T_1 z DLt ... Dl ...) (side-condition T_2 (not (equal? (term T_2) (term Top)))))
+   (subtype env T_1 T_2)])
 
 (define-judgment-form dot
   #:mode (typeof I I O)
@@ -192,8 +242,13 @@
   [(typeof (Gamma store) x T)
    (where T (gamma-lookup Gamma x))
    (found T #t)]
-  [(typeof (Gamma store) (valnew (x (Tc)) e) T)
+  [(typeof (Gamma store) (valnew (x (Tc (l vx) ...)) e) T)
    (wf-type (Gamma store) Tc)
+   (expansion (Gamma store) Tc (Dl ...))
+   (where ((l_s vx_s) ...) (sorted-assigns ((l vx) ...)))
+   (where ((: l_s V_d) ...) (sorted-decls (Dl ...)))
+   (typeof ((gamma-extend Gamma x Tc) store) vx_s V_s) ...
+   (subtype ((gamma-extend Gamma x Tc) store) V_s V_d) ...
    (typeof ((gamma-extend Gamma x Tc) store) e T)]
   [(typeof (Gamma store) (location i) Tc)
    (where c (store-lookup store i))
@@ -205,7 +260,10 @@
   [(typeof env (e_1 e_2) T)
    (typeof env e_1 (-> S T))
    (typeof env e_2 T_2)
-   (subtype env T_2 S)])
+   (subtype env T_2 S)]
+  [(typeof env (sel e_1 l_1) T_1)
+   (where T_1 (membership-lookup env e_1 l_1))
+   (found T_1 #t)])
 
 (define (typecheck env e)
   (match (judgment-holds (typeof ,env ,e T) T)
@@ -219,11 +277,12 @@
 (typecheck (term (() ())) (term (valnew (o (Top)) (valnew (o (Top)) o))))
 (typecheck (term (() ())) (term (λ (x Top) x)))
 (typecheck (term (() ())) (term ((λ (x Top) x) (λ (x Top) x))))
+(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
 
 (define (progress e)
   (if (typecheck (term (() ())) e)
       (begin
-        ;(printf "progress: trying ~a\n" e)
+        (printf "progress: trying ~a\n" e)
         (or (value? e)
             (single-step? e)))
       #t))
@@ -231,7 +290,7 @@
 (define (preservation e)
   (if (and (typecheck (term (() ())) e) (single-step? e))
       (begin
-        ;(printf "preservation: trying ~a\n" e)
+        (printf "preservation: trying ~a\n" e)
         (let loop ((e e) (store (term ())) (t (typecheck (term (() ())) e)))
           (or (and (value? e) t)
               (match (steps-to store e)
@@ -243,6 +302,7 @@
 
 (preservation (term (valnew (u (Top)) u)))
 (preservation (term ((λ (x Top) x) (λ (x Top) x))))
+(preservation (term (valnew (u ((refinement Top u (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
 
 (define-metafunction dot
   vars : any -> (x ...)
