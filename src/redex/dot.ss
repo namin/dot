@@ -25,9 +25,8 @@
   (Lany Lt l))
 
 (define-extended-language mini-dot dot
-  (c (Tc))
   ((S T U V) (-> T T) Top)
-  ((Sc Tc) Top))
+  ((Sc Tc) (refinement Tc z (: l T) ...) Top))
 
 (redex-match dot e (term (λ (x Top) x)))
 (redex-match dot e (term (valnew (u (Top)) u)))
@@ -40,6 +39,8 @@
    (λ (x_1 T_1) any_1)]
   [(subst (valnew (x_1 c_1) any_1) x_1 any_2)
    (valnew (x_1 c_1) any_1)]
+  [(subst (refinement Tc_1 x_1 D_1 ...) x_1 any_2)
+   (refinement Tc_1 x_1 D_1 ...)]
   
   ;; 2. do capture avoiding substitution by generating a fresh name
   [(subst (λ (x_1 T_1) any_1) x_2 any_2)
@@ -52,8 +53,11 @@
            (subst (subst-var any_1 x_1 x_3) x_2 any_2))
    (where x_3 ,(variable-not-in (term (x_2 c_1 any_1 any_2))
                                 (term x_1)))]
+  [(subst (refinement Tc_1 x_1 D_1 ...) x_2 any_2)
+   (refinement Tc_1 x_3 (subst (subst-var D_1 x_1 x_3) x_2 any_2) ...)
+   (where x_3 ,(variable-not-in (term (D_1 ... x_2 any_2))
+                                (term x_1)))]
 
-    
   ;; do not treat labels as variables
   [(subst (label-value variable_1) x_1 any_1) (label-value variable_1)]
   [(subst (label-class variable_1) x_1 any_1) (label-class variable_1)]
