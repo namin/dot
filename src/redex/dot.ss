@@ -36,17 +36,17 @@
 
 (define-metafunction dot
   subst : any x any -> any
-  ;; 1. x_1 bound, so don't continue in the λ body
+  ;; 1. x_1 bound
   [(subst (λ (x_1 T_1) any_1) x_1 any_2)
-   (λ (x_1 T_1) any_1)]
+   (λ (x_1 (subst T_1 x_1 any_2)) any_1)]
   [(subst (valnew (x_1 c_1) any_1) x_1 any_2)
    (valnew (x_1 c_1) any_1)]
-  [(subst (refinement Tc_1 x_1 D_1 ...) x_1 any_2)
-   (refinement Tc_1 x_1 D_1 ...)]
+  [(subst (refinement T_1 x_1 D_1 ...) x_1 any_2)
+   (refinement (subst T_1 x_1 any_2) x_1 D_1 ...)]
   
   ;; 2. do capture avoiding substitution by generating a fresh name
   [(subst (λ (x_1 T_1) any_1) x_2 any_2)
-   (λ (x_3 T_1)
+   (λ (x_3 (subst T_1 x_2 any_2))
      (subst (subst-var any_1 x_1 x_3) x_2 any_2))
    (where x_3 ,(variable-not-in (term (x_2 any_1 any_2))
                                 (term x_1)))]
@@ -55,9 +55,9 @@
            (subst (subst-var any_1 x_1 x_3) x_2 any_2))
    (where x_3 ,(variable-not-in (term (x_2 c_1 any_1 any_2))
                                 (term x_1)))]
-  [(subst (refinement Tc_1 x_1 D_1 ...) x_2 any_2)
-   (refinement (subst (subst-var Tc_1 x_1 x_3) x_2 any_2) x_3 (subst (subst-var D_1 x_1 x_3) x_2 any_2) ...)
-   (where x_3 ,(variable-not-in (term (Tc_1 D_1 ... x_2 any_2))
+  [(subst (refinement T_1 x_1 D_1 ...) x_2 any_2)
+   (refinement (subst T_1 x_2 any_2) x_3 (subst (subst-var D_1 x_1 x_3) x_2 any_2) ...)
+   (where x_3 ,(variable-not-in (term (D_1 ... x_2 any_2))
                                 (term x_1)))]
 
   ;; do not treat labels as variables
