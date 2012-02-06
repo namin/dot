@@ -212,13 +212,13 @@
   [(is_wf-type env (sel p Lt)) #t
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))
-   (where (S U) any_bound)
-   (judgment-holds (wf-type env S))
-   (judgment-holds (wf-type env U))]
+   (where (Bottom U) any_bound)]
   [(is_wf-type env (sel p Lt)) #t
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))
-   (where (Bottom U) any_bound)]
+   (where (S U) any_bound)
+   (judgment-holds (wf-type env S))
+   (judgment-holds (wf-type env U))]
   [(is_wf-type env (intersection T_1 T_2)) #t
    (judgment-holds (wf-type env T_1))
    (judgment-holds (wf-type env T_2))]
@@ -470,7 +470,10 @@
                                                                  (-> (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class NatClass)))
                                                                      (-> (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class NatClass)))
                                                                          (sel rootThis (label-class NatClass)))))))
-                        (: (label-class NatClass) Bottom Top)
+                        (: (label-class NatClass) Bottom (refinement
+                                                          Top this
+                                                          (: (label-value isZero)
+                                                             (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class BooleanClass))))))
                         (: (label-value unit) (-> Top (sel rootThis (label-class UnitClass))))
                         (: (label-value false) (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class BooleanClass))))
                         (: (label-value true) (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class BooleanClass)))))
