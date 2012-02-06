@@ -118,7 +118,7 @@
   #:mode (found I O)
   #:contract (found any bool)
   [(found #f #f)]
-  [(found any #t)])
+  [(found (side-condition any (term any)) #t)])
 
 (define-judgment-form dot
   #:mode (red I I O O)
@@ -195,7 +195,10 @@
   #:mode (wf-decl I I)
   #:contract (wf-decl env D)
   [(wf-decl env (: l T))
-   (wf-type env T)])
+   (wf-type env T)]
+  [(wf-decl env (: Lt S U))
+   (wf-type env S)
+   (wf-type env U)])
 
 (define-judgment-form dot
   #:mode (wf-type I I)
@@ -204,9 +207,26 @@
   [(wf-type env (-> T_1 T_2))
    (wf-type env T_1)
    (wf-type env T_2)]
-  [(wf-type (Gamma store) (refinement Tc z Dl ...))
-   (where env_extended ((gamma-extend Gamma z (refinement Tc z Dl ...)) store))
-   (wf-decl env_extended Dl) ...])
+  [(wf-type (Gamma store) (refinement Tc z D ...))
+   (where env_extended ((gamma-extend Gamma z (refinement Tc z D ...)) store))
+   (wf-decl env_extended D) ...]
+  [(wf-type env (sel p Lt))
+   (where any_bound (membership-type-lookup env p Lt))
+   (found any_bound #t)
+   (where (S U) any_bound)
+   (wf-type env S)
+   (wf-type env U)]
+  [(wf-type env (sel p Lt))
+   (where any_bound (membership-type-lookup env p Lt))
+   (found any_bound #t)
+   (where (Bottom U) any_bound)]
+  [(wf-type env (intersection T_1 T_2))
+   (wf-type env T_1)
+   (wf-type env T_2)]
+  [(wf-type env (union T_1 T_2))
+   (wf-type env T_1)
+   (wf-type env T_2)]
+  [(wf-type env Bottom)])
 
 (define (sort-decls ds)
   (sort ds #:key (lambda (x) (symbol->string (cadr (cadr x)))) string<?))
@@ -222,28 +242,80 @@
 
 (define-metafunction dot
   decl-intersection : (D ...) (D ...) -> (D ...)
-  [(decl-intersection ((: l T_1) D_1 ...) ((: l T_2) D_2 ...)) ,(cons (term (: l (intersection T_1 T_2)))
-                                                                      (term (decl-intersection (D_1 ...) (D_2 ...))))]
-  [(decl-intersection ((: l T_1) D_1 ...) (D_before ... (: l T_2) D_2 ...)) ,(append (term (D_before ...))
-                                                                                           (term (decl-intersection ((: l T_1) D_1 ...) ((: l T_2) D_2 ...))))]
-  [(decl-intersection (D_before ... (: l T_1) D_1 ...) ((: l T_2) D_2 ...)) ,(append (term (D_before ...))
-                                                                                           (term (decl-intersection ((: l T_1) D_1 ...) ((: l T_2) D_2 ...))))]
-  [(decl-intersection (D_1 ...) (D_2 ...)) (D_1 ... D_2 ...)])
+  [(decl-intersection ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))
+   ,(cons (term (: l (intersection T_1 T_2)))
+          (term (decl-intersection (Dl_1 ...) (Dl_2 ...))))]
+  [(decl-intersection ((: l T_1) Dl_1 ...) (Dl_before ... (: l T_2) Dl_2 ...))
+   ,(append (term (Dl_before ...))
+            (term (decl-intersection ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))))]
+  [(decl-intersection (Dl_before ... (: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))
+   ,(append (term (Dl_before ...))
+            (term (decl-intersection ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))))]
+  [(decl-intersection ((: Lt S_1 U_1) DLt_1 ...) ((: Lt S_1 U_1) DLt_2 ...))
+   ,(cons (term (: Lt (union S_1 S_2) (intersection U_1 U_2)))
+          (term (decl-intersection (DLt_1 ...) (DLt_2 ...))))]
+  [(decl-intersection ((: Lt S_1 U_1) DLt_1 ...) (DLt_before ... (: Lt S_2 U_2) DLt_2 ...))
+   ,(append (term (DLt_before ...))
+            (term (decl-intersection ((: Lt S_1 U_1) DLt_1 ...) ((: Lt S_2 U_2) DLt_2 ...))))]
+  [(decl-intersection (DLt_before ... (: Lt S_1 U_1) DLt_1 ...) ((: Lt S_2 U_2) DLt_2 ...))
+   ,(append (term (DLt_before ...))
+            (term (decl-intersection ((: Lt S_1 U_1) DLt_1 ...) ((: Lt S_2 U_2) DLt_2 ...))))]
+  [(decl-intersection (Dl_1 ...) (Dl_2 ...))
+   (Dl_1 ... Dl_2 ...)]
+  [(decl-intersection (DLt_1 ...) (DLt_2 ...))
+   (DLt_1 ... DLt_2 ...)])
 
 (define-metafunction dot
-  membership-lookup : env e l -> T or #f
-  [(membership-lookup env_1 p_1 l_1)
+  decl-union : (D ...) (D ...) -> (D ...)
+  [(decl-union ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))
+   ,(cons (term (: l (union T_1 T_2)))
+          (term (decl-union (Dl_1 ...) (Dl_2 ...))))]
+  [(decl-union ((: l T_1) Dl_1 ...) (Dl_before ... (: l T_2) Dl_2 ...))
+   (decl-union ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))]
+  [(decl-union (Dl_before ... (: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))
+   (decl-union ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))]
+  [(decl-union ((: Lt S_1 U_1) DLt_1 ...) ((: Lt S_1 U_1) DLt_2 ...))
+   ,(cons (term (: Lt (intersection S_1 S_2) (union U_1 U_2)))
+          (term (decl-union (DLt_1 ...) (DLt_2 ...))))]
+  [(decl-union ((: Lt S_1 U_1) DLt_1 ...) (DLt_before ... (: Lt S_2 U_2) DLt_2 ...))
+   (decl-union ((: Lt S_1 U_1) DLt_1 ...) ((: Lt S_2 U_2) DLt_2 ...))]
+  [(decl-union (DLt_before ... (: Lt S_1 U_1) DLt_1 ...) ((: Lt S_2 U_2) DLt_2 ...))
+   (decl-union ((: Lt S_1 U_1) DLt_1 ...) ((: Lt S_2 U_2) DLt_2 ...))]
+  [(decl-union (Dl_1 ...) (Dl_2 ...))
+   ()]
+  [(decl-union (DLt_1 ...) (DLt_2 ...))
+   ()])
+
+(define-metafunction dot
+  membership-type-lookup : env e Lt -> (S U) or #f
+  [(membership-type-lookup env_1 p_1 Lt_1)
+   (subst (S_1 U_1) z_1 p_1)
+   (judgment-holds (typeof env_1 p_1 T_e))
+   (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...))))
+   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))]
+  [(membership-type-lookup env_1 e_1 Lt_1)
+   (S_1 U_1)
+   (judgment-holds (typeof env_1 e_1 T_e))
+   (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...) )))
+   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
+   (judgment-holds (found (fn (S_1 U_1) z_1) #f))]
+  [(membership-type-lookup env_1 e_1 Lt_1)
+   #f])
+
+(define-metafunction dot
+  membership-value-lookup : env e l -> T or #f
+  [(membership-value-lookup env_1 p_1 l_1)
    (subst T_1 z_1 p_1)
    (judgment-holds (typeof env_1 p_1 T_e))
    (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...))))
    (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))]
-  [(membership-lookup env_1 e_1 l_1)
+  [(membership-value-lookup env_1 e_1 l_1)
    T_1
    (judgment-holds (typeof env_1 e_1 T_e))
    (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...))))
    (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
    (judgment-holds (found (fn T_1 z_1) #f))]
-  [(membership-lookup env_1 e_1 l_1)
+  [(membership-value-lookup env_1 e_1 l_1)
    #f])
                                      
 (define-judgment-form dot
@@ -252,13 +324,29 @@
   [(expansion env z Top (() ()))]
   [(expansion env z (-> S T) (() ()))]
   [(expansion env z_1 (refinement T_1 z_2 DLt_1 ... Dl_1 ...) ((decl-intersection (sorted-decls (subst (DLt_1 ...) z_2 z_1)) (sorted-decls (DLt_2 ...)))
-                                                               (decl-intersection (sorted-decls (subst (Dl_1  ...) z_2 z_1)) (sorted-decls (Dl_2 ...)))))
-   (expansion env z_1 T_1 ((DLt_2 ...) (Dl_2 ...)))])
+                                                               (decl-intersection (sorted-decls (subst (Dl_1  ...) z_2 z_1)) (sorted-decls (Dl_2  ...)))))
+   (expansion env z_1 T_1 ((DLt_2 ...) (Dl_2 ...)))]
+  [(expansion env z (intersection T_1 T_2) ((decl-intersection (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
+                                            (decl-intersection (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))))
+   (expansion env z T_1 ((DLt_1 ...) (Dl_1 ...)))
+   (expansion env z T_2 ((DLt_2 ...) (Dl_2 ...)))]
+  [(expansion env z (union T_1 T_2) ((decl-union (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
+                                     (decl-union (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))))
+   (expansion env z T_1 ((DLt_1 ...) (Dl_1 ...)))
+   (expansion env z T_2 ((DLt_2 ...) (Dl_2 ...)))]
+  [(expansion env z (sel p Lt) ((DLt_u ...) (Dl_u ...)))
+   (where any_bound (membership-type-lookup env p Lt))
+   (found any_bound #t)
+   (where (S U) any_bound)
+   (expansion env z U ((DLt_u ...) (Dl_u ...)))])
   
 (define-judgment-form dot
   #:mode (subdecl I I I)
   #:contract (subdecl env D D)
   [(subdecl env (: l_1 T_1) (: l_1 T_2))
+   (subtype env T_1 T_2)]
+  [(subdecl env (: Lt_1 S_1 T_1) (: Lt_2 S_2 T_2))
+   (subtype env S_2 S_1)
    (subtype env T_1 T_2)])
 
 (define-judgment-form dot
@@ -271,21 +359,51 @@
   [(subdecls env ((: l_1 T_1) D_1 ...) ((: (side-condition l_2 (not (equal? (term l_1) (term l_2)))) T_2) D_2 ...))
    (subdecls env (D_1 ...) (D_2 ...))])
 
+(define-metafunction dot
+  is_subtype : env S T -> bool
+  [(is_subtype env T T) #t]
+  [(is_subtype env T Top) #t]
+  [(is_subtype env (-> S_1 S_2) (-> T_1 T_2)) #t
+   (judgment-holds (subtype env T_1 S_1))
+   (judgment-holds (subtype env S_2 T_2))]
+  [(is_subtype env S (refinement T z DLt ... Dl ...)) #t
+   (judgment-holds (subtype env S T))
+   (judgment-holds (expansion env z S ((DLt_s ...) (Dl_s ...))))
+   (judgment-holds (expansion env z T ((DLt_t ...) (Dl_t ...))))
+   (judgment-holds (subdecls env (sorted-decls (Dl_s ...)) (sorted-decls (Dl_t ...))))]
+  [(is_subtype env (refinement T_1 z DLt ... Dl ...) T_2) #t
+   (judgment-holds (subtype env T_1 T_2))]
+  [(is_subtype env S_1 (sel p Lt)) #t
+   (where any_bound (membership-type-lookup env p Lt))
+   (judgment-holds (found any_bound #t))
+   (where (S_p U_p) any_bound)
+   (judgment-holds (subtype env S_1 S_p))]
+  [(is_subtype env (sel p Lt) U_1) #t
+   (where any_bound (membership-type-lookup env p Lt))
+   (judgment-holds (found any_bound #t))
+   (where (S_p U_p) any_bound)
+   (judgment-holds (subtype env U_p U_1))]
+  [(is_subtype env T_o (intersection T_1 T_2)) #t
+   (judgment-holds (subtype env T_o T_1))
+   (judgment-holds (subtype env T_o T_2))]
+  [(is_subtype env (intersection T_1 T_2) T_o) #t
+   (judgment-holds (subtype T_1 T_o))]
+  [(is_subtype env (intersection T_1 T_2) T_o) #t
+   (judgment-holds (subtype T_2 T_o))]
+  [(is_subtype env (union T_1 T_2) T_o) #t
+   (judgment-holds (subtype env T_1 T_o))
+   (judgment-holds (subtype env T_2 T_o))]
+  [(is_subtype env T_o (union T_1 T_2)) #t
+   (judgment-holds (subtype T_o T_1))]
+  [(is_subtype env T_o (union T_1 T_2)) #t
+   (judgment-holds (subtype T_o T_2))]
+  [(is_subtype env Bottom T) #t]  
+  [(is_subtype env S T) #f])
+
 (define-judgment-form dot
   #:mode (subtype I I I)
   #:contract (subtype env S T)
-  [(subtype env T T)]
-  [(subtype env (side-condition T (not (equal? (term T) (term Top)))) Top)]
-  [(subtype env (-> S_1 S_2) (-> T_1 T_2))
-   (subtype env T_1 S_1)
-   (subtype env S_2 T_2)]
-  [(subtype env S (side-condition (refinement T z DLt ... Dl ...) (not (equal? (term S) (term (refinement T z DLt ... Dl ...))))))
-   (subtype env S T)
-   (expansion env z S ((DLt_s ...) (Dl_s ...)))
-   (expansion env z T ((DLt_t ...) (Dl_t ...)))
-   (subdecls env (sorted-decls (Dl_s ...)) (sorted-decls (Dl_t ...)))]
-  [(subtype env (refinement T_1 z DLt ... Dl ...) (side-condition T_2 (not (equal? (term T_2) (term Top)))))
-   (subtype env T_1 T_2)])
+  [(subtype env S T) (found (is_subtype env S T) #t)])
 
 (define-judgment-form dot
   #:mode (typeof I I O)
@@ -316,7 +434,7 @@
    (typeof env e_2 T_2)
    (subtype env T_2 S)]
   [(typeof env (sel e_1 l_1) T_1)
-   (where T_1 (membership-lookup env e_1 l_1))
+   (where T_1 (membership-value-lookup env e_1 l_1))
    (found T_1 #t)])
 
 (define (typecheck env e)
@@ -332,9 +450,33 @@
 (typecheck (term (() ())) (term (λ (x Top) x)))
 (typecheck (term (() ())) (term ((λ (x Top) x) (λ (x Top) x))))
 (typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
+(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) u)))
+(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
+
+(define-metafunction dot
+  wf-prog : any -> bool
+  [(wf-prog (refinement T z DLt ... Dl ...)) #f
+   (side-condition (not (equal? (term (DLt ... Dl ...)) (remove-duplicates (term (DLt ... Dl ...)) #:key cadadr))))]
+  [(wf-prog (any_1 ...))
+   ,(andmap (lambda (x) x) (term ((wf-prog any_1) ...)))]
+  [(wf-prog any_1) #t]) 
+
+(define-metafunction dot
+  lc-decls : any -> (variable ...)
+  [(lc-decls (: (label-class variable_1) S_1 U_1))
+   (variable_1)]
+  [(lc-decls (any_1 ...))
+   ,(apply append (term ((lc-decls any_1) ...)))]
+  [(lc-decls any_1)
+   ()])
+
+(define (well-formed? e)
+  (and (term (wf-prog ,e))
+       (let ((cs (term (lc-decls ,e))))
+         (equal? cs (remove-duplicates cs)))))
 
 (define (progress e)
-  (if (typecheck (term (() ())) e)
+  (if (and (well-formed? e) (typecheck (term (() ())) e))
       (begin
         ;(printf "progress: trying ~a\n" e)
         (or (value? e)
@@ -342,7 +484,7 @@
       #t))
 
 (define (preservation e)
-  (if (and (typecheck (term (() ())) e) (single-step? e))
+  (if (and (well-formed? e) (typecheck (term (() ())) e) (single-step? e))
       (begin
         ;(printf "preservation: trying ~a\n" e)
         (let loop ((e e) (store (term ())) (t (typecheck (term (() ())) e)))
@@ -357,6 +499,7 @@
 (preservation (term (valnew (u (Top)) u)))
 (preservation (term ((λ (x Top) x) (λ (x Top) x))))
 (preservation (term (valnew (u ((refinement Top u (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
+(preservation (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
 
 (define-metafunction dot
   vars : any -> (x ...)
@@ -397,6 +540,9 @@
 
 (define (prepare e)
   (term (massage () () ,e)))
+
+(redex-check dot e (progress (term e)))
+(redex-check dot e (preservation (term e)))
 
 (redex-check mini-dot e (progress (term e)) #:prepare close)
 (redex-check mini-dot e (preservation (term e)) #:prepare close)
