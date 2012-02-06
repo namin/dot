@@ -200,33 +200,38 @@
    (wf-type env S)
    (wf-type env U)])
 
+(define-metafunction dot
+  is_wf-type : env T -> bool
+  [(is_wf-type env Top) #t]
+  [(is_wf-type env (-> T_1 T_2)) #t
+   (judgment-holds (wf-type env T_1))
+   (judgment-holds (wf-type env T_2))]
+  [(is_wf-type (Gamma store) (refinement Tc z D ...)) #t
+   (where env_extended ((gamma-extend Gamma z (refinement Tc z D ...)) store))
+   (side-condition (andmap (lambda (d) (judgment-holds (wf-decl env_extended ,d))) (term (D ...))))]
+  [(is_wf-type env (sel p Lt)) #t
+   (where any_bound (membership-type-lookup env p Lt))
+   (judgment-holds (found any_bound #t))
+   (where (S U) any_bound)
+   (judgment-holds (wf-type env S))
+   (judgment-holds (wf-type env U))]
+  [(is_wf-type env (sel p Lt)) #t
+   (where any_bound (membership-type-lookup env p Lt))
+   (judgment-holds (found any_bound #t))
+   (where (Bottom U) any_bound)]
+  [(is_wf-type env (intersection T_1 T_2)) #t
+   (judgment-holds (wf-type env T_1))
+   (judgment-holds (wf-type env T_2))]
+  [(is_wf-type env (union T_1 T_2)) #t
+   (judgment-holds (wf-type env T_1))
+   (judgment-holds (wf-type env T_2))]
+  [(is_wf-type env Bottom) #t]
+  [(is_wf-type env T) #f])
+
 (define-judgment-form dot
   #:mode (wf-type I I)
   #:contract (wf-type env T)
-  [(wf-type env Top)]
-  [(wf-type env (-> T_1 T_2))
-   (wf-type env T_1)
-   (wf-type env T_2)]
-  [(wf-type (Gamma store) (refinement Tc z D ...))
-   (where env_extended ((gamma-extend Gamma z (refinement Tc z D ...)) store))
-   (wf-decl env_extended D) ...]
-  [(wf-type env (sel p Lt))
-   (where any_bound (membership-type-lookup env p Lt))
-   (found any_bound #t)
-   (where (S U) any_bound)
-   (wf-type env S)
-   (wf-type env U)]
-  [(wf-type env (sel p Lt))
-   (where any_bound (membership-type-lookup env p Lt))
-   (found any_bound #t)
-   (where (Bottom U) any_bound)]
-  [(wf-type env (intersection T_1 T_2))
-   (wf-type env T_1)
-   (wf-type env T_2)]
-  [(wf-type env (union T_1 T_2))
-   (wf-type env T_1)
-   (wf-type env T_2)]
-  [(wf-type env Bottom)])
+  [(wf-type env T) (found (is_wf-type env T) #t)])
 
 (define (sort-decls ds)
   (sort ds #:key (lambda (x) (symbol->string (cadr (cadr x)))) string<?))
@@ -290,14 +295,14 @@
   membership-type-lookup : env e Lt -> (S U) or #f
   [(membership-type-lookup env_1 p_1 Lt_1)
    (subst (S_1 U_1) z_1 p_1)
+   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
    (judgment-holds (typeof env_1 p_1 T_e))
-   (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...))))
-   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))]
+   (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...))))]
   [(membership-type-lookup env_1 e_1 Lt_1)
    (S_1 U_1)
+   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
    (judgment-holds (typeof env_1 e_1 T_e))
    (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...) )))
-   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
    (judgment-holds (found (fn (S_1 U_1) z_1) #f))]
   [(membership-type-lookup env_1 e_1 Lt_1)
    #f])
@@ -306,14 +311,14 @@
   membership-value-lookup : env e l -> T or #f
   [(membership-value-lookup env_1 p_1 l_1)
    (subst T_1 z_1 p_1)
+   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
    (judgment-holds (typeof env_1 p_1 T_e))
-   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...))))
-   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))]
+   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...))))]
   [(membership-value-lookup env_1 e_1 l_1)
    T_1
+   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
    (judgment-holds (typeof env_1 e_1 T_e))
    (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...))))
-   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
    (judgment-holds (found (fn T_1 z_1) #f))]
   [(membership-value-lookup env_1 e_1 l_1)
    #f])
@@ -452,6 +457,19 @@
 (typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
 (typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) u)))
 (typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
+(typecheck (term (() ())) (term (valnew (u ((refinement Top self (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
+(typecheck (term (() ())) (term (valnew (u ((refinement Top self (: (label-abstract-type l) Top Top)))) ((λ (x (sel u (label-abstract-type l))) u) u))))
+
+(define dotExample
+  (term (valnew (root ((refinement
+                        Top rootThis
+                        (: (label-class UnitClass) Bottom Top)
+                        (: (label-value unit) (-> Top (sel rootThis (label-class UnitClass)))))
+                       [(label-value unit) (λ (x Top) (valnew (u ((refinement (sel root (label-class UnitClass)) this))) u))]))
+                ((λ (x Top) x) (sel root (label-value unit))))))
+
+(typecheck (term (() ())) dotExample)
+
 
 (define-metafunction dot
   wf-prog : any -> bool
@@ -500,6 +518,7 @@
 (preservation (term ((λ (x Top) x) (λ (x Top) x))))
 (preservation (term (valnew (u ((refinement Top u (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
 (preservation (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
+(preservation dotExample)
 
 (define-metafunction dot
   vars : any -> (x ...)
