@@ -392,16 +392,16 @@
    (judgment-holds (subtype env T_o T_1))
    (judgment-holds (subtype env T_o T_2))]
   [(is_subtype env (intersection T_1 T_2) T_o) #t
-   (judgment-holds (subtype T_1 T_o))]
+   (judgment-holds (subtype env T_1 T_o))]
   [(is_subtype env (intersection T_1 T_2) T_o) #t
-   (judgment-holds (subtype T_2 T_o))]
+   (judgment-holds (subtype env T_2 T_o))]
   [(is_subtype env (union T_1 T_2) T_o) #t
    (judgment-holds (subtype env T_1 T_o))
    (judgment-holds (subtype env T_2 T_o))]
   [(is_subtype env T_o (union T_1 T_2)) #t
-   (judgment-holds (subtype T_o T_1))]
+   (judgment-holds (subtype env T_o T_1))]
   [(is_subtype env T_o (union T_1 T_2)) #t
-   (judgment-holds (subtype T_o T_2))]
+   (judgment-holds (subtype env T_o T_2))]
   [(is_subtype env Bottom T) #t]  
   [(is_subtype env S T) #f])
 
@@ -547,7 +547,7 @@
 (define (progress e)
   (if (and (well-formed? e) (typecheck (term (() ())) e))
       (begin
-        ;(printf "progress: trying ~a\n" e)
+        (printf "progress: trying ~a\n" e)
         (or (value? e)
             (single-step? e)))
       #t))
@@ -555,7 +555,7 @@
 (define (preservation e)
   (if (and (well-formed? e) (typecheck (term (() ())) e) (single-step? e))
       (begin
-        ;(printf "preservation: trying ~a\n" e)
+        (printf "preservation: trying ~a\n" e)
         (let loop ((e e) (store (term ())) (t (typecheck (term (() ())) e)))
           (or (and (value? e) t)
               (match (steps-to store e)
@@ -592,10 +592,43 @@
       (list-ref lst (random (length lst)))))
 
 (define-metafunction dot
-  massage : (x ...) (l ...) any -> any
-  [(massage (x_b ...) (l_b ...) (valnew (x_1 (Tc_1 (l_1 vx_1) ...)) e_1))
-   (valnew (x_1 (Tc_1 (l_e ,(pick-random (term (x_b ... x_1)) (term (λ (x Top) x)))) ...)) (massage (x_b ... x_1) (l_b ... l_e ...) e_1))
+  massage-mini : (x ...) (l ...) any -> any
+  [(massage-mini (x_b ...) (l_b ...) (valnew (x_1 (Tc_1 (l_1 vx_1) ...)) e_1))
+   (valnew (x_1 (Tc_1 (l_e ,(pick-random (term (x_b ... x_1)) (term (λ (x Top) x)))) ...)) (massage-mini (x_b ... x_1) (l_b ... l_e ...) e_1))
    (judgment-holds (expansion (() ()) x_1 Tc_1 (() ((: l_e T_le) ...))))]
+  [(massage-mini (x_b ...) (l_b ...) (λ (x_1 T_1) e_2))
+   (λ (x_1 T_1) (massage-mini (x_b ... x_1) (l_b ...) e_2))]
+  [(massage-mini (x_b ...) (l_b ...) (sel e_1 l_1)) (sel (massage-mini (x_b ...) (l_b ...) e_1) ,(pick-random (term (l_b ...)) (term l_1)))]
+  [(massage-mini (x_b ...) (l_b ...) x_1)
+   ,(let ((res (pick-random (term (x_b ... )) (term (λ (x Top) x)))))
+      (if (or (null? (term (l_b ...))) (= 0 (random 1)))
+          res
+          (term (sel ,res ,(pick-random (term (l_b ...)) #f)))))]
+  [(massage-mini (x_b ...) (l_b ...) (refinement Tc_1 z_1 D_1 ...)) (refinement Tc_1 z_1 D_1 ...)]
+  [(massage-mini (x_b ...) (l_b ...) (any_1 ...)) ((massage-mini (x_b ...) (l_b ...) any_1) ...)]
+  [(massage-mini (x_b ...) (l_b ...) any_1) any_1])
+
+(define (prepare-mini e)
+  (term (massage-mini () () ,e)))
+
+;(redex-check dot e (progress (term e)))
+;(redex-check dot e (preservation (term e)))
+
+#;
+(redex-check mini-dot e (progress (term e)) #:prepare close)
+(redex-check mini-dot e (preservation (term e)) #:prepare close)
+
+#;
+(let ([R (reduction-relation mini-dot
+  [--> (valnew (x ((refinement Top z (: l_1 Top) Dl ...) (l vx) ...)) e) (valnew (x ((refinement Top z (: l_1 Top) Dl ...) (l vx) ...)) e)])])
+  (redex-check mini-dot e (progress (term e)) #:source R #:prepare prepare-mini)
+  (redex-check mini-dot e (preservation (term e)) #:source R #:prepare prepare-mini))
+
+(define-metafunction dot
+  massage : (x ...) (l ...) any -> any
+  [(massage (x_b ...) (l_b ...) (valnew (x_1 (T_1 (l_1 vx_1) ...)) e_1))
+   (valnew (x_1 (T_1 (l_e ,(pick-random (term (x_b ... x_1)) (term (λ (x Top) x)))) ...)) (massage (x_b ... x_1) (l_b ... l_e ...) e_1))
+   (judgment-holds (expansion (() ()) x_1 T_1 ((DLt ...) ((: l_e T_le) ...))))]
   [(massage (x_b ...) (l_b ...) (λ (x_1 T_1) e_2))
    (λ (x_1 T_1) (massage (x_b ... x_1) (l_b ...) e_2))]
   [(massage (x_b ...) (l_b ...) (sel e_1 l_1)) (sel (massage (x_b ...) (l_b ...) e_1) ,(pick-random (term (l_b ...)) (term l_1)))]
@@ -604,20 +637,16 @@
       (if (or (null? (term (l_b ...))) (= 0 (random 1)))
           res
           (term (sel ,res ,(pick-random (term (l_b ...)) #f)))))]
-  [(massage (x_b ...) (l_b ...) (refinement Tc_1 z_1 D_1 ...)) (refinement Tc_1 z_1 D_1 ...)]
+  [(massage (x_b ...) (l_b ...) (refinement T_1 z_1 D_1 ...)) (refinement T_1 z_1 D_1 ...)]
   [(massage (x_b ...) (l_b ...) (any_1 ...)) ((massage (x_b ...) (l_b ...) any_1) ...)]
   [(massage (x_b ...) (l_b ...) any_1) any_1])
 
 (define (prepare e)
+  ;(printf "preparing ~a\n" e)
   (term (massage () () ,e)))
 
-(redex-check dot e (progress (term e)))
-(redex-check dot e (preservation (term e)))
+(let ([R (reduction-relation dot
+  [--> (valnew (x ((refinement Top z DLt ... Dl ...) (l vx) ...)) e) (valnew (x ((refinement Top z DLt ... Dl ...) (l vx) ...)) e)])])
+  (redex-check dot e (progress (term e)) #:source R #:prepare prepare)
+  (redex-check dot e (preservation (term e)) #:source R #:prepare prepare))
 
-(redex-check mini-dot e (progress (term e)) #:prepare close)
-(redex-check mini-dot e (preservation (term e)) #:prepare close)
-
-(let ([R (reduction-relation mini-dot
-  [--> (valnew (x ((refinement Top z (: l_1 Top) Dl ...) (l vx) ...)) e) (valnew (x ((refinement Top z (: l_1 Top) Dl ...) (l vx) ...)) e)])])
-  (redex-check mini-dot e (progress (term e)) #:source R #:prepare prepare)
-  (redex-check mini-dot e (preservation (term e)) #:source R #:prepare prepare))
