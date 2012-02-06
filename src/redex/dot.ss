@@ -614,9 +614,8 @@
 ;(redex-check dot e (progress (term e)))
 ;(redex-check dot e (preservation (term e)))
 
-#;
-(redex-check mini-dot e (progress (term e)) #:prepare close)
-(redex-check mini-dot e (preservation (term e)) #:prepare close)
+;(redex-check mini-dot e (progress (term e)) #:prepare close)
+;(redex-check mini-dot e (preservation (term e)) #:prepare close)
 
 #;
 (let ([R (reduction-relation mini-dot
@@ -625,25 +624,37 @@
   (redex-check mini-dot e (preservation (term e)) #:source R #:prepare prepare-mini))
 
 (define-metafunction dot
-  massage : (x ...) (l ...) any -> any
-  [(massage (x_b ...) (l_b ...) (valnew (x_1 (T_1 (l_1 vx_1) ...)) e_1))
-   (valnew (x_1 (T_1 (l_e ,(pick-random (term (x_b ... x_1)) (term (λ (x Top) x)))) ...)) (massage (x_b ... x_1) (l_b ... l_e ...) e_1))
-   (judgment-holds (expansion (() ()) x_1 T_1 ((DLt ...) ((: l_e T_le) ...))))]
-  [(massage (x_b ...) (l_b ...) (λ (x_1 T_1) e_2))
-   (λ (x_1 T_1) (massage (x_b ... x_1) (l_b ...) e_2))]
-  [(massage (x_b ...) (l_b ...) (sel e_1 l_1)) (sel (massage (x_b ...) (l_b ...) e_1) ,(pick-random (term (l_b ...)) (term l_1)))]
-  [(massage (x_b ...) (l_b ...) x_1)
+  path-var : p -> x
+  [(path-var x) x]
+  [(path-var loc) 'x]
+  [(path-var (sel p l)) (path-var p)])
+
+(define-metafunction dot
+  massage : (x ...) (l ...) (Lc ...) (Lt ...) any -> any
+  [(massage (x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) (valnew (x_1 (T_1 (l_1 vx_1) ...)) e_1))
+   (valnew (x_1 (T_1 (l_e ,(pick-random (term (x_b ... x_1)) (term (λ (x Top) x)))) ...))
+           (massage (x_b ... x_1) (l_b ... l_e ...) ,(append (term (Lc_b ...)) (filter (lambda (l) (redex-match dot Lc l)) (term (Lt_e ...)))) (Lt_b ... Lt_e ...) e_1))
+   (judgment-holds (expansion (() ()) x_1 T_1 (((: Lt_e S_lte U_lte) ...) ((: l_e T_le) ...))))]
+  [(massage (x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) (λ (x_1 T_1) e_2))
+   (λ (x_1 T_1) (massage (x_b ... x_1) (l_b ...) (Lc_b ...) (Lt_b ...) e_2))]
+  [(massage (x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) (sel e_1 l_1))
+   (sel (massage (x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) e_1) ,(pick-random (term (l_b ...)) (term l_1)))]
+  [(massage (x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) (sel p_1 Lc_1))
+   (sel (massage ((path-var p_1) x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) p_1) ,(pick-random (term (Lc_b ...)) (term Lc_1)))]
+  [(massage (x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) (sel p_1 Lt_1))
+   (sel (massage ((path-var p_1) x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) p_1) ,(pick-random (term (Lt_b ...)) (term Lt_1)))]  
+  [(massage (x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) x_1)
    ,(let ((res (pick-random (term (x_b ... )) (term (λ (x Top) x)))))
       (if (or (null? (term (l_b ...))) (= 0 (random 1)))
           res
           (term (sel ,res ,(pick-random (term (l_b ...)) #f)))))]
-  [(massage (x_b ...) (l_b ...) (refinement T_1 z_1 D_1 ...)) (refinement T_1 z_1 D_1 ...)]
-  [(massage (x_b ...) (l_b ...) (any_1 ...)) ((massage (x_b ...) (l_b ...) any_1) ...)]
-  [(massage (x_b ...) (l_b ...) any_1) any_1])
+  [(massage (x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) (refinement T_1 z_1 D_1 ...)) (refinement T_1 z_1 D_1 ...)]
+  [(massage (x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) (any_1 ...)) ((massage (x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) any_1) ...)]
+  [(massage (x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) any_1) any_1])
 
 (define (prepare e)
   ;(printf "preparing ~a\n" e)
-  (term (massage () () ,e)))
+  (term (massage () () () () ,e)))
 
 (let ([R (reduction-relation dot
   [--> (valnew (x ((refinement Top z DLt ... Dl ...) (l vx) ...)) e) (valnew (x ((refinement Top z DLt ... Dl ...) (l vx) ...)) e)])])
