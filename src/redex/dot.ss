@@ -464,8 +464,23 @@
   (term (valnew (root ((refinement
                         Top rootThis
                         (: (label-class UnitClass) Bottom Top)
-                        (: (label-value unit) (-> Top (sel rootThis (label-class UnitClass)))))
-                       [(label-value unit) (λ (x Top) (valnew (u ((refinement (sel root (label-class UnitClass)) this))) u))]))
+                        (: (label-class BooleanClass) Bottom (refinement
+                                                              Top this
+                                                              (: (label-value ifNat)
+                                                                 (-> (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class NatClass)))
+                                                                     (-> (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class NatClass)))
+                                                                         (sel rootThis (label-class NatClass)))))))
+                        (: (label-class NatClass) Bottom Top)
+                        (: (label-value unit) (-> Top (sel rootThis (label-class UnitClass))))
+                        (: (label-value false) (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class BooleanClass)))))
+                       [(label-value unit) (λ (x Top) (valnew (u ((refinement (sel root (label-class UnitClass)) this))) u))]
+                       [(label-value false)
+                        (λ (u (sel root (label-class UnitClass)))
+                          (valnew (ff ((refinement (sel root (label-class BooleanClass)) this)
+                                       [(label-value ifNat) (λ (t (-> (sel root (label-class UnitClass)) (sel root (label-class NatClass))))
+                                                              (λ (e (-> (sel root (label-class UnitClass)) (sel root (label-class NatClass))))
+                                                                (e ((sel root (label-value unit)) (sel root (label-value unit))))))]))
+                                  ff))]))
                 ((λ (x Top) x) (sel root (label-value unit))))))
 
 (typecheck (term (() ())) dotExample)
