@@ -306,6 +306,10 @@
    (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...) )))
    (judgment-holds (found (fn (S_1 U_1) z_1) #f))]
   [(membership-type-lookup env_1 e_1 Lt_1)
+   (Top Bottom)
+   (judgment-holds (typeof env_1 e_1 T_e))
+   (judgment-holds (subtype env_1 T_e Bottom))]  
+  [(membership-type-lookup env_1 e_1 Lt_1)
    #f])
 
 (define-metafunction dot
@@ -321,6 +325,10 @@
    (judgment-holds (typeof env_1 e_1 T_e))
    (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...))))
    (judgment-holds (found (fn T_1 z_1) #f))]
+  [(membership-value-lookup env_1 e_1 l_1)
+   Bottom
+   (judgment-holds (typeof env_1 e_1 T_e))
+   (judgment-holds (subtype env_1 T_e Bottom))]
   [(membership-value-lookup env_1 e_1 l_1)
    #f])
                                      
@@ -657,6 +665,7 @@
   ;(printf "preparing ~a\n" e)
   (term (massage () () () () ,e)))
 
+#;
 (let ([R (reduction-relation dot
   [--> (valnew (x ((refinement Top z DLt ... Dl ...) (l vx) ...)) e) (valnew (x ((refinement Top z DLt ... Dl ...) (l vx) ...)) e)])])
   (redex-check dot e (progress (term e)) #:source R #:prepare prepare)
