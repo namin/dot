@@ -473,10 +473,16 @@
                         (: (label-class NatClass) Bottom (refinement
                                                           Top this
                                                           (: (label-value isZero)
-                                                             (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class BooleanClass))))))
+                                                             (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class BooleanClass))))
+                                                          (: (label-value pred)
+                                                             (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class NatClass))))
+                                                          (: (label-value succ)
+                                                             (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class NatClass))))))
                         (: (label-value unit) (-> Top (sel rootThis (label-class UnitClass))))
                         (: (label-value false) (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class BooleanClass))))
-                        (: (label-value true) (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class BooleanClass)))))
+                        (: (label-value true) (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class BooleanClass))))
+                        (: (label-value zero) (-> (sel rootThis (label-class UnitClass)) (sel rootThis (label-class NatClass))))
+                        (: (label-value successor) (-> (sel rootThis (label-class NatClass)) (sel rootThis (label-class NatClass)))))
                        [(label-value unit) (λ (x Top) (valnew (u ((refinement (sel root (label-class UnitClass)) this))) u))]
                        [(label-value false)
                         (λ (u (sel root (label-class UnitClass)))
@@ -491,8 +497,27 @@
                                        [(label-value ifNat) (λ (t (-> (sel root (label-class UnitClass)) (sel root (label-class NatClass))))
                                                               (λ (e (-> (sel root (label-class UnitClass)) (sel root (label-class NatClass))))
                                                                 (t ((sel root (label-value unit)) (sel root (label-value unit))))))]))
-                                  tt))]))
-                ((λ (x Top) x) (sel root (label-value unit))))))
+                                  tt))]
+                       [(label-value zero)
+                        (λ (u (sel root (label-class UnitClass)))
+                          (valnew (zz ((refinement (sel root (label-class NatClass)) this)
+                                       [(label-value isZero) (λ (u (sel root (label-class UnitClass))) ((sel root (label-value true)) ((sel root (label-value unit)) (sel root (label-value unit))))
+                       )]
+                                       [(label-value succ) (λ (u (sel root (label-class UnitClass))) ((sel root (label-value successor)) zz))]
+                                       [(label-value pred) (λ (u (sel root (label-class UnitClass))) zz)]))
+                                  zz))]
+                       [(label-value successor)
+                        (λ (n (sel root (label-class NatClass)))
+                          (valnew (ss ((refinement (sel root (label-class NatClass)) this)
+                                       [(label-value isZero) (λ (u (sel root (label-class UnitClass))) ((sel root (label-value false)) ((sel root (label-value unit)) (sel root (label-value unit))))
+                       )]
+                                       [(label-value succ) (λ (u (sel root (label-class UnitClass))) ((sel root (label-value successor)) ss))]
+                                       [(label-value pred) (λ (u (sel root (label-class UnitClass))) n)]))
+                                  ss))]))
+                ((λ (x Top) x)
+                 ((λ (unit (sel root (label-class UnitClass)))
+                    ((sel ((sel ((sel ((sel root (label-value zero)) unit) (label-value succ)) unit) (label-value pred)) unit) (label-value isZero)) unit)
+                    ) ((sel root (label-value unit)) (sel root (label-value unit))))))))
 
 (typecheck (term (() ())) dotExample)
 
