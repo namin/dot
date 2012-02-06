@@ -65,7 +65,7 @@
   [(subst (label-class variable_1) x_1 any_1) (label-class variable_1)]
   [(subst (label-abstract-type variable_1) x_1 any_1) (label-abstract-type variable_1)]
 
-  ;; 3. replace X_1 with any_1
+  ;; 3. replace x_1 with any_1
   [(subst x_1 x_1 any_1) any_1]
   
   ;; the last two cases just recur on the tree structure of the term
@@ -159,6 +159,24 @@
               e)]))
 
 (define-metafunction dot
+  fn : any x -> bool
+  ;; x_1 bound
+  [(fn (λ (x_1 T_1) any_1) x_1) (fn T_1 x_1)]
+  [(fn (valnew (x_1 c_1) any_1) x_1) #f]
+  [(fn (refinement T_1 x_1 D_1 ...) x_1) (fn T_1 x_1)]
+
+  ;; x_1 free
+  [(fn x_1 x_1) #t]
+
+  ;; do not treat labels as variables
+  [(fn Lany x) #f]
+
+  ;; the last two cases just recur on the tree structure of the term
+  [(fn (any_1 ...) x_1)
+   ,(ormap (lambda (x) x) (term ((fn any_1 x_1) ...)))]
+  [(fn any_1 x_1) #f])
+
+(define-metafunction dot
   gamma-extend : Gamma x T -> Gamma
   [(gamma-extend ((x_before T_before) ...) x_new T_new)
    ((x_before T_before) ... (x_new T_new))])
@@ -204,24 +222,38 @@
 
 (define-metafunction dot
   decl-intersection : (D ...) (D ...) -> (D ...)
+  [(decl-intersection ((: l T_1) D_1 ...) ((: l T_2) D_2 ...)) ,(cons (term (: l (intersection T_1 T_2)))
+                                                                      (term (decl-intersection (D_1 ...) (D_2 ...))))]
+  [(decl-intersection ((: l T_1) D_1 ...) (D_before ... (: l T_2) D_2 ...)) ,(append (term (D_before ...))
+                                                                                           (term (decl-intersection ((: l T_1) D_1 ...) ((: l T_2) D_2 ...))))]
+  [(decl-intersection (D_before ... (: l T_1) D_1 ...) ((: l T_2) D_2 ...)) ,(append (term (D_before ...))
+                                                                                           (term (decl-intersection ((: l T_1) D_1 ...) ((: l T_2) D_2 ...))))]
   [(decl-intersection (D_1 ...) (D_2 ...)) (D_1 ... D_2 ...)])
 
 (define-metafunction dot
   membership-lookup : env e l -> T or #f
+  [(membership-lookup env_1 p_1 l_1)
+   (subst T_1 z_1 p_1)
+   (judgment-holds (typeof env_1 p_1 T_e))
+   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...))))
+   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))]
   [(membership-lookup env_1 e_1 l_1)
    T_1
    (judgment-holds (typeof env_1 e_1 T_e))
-   (judgment-holds (expansion env_1 T_e (D_before ... (: l_1 T_1) D_after ...)))]
+   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...))))
+   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
+   (judgment-holds (found (fn T_1 z_1) #f))]
   [(membership-lookup env_1 e_1 l_1)
    #f])
                                      
 (define-judgment-form dot
-  #:mode (expansion I I O)
-  #:contract (expansion env T (D ...))
-  [(expansion env Top ())]
-  [(expansion env (-> S T) ())]
-  [(expansion env (refinement T_1 z_1 Dl_1 ...) (decl-intersection (Dl_1 ...) (D_2 ...)))
-   (expansion env T_1 (D_2 ...))])
+  #:mode (expansion I I I O)
+  #:contract (expansion env z T ((DLt ...) (Dl ...)))
+  [(expansion env z Top (() ()))]
+  [(expansion env z (-> S T) (() ()))]
+  [(expansion env z_1 (refinement T_1 z_2 DLt_1 ... Dl_1 ...) ((decl-intersection (sorted-decls (subst (DLt_1 ...) z_2 z_1)) (sorted-decls (DLt_2 ...)))
+                                                               (decl-intersection (sorted-decls (subst (Dl_1  ...) z_2 z_1)) (sorted-decls (Dl_2 ...)))))
+   (expansion env z_1 T_1 ((DLt_2 ...) (Dl_2 ...)))])
   
 (define-judgment-form dot
   #:mode (subdecl I I I)
@@ -249,8 +281,8 @@
    (subtype env S_2 T_2)]
   [(subtype env S (side-condition (refinement T z DLt ... Dl ...) (not (equal? (term S) (term (refinement T z DLt ... Dl ...))))))
    (subtype env S T)
-   (expansion env S (Dl_s ...))
-   (expansion env T (Dl_t ...))
+   (expansion env z S ((DLt_s ...) (Dl_s ...)))
+   (expansion env z T ((DLt_t ...) (Dl_t ...)))
    (subdecls env (sorted-decls (Dl_s ...)) (sorted-decls (Dl_t ...)))]
   [(subtype env (refinement T_1 z DLt ... Dl ...) (side-condition T_2 (not (equal? (term T_2) (term Top)))))
    (subtype env T_1 T_2)])
@@ -263,19 +295,22 @@
    (found T #t)]
   [(typeof (Gamma store) (valnew (x (Tc (l vx) ...)) e) T)
    (wf-type (Gamma store) Tc)
-   (expansion (Gamma store) Tc (Dl ...))
+   (expansion (Gamma store) x Tc (((: Lt S U) ...) (Dl ...)))
    (where ((l_s vx_s) ...) (sorted-assigns ((l vx) ...)))
    (where ((: l_s V_d) ...) (sorted-decls (Dl ...)))
+   (subtype ((gamma-extend Gamma x Tc) store) S U) ...
    (typeof ((gamma-extend Gamma x Tc) store) vx_s V_s) ...
    (subtype ((gamma-extend Gamma x Tc) store) V_s V_d) ...
-   (typeof ((gamma-extend Gamma x Tc) store) e T)]
+   (typeof ((gamma-extend Gamma x Tc) store) e T)
+   (found (fn T x) #f)]
   [(typeof (Gamma store) (location i) Tc)
    (where c (store-lookup store i))
    (found c #t)
    (where Tc (constructor-type-lookup c))]
   [(typeof (Gamma store) (λ (x S) e) (-> S T))
    (wf-type (Gamma store) S)
-   (typeof ((gamma-extend Gamma x S) store) e T)]
+   (typeof ((gamma-extend Gamma x S) store) e T)
+   (found (fn T x) #f)]
   [(typeof env (e_1 e_2) T)
    (typeof env e_1 (-> S T))
    (typeof env e_2 T_2)
@@ -347,7 +382,7 @@
   massage : (x ...) (l ...) any -> any
   [(massage (x_b ...) (l_b ...) (valnew (x_1 (Tc_1 (l_1 vx_1) ...)) e_1))
    (valnew (x_1 (Tc_1 (l_e ,(pick-random (term (x_b ... x_1)) (term (λ (x Top) x)))) ...)) (massage (x_b ... x_1) (l_b ... l_e ...) e_1))
-   (judgment-holds (expansion (() ()) Tc_1 ((: l_e T_le) ...)))]
+   (judgment-holds (expansion (() ()) x_1 Tc_1 (() ((: l_e T_le) ...))))]
   [(massage (x_b ...) (l_b ...) (λ (x_1 T_1) e_2))
    (λ (x_1 T_1) (massage (x_b ... x_1) (l_b ...) e_2))]
   [(massage (x_b ...) (l_b ...) (sel e_1 l_1)) (sel (massage (x_b ...) (l_b ...) e_1) ,(pick-random (term (l_b ...)) (term l_1)))]
