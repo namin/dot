@@ -201,38 +201,39 @@
    (wf-type env U)])
 
 (define-metafunction dot
-  is_wf-type : env T -> bool
-  [(is_wf-type env Top) #t]
-  [(is_wf-type env (-> T_1 T_2)) #t
-   (judgment-holds (wf-type env T_1))
-   (judgment-holds (wf-type env T_2))]
-  [(is_wf-type (Gamma store) (refinement Tc z D ...)) #t
+  is_wf-type : (T ...) env T -> bool
+  [(is_wf-type (T_p ...) env Top) #t]
+  [(is_wf-type (T_p ...) env (-> T_1 T_2)) #t
+   (side-condition (term (is_wf-type (T_p ...) env T_1)))
+   (side-condition (term (is_wf-type (T_p ...) env T_2)))]
+  [(is_wf-type (T_p ...) (Gamma store) (refinement Tc z D ...)) #t
    (where env_extended ((gamma-extend Gamma z (refinement Tc z D ...)) store))
    (side-condition (andmap (lambda (d) (judgment-holds (wf-decl env_extended ,d))) (term (D ...))))]
-  [(is_wf-type env (sel p Lt)) #t
+  [(is_wf-type (T_p ...) env (sel p Lt)) #t
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))
    (where (Bottom U) any_bound)]
-  [(is_wf-type env (sel p Lt)) #t
+  [(is_wf-type (T_p ...) env (sel p Lt)) #t
+   (side-condition (not (member (term (sel p Lt)) (term (T_p ...)))))
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))
    (where (S U) any_bound)
-   (judgment-holds (wf-type env S))
-   (judgment-holds (wf-type env U))]
-  [(is_wf-type env (intersection T_1 T_2)) #t
-   (judgment-holds (wf-type env T_1))
-   (judgment-holds (wf-type env T_2))]
-  [(is_wf-type env (union T_1 T_2)) #t
-   (judgment-holds (wf-type env T_1))
-   (judgment-holds (wf-type env T_2))]
-  [(is_wf-type env Bottom) #t]
-  [(is_wf-type env T) #f])
+   (side-condition (term (is_wf-type ((sel p Lt) T_p ...) env S)))
+   (side-condition (term (is_wf-type ((sel p Lt) T_p ...) env U)))]
+  [(is_wf-type (T_p ...) env (intersection T_1 T_2)) #t
+   (side-condition (term (is_wf-type (T_p ...) env T_1)))
+   (side-condition (term (is_wf-type (T_p ...) env T_2)))]
+  [(is_wf-type (T_p ...) env (union T_1 T_2)) #t
+   (side-condition (term (is_wf-type (T_p ...) env T_1)))
+   (side-condition (term (is_wf-type (T_p ...) env T_2)))]
+  [(is_wf-type (T_p ...) env Bottom) #t]
+  [(is_wf-type (T_p ...) env T) #f])
 
 (define-judgment-form dot
   #:mode (wf-type I I)
   #:contract (wf-type env T)
-  [(wf-type env T) (found (is_wf-type env T) #t)])
-
+  [(wf-type env T) (found (is_wf-type () env T) #t)])
+ 
 (define (sort-decls ds)
   (sort ds #:key (lambda (x) (symbol->string (cadr (cadr x)))) string<?))
 (define-metafunction dot
