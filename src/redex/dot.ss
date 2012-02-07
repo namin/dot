@@ -359,7 +359,7 @@
   #:contract (subdecl env D D)
   [(subdecl env (: l_1 T_1) (: l_1 T_2))
    (subtype env T_1 T_2)]
-  [(subdecl env (: Lt_1 S_1 T_1) (: Lt_2 S_2 T_2))
+  [(subdecl env (: Lt_1 S_1 T_1) (: Lt_1 S_2 T_2))
    (subtype env S_2 S_1)
    (subtype env T_1 T_2)])
 
@@ -367,11 +367,11 @@
   #:mode (subdecls I I I)
   #:contract (subdecls env (D ...) (D ...))
   [(subdecls env (D ...) ())]
-  [(subdecls env ((: l T_1) D_1 ...) ((: l T_2) D_2 ...))
-   (subtype env T_1 T_2)
-   (subdecls env (D_1 ...) (D_2 ...))]
-  [(subdecls env ((: l_1 T_1) D_1 ...) ((: (side-condition l_2 (not (equal? (term l_1) (term l_2)))) T_2) D_2 ...))
-   (subdecls env (D_1 ...) (D_2 ...))])
+  [(subdecls env (D_1 D_rest1 ...) (D_2 D_rest2 ...))
+   (subdecl env D_1 D_2)
+   (subdecls env (D_rest1 ...) (D_rest2 ...))]
+  [(subdecls env (D_1 D_rest1 ...) (D_2 D_rest2 ...))
+   (subdecls env (D_rest1 ...) (D_2 D_rest2 ...))])
 
 (define-metafunction dot
   is_subtype : env S T -> bool
@@ -383,8 +383,8 @@
   [(is_subtype env S (refinement T z DLt ... Dl ...)) #t
    (judgment-holds (subtype env S T))
    (judgment-holds (expansion env z S ((DLt_s ...) (Dl_s ...))))
-   (judgment-holds (expansion env z T ((DLt_t ...) (Dl_t ...))))
-   (judgment-holds (subdecls env (sorted-decls (Dl_s ...)) (sorted-decls (Dl_t ...))))]
+   (judgment-holds (subdecls env (sorted-decls (Dl_s ...)) (sorted-decls (Dl ...))))
+   (judgment-holds (subdecls env (sorted-decls (DLt_s ...)) (sorted-decls (DLt ...))))]
   [(is_subtype env (refinement T_1 z DLt ... Dl ...) T_2) #t
    (judgment-holds (subtype env T_1 T_2))]
   [(is_subtype env S_1 (sel p Lt)) #t
