@@ -366,7 +366,7 @@
 (define-judgment-form dot
   #:mode (subdecls I I I)
   #:contract (subdecls env (D ...) (D ...))
-  [(subdecls env (D_first D_rest ...) ())]
+  [(subdecls env (D ...) ())]
   [(subdecls env ((: l T_1) D_1 ...) ((: l T_2) D_2 ...))
    (subtype env T_1 T_2)
    (subdecls env (D_1 ...) (D_2 ...))]
