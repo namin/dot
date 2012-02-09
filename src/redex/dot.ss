@@ -671,3 +671,17 @@
   (redex-check dot e (progress (term e)) #:source R #:prepare prepare)
   (redex-check dot e (preservation (term e)) #:source R #:prepare prepare))
 
+(define (subtyping-transitive env s t u)
+  (if (and (judgment-holds (wf-type ,env ,s)) (judgment-holds (wf-type ,env ,t)) (judgment-holds (wf-type ,env ,u))
+           (judgment-holds (subtype ,env ,s ,t)) (judgment-holds (subtype ,env ,t ,u)))
+      (begin
+        (printf "trying ~a ~a ~a ~a\n" env s t u)
+        (judgment-holds (subtype ,env ,s ,u)))
+      #t))
+
+#;
+(redex-check dot (S T U) (subtyping-transitive (term (() ())) (term S) (term T) (term U)))
+
+#;
+(redex-check dot (env S T U) (subtyping-transitive (term env) (term S) (term T) (term U)))
+
