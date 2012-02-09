@@ -41,7 +41,6 @@ Lemma sub_tp_alg_trans_tpsel : forall E p T DS l S U T' DS' S' U' Ta Tb,
   E |= Ta ~<! Tb.
 Proof.
 (* TODO *) Admitted.
-Hint Resolve sub_tp_alg_trans_tpsel.
 
 Lemma exposed_trans_u: forall E p L S U,
   exposed E p L S U -> transitivity_on (U ^tp^ p).
@@ -115,5 +114,7 @@ Ltac crush_exposed_paths :=
         eapply sub_tp_alg_fun; eauto 2 using IHTMid1, IHTMid2 |
         rewrite <- x; eauto 3 |
         eauto 3 |
-        crush_exposed_paths ]. (* ~10 minutes *)
+        crush_exposed_paths ]. (* < 5 minutes *)
+
+        Hint Resolve sub_tp_alg_trans_tpsel. eauto 3.
 Qed.
