@@ -391,11 +391,13 @@
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))
    (where (S_p U_p) any_bound)
+   (judgment-holds (subtype env S_p U_p))
    (judgment-holds (subtype env S_1 S_p))]
   [(is_subtype env (sel p Lt) U_1) #t
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))
    (where (S_p U_p) any_bound)
+   (judgment-holds (subtype env S_p U_p))
    (judgment-holds (subtype env U_p U_1))]
   [(is_subtype env T_o (intersection T_1 T_2)) #t
    (judgment-holds (subtype env T_o T_1))
