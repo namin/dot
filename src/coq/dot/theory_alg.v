@@ -98,11 +98,12 @@ with sub_tp_alg : env -> tp -> tp -> Prop :=
       E |= T1 ~<! T2 -> 
       E |= (tp_fun S1 T1) ~<! (tp_fun S2 T2)
 
-  | sub_tp_alg_tpsel_r : forall E p T' DS L S U,
+  | sub_tp_alg_tpsel_r : forall E p T' DS L S U S',
       lbl.binds L (decl_tp S U) DS -> 
       E |= p ~:! T' -> E |= T' ~<! (tp_rfn tp_top DS) ->
       path_safe E p ->
-      E |= (S ^tp^ p) ~<! (tp_sel p L) (* no need for slack, it's in sub_tp_alg_rfn_r already through member subsumption *)
+      E |= S' ~<! (S ^tp^ p) ->
+      E |= S' ~<! (tp_sel p L)
 
   | sub_tp_alg_rfn_r : forall L E T T' Tpar DSP DS DS1 DS2, (* T' = tp_top and DS1 = DS2 --> recover expands_rfn*)
       E |= T ~<! T' ->
@@ -138,11 +139,12 @@ with sub_tp_alg : env -> tp -> tp -> Prop :=
   | sub_tp_alg_top_rx : forall E T, E |= T ~<! (tp_rfn tp_top nil)  (* see e.g, rework_sub_decls' use of sub_tp_alg_rfn_r*)
 
 (* this rule has the same structure as FSub's Sa-Trans-Tvar (p. 422) *)
-  | sub_tp_alg_tpsel_l : forall E p T' DS L S U,
+  | sub_tp_alg_tpsel_l : forall E p T' DS L S U U',
       lbl.binds L (decl_tp S U) DS ->
       E |= p ~:! T' -> E |= T' ~<! (tp_rfn tp_top DS) -> 
       path p ->
-      E |= (tp_sel p L) ~<! (U ^tp^ p) (* no need for slack, it's in sub_tp_alg_rfn_r already through member subsumption *)
+      E |= (U ^tp^ p) ~<! U' ->
+      E |= (tp_sel p L) ~<! U' 
 
   | sub_tp_alg_rfn_l : forall E T DS T', 
       E |= T ~<! T' -> 
