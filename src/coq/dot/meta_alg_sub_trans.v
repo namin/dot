@@ -43,12 +43,13 @@ Proof.
 (* TODO *) Admitted.
 Hint Resolve sub_tp_alg_trans_tpsel.
 
-Lemma exposed_u : forall E p L S U x,
-  exposed E p L S U -> U ^tp^ p = x -> tp_sel p L = x.
+Lemma exposed_trans_u: forall E p L S U,
+  exposed E p L S U -> transitivity_on (U ^tp^ p).
 Proof.
 (* TODO *) Admitted.
-Lemma exposed_s : forall E p L S U x,
-  exposed E p L S U -> S ^tp^ p = x -> tp_sel p L = x.
+
+Lemma exposed_trans_s: forall E p L S U,
+  exposed E p L S U -> transitivity_on (S ^tp^ p).
 Proof.
 (* TODO *) Admitted.
 
@@ -64,6 +65,40 @@ http://www.msr-inria.inria.fr/~gares/jar09.pdf explains the latter is needed to 
 Lemma sub_tp_alg_trans : forall TMid, transitivity_on TMid.
 Proof.
   Hint Constructors sub_tp_alg.
+Ltac crush_exposed_trans_u Hx BE Bp BL BS BU BT BDS :=
+  apply exposed_trans_u with (E:=BE) (p:=Bp) (L:=BL) (S:=BS) (U:=BU);
+    [ unfold exposed; exists BT BDS; splits; eauto 2 |
+      eauto 2 |
+      try rewrite <- Hx; eauto 2 ].
+
+Ltac crush_exposed_trans_l Hx BE Bp BL BS BU BT BDS :=
+  apply exposed_trans_s with (E:=BE) (p:=Bp) (L:=BL) (S:=BS) (U:=BU);
+    [ unfold exposed; exists BT BDS; splits; eauto 2 |
+      try rewrite -> Hx; eauto 2 |
+      eauto 2 ] ; try (rewrite <- Hx; eauto 2).
+
+Ltac crush_exposed_paths :=
+  match goal with
+    | [ H1 : ?BU ^tp^ ?Bp = ?Y,
+        Hx : ?X = ?BU ^tp^ ?BP,
+        H2 : lbl.binds ?BL (decl_tp ?BS ?BU) ?BDS,
+        H3 : ?BE |= ?BT ~<! tp_rfn tp_top ?BDS
+        |- _ ] => crush_exposed_trans_u Hx BE Bp BL BS BU BT BDS
+    | [ H1 : ?BS ^tp^ ?Bp = ?Y,
+        Hx : ?X = ?BS ^tp^ ?BP,
+        H2 : lbl.binds ?BL (decl_tp ?BS ?BU) ?BDS,
+        H3 : ?BE |= ?BT ~<! tp_rfn tp_top ?BDS
+        |- _ ] => crush_exposed_trans_l Hx BE Bp BL BS BU BT BDS
+    | [ Hx : ?BU ^tp^ ?Bp = ?Y,
+        H2 : lbl.binds ?BL (decl_tp ?BS ?BU) ?BDS,
+        H3 : ?BE |= ?BT ~<! tp_rfn tp_top ?BDS
+        |- _ ] => crush_exposed_trans_u Hx BE Bp BL BS BU BT BDS
+    | [ Hx : ?BS ^tp^ ?Bp = ?Y,
+        H2 : lbl.binds ?BL (decl_tp ?BS ?BU) ?BDS,
+        H3 : ?BE |= ?BT ~<! tp_rfn tp_top ?BDS
+        |- _ ] => crush_exposed_trans_l Hx BE Bp BL BS BU BT BDS
+  end.
+
   introv HSubL HSubR. gen E T T'. gen_eq TMid as TMid' eq. gen TMid' eq. 
   induction TMid; intros; gen T';
     induction HSubL; try discriminate; inversions eq; intros; 
@@ -78,12 +113,7 @@ Proof.
         eapply sub_tp_alg_or_l; eauto 3 using IHHSubL1, sub_tp_alg_tpsel_l, IHHSubL2 |
         eapply sub_tp_alg_rfn_r; eauto 3 using IHHSubR1, narrow_sub_decls, sub_tp_alg_rfn_r, IHHSubR2 |
         eapply sub_tp_alg_fun; eauto 2 using IHTMid1, IHTMid2 |
-        match goal with
-          | [ H1 : ?BX = ?BU ^tp^ ?BPath, H2 : lbl.binds ?BL (decl_tp ?BS ?BU) ?BDS, H3 : ?BE |= ?BPath ~:! ?BT |- _ ] => rewrite exposed_u with (E:=BE) (S:=BS) (U:=BU) (x:=BX); eauto 3; unfold exposed; exists BT BDS; eauto; eauto
-          | [ H1 : ?BU ^tp^ ?BPath = ?BX , H2 : lbl.binds ?BL (decl_tp ?BS ?BU) ?BDS, H3 : ?BE |= ?BPath ~:! ?BT |- _ ] => rewrite exposed_u with (E:=BE) (S:=BS) (U:=BU) (x:=BX); eauto 3; unfold exposed; exists BT BDS; eauto; eauto
-          | [ H1 : ?BX = ?BS ^tp^ ?BPath, H2 : lbl.binds ?BL (decl_tp ?BS ?BU) ?BDS, H3 : ?BE |= ?BPath ~:! ?BT |- _ ] => rewrite exposed_s with (E:=BE) (S:=BS) (U:=BU) (x:=BX); eauto 3; unfold exposed; exists BT BDS; eauto; eauto
-          | [ H1 : ?BS ^tp^ ?BPath = ?BX , H2 : lbl.binds ?BL (decl_tp ?BS ?BU) ?BDS, H3 : ?BE |= ?BPath ~:! ?BT |- _ ] => rewrite exposed_s with (E:=BE) (S:=BS) (U:=BU) (x:=BX); eauto 3; unfold exposed; exists BT BDS; eauto; eauto
-        end |
         rewrite <- x; eauto 3 |
-        eauto 3]. (* < 5 minutes *)
+        eauto 3 |
+        crush_exposed_paths ]. (* ~10 minutes *)
 Qed.
