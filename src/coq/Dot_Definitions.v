@@ -343,6 +343,16 @@ Inductive wf_store : store -> Prop :=
      wf_store (x ~ (Tc, args) ++ E)
 .
 
+Inductive wf_env : env -> Prop :=
+  | wf_env_nil : forall P, wf_store P -> wf_env (nil, P)
+  | wf_env_cons : forall G P x T,
+     wf_store P ->
+     wf_env (G, P) ->
+     vars_ok_tp (G, P) T ->
+     x `notin` dom G -> 
+     wf_env ((x ~ T) ++ G, P)
+.
+
 (* ********************************************************************** *)
 (** * Automation *)
 Hint Constructors value.
