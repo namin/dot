@@ -48,7 +48,7 @@ Definition or_decls (ds1: decls) (ds2: decls) (dsm: decls) :=
       exists d1, exists d2, lbl.binds l d1 ds1 /\ lbl.binds l d2 ds2 /\ or_decl d1 d2 d)).
 
 Definition bot_decls (dsm: decls) :=
-  decls_ok dsm /\ forall l d, lbl.binds l d dsm <-> bot_decl d.
+  decls_ok dsm /\ forall l d, lbl.binds l d dsm -> bot_decl d.
 
 (* ********************************************************************** *)
 (** * #<a name="open"></a># Opening terms *)

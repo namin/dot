@@ -79,7 +79,7 @@ Inductive typing : env -> tm -> tp -> Prop :=
       E |= t' ~: T' ->
       E |= T' ~<: S ->
       E |= (app t t') ~: T
-  | typing_lam : forall L E S t T,
+  | typing_abs : forall L E S t T,
       wf_tp E S ->
       (forall x, x \notin L -> (ctx_bind E x S) |= (t ^ x) ~: T) ->
       E |= (lam S t) ~: (tp_fun S T)
@@ -254,3 +254,14 @@ with wf_decl : env -> decl -> Prop :=
       wf_decl E (decl_tm T)
 .
 
+(* ********************************************************************** *)
+(** * #<a name="auto"></a># Automation *)
+
+Scheme typing_indm         := Induction for typing Sort Prop
+  with expands_indm        := Induction for expands Sort Prop
+  with sub_tp_indm         := Induction for sub_tp Sort Prop
+  with sub_decl_indm       := Induction for sub_decl Sort Prop
+  with wf_tp_indm          := Induction for wf_tp Sort Prop
+  with wf_decl_indm        := Induction for wf_decl Sort Prop.
+
+Combined Scheme typing_mutind from typing_indm, expands_indm, sub_tp_indm, sub_decl_indm, wf_tp_indm, wf_decl_indm.
