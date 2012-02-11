@@ -41,3 +41,7 @@ Inductive red : store -> tm -> store -> tm -> Prop :=
      s |~   (new Tc ags t) ~~> t ^^ (ref a)   ~| ((a ~ ((Tc, ags ^args^ (ref a)))) ++ s)
 
 where "s |~ a ~~> b  ~| s'" := (red s a s' b).
+
+(* ********************************************************************** *)
+(** * #<a name="wf"></a># Well-formedness *)
+

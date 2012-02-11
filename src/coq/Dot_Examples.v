@@ -11,15 +11,15 @@ Hint Constructors wf_store red lc_tm lc_tp lc_decl lc_args lc_decls value.
 Ltac crush_red :=
   repeat (match goal with
             | [ |- ?S |~ app (lam ?T ?B) ?V ~~> ?R ~| ?S ] => apply red_beta
-            | [ |- lc_tm (lam ?T ?B) ] => let x := fresh in pick fresh x and apply lc_lam
-            | [ |- lc_tm (new ?Tc ?A ?B) ] => let x:= fresh in pick fresh x and apply lc_new
-            | [ |- lc_tp (tp_rfn _ _) ] =>  let x:= fresh in pick fresh x and apply lc_tp_rfn
+            | [ |- lc_tm (lam ?T ?B) ] => let x := fresh "x" in pick fresh x and apply lc_lam
+            | [ |- lc_tm (new ?Tc ?A ?B) ] => let x:= fresh "x" in pick fresh x and apply lc_new
+            | [ |- lc_tp (tp_rfn _ _) ] =>  let x:= fresh "x" in pick fresh x and apply lc_tp_rfn
             | [ |- lc_args ( _ :: _ ) ] => apply lc_args_cons
             | [ |- context[(?Y ^ ?X)] ] => unfold open; unfold open_rec_tm; simpl
             | [ |- context[(?Y ^^ ?X)] ] => unfold open; unfold open_rec_tm; simpl
             | [ |- context[(?Y ^ds^ ?X)] ] => unfold open_decls; simpl
             | [ |- value (lam ?T ?B) ] => apply value_lam
-            | [ |- context[lbl.binds _ _ _] ] => let H:=fresh in introv H; inversion H
+            | [ |- context[lbl.binds _ _ _] ] => let H:=fresh "H" in introv H; inversion H
             | [ H: (?L, ?V) = (?L', ?V') |- _ ] => inversion H; subst; simpl; split
             | [ H: False |- _ ] => inversion H
             | [ |- _ /\ _ ] => split
