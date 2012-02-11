@@ -31,6 +31,11 @@ Inductive or_decl : decl -> decl -> decl -> Prop :=
       or_decl (decl_tp S1 U1) (decl_tp S2 U2) (decl_tp (tp_and S1 S2) (tp_or U1 U2))
 .
 
+Inductive bot_decl : decl -> Prop :=
+  | bot_decl_tm : bot_decl (decl_tm tp_bot)
+  | bot_decl_tp : bot_decl (decl_tp tp_top tp_bot)
+.
+
 Definition and_decls (ds1: decls) (ds2: decls) (dsm: decls) :=
   decls_ok dsm /\ decls_ok ds1 /\ decls_ok ds2 /\ (forall l d,
     lbl.binds l d dsm <-> (
@@ -41,6 +46,9 @@ Definition or_decls (ds1: decls) (ds2: decls) (dsm: decls) :=
   decls_ok dsm /\ decls_ok ds1 /\ decls_ok ds2 /\ (forall l d,
     lbl.binds l d dsm <-> (
       exists d1, exists d2, lbl.binds l d1 ds1 /\ lbl.binds l d2 ds2 /\ or_decl d1 d2 d)).
+
+Definition bot_decls (dsm: decls) :=
+  decls_ok dsm /\ forall l d, lbl.binds l d dsm <-> bot_decl d.
 
 (* ********************************************************************** *)
 (** * #<a name="open"></a># Opening terms *)
