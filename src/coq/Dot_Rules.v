@@ -118,7 +118,7 @@ with expands : env -> tp -> decls -> Prop :=
       expands E T DSP ->
       and_decls DSP DS DSM ->
       expands E (tp_rfn T DS) DSM
-  | expands_sel : forall E p L S U DS,
+  | expands_tsel : forall E p L S U DS,
       path p ->
       type_label L ->
       E |= p ~mem~ L ~: (decl_tp S U) ->
@@ -137,6 +137,9 @@ with expands : env -> tp -> decls -> Prop :=
   | expands_top : forall E,
       wf_env E ->
       expands E tp_top nil
+  | expands_fun : forall E S T,
+      wf_env E ->
+      expands E (tp_fun S T) nil
   | expands_bot : forall E DS,
       wf_env E ->
       bot_decls DS ->
