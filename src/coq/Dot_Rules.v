@@ -261,10 +261,11 @@ with wf_decl : env -> decl -> Prop :=
 (** * #<a name="auto"></a># Automation *)
 
 Scheme typing_indm         := Induction for typing Sort Prop
+  with mem_indm            := Induction for mem Sort Prop
   with expands_indm        := Induction for expands Sort Prop
   with sub_tp_indm         := Induction for sub_tp Sort Prop
   with sub_decl_indm       := Induction for sub_decl Sort Prop
   with wf_tp_indm          := Induction for wf_tp Sort Prop
   with wf_decl_indm        := Induction for wf_decl Sort Prop.
 
-Combined Scheme typing_mutind from typing_indm, expands_indm, sub_tp_indm, sub_decl_indm, wf_tp_indm, wf_decl_indm.
+Combined Scheme typing_mutind from typing_indm, mem_indm, expands_indm, sub_tp_indm, sub_decl_indm, wf_tp_indm, wf_decl_indm.
