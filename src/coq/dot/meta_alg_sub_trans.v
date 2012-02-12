@@ -1,7 +1,7 @@
 Set Implicit Arguments.
 Require Import List.
-Require Import syntax_binding theory theory_alg.
-Require Import Metatheory LibTactics_sf support meta_regular meta_binding meta_weakening meta_narrowing.
+Require Import syntax_binding (* theory *) theory_alg.
+Require Import Metatheory LibTactics_sf support (* meta_regular meta_binding meta_weakening meta_narrowing *).
 Require Import Coq.Program.Equality.
 Require Import Coq.Classes.Equivalence.
 Require Import Coq.Classes.EquivDec.

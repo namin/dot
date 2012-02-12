@@ -154,7 +154,7 @@ with sub_tp : env -> tp -> tp -> Prop :=
       E |= S ~<: T ->
       E |= S ~< DS' ->
       decls_ok DS ->       
-      (forall z, z \notin L -> forall_decls (ctx_bind E z S) (DS' ^ds^ z) (DS ^ds^ z) (fun E => fun d' => fun d => sub_decl E d' d)) ->
+      (forall z, z \notin L -> forall_decls (ctx_bind E z S) (DS' ^ds^ z) (DS ^ds^ z) sub_decl) ->
       lbl.dom DS [<l=] lbl.dom DS' ->
       E |= S ~<: (tp_rfn T DS)
   | sub_tp_rfn_l : forall E T T' DS,
