@@ -377,6 +377,7 @@
   is_subtype : env S T -> bool
   [(is_subtype env T T) #t]
   [(is_subtype env T Top) #t]
+  [(is_subtype env Bottom T) #t]
   [(is_subtype env (-> S_1 S_2) (-> T_1 T_2)) #t
    (judgment-holds (subtype env T_1 S_1))
    (judgment-holds (subtype env S_2 T_2))]
@@ -412,8 +413,7 @@
   [(is_subtype env T_o (union T_1 T_2)) #t
    (judgment-holds (subtype env T_o T_1))]
   [(is_subtype env T_o (union T_1 T_2)) #t
-   (judgment-holds (subtype env T_o T_2))]
-  [(is_subtype env Bottom T) #t]  
+   (judgment-holds (subtype env T_o T_2))]  
   [(is_subtype env S T) #f])
 
 (define-judgment-form dot
@@ -687,3 +687,6 @@
 #;
 (redex-check dot (env S T U) (subtyping-transitive (term env) (term S) (term T) (term U)))
 
+;; (subtyping-transitive (term (([x (refinement Top self (: (label-class L) Bottom (sel self (label-class L))))]) ())) (term (sel x (label-class L))) (term Top) (term (refinement Top z)))
+;; (preservation (term (valnew (u ((refinement Top self (: (label-class L) Bottom (sel self (label-class L)))))) (λ (x Top) x))))
+;; (typecheck (term (() ())) (term (valnew (u ((refinement Top self (: (label-class L) Bottom (sel self (label-class L)))))) (λ (x Top) x))))
