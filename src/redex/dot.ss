@@ -689,4 +689,15 @@
 
 ;; (subtyping-transitive (term (([x (refinement Top self (: (label-class L) Bottom (sel self (label-class L))))]) ())) (term (sel x (label-class L))) (term Top) (term (refinement Top z)))
 ;; (preservation (term (valnew (u ((refinement Top self (: (label-class L) Bottom (sel self (label-class L)))))) (λ (x Top) x))))
-;; (typecheck (term (() ())) (term (valnew (u ((refinement Top self (: (label-class L) Bottom (sel self (label-class L)))))) (λ (x Top) x))))
+#;
+(typecheck (term (() ())) (term (valnew (u ((refinement Top self (: (label-class L) Bottom (sel self (label-class L)))))) ((λ (x Top) x)
+((λ (a (-> (sel u (label-class L)) (refinement Top z))) a)
+ ((λ (b (-> (sel u (label-class L)) Top)) b)
+  (λ (c (sel u (label-class L))) c)))
+))))
+#;
+(preservation (term (valnew (u ((refinement Top self (: (label-class L) Bottom (sel self (label-class L)))))) ((λ (x Top) x)
+((λ (a (-> (sel u (label-class L)) (refinement Top z))) a)
+ ((λ (b (-> (sel u (label-class L)) Top)) b)
+  (λ (c (sel u (label-class L))) c)))
+))))
