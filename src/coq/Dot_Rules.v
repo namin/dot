@@ -196,8 +196,9 @@ with sub_tp : env -> tp -> tp -> Prop :=
   | sub_tp_or_l : forall E T T1 T2,
       E |= T1 ~<: T -> E |= T2 ~<: T ->
       E |= (tp_or T1 T2) ~<: T
-  | sub_tp_top : forall E T,
-      E |= T ~<: tp_top
+  | sub_tp_top : forall E S T,
+      E |= tp_top ~<:T ->
+      E |= S ~<: T
   | sub_tp_bot : forall E T,
       E |= tp_bot ~<: T
 where "E |= S ~<: T" := (sub_tp E S T)
