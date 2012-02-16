@@ -384,7 +384,8 @@
   [(is_subtype ((T_a T_b) ...) env S T) #f
    (side-condition (member (term (S T)) (term ((T_a T_b) ...))))]
   [(is_subtype ((T_a T_b) ...) env T T) #t]
-  [(is_subtype ((T_a T_b) ...) env T Top) #t]
+  [(is_subtype ((T_a T_b) ...) env S T) #t
+   (side-condition (term (is_subtype ((T_a T_b) ... (S T)) env Top T)))]
   [(is_subtype ((T_a T_b) ...) env Bottom T) #t]
   [(is_subtype ((T_a T_b) ...) env (-> S_1 S_2) (-> T_1 T_2)) #t
    (side-condition (term (is_subtype ((T_a T_b) ... ((-> S_1 S_2) (-> T_1 T_2))) env T_1 S_1)))
