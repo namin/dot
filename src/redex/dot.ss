@@ -701,3 +701,23 @@
  ((λ (b (-> (sel u (label-class L)) Top)) b)
   (λ (c (sel u (label-class L))) c)))
 ))))
+#;
+(typecheck (term (() ())) (term (valnew (u ((refinement Top self 
+                                                        (: (label-abstract-type L1) Bottom (sel self (label-abstract-type L1)))
+                                                        (: (label-abstract-type L2) Bottom (refinement Top z (: (label-abstract-type L3) Bottom Top)))
+                                                        (: (label-abstract-type L4) (intersection (sel self (label-abstract-type L2)) (sel self (label-abstract-type L1))) (sel self (label-abstract-type L2))))))
+                                        ((λ (x Top) x)
+((λ (a (-> (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1))) (refinement Top z (: (label-abstract-type L3) Bottom Top)))) a)
+ ((λ (b (-> (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1))) (sel u (label-abstract-type L4)))) b)
+  (λ (c (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1)))) c)))
+))))
+#;
+(preservation (term (valnew (u ((refinement Top self 
+                                                        (: (label-abstract-type L1) Bottom (sel self (label-abstract-type L1)))
+                                                        (: (label-abstract-type L2) Bottom (refinement Top z (: (label-abstract-type L3) Bottom Top)))
+                                                        (: (label-abstract-type L4) (intersection (sel self (label-abstract-type L2)) (sel self (label-abstract-type L1))) (sel self (label-abstract-type L2))))))
+                                        ((λ (x Top) x)
+((λ (a (-> (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1))) (refinement Top z (: (label-abstract-type L3) Bottom Top)))) a)
+ ((λ (b (-> (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1))) (sel u (label-abstract-type L4)))) b)
+  (λ (c (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1)))) c)))
+))))
