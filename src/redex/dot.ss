@@ -732,3 +732,12 @@
  ((λ (b (-> (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1))) (sel u (label-abstract-type L4)))) b)
   (λ (c (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1)))) c)))
 ))))
+#;
+(let ([env (term (([u (refinement Top self 
+                                  (: (label-class Bad) Bottom (sel self (label-class Bad))) 
+                                  (: (label-class BadBounds) Top (sel self (label-class Bad))) 
+                                  (: (label-class Mix) (sel self (label-class BadBounds)) Top))]) ()))]
+      [s (term (sel u (label-class BadBounds)))]
+      [t (term (sel u (label-class Mix)))]
+      [u (term (refinement (sel u (label-class Mix)) z))])
+  (subtyping-transitive env s t u))
