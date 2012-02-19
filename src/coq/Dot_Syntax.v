@@ -48,7 +48,7 @@ Inductive concrete : tp -> Prop :=
 .
 
 Definition args := list (label * tm).
-Definition decls := list (label * decl).
+Definition decls_lst := list (label * decl).
 
 Definition ctx : Set := list (var * tp).
 Definition store : Set := list (loc * (tp * args)).

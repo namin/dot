@@ -7,15 +7,51 @@ Require Export Dot_Syntax.
 (* ********************************************************************** *)
 (** * #<a name="decls"></a># Declarations *)
 
+Inductive decls : Set :=
+  | decls_fin : decls_lst -> decls
+  | decls_inf : decls_lst -> decls
+.
+
+Inductive decls_binds (l: label) (d: decl) (ds: decls) : Prop :=
+  | decls_binds_fin : forall dsl, decls_fin dsl = ds \/ decls_inf dsl = ds ->
+    lbl.binds l d dsl -> decls_binds l d ds
+  | decls_binds_inf : forall dsl, decls_inf dsl = ds ->
+    ~(lbl.binds l d dsl) ->
+    (type_label l /\ decl_tp tp_top tp_bot = d) \/ (value_label l /\ decl_tm tp_bot = d) ->
+    decls_binds l d ds
+.
+
+Definition decls_dom_subset (ds1: decls) (ds2: decls) : Prop :=
+  match ds1, ds2 with
+    | decls_fin dsl1, decls_fin dsl2 => lbl.dom dsl1 [<l=] lbl.dom dsl2
+    | decls_inf _, decls_fin _ => False
+    | _, _ => True
+  end.
+
+Definition decls_uniq (ds: decls) : Prop :=
+  forall dsl, decls_fin dsl = ds \/ decls_inf dsl = ds -> lbl.uniq dsl.
+
+Definition decls_map (f: decl -> decl) (ds: decls) :=
+  match ds with
+    | decls_fin dsl => decls_fin (lbl.map f dsl)
+    | decls_inf dsl => decls_inf (lbl.map f dsl)
+  end.
+
+Definition decls_lift {B: Type} (f: decls_lst -> B) (ds: decls) :=
+  match ds with
+    | decls_fin dsl => f dsl
+    | decls_inf dsl => f dsl
+  end.
+  
 Definition forall_decls (E: env) (DS1: decls) (DS2: decls) (P: env -> decl -> decl -> Prop) :=
-  forall l d1 d2, lbl.binds l d2 DS2 -> lbl.binds l d1 DS1 -> P E d1 d2.
+  forall l d1 d2, decls_binds l d2 DS2 -> decls_binds l d1 DS1 -> P E d1 d2.
 
 Inductive valid_label : label -> decl -> Prop :=
   | valid_label_type : forall L S U, type_label L -> valid_label L (decl_tp S U)
   | valid_label_value : forall l T, value_label l -> valid_label l (decl_tm T)
 .
 
-Definition decls_ok (ds: decls) := lbl.uniq ds /\ (forall l d, lbl.binds l d ds -> valid_label l d).
+Definition decls_ok (ds: decls) := decls_uniq ds /\ (forall l d, decls_binds l d ds -> valid_label l d).
 
 Inductive and_decl : decl -> decl -> decl -> Prop :=
   | and_decl_tm : forall T1 T2,
@@ -38,17 +74,17 @@ Inductive bot_decl : decl -> Prop :=
 
 Definition and_decls (ds1: decls) (ds2: decls) (dsm: decls) :=
   decls_ok dsm /\ decls_ok ds1 /\ decls_ok ds2 /\ (forall l d,
-    lbl.binds l d dsm <-> (
-      (exists d1, exists d2, lbl.binds l d1 ds1 /\ lbl.binds l d2 ds2 /\ and_decl d1 d2 d)
-      \/ lbl.binds l d ds1 \/ lbl.binds l d ds2)).
+    decls_binds l d dsm <-> (
+      (exists d1, exists d2, decls_binds l d1 ds1 /\ decls_binds l d2 ds2 /\ and_decl d1 d2 d)
+      \/ decls_binds l d ds1 \/ decls_binds l d ds2)).
 
 Definition or_decls (ds1: decls) (ds2: decls) (dsm: decls) :=
   decls_ok dsm /\ decls_ok ds1 /\ decls_ok ds2 /\ (forall l d,
-    lbl.binds l d dsm <-> (
-      exists d1, exists d2, lbl.binds l d1 ds1 /\ lbl.binds l d2 ds2 /\ or_decl d1 d2 d)).
+    decls_binds l d dsm <-> (
+      exists d1, exists d2, decls_binds l d1 ds1 /\ decls_binds l d2 ds2 /\ or_decl d1 d2 d)).
 
 Definition bot_decls (dsm: decls) :=
-  decls_ok dsm /\ forall l d, lbl.binds l d dsm -> bot_decl d.
+  decls_ok dsm /\ forall l d, decls_binds l d dsm <-> (bot_decl d /\ valid_label l d).
 
 (* ********************************************************************** *)
 (** * #<a name="open"></a># Opening terms *)
@@ -84,18 +120,22 @@ with open_rec_decl (k : nat) (u : tm) (d : decl) {struct d} : decl :=
 Notation "{ k ~> u } t" := (open_rec_tm k u t) (at level 67).
 Notation "{ k ~tp> u } t" := (open_rec_tp k u t) (at level 67).
 Notation "{ k ~d> u } d" := (open_rec_decl k u d) (at level 67).
-Definition open_rec_decls k u (ds: decls) := lbl.map (open_rec_decl k u) ds.
+Definition open_rec_decls k u (ds: decls) := decls_map (open_rec_decl k u) ds.
 Notation "{ k ~ds> u } ds" := (open_rec_decls k u ds) (at level 67).
+Definition open_rec_decls_lst k u (dsl: decls_lst) := lbl.map (open_rec_decl k u) dsl.
+Notation "{ k ~dsl> u } dsl" := (open_rec_decls_lst k u dsl) (at level 67).
 
 Definition open e u := open_rec_tm 0 u e.
 Definition open_tp e u := open_rec_tp 0 u e.
 Definition open_decl d u := open_rec_decl 0 u d.
 Definition open_decls ds u := open_rec_decls 0 u ds.
+Definition open_decls_lst dsl u := open_rec_decls_lst 0 u dsl.
 Definition open_args (ags: args) u := lbl.map (open_rec_tm 0 u) ags.
 
 Notation "ags ^args^ u" := (open_args ags u) (at level 67).
 Notation "d ^d^ u" := (open_decl d u) (at level 67).
 Notation "ds ^ds^ u" := (open_decls ds u) (at level 67).
+Notation "dsl ^dsl^ u" := (open_decls_lst dsl u) (at level 67).
 Notation "t ^^ u" := (open t u) (at level 67).
 Notation "t ^tp^ u" := (open_tp t u) (at level 67).
 Notation "t ^ x" := (open t (fvar x)).
@@ -109,7 +149,7 @@ Inductive  lc_tp : tp -> Prop :=
       lc_tp (tp_sel tgt l)
   | lc_tp_rfn : forall L parent ds,
       lc_tp parent ->
-      (forall x: atom, x \notin L -> lc_decls (ds ^ds^ x)) ->
+      (forall x: atom, x \notin L -> lc_decls_lst (ds ^dsl^ x)) ->
       lc_tp (tp_rfn parent ds)
   | lc_tp_fun : forall f a,
       lc_tp f ->
@@ -156,11 +196,11 @@ with lc_tm : tm -> Prop :=
       lc_tm tgt ->
       lc_tm (sel tgt l)
 
-with lc_decls : decls -> Prop :=
+with lc_decls_lst : decls_lst -> Prop :=
   | lc_decl_nil :
-      lc_decls (nil)
+      lc_decls_lst (nil)
   | lc_decl_cons : forall l d ds,
-      lc_decl d -> lc_decls ds -> lc_decls ((l, d) :: ds)
+      lc_decl d -> lc_decls_lst ds -> lc_decls_lst ((l, d) :: ds)
 
 with lc_args : args -> Prop :=
   | lc_args_nil :
@@ -202,7 +242,7 @@ Inductive  vars_ok_tp : env -> tp -> Prop :=
       vars_ok_tp E (tp_sel tgt l)
   | vars_ok_tp_rfn : forall E L t ds,
       vars_ok_tp E t ->
-      (forall x: atom, x \notin L -> vars_ok_decls (ctx_bind E x t) (ds ^ds^ x)) ->
+      (forall x: atom, x \notin L -> vars_ok_decls_lst (ctx_bind E x t) (ds ^dsl^ x)) ->
       vars_ok_tp E (tp_rfn t ds)
   | vars_ok_tp_fun : forall E f a,
       vars_ok_tp E f ->
@@ -252,11 +292,11 @@ with vars_ok_tm : env -> tm -> Prop :=
       vars_ok_tm E tgt ->
       vars_ok_tm E (sel tgt l)
 
-with vars_ok_decls : env -> decls -> Prop :=
+with vars_ok_decls_lst : env -> decls_lst -> Prop :=
   | vars_ok_decl_nil : forall E,
-      vars_ok_decls E (nil)
+      vars_ok_decls_lst E (nil)
   | vars_ok_decl_cons : forall E l d ds,
-      vars_ok_decl E d -> vars_ok_decls E ds -> vars_ok_decls E ((l, d) :: ds)
+      vars_ok_decl E d -> vars_ok_decls_lst E ds -> vars_ok_decls_lst E ((l, d) :: ds)
 
 with vars_ok_args : env -> args -> Prop :=
   | vars_ok_args_nil : forall E,
@@ -268,10 +308,10 @@ with vars_ok_args : env -> args -> Prop :=
 Scheme   vars_ok_tp_indm   := Induction for vars_ok_tp Sort Prop
  with  vars_ok_decl_indm   := Induction for vars_ok_decl Sort Prop
  with    vars_ok_tm_indm   := Induction for vars_ok_tm Sort Prop
- with vars_ok_decls_indm   := Induction for vars_ok_decls Sort Prop
+ with vars_ok_decls_lst_indm   := Induction for vars_ok_decls_lst Sort Prop
  with  vars_ok_args_indm   := Induction for vars_ok_args Sort Prop.
 
-Combined Scheme vars_ok_mutind from vars_ok_tp_indm, vars_ok_decl_indm, vars_ok_tm_indm, vars_ok_decls_indm, vars_ok_args_indm.
+Combined Scheme vars_ok_mutind from vars_ok_tp_indm, vars_ok_decl_indm, vars_ok_tm_indm, vars_ok_decls_lst_indm, vars_ok_args_indm.
 
 (* ********************************************************************** *)
 (** * #<a name="fv"></a># Free variables *)
@@ -304,7 +344,7 @@ with fv_decl (d : decl) {struct d} : vars :=
     | decl_tm t => fv_tp t
   end.
 
-Definition fv_decls (decls: decls) := (fold_left (fun (ats: vars) (d : (label * decl)) => ats \u (fv_decl (snd d))) decls {}).
+Definition fv_decls_lst (decls: decls_lst) := (fold_left (fun (ats: vars) (d : (label * decl)) => ats \u (fv_decl (snd d))) decls {}).
 
 (* ********************************************************************** *)
 (** * #<a name="subst"></a># Substitution *)
@@ -372,6 +412,6 @@ Ltac gather_atoms ::=
   let C := gather_atoms_with (fun x : tm => fv_tm x) in
   let D := gather_atoms_with (fun x : tp => fv_tp x) in
   let E := gather_atoms_with (fun x : decl => fv_decl x) in
-  let F := gather_atoms_with (fun x : decls => fv_decls x) in
+  let F := gather_atoms_with (fun x : decls => decls_lift fv_decls_lst x) in
   let G := gather_atoms_with (fun x : env => dom (fst x)) in
   constr:(A `union` B `union` C `union` D `union` E `union` F `union` G).

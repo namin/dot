@@ -6,10 +6,10 @@ Require Export Dot_Syntax Dot_Definitions Dot_Rules.
 
 Section Ex.
 
-Hint Constructors wf_store wf_env wf_tp red lc_tm lc_tp lc_decl lc_args lc_decls value.
+Hint Constructors wf_store wf_env wf_tp red lc_tm lc_tp lc_decl lc_args lc_decls_lst value.
 Hint Constructors vars_ok_tp valid_label.
 Hint Constructors typing expands sub_tp sub_decl wf_tp wf_decl.
-Hint Unfold decls_ok.
+Hint Unfold decls_ok decls_uniq.
 
 Ltac crush_rules :=
   repeat (match goal with
@@ -26,10 +26,19 @@ Ltac crush_rules :=
             | [ |- context[(?Y ^ ?X)] ] => unfold open; unfold open_rec_tm; simpl
             | [ |- context[(?Y ^^ ?X)] ] => unfold open; unfold open_rec_tm; simpl
             | [ |- context[(?Y ^ds^ ?X)] ] => unfold open_decls; simpl
+            | [ |- context[(?Y ^dsl^ ?X)] ] => unfold open_decls_lst; simpl
             | [ |- value (lam ?T ?B) ] => apply value_lam
+            | [ |- context[decls_binds _ _ _] ] => let H:=fresh "H" in introv H; inversion H
             | [ |- context[lbl.binds _ _ _] ] => let H:=fresh "H" in introv H; inversion H
             | [ H: (?L, _) = (?L', _) |- _ ] => inversion H; subst; simpl; split
             | [ H: False |- _ ] => inversion H
+            | [ H: decls_fin ?DSL1 = ?DSL2 \/ decls_inf ?DSL1 = ?DSL2 |- _ ] => inversions H
+            | [ H: decls_fin ?DSL1 = decls_fin ?DSL2 |- _ ] => inversions H
+            | [ H: decls_fin ?DSL1 = decls_inf ?DSL2 |- _ ] => inversions H
+            | [ H: decls_inf ?DSL1 = decls_fin ?DSL2 |- _ ] => inversions H
+            | [ H: decls_inf ?DSL1 = decls_inf ?DSL2 |- _ ] => inversions H
+            | [ H: lbl.binds _ _ _ |- _ ] => inversions H
+            | [ |- decls_uniq _ ] => unfold decls_uniq; intros
             | [ |- _ /\ _ ] => split
             | [ |- _ ] => auto
           end).
@@ -82,14 +91,19 @@ Proof.
   simpl. crush_rules.
   apply wf_tsel_1 with (S:=tp_top) (U:=tp_bot); crush_rules.
     replace (decl_tp tp_top tp_bot) with ((decl_tp tp_top tp_bot) ^d^ x).
-    apply mem_path with (T:=tp_bot) (DS:=[(Lt, decl_tp tp_top tp_bot)]); crush_rules.
+    apply mem_path with (T:=tp_bot) (DS:=decls_inf nil); crush_rules.
     apply expands_bot; crush_rules.
     unfold ctx_bind. simpl. crush_rules.
-    unfold bot_decls. splits. unfold decls_ok. splits; crush_rules. 
-    inversion H0; subst. auto.
-    intros l' d H. inversion H. inversion H0; subst. apply bot_decl_tp. inversion H0.
-    unfold open_decl. unfold open_rec_decl. reflexivity.
-    unfold ctx_bind. simpl. crush_rules.
+    unfold bot_decls. splits. unfold decls_ok. splits; crush_rules.
+    inversions H2; inversions H0; crush_rules.
+    intros l d. split; intros.
+      inversion H; crush_rules; inversions H2; inversions H0. apply bot_decl_tp. apply bot_decl_tm. auto. auto.
+      apply decls_binds_inf with (dsl:=nil).
+        reflexivity. intros F. inversion F.
+        inversions H; inversions H1; inversions H0; auto.
+    apply decls_binds_inf with (dsl:=nil).
+      reflexivity. intros F. inversion F. left. auto. crush_rules.
+    simpl. crush_rules.
     apply vars_ok_tp_sel. eapply vars_ok_var. crush_rules.
 Qed.
 

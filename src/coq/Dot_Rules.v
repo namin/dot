@@ -90,7 +90,7 @@ Inductive typing : env -> tm -> tp -> Prop :=
       lbl.uniq args ->
       (forall l v, lbl.binds l v args -> value_label l /\ (exists d, lbl.binds l d args)) ->
       (forall x, x \notin L ->
-        (forall l d, lbl.binds l d ds ->
+        (forall l d, decls_binds l d ds ->
           (forall S U, d ^d^ x = decl_tp S U -> (ctx_bind E x Tc) |= S ~<: U) /\
           (forall V, d ^d^ x = decl_tm V -> (exists v,
             lbl.binds l v args /\ value (v ^ x) /\ (exists V', (ctx_bind E x Tc) |= (v ^ x) ~: V' /\ (ctx_bind E x Tc) |= V' ~<: V))))) ->
@@ -103,12 +103,12 @@ with mem : env -> tm -> label -> decl -> Prop :=
       path p ->
       E |= p ~: T ->
       expands E T DS ->
-      lbl.binds l D DS ->
+      decls_binds l D DS ->
       mem E p l (D ^d^ p)
   | mem_term : forall E t l T DS D,
       E |= t ~: T ->
       expands E T DS ->
-      lbl.binds l D DS ->
+      decls_binds l D DS ->
       lc_decl D ->
       mem E t l D
 where "E |= t ~mem~ l ~: D" := (mem E t l D)
@@ -116,7 +116,7 @@ where "E |= t ~mem~ l ~: D" := (mem E t l D)
 with expands : env -> tp -> decls -> Prop :=
   | expands_rfn : forall E T DSP DS DSM,
       expands E T DSP ->
-      and_decls DSP DS DSM ->
+      and_decls DSP (decls_fin DS) DSM ->
       expands E (tp_rfn T DS) DSM
   | expands_tsel : forall E p L S U DS,
       path p ->
@@ -136,10 +136,10 @@ with expands : env -> tp -> decls -> Prop :=
       expands E (tp_or T1 T2) DSM
   | expands_top : forall E,
       wf_env E ->
-      expands E tp_top nil
+      expands E tp_top (decls_fin nil)
   | expands_fun : forall E S T,
       wf_env E ->
-      expands E (tp_fun S T) nil
+      expands E (tp_fun S T) (decls_fin nil)
   | expands_bot : forall E DS,
       wf_env E ->
       bot_decls DS ->
@@ -156,13 +156,13 @@ with sub_tp : env -> tp -> tp -> Prop :=
   | sub_tp_rfn_r : forall L E S T DS' DS,
       E |= S ~<: T ->
       E |= S ~< DS' ->
-      decls_ok DS ->       
-      (forall z, z \notin L -> forall_decls (ctx_bind E z S) (DS' ^ds^ z) (DS ^ds^ z) sub_decl) ->
-      lbl.dom DS [<l=] lbl.dom DS' ->
+      decls_ok (decls_fin DS) ->       
+      (forall z, z \notin L -> forall_decls (ctx_bind E z S) (DS' ^ds^ z) ((decls_fin DS) ^ds^ z) sub_decl) ->
+      decls_dom_subset (decls_fin DS) DS' ->      
       E |= S ~<: (tp_rfn T DS)
   | sub_tp_rfn_l : forall E T T' DS,
       E |= T ~<: T' ->
-      decls_ok DS ->
+      decls_ok (decls_fin DS) ->
       E |= (tp_rfn T DS) ~<: T'
   | sub_tp_tsel_r : forall E p L S U S',
       path p ->
@@ -214,10 +214,10 @@ with sub_decl : env -> decl -> decl -> Prop :=
 
 with wf_tp : env -> tp -> Prop :=
   | wf_rfn : forall L E T DS,
-      decls_ok DS ->
+      decls_ok (decls_fin DS) ->
       wf_tp E T ->
       (forall z, z \notin L ->
-        forall l d, lbl.binds l d DS -> (wf_decl (ctx_bind E z (tp_rfn T DS)) (d ^d^ z))) ->
+        forall l d, decls_binds l d (decls_fin DS) -> (wf_decl (ctx_bind E z (tp_rfn T DS)) (d ^d^ z))) ->
       wf_tp E (tp_rfn T DS)
   | wf_fun : forall E T1 T2,
       wf_tp E T1 ->
