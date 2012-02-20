@@ -88,7 +88,7 @@ Inductive typing : env -> tm -> tp -> Prop :=
       concrete Tc ->
       E |= Tc ~< ds ->
       lbl.uniq args ->
-      (forall l v, lbl.binds l v args -> value_label l /\ (exists d, lbl.binds l d args)) ->
+      (forall l v, lbl.binds l v args -> value_label l /\ (exists d, decls_binds l d ds)) ->
       (forall x, x \notin L ->
         (forall l d, decls_binds l d ds ->
           (forall S U, d ^d^ x = decl_tp S U -> (ctx_bind E x Tc) |= S ~<: U) /\
