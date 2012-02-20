@@ -153,6 +153,9 @@ with sub_tp : env -> tp -> tp -> Prop :=
       E |= T1 ~<: S1 ->
       E |= S2 ~<: T2 ->
       E |= (tp_fun S1 S2) ~<: (tp_fun T1 T2)
+  | sub_tp_rfn_r_nil : forall E S T,
+      E |= S ~<: T ->
+      E |= S ~<: (tp_rfn T nil)
   | sub_tp_rfn_r : forall L E S T DS' DS,
       E |= S ~<: T ->
       E |= S ~< DS' ->
@@ -196,9 +199,8 @@ with sub_tp : env -> tp -> tp -> Prop :=
   | sub_tp_or_l : forall E T T1 T2,
       E |= T1 ~<: T -> E |= T2 ~<: T ->
       E |= (tp_or T1 T2) ~<: T
-  | sub_tp_top : forall E S T,
-      E |= tp_top ~<:T ->
-      E |= S ~<: T
+  | sub_tp_top : forall E T,
+      E |= T ~<: tp_top
   | sub_tp_bot : forall E T,
       E |= tp_bot ~<: T
 where "E |= S ~<: T" := (sub_tp E S T)
@@ -281,7 +283,7 @@ Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ :=
   (forall (e : env) (t : tp) (H : wf_tp e t), (P5_ e t H)) /\  
   (forall (e : env) (d : decl) (H : wf_decl e d), (P6_ e d H))); [tauto | 
     apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_); try unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_ in *; try clear P0_ P1_ P2_ P3_ P4_ P5_ P6_; [  (* only try unfolding and clearing in case the PN_ aren't just identifiers *)
-      Case "typing_var" | Case "typing_ref" | Case "typing_sel" | Case "typing_app" | Case "typing_abs" | Case "typing_new" | Case "mem_path" | Case "mem_term" | Case "expands_rfn" | Case "expands_tsel" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "expands_fun" | Case "expands_bot" | Case "sub_tp_refl" | Case "sub_tp_fun" | Case "sub_tp_rfn_r" | Case "sub_tp_rfn_l" | Case "sub_tp_tsel_r" | Case "sub_tp_tsel_l" | Case "sub_tp_and_r" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_tp_or_l" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "wf_rfn" | Case "wf_fun" | Case "wf_tsel_1" | Case "wf_tsel_2" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" ]; 
+      Case "typing_var" | Case "typing_ref" | Case "typing_sel" | Case "typing_app" | Case "typing_abs" | Case "typing_new" | Case "mem_path" | Case "mem_term" | Case "expands_rfn" | Case "expands_tsel" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "expands_fun" | Case "expands_bot" | Case "sub_tp_refl" | Case "sub_tp_fun" | Case "sub_tp_rfn_r_nil" | Case "sub_tp_rfn_r" | Case "sub_tp_rfn_l" | Case "sub_tp_tsel_r" | Case "sub_tp_tsel_l" | Case "sub_tp_and_r" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_tp_or_l" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "wf_rfn" | Case "wf_fun" | Case "wf_tsel_1" | Case "wf_tsel_2" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" ]; 
       introv; eauto ].
 
 
