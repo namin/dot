@@ -755,3 +755,18 @@
       [t (term (sel u (label-class Lower)))]
       [u (term (refinement (sel u (label-class X)) z (: (label-class L) Bottom Top)))])
   (subtyping-transitive env s t u))
+#;
+(let ([Tc (term (refinement Top self
+                            (: (label-class Bad) Bottom (sel self (label-class Bad)))
+                            (: (label-class Good) (refinement Top z (: (label-class L) Bottom Top)) (refinement Top z (: (label-class L) Bottom Top)))
+                            (: (label-class Lower) (intersection (sel self (label-class Bad)) (sel self (label-class Good))) (sel self (label-class Good)))
+                            (: (label-class Upper) (sel self (label-class Good)) (union (sel self (label-class Bad)) (sel self (label-class Good))))
+                            (: (label-class X) (sel self (label-class Lower)) (sel self (label-class Upper)))))]
+      [s (term (intersection (sel u (label-class Bad)) (sel u (label-class Good))))]
+      [t (term (sel u (label-class Lower)))]
+      [u (term (refinement (sel u (label-class X)) z (: (label-class L) Bottom Top)))])
+  (preservation (term (valnew (u (,Tc)) ((λ (x Top) x)
+    ((λ (f (-> ,s ,u)) f)
+     ((λ (f (-> ,s ,t)) f)
+      ((λ (f (-> ,s ,s)) f) 
+       (λ (x ,s) x)))))))))
