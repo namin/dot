@@ -257,7 +257,7 @@
   [(decl-intersection (Dl_before ... (: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))
    ,(append (term (Dl_before ...))
             (term (decl-intersection ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))))]
-  [(decl-intersection ((: Lt S_1 U_1) DLt_1 ...) ((: Lt S_1 U_1) DLt_2 ...))
+  [(decl-intersection ((: Lt S_1 U_1) DLt_1 ...) ((: Lt S_2 U_2) DLt_2 ...))
    ,(cons (term (: Lt (union S_1 S_2) (intersection U_1 U_2)))
           (term (decl-intersection (DLt_1 ...) (DLt_2 ...))))]
   [(decl-intersection ((: Lt S_1 U_1) DLt_1 ...) (DLt_before ... (: Lt S_2 U_2) DLt_2 ...))
@@ -770,3 +770,19 @@
      ((λ (f (-> ,s ,t)) f)
       ((λ (f (-> ,s ,s)) f) 
        (λ (x ,s) x)))))))))
+#;
+(typecheck (term (() ())) (term (valnew (u ((refinement Top self 
+                              (: (label-class Bar) Bottom (refinement Top self (: (label-class T) Bottom Top)))
+                              (: (label-class Foo) Bottom (refinement (sel self (label-class Bar)) z (: (label-class T) Bottom (sel self (label-class Foo)))))
+                              (: (label-value foo) (-> Top (sel self (label-class Foo)))))
+              ((label-value foo) (λ (x Top) (valnew (foo ((sel u (label-class Foo)))) foo)))))
+              ((λ (x Top) x)
+               (sel u (label-value foo))))))
+#;
+(typecheck (term (() ())) (term (valnew (u ((refinement Top self 
+                              (: (label-class Bar) Bottom (refinement Top self (: (label-class T) Bottom Top) (: (label-value some) (sel self (label-class T)))))
+                              (: (label-class Foo) Bottom (refinement (sel self (label-class Bar)) z (: (label-class T) (sel self (label-class Foo)) Top)))
+                              (: (label-value foo) (-> Top (sel self (label-class Foo)))))
+              ((label-value foo) (λ (x Top) (valnew (foo ((sel u (label-class Foo)) ((label-value some) foo))) foo)))))
+              ((λ (x Top) x)
+               (sel u (label-value foo))))))
