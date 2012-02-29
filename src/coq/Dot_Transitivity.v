@@ -140,13 +140,6 @@ Proof.
   (* TODO *)
 Admitted.
 
-Lemma sub_decls_rfn : forall q L E T DS DS',
-  E |= tp_rfn T DS ~< DS' @ q ->
-  (forall z, z `notin` L -> forall_decls (ctx_bind E z (tp_rfn T DS)) (DS' ^ds^ z) ((decls_fin DS) ^ds^ z) sub_decl).
-Proof.
-  (* TODO *)
-Admitted.
-
 assert (E |= S' ~<: tp_sel t l) as Ht1; eauto 3.
 assert (E |= tp_sel t l ~<: tp_rfn T DS) as Ht2; eauto 3.
 assert (exists D_S' q_S', E |= S' ~< D_S' @ q_S') as Hexp_S'_ee. apply expansion_exists.
