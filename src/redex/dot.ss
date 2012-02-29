@@ -404,8 +404,6 @@
   [(is_subtype ((T_a T_b) ...) env (-> S_1 S_2) (-> T_1 T_2)) #t
    (side-condition (term (is_subtype ((T_a T_b) ... ((-> S_1 S_2) (-> T_1 T_2))) env T_1 S_1)))
    (side-condition (term (is_subtype ((T_a T_b) ... ((-> S_1 S_2) (-> T_1 T_2))) env S_2 T_2)))]
-  [(is_subtype ((T_a T_b) ...) env S (refinement T z)) #t
-   (side-condition (term (is_subtype ((T_a T_b) ... (S (refinement T z))) env S T)))]
   [(is_subtype ((T_a T_b) ...) env S (refinement T z DLt ... Dl ...)) #t
    (side-condition (term (is_subtype ((T_a T_b) ... (S (refinement T z DLt ... Dl ...))) env S T)))
    (judgment-holds (expansion env z S ((DLt_s ...) (Dl_s ...)) quality_s))
