@@ -17,6 +17,7 @@ FILES = \
         Dot_Rules \
 	Dot_Tactics \
         Dot_Examples \
+        Dot_Transitivity \
 
 VFILES   = $(foreach i, $(FILES), $(i).v)
 VOFILES  = $(foreach i, $(FILES), $(i).vo)
