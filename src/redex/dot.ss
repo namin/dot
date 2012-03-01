@@ -799,3 +799,17 @@
               ((label-value foo) (λ (x Top) (valnew (foo ((sel u (label-class Foo)) ((label-value some) foo))) foo)))))
               ((λ (x Top) x)
                (sel u (label-value foo))))))
+#;
+(let ((w (term (refinement Top b
+                           (: (label-class T) Bottom (sel (sel b (label-value x)) (label-class T)))
+                           (: (label-value x) (sel u (label-class C)))))))
+  (judgment-holds
+   (expansion (((u (refinement Top a
+                               (: (label-class C) Bottom ,w)))
+                (w ,w))
+               ())
+              z
+              (sel w (label-class T))
+              ((Dl ...) (DLt ...))
+              quality)
+   ((Dl ...) (DLt ...))))
