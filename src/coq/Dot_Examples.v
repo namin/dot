@@ -6,9 +6,9 @@ Require Export Dot_Syntax Dot_Definitions Dot_Rules.
 
 Section Ex.
 
-Hint Constructors wf_store wf_env wf_tp red lc_tm lc_tp lc_decl lc_args lc_decls_lst value.
+Hint Constructors wf_store wf_env red lc_tm lc_tp lc_decl lc_args lc_decls_lst value.
 Hint Constructors vars_ok_tp valid_label.
-Hint Constructors typing expands sub_tp sub_decl wf_tp wf_decl.
+Hint Constructors typing expands sub_tp sub_decl wf_tp wf_decl wfe_tp.
 Hint Unfold decls_ok decls_uniq.
 
 Ltac crush_rules :=
@@ -40,8 +40,35 @@ Ltac crush_rules :=
             | [ H: lbl.binds _ _ _ |- _ ] => inversions H
             | [ |- decls_uniq _ ] => unfold decls_uniq; intros
             | [ |- _ /\ _ ] => split
-            | [ |- _ ] => auto
+            | [ |- _ ] => eauto
           end).
+
+Lemma expands_bot_inf_nil : forall E, wf_env E -> E |= tp_bot ~< decls_inf nil.
+Proof.
+  Hint Constructors bot_decl.
+  introv Henv.
+  apply expands_bot; auto.
+  Case "bot_decls (decls_inf nil)". unfold bot_decls. splits.
+    SCase "decls_ok (decls_inf nil)". unfold decls_ok. splits.
+      SSCase "decls_uniq (decls_inf nil)". unfold decls_uniq.
+        introv H. inversions H; inversions H0; auto.
+      SSCase "valid label". introv Hbind.
+        inversions Hbind; inversions H; inversion H1; subst; try inversions H0; inversions H; subst; auto.
+    SCase "binds <-> bot /\ valid". intros l d. splits.
+      SSCase "->". intro Hbind.
+        inversions Hbind; inversions H; inversion H1; subst; try inversions H0; inversions H; subst; auto.
+      SSCase "<-". intro H.
+        inversions H. apply decls_binds_inf with (dsl:=nil); auto. inversions H0; inversions H1; auto.
+Qed.
+Hint Resolve expands_bot_inf_nil.
+
+Lemma wfe_bot : forall E, wf_env E -> wfe_tp E tp_bot.
+Proof.
+  Hint Constructors bot_decl.
+  introv Henv.
+  apply wfe_any with (DT:=decls_inf nil); auto.
+Qed.
+Hint Resolve wfe_bot.
 
 Parameter l : label.
 Axiom l_value_label : value_label l.
@@ -87,8 +114,10 @@ Proof. unfold ex2. crush_rules. Qed.
 Example cast_typ : (nil,nil) |= (lam tp_bot (app (lam tp_top 0) (lam (tp_sel 0 Lt) 0))) ~: tp_fun tp_bot tp_top.
 Proof.
   (* yuck *)
-  crush_rules. eapply typing_app; crush_rules.
-  simpl. crush_rules.
+  crush_rules.
+  apply typing_app with (S:=tp_top) (T':=(tp_fun (tp_sel x Lt) (tp_sel x Lt))); crush_rules.
+  apply wfe_any with (DT:=decls_fin nil). auto. apply expands_top. unfold ctx_bind. simpl. crush_rules.
+  simpl. crush_rules. apply wfe_any with (DT:=decls_inf nil).
   apply wf_tsel_1 with (S:=tp_top) (U:=tp_bot); crush_rules.
     replace (decl_tp tp_top tp_bot) with ((decl_tp tp_top tp_bot) ^d^ x).
     apply mem_path with (T:=tp_bot) (DS:=decls_inf nil); crush_rules.
@@ -103,6 +132,15 @@ Proof.
         inversions H; inversions H1; inversions H0; auto.
     apply decls_binds_inf with (dsl:=nil).
       reflexivity. intros F. inversion F. left. auto. crush_rules.
+    apply wfe_any with (DT:=decls_fin nil). auto. apply expands_top. unfold ctx_bind. simpl. crush_rules.
+    apply wfe_bot. unfold ctx_bind. simpl. crush_rules.
+    unfold ctx_bind. simpl. apply expands_tsel with (S:=tp_top) (U:=tp_bot); crush_rules.
+    replace (decl_tp tp_top tp_bot) with ((decl_tp tp_top tp_bot) ^d^ x).
+    apply mem_path with (T:=tp_bot) (DS:=decls_inf nil); crush_rules.
+    apply expands_bot_inf_nil. crush_rules.
+    apply decls_binds_inf with (dsl:=nil). reflexivity. intros F. inversion F. left. auto.
+    crush_rules.
+    apply expands_bot_inf_nil. crush_rules.
     simpl. crush_rules.
     apply vars_ok_tp_sel. eapply vars_ok_var. crush_rules.
 Qed.
