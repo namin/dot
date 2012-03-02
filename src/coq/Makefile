@@ -16,6 +16,7 @@ FILES = \
 	Dot_Definitions \
         Dot_Rules \
 	Dot_Tactics \
+	Dot_Lemmas \
         Dot_Examples \
         Dot_Transitivity \
 

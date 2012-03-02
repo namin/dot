@@ -148,6 +148,7 @@ where "E |= T ~< DS" := (expands E T DS)
 
 with sub_tp : env -> tp -> tp -> Prop :=
   | sub_tp_refl : forall E T,
+      wf_env E -> wfe_tp E T ->
       E |= T ~<: T
   | sub_tp_fun : forall E S1 S2 T1 T2,
       E |= T1 ~<: S1 ->
@@ -158,11 +159,13 @@ with sub_tp : env -> tp -> tp -> Prop :=
       E |= S ~< DS' ->
       decls_ok (decls_fin DS) ->       
       (forall z, z \notin L -> forall_decls (ctx_bind E z S) (DS' ^ds^ z) ((decls_fin DS) ^ds^ z) sub_decl) ->
-      decls_dom_subset (decls_fin DS) DS' ->      
+      decls_dom_subset (decls_fin DS) DS' ->
+      wfe_tp E (tp_rfn T DS) ->
       E |= S ~<: (tp_rfn T DS)
   | sub_tp_rfn_l : forall E T T' DS,
       E |= T ~<: T' ->
       decls_ok (decls_fin DS) ->
+      wfe_tp E (tp_rfn T DS) ->
       E |= (tp_rfn T DS) ~<: T'
   | sub_tp_tsel_r : forall E p L S U S',
       path p ->
@@ -182,23 +185,29 @@ with sub_tp : env -> tp -> tp -> Prop :=
       E |= T ~<: T1 -> E |= T ~<: T2 ->
       E |= T ~<: (tp_and T1 T2)
   | sub_tp_and_l1 : forall E T T1 T2,
+      wf_env E -> wfe_tp E T2 ->
       E |= T1 ~<: T ->
       E |= (tp_and T1 T2) ~<: T
   | sub_tp_and_l2 : forall E T T1 T2,
+      wf_env E -> wfe_tp E T1 ->
       E |= T2 ~<: T ->
       E |= (tp_and T1 T2) ~<: T
   | sub_tp_or_r1 : forall E T T1 T2,
+      wf_env E -> wfe_tp E T2 ->
       E |= T ~<: T1 ->
       E |= T ~<: (tp_or T1 T2)
   | sub_tp_or_r2 : forall E T T1 T2,
+      wf_env E -> wfe_tp E T1 ->
       E |= T ~<: T2 ->
       E |= T ~<: (tp_or T1 T2)
   | sub_tp_or_l : forall E T T1 T2,
       E |= T1 ~<: T -> E |= T2 ~<: T ->
       E |= (tp_or T1 T2) ~<: T
   | sub_tp_top : forall E T,
+      wf_env E -> wfe_tp E T ->
       E |= T ~<: tp_top
   | sub_tp_bot : forall E T,
+      wf_env E -> wfe_tp E T ->
       E |= tp_bot ~<: T
 where "E |= S ~<: T" := (sub_tp E S T)
 
