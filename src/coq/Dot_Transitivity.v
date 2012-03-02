@@ -52,25 +52,6 @@ Proof.
 Qed.
 Hint Resolve decls_dom_subset_refl.
 
-Lemma expansion_permutation : forall O O' q E T DS,
-  Permutation.Permutation O O' -> expands O E T DS q -> expands O' E T DS q.
-Proof.
-  introv Hperm Hexp. gen O'.
-  induction Hexp; introv Hperm; subst; eauto using Permutation.Permutation_in.
-  Case "expands_and".
-    apply expands_and with (DS1:=DS1) (DS2:=DS2); eauto 3 using Permutation.perm_skip.
-  Case "expands_or".
-    apply expands_or with (DS1:=DS1) (DS2:=DS2); eauto 3 using Permutation.perm_skip.
-Qed.
-Hint Resolve expansion_permutation.
-
-Lemma expansion_weakening : forall O q E T DS T',
-  expands O E T DS q -> expands (T'::O) E T DS q.
-Proof.
-  introv H. induction H; eauto using in_cons, Permutation.perm_swap.
-Qed.
-Hint Resolve expansion_weakening.
-
 Lemma decls_ok_fin_nil : decls_ok (decls_fin nil).
 Proof.
   unfolds decls_ok. split.
@@ -78,8 +59,8 @@ Proof.
     introv Hbinds. inversion Hbinds; inversion H; inversion H1; subst; inversion H0.
 Qed.
 
-Lemma expansion_decls_ok : forall O q E T DS,
-  expands O E T DS q -> decls_ok DS.
+Lemma expansion_decls_ok : forall E T DS,
+  expands E T DS -> decls_ok DS.
 Proof.
   introv H. induction H; try solve [
     apply decls_ok_fin_nil |
@@ -106,7 +87,7 @@ Proof.
         eauto 3 ].
 
 Lemma expansion_exists : forall E T,
-  (* TODO * wf_tp E T -> *)exists DS q, E |= T ~< DS @ q.
+  (* TODO * wf_tp E T -> *)exists DS, E |= T ~< DS.
 Proof.
  (* TODO *)
 Admitted.
@@ -126,15 +107,15 @@ Proof.
   (* TODO *)
 Admitted.
 
-Lemma sub_tp_expands_decls_sub : forall qs qu L E S U DS DU,
-  E |= S ~<: U -> E |= S ~< DS @ qs -> E |= U ~< DU @ qu ->
+Lemma sub_tp_expands_decls_sub : forall L E S U DS DU,
+  E |= S ~<: U -> E |= S ~< DS -> E |= U ~< DU ->
   (forall z, z `notin` L -> forall_decls (ctx_bind E z S) (DS ^ds^ z) (DU ^ds^ z) sub_decl).
 Proof.
   (* TODO *)
 Admitted.
 
-Lemma sub_tp_expands_decls_dom_subset : forall qs qu E S U DS DU,
-  E |= S ~<: U -> E |= S ~< DS @ qs -> E |= U ~< DU @ qu ->
+Lemma sub_tp_expands_decls_dom_subset : forall E S U DS DU,
+  E |= S ~<: U -> E |= S ~< DS -> E |= U ~< DU ->
   decls_dom_subset DU DS.
 Proof.
   (* TODO *)
@@ -142,13 +123,12 @@ Admitted.
 
 assert (E |= S' ~<: tp_sel t l) as Ht1; eauto 3.
 assert (E |= tp_sel t l ~<: tp_rfn T DS) as Ht2; eauto 3.
-assert (exists D_S' q_S', E |= S' ~< D_S' @ q_S') as Hexp_S'_ee. apply expansion_exists.
-inversion Hexp_S'_ee as [D_S' Hexp_S'_e]. inversion Hexp_S'_e as [q_S' Hexp_S'].
-apply sub_tp_rfn_r with (L:=L0) (q:=q_S') (DS':=D_S'); eauto 3.
+assert (exists D_S', E |= S' ~< D_S') as Hexp_S'_e. apply expansion_exists. inversion Hexp_S'_e as [D_S' Hexp_S'].
+apply sub_tp_rfn_r with (L:=L0) (DS':=D_S'); eauto 3.
 apply decls_sub_transitive with (LST:=L0) (LTU:=L0) (T:=tp_sel t l) (DT:=DS'); eauto 3.
-apply sub_tp_expands_decls_sub with (qs:=q_S') (qu:=q) (U:=tp_sel t l); eauto 3.
+apply sub_tp_expands_decls_sub with (U:=tp_sel t l); eauto 3.
 apply decls_dom_subset_transitive with (DT:=DS'); eauto 3.
-apply sub_tp_expands_decls_dom_subset with (qs:=q_S') (qu:=q) (U:=tp_sel t l) (S:=S') (E:=E); eauto 3.
+apply sub_tp_expands_decls_dom_subset with (U:=tp_sel t l) (S:=S') (E:=E); eauto 3.
 
 assert (E |= S' ~<: tp_sel t l) as Ht1; eauto 3.
 assert (E |= tp_sel t l ~<: U') as Ht2; eauto 3.
@@ -157,59 +137,55 @@ skip. (* TODO *)
 assert (E |= S ~<: tp_rfn TMid l) as Ht1; eauto 3.
 assert (E |= tp_rfn TMid l ~<: tp_rfn T0 DS0) as Ht2; eauto 3.
 assert (E |= S ~<: T0); eauto 3.
-apply sub_tp_rfn_r with (L:=L) (q:=q) (DS':=DS'); eauto 3.
+apply sub_tp_rfn_r with (L:=L) (DS':=DS'); eauto 3.
 apply decls_sub_transitive with (LST:=L) (LTU:=L0) (T:=tp_rfn TMid l) (DT:=DS'0); eauto 3.
-apply sub_tp_expands_decls_sub with (qs:=q) (qu:=q0) (U:=tp_rfn TMid l); eauto 3.
+apply sub_tp_expands_decls_sub with (U:=tp_rfn TMid l); eauto 3.
 apply decls_dom_subset_transitive with (DT:=DS'0); eauto 3.
-apply sub_tp_expands_decls_dom_subset with (qs:=q) (qu:=q0) (U:=tp_rfn TMid l) (S:=S) (E:=E); eauto 3.
+apply sub_tp_expands_decls_dom_subset with (U:=tp_rfn TMid l) (S:=S) (E:=E); eauto 3.
 
 assert (E |= tp_fun S1 S2 ~<: tp_fun TMid1 TMid2) as Ht1; eauto 3.
 assert (E |= tp_fun TMid1 TMid2 ~<: tp_rfn T DS) as Ht2; eauto 3.
-inversion H; subst. inversion H3.
+inversion H; subst.
 apply decls_dom_subset_nil in H2.  subst.
-apply sub_tp_rfn_r with (L:=L) (q:=complete) (DS':=decls_fin nil); eauto 3.
+apply sub_tp_rfn_r with (L:=L) (DS':=decls_fin nil); eauto 3.
 
 assert (E |= T ~<: tp_and TMid1 TMid2) as Ht1; eauto 3.
 assert (E |= tp_and TMid1 TMid2 ~<: tp_rfn T0 DS) as Ht2; eauto 3.
 assert (E |= T ~<: T0). eauto 3.
-assert (exists D_T q_T, E |= T ~< D_T @ q_T) as Hexp_T_ee. apply expansion_exists.
-inversion Hexp_T_ee as [D_T Hexp_T_e]. inversion Hexp_T_e as [q_T Hexp_T].
-apply sub_tp_rfn_r with (L:=L) (q:=q_T) (DS':=D_T); eauto 3.
+assert (exists D_T, E |= T ~< D_T) as Hexp_T_e. apply expansion_exists. inversion Hexp_T_e as [D_T Hexp_T]. 
+apply sub_tp_rfn_r with (L:=L) (DS':=D_T); eauto 3.
 apply decls_sub_transitive with (LST:=L) (LTU:=L) (T:=tp_and TMid1 TMid2) (DT:=DS'); eauto 3.
-apply sub_tp_expands_decls_sub with (qs:=q_T) (qu:=q) (U:=tp_and TMid1 TMid2); eauto 3.
+apply sub_tp_expands_decls_sub with (U:=tp_and TMid1 TMid2); eauto 3.
 apply decls_dom_subset_transitive with (DT:=DS'); eauto 3.
-apply sub_tp_expands_decls_dom_subset with (qs:=q_T) (qu:=q) (U:=tp_and TMid1 TMid2) (S:=T) (E:=E); eauto 3.
+apply sub_tp_expands_decls_dom_subset with (U:=tp_and TMid1 TMid2) (S:=T) (E:=E); eauto 3.
 
 assert (E |= T ~<: tp_or TMid1 TMid2) as Ht1; eauto 3.
 assert (E |= tp_or TMid1 TMid2 ~<: tp_rfn T0 DS) as Ht2; eauto 3.
 assert (E |= T ~<: T0). eauto 3.
-assert (exists D_T q_T, E |= T ~< D_T @ q_T) as Hexp_T_ee. apply expansion_exists.
-inversion Hexp_T_ee as [D_T Hexp_T_e]. inversion Hexp_T_e as [q_T Hexp_T].
-apply sub_tp_rfn_r with (L:=L) (q:=q_T) (DS':=D_T); eauto 3.
+assert (exists D_T, E |= T ~< D_T) as Hexp_T_e. apply expansion_exists. inversion Hexp_T_e as [D_T Hexp_T].
+apply sub_tp_rfn_r with (L:=L) (DS':=D_T); eauto 3.
 apply decls_sub_transitive with (LST:=L) (LTU:=L) (T:=tp_or TMid1 TMid2) (DT:=DS'); eauto 3.
-apply sub_tp_expands_decls_sub with (qs:=q_T) (qu:=q) (U:=tp_or TMid1 TMid2); eauto 3.
+apply sub_tp_expands_decls_sub with (U:=tp_or TMid1 TMid2); eauto 3.
 apply decls_dom_subset_transitive with (DT:=DS'); eauto 3.
-apply sub_tp_expands_decls_dom_subset with (qs:=q_T) (qu:=q) (U:=tp_or TMid1 TMid2) (S:=T) (E:=E); eauto 3.
+apply sub_tp_expands_decls_dom_subset with (U:=tp_or TMid1 TMid2) (S:=T) (E:=E); eauto 3.
 
 assert (E |= T ~<: tp_or TMid1 TMid2) as Ht1; eauto 3.
 assert (E |= tp_or TMid1 TMid2 ~<: tp_rfn T0 DS) as Ht2; eauto 3.
 assert (E |= T ~<: T0). eauto 3.
-assert (exists D_T q_T, E |= T ~< D_T @ q_T) as Hexp_T_ee. apply expansion_exists.
-inversion Hexp_T_ee as [D_T Hexp_T_e]. inversion Hexp_T_e as [q_T Hexp_T].
-apply sub_tp_rfn_r with (L:=L) (q:=q_T) (DS':=D_T); eauto 3.
+assert (exists D_T, E |= T ~< D_T) as Hexp_T_e. apply expansion_exists. inversion Hexp_T_e as [D_T Hexp_T].
+apply sub_tp_rfn_r with (L:=L) (DS':=D_T); eauto 3.
 apply decls_sub_transitive with (LST:=L) (LTU:=L) (T:=tp_or TMid1 TMid2) (DT:=DS'); eauto 3.
-apply sub_tp_expands_decls_sub with (qs:=q_T) (qu:=q) (U:=tp_or TMid1 TMid2); eauto 3.
+apply sub_tp_expands_decls_sub with (U:=tp_or TMid1 TMid2); eauto 3.
 apply decls_dom_subset_transitive with (DT:=DS'); eauto 3.
-apply sub_tp_expands_decls_dom_subset with (qs:=q_T) (qu:=q) (U:=tp_or TMid1 TMid2) (S:=T) (E:=E); eauto 3.
+apply sub_tp_expands_decls_dom_subset with (U:=tp_or TMid1 TMid2) (S:=T) (E:=E); eauto 3.
 
 assert (E |= T ~<: tp_top) as Ht1; eauto 3.
 assert (E |= tp_top ~<: tp_rfn T0 DS) as Ht2; eauto 3.
-inversion H; subst. inversion H3.
+inversion H; subst.
 apply decls_dom_subset_nil in H2. subst.
-assert (exists D_T q_T, E |= T ~< D_T @ q_T) as Hexp_T_ee. apply expansion_exists.
-inversion Hexp_T_ee as [D_T Hexp_T_e]. inversion Hexp_T_e as [q_T Hexp_T].
-apply sub_tp_rfn_r with (L:=L) (q:=q_T) (DS':=D_T); eauto 3.
-apply sub_tp_expands_decls_sub with (qs:=q_T) (qu:=complete) (U:=tp_top); eauto 3.
-apply sub_tp_expands_decls_dom_subset with (qs:=q_T) (qu:=complete) (U:=tp_top) (S:=T) (E:=E); eauto 3.
+assert (exists D_T, E |= T ~< D_T) as Hexp_T_e. apply expansion_exists. inversion Hexp_T_e as [D_T Hexp_T].
+apply sub_tp_rfn_r with (L:=L) (DS':=D_T); eauto 3.
+apply sub_tp_expands_decls_sub with (U:=tp_top); eauto 3.
+apply sub_tp_expands_decls_dom_subset with (U:=tp_top) (S:=T) (E:=E); eauto 3.
 
 Qed.

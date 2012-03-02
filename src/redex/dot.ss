@@ -24,7 +24,6 @@
   (D DLt Dl)
   (ec hole (ec e) (v ec) (sel ec l))
   (bool #t #f)
-  (quality complete loose)
   (Lany Lt l))
 
 (define-extended-language mini-dot dot
@@ -299,12 +298,12 @@
    (subst (S_1 U_1) z_1 p_1)
    (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
    (judgment-holds (typeof env_1 p_1 T_e))
-   (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...)) complete))]
+   (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...))))]
   [(membership-type-lookup env_1 e_1 Lt_1)
    (S_1 U_1)
    (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
    (judgment-holds (typeof env_1 e_1 T_e))
-   (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...)) complete))
+   (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...) )))
    (judgment-holds (found (fn (S_1 U_1) z_1) #f))]
   [(membership-type-lookup env_1 e_1 Lt_1)
    (Top Bottom)
@@ -319,12 +318,12 @@
    (subst T_1 z_1 p_1)
    (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
    (judgment-holds (typeof env_1 p_1 T_e))
-   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...)) complete))]
+   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...))))]
   [(membership-value-lookup env_1 e_1 l_1)
    T_1
    (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
    (judgment-holds (typeof env_1 e_1 T_e))
-   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...)) complete))
+   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...))))
    (judgment-holds (found (fn T_1 z_1) #f))]
   [(membership-value-lookup env_1 e_1 l_1)
    Bottom
@@ -332,48 +331,34 @@
    (judgment-holds (subtype env_1 T_e Bottom))]
   [(membership-value-lookup env_1 e_1 l_1)
    #f])
-
-(define-metafunction dot
-  q&q : quality quality -> quality
-  [(q&q loose loose) loose]
-  [(q&q loose complete) loose]
-  [(q&q complete loose) loose]
-  [(q&q complete complete) complete])
-  
+                                     
 (define-judgment-form dot
-  #:mode (expansion-iter I I I I O O)
-  #:contract (expansion-iter (T ...) env z T ((DLt ...) (Dl ...)) quality)
-  [(expansion-iter (T_before ... T_x T_after ...) env z T_x (() ()) loose)]
-  [(expansion-iter (T_p ...) env z Top (() ()) complete)]
-  [(expansion-iter (T_p ...) env z (-> S T) (() ()) complete)]
-  [(expansion-iter (T_p ...) env z_1 (refinement T_1 z_2 DLt_1 ... Dl_1 ...)
-                   ((decl-intersection (sorted-decls (subst (DLt_1 ...) z_2 z_1)) (sorted-decls (DLt_2 ...)))
-                    (decl-intersection (sorted-decls (subst (Dl_1  ...) z_2 z_1)) (sorted-decls (Dl_2  ...))))
-                   quality_2)
-   (expansion-iter (T_p ... (refinement T_1 z_2 DLt_1 ... Dl_1 ...)) env z_1 T_1 ((DLt_2 ...) (Dl_2 ...)) quality_2)]
-  [(expansion-iter (T_p ...) env z (intersection T_1 T_2)
-                   ((decl-intersection (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
-                    (decl-intersection (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...))))
-                   (q&q quality_1 quality_2))
-   (expansion-iter (T_p ... (intersection T_1 T_2)) env z T_1 ((DLt_1 ...) (Dl_1 ...)) quality_1)
-   (expansion-iter (T_p ... (intersection T_1 T_2)) env z T_2 ((DLt_2 ...) (Dl_2 ...)) quality_2)]
-  [(expansion-iter (T_p ...) env z (union T_1 T_2)
-                   ((decl-union (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
-                    (decl-union (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...))))
-                   (q&q quality_1 quality_2))
-   (expansion-iter (T_p ... (union T_1 T_2)) env z T_1 ((DLt_1 ...) (Dl_1 ...)) quality_1)
-   (expansion-iter (T_p ... (union T_1 T_2)) env z T_2 ((DLt_2 ...) (Dl_2 ...)) quality_2)]
-  [(expansion-iter (T_p ...) env z (sel p Lt) ((DLt_u ...) (Dl_u ...)) quality_u)
+  #:mode (expansion-iter I I I I O)
+  #:contract (expansion-iter (T ...) env z T ((DLt ...) (Dl ...)))
+  [(expansion-iter (T_p ...) env z Top (() ()))]
+  [(expansion-iter (T_p ...) env z (-> S T) (() ()))]
+  [(expansion-iter (T_p ...) env z_1 (refinement T_1 z_2 DLt_1 ... Dl_1 ...) ((decl-intersection (sorted-decls (subst (DLt_1 ...) z_2 z_1)) (sorted-decls (DLt_2 ...)))
+                                                                              (decl-intersection (sorted-decls (subst (Dl_1  ...) z_2 z_1)) (sorted-decls (Dl_2  ...)))))
+   (expansion-iter (T_p ... (refinement T_1 z_2 DLt_1 ... Dl_1 ...)) env z_1 T_1 ((DLt_2 ...) (Dl_2 ...)))]
+  [(expansion-iter (T_p ...) env z (intersection T_1 T_2) ((decl-intersection (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
+                                                           (decl-intersection (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))))
+   (expansion-iter (T_p ... (intersection T_1 T_2)) env z T_1 ((DLt_1 ...) (Dl_1 ...)))
+   (expansion-iter (T_p ... (intersection T_1 T_2)) env z T_2 ((DLt_2 ...) (Dl_2 ...)))]
+  [(expansion-iter (T_p ...) env z (union T_1 T_2) ((decl-union (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
+                                                    (decl-union (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))))
+   (expansion-iter (T_p ... (union T_1 T_2)) env z T_1 ((DLt_1 ...) (Dl_1 ...)))
+   (expansion-iter (T_p ... (union T_1 T_2)) env z T_2 ((DLt_2 ...) (Dl_2 ...)))]
+  [(expansion-iter (T_p ...) env z (sel p Lt) ((DLt_u ...) (Dl_u ...)))
    (where any_bound (membership-type-lookup env p Lt))
    (found any_bound #t)
-   (where (S_p (side-condition U_p (not (member (term (sel p Lt)) (term (T_p ...)))))) any_bound)
-   (expansion-iter (T_p ... (sel p Lt)) env z U_p ((DLt_u ...) (Dl_u ...)) quality_u)])
+   (where (S_p (side-condition U_p (not (member (term U_p) (term (T_p ... (sel p Lt))))))) any_bound)
+   (expansion-iter (T_p ... (sel p Lt)) env z U_p ((DLt_u ...) (Dl_u ...)))])
 
 (define-judgment-form dot
-  #:mode (expansion I I I O O)
-  #:contract (expansion env z T ((DLt ...) (Dl ...)) quality)
-  [(expansion env z T ((DLt ...) (Dl ...)) quality)
-   (expansion-iter () env z T ((DLt ...) (Dl ...)) quality)])
+  #:mode (expansion I I I O)
+  #:contract (expansion env z T ((DLt ...) (Dl ...)))
+  [(expansion env z T ((DLt ...) (Dl ...)))
+   (expansion-iter () env z T ((DLt ...) (Dl ...)))])
 
 (define-judgment-form dot
   #:mode (subdecl I I I)
@@ -406,7 +391,7 @@
    (side-condition (term (is_subtype ((T_a T_b) ... ((-> S_1 S_2) (-> T_1 T_2))) env S_2 T_2)))]
   [(is_subtype ((T_a T_b) ...) env S (refinement T z DLt ... Dl ...)) #t
    (side-condition (term (is_subtype ((T_a T_b) ... (S (refinement T z DLt ... Dl ...))) env S T)))
-   (judgment-holds (expansion env z S ((DLt_s ...) (Dl_s ...)) quality_s))
+   (judgment-holds (expansion env z S ((DLt_s ...) (Dl_s ...))))
    (judgment-holds (subdecls env (sorted-decls (Dl_s ...)) (sorted-decls (Dl ...))))
    (judgment-holds (subdecls env (sorted-decls (DLt_s ...)) (sorted-decls (DLt ...))))]
   [(is_subtype ((T_a T_b) ...) env (refinement T_1 z DLt ... Dl ...) T_2) #t
@@ -452,7 +437,7 @@
    (found T #t)]
   [(typeof (Gamma store) (valnew (x (Tc (l vx) ...)) e) T)
    (wf-type (Gamma store) Tc)
-   (expansion (Gamma store) x Tc (((: Lt S U) ...) (Dl ...)) complete)
+   (expansion (Gamma store) x Tc (((: Lt S U) ...) (Dl ...)))
    (where ((l_s vx_s) ...) (sorted-assigns ((l vx) ...)))
    (where ((: l_s V_d) ...) (sorted-decls (Dl ...)))
    (subtype ((gamma-extend Gamma x Tc) store) S U) ...
@@ -631,7 +616,7 @@
   massage-mini : (x ...) (l ...) any -> any
   [(massage-mini (x_b ...) (l_b ...) (valnew (x_1 (Tc_1 (l_1 vx_1) ...)) e_1))
    (valnew (x_1 (Tc_1 (l_e ,(pick-random (term (x_b ... x_1)) (term (λ (x Top) x)))) ...)) (massage-mini (x_b ... x_1) (l_b ... l_e ...) e_1))
-   (judgment-holds (expansion (() ()) x_1 Tc_1 (() ((: l_e T_le) ...)) complete))]
+   (judgment-holds (expansion (() ()) x_1 Tc_1 (() ((: l_e T_le) ...))))]
   [(massage-mini (x_b ...) (l_b ...) (λ (x_1 T_1) e_2))
    (λ (x_1 T_1) (massage-mini (x_b ... x_1) (l_b ...) e_2))]
   [(massage-mini (x_b ...) (l_b ...) (sel e_1 l_1)) (sel (massage-mini (x_b ...) (l_b ...) e_1) ,(pick-random (term (l_b ...)) (term l_1)))]
@@ -670,7 +655,7 @@
   [(massage (x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) (valnew (x_1 (T_1 (l_1 vx_1) ...)) e_1))
    (valnew (x_1 (T_1 (l_e ,(pick-random (term (x_b ... x_1)) (term (λ (x Top) x)))) ...))
            (massage (x_b ... x_1) (l_b ... l_e ...) ,(append (term (Lc_b ...)) (filter (lambda (l) (redex-match dot Lc l)) (term (Lt_e ...)))) (Lt_b ... Lt_e ...) e_1))
-   (judgment-holds (expansion (() ()) x_1 T_1 (((: Lt_e S_lte U_lte) ...) ((: l_e T_le) ...)) complete))]
+   (judgment-holds (expansion (() ()) x_1 T_1 (((: Lt_e S_lte U_lte) ...) ((: l_e T_le) ...))))]
   [(massage (x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) (λ (x_1 T_1) e_2))
    (λ (x_1 T_1) (massage (x_b ... x_1) (l_b ...) (Lc_b ...) (Lt_b ...) e_2))]
   [(massage (x_b ...) (l_b ...) (Lc_b ...) (Lt_b ...) (sel e_1 l_1))
@@ -810,6 +795,5 @@
                ())
               z
               (sel w (label-class T))
-              ((Dl ...) (DLt ...))
-              quality)
+              ((Dl ...) (DLt ...)))
    ((Dl ...) (DLt ...))))
