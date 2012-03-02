@@ -195,18 +195,27 @@
   #:mode (wf-decl I I)
   #:contract (wf-decl env D)
   [(wf-decl env (: l T))
-   (wf-type env T)]
+   (wfe-type env T)]
   [(wf-decl env (: Lt S U))
-   (wf-type env S)
-   (wf-type env U)])
+   (wfe-type env S)
+   (wfe-type env U)])
+
+(define-metafunction dot
+  is_wfe-type : (T ...) env T -> bool
+  [(is_wfe-type (T_p ...) env Bottom) #t]
+  [(is_wfe-type (T_p ...) env T)
+   (is_wf-type (T_p ...) env T)
+   (judgment-holds (expansion env z T ((DLt ...) (Dl ...))))]
+  [(is_wfe-type (T_p ...) env T) #f])
 
 (define-metafunction dot
   is_wf-type : (T ...) env T -> bool
   [(is_wf-type (T_p ...) env Top) #t]
   [(is_wf-type (T_p ...) env (-> T_1 T_2)) #t
-   (side-condition (term (is_wf-type (T_p ...) env T_1)))
-   (side-condition (term (is_wf-type (T_p ...) env T_2)))]
+   (side-condition (term (is_wfe-type (T_p ...) env T_1)))
+   (side-condition (term (is_wfe-type (T_p ...) env T_2)))]
   [(is_wf-type (T_p ...) (Gamma store) (refinement Tc z D ...)) #t
+   (side-condition (term (is_wfe-type (T_p ...) (Gamma store) Tc)))
    (where env_extended ((gamma-extend Gamma z (refinement Tc z D ...)) store))
    (side-condition (andmap (lambda (d) (judgment-holds (wf-decl env_extended ,d))) (term (D ...))))]
   [(is_wf-type (T_p ...) env (sel p Lt)) #t
@@ -218,16 +227,21 @@
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))
    (where (S U) any_bound)
-   (side-condition (term (is_wf-type ((sel p Lt) T_p ...) env S)))
-   (side-condition (term (is_wf-type ((sel p Lt) T_p ...) env U)))]
+   (side-condition (term (is_wfe-type ((sel p Lt) T_p ...) env S)))
+   (side-condition (term (is_wfe-type ((sel p Lt) T_p ...) env U)))]
   [(is_wf-type (T_p ...) env (intersection T_1 T_2)) #t
-   (side-condition (term (is_wf-type (T_p ...) env T_1)))
-   (side-condition (term (is_wf-type (T_p ...) env T_2)))]
+   (side-condition (term (is_wfe-type (T_p ...) env T_1)))
+   (side-condition (term (is_wfe-type (T_p ...) env T_2)))]
   [(is_wf-type (T_p ...) env (union T_1 T_2)) #t
-   (side-condition (term (is_wf-type (T_p ...) env T_1)))
-   (side-condition (term (is_wf-type (T_p ...) env T_2)))]
+   (side-condition (term (is_wfe-type (T_p ...) env T_1)))
+   (side-condition (term (is_wfe-type (T_p ...) env T_2)))]
   [(is_wf-type (T_p ...) env Bottom) #t]
   [(is_wf-type (T_p ...) env T) #f])
+
+(define-judgment-form dot
+  #:mode (wfe-type I I)
+  #:contract (wfe-type env T)
+  [(wfe-type env T) (found (is_wfe-type () env T) #t)])
 
 (define-judgment-form dot
   #:mode (wf-type I I)
@@ -443,7 +457,7 @@
    (where T (gamma-lookup Gamma x))
    (found T #t)]
   [(typeof (Gamma store) (valnew (x (Tc (l vx) ...)) e) T)
-   (wf-type (Gamma store) Tc)
+   (wfe-type (Gamma store) Tc)
    (expansion (Gamma store) x Tc (((: Lt S U) ...) (Dl ...)))
    (where ((l_s vx_s) ...) (sorted-assigns ((l vx) ...)))
    (where ((: l_s V_d) ...) (sorted-decls (Dl ...)))
@@ -457,7 +471,7 @@
    (found c #t)
    (where Tc (constructor-type-lookup c))]
   [(typeof (Gamma store) (λ (x S) e) (-> S T))
-   (wf-type (Gamma store) S)
+   (wfe-type (Gamma store) S)
    (typeof ((gamma-extend Gamma x S) store) e T)
    (found (fn T x) #f)]
   [(typeof env (e_1 e_2) T)
@@ -691,7 +705,7 @@
   (redex-check dot e (preservation (term e)) #:source R #:prepare prepare))
 
 (define (subtyping-transitive env s t u)
-  (if (and (judgment-holds (wf-type ,env ,s)) (judgment-holds (wf-type ,env ,t)) (judgment-holds (wf-type ,env ,u))
+  (if (and (judgment-holds (wfe-type ,env ,s)) (judgment-holds (wfe-type ,env ,t)) (judgment-holds (wfe-type ,env ,u))
            (judgment-holds (subtype ,env ,s ,t)) (judgment-holds (subtype ,env ,t ,u)))
       (begin
         (printf "trying ~a ~a ~a ~a\n" env s t u)
