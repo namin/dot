@@ -331,27 +331,34 @@
    (judgment-holds (subtype env_1 T_e Bottom))]
   [(membership-value-lookup env_1 e_1 l_1)
    #f])
-                                     
+
+(define max-iter 100)
+
 (define-judgment-form dot
   #:mode (expansion-iter I I I I O)
   #:contract (expansion-iter (T ...) env z T ((DLt ...) (Dl ...)))
   [(expansion-iter (T_p ...) env z Top (() ()))]
   [(expansion-iter (T_p ...) env z (-> S T) (() ()))]
-  [(expansion-iter (T_p ...) env z_1 (refinement T_1 z_2 DLt_1 ... Dl_1 ...) ((decl-intersection (sorted-decls (subst (DLt_1 ...) z_2 z_1)) (sorted-decls (DLt_2 ...)))
-                                                                              (decl-intersection (sorted-decls (subst (Dl_1  ...) z_2 z_1)) (sorted-decls (Dl_2  ...)))))
+  [(expansion-iter (T_p ...) env z_1 (refinement T_1 z_2 DLt_1 ... Dl_1 ...)
+                   ((decl-intersection (sorted-decls (subst (DLt_1 ...) z_2 z_1)) (sorted-decls (DLt_2 ...)))
+                    (decl-intersection (sorted-decls (subst (Dl_1  ...) z_2 z_1)) (sorted-decls (Dl_2  ...)))))
    (expansion-iter (T_p ... (refinement T_1 z_2 DLt_1 ... Dl_1 ...)) env z_1 T_1 ((DLt_2 ...) (Dl_2 ...)))]
-  [(expansion-iter (T_p ...) env z (intersection T_1 T_2) ((decl-intersection (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
-                                                           (decl-intersection (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))))
+  [(expansion-iter (T_p ...) env z (intersection T_1 T_2)
+                   ((decl-intersection (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
+                    (decl-intersection (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))))
    (expansion-iter (T_p ... (intersection T_1 T_2)) env z T_1 ((DLt_1 ...) (Dl_1 ...)))
    (expansion-iter (T_p ... (intersection T_1 T_2)) env z T_2 ((DLt_2 ...) (Dl_2 ...)))]
-  [(expansion-iter (T_p ...) env z (union T_1 T_2) ((decl-union (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
-                                                    (decl-union (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))))
+  [(expansion-iter (T_p ...) env z (union T_1 T_2)
+                   ((decl-union (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
+                    (decl-union (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))))
    (expansion-iter (T_p ... (union T_1 T_2)) env z T_1 ((DLt_1 ...) (Dl_1 ...)))
    (expansion-iter (T_p ... (union T_1 T_2)) env z T_2 ((DLt_2 ...) (Dl_2 ...)))]
   [(expansion-iter (T_p ...) env z (sel p Lt) ((DLt_u ...) (Dl_u ...)))
    (where any_bound (membership-type-lookup env p Lt))
    (found any_bound #t)
-   (where (S_p (side-condition U_p (not (member (term U_p) (term (T_p ... (sel p Lt))))))) any_bound)
+   (where (S_p (side-condition U_p (and (not (member (term U_p) (term (T_p ... (sel p Lt)))))
+                                        (< (length (term (T_p ...))) max-iter))))
+          any_bound)
    (expansion-iter (T_p ... (sel p Lt)) env z U_p ((DLt_u ...) (Dl_u ...)))])
 
 (define-judgment-form dot
