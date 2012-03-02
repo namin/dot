@@ -38,36 +38,6 @@ Proof.
 Admitted.
 Hint Resolve narrow_sub_decls.
 
-Lemma decls_dom_subset_nil: forall ds,
-  decls_dom_subset (decls_fin ds) (decls_fin nil) -> ds = nil.
-Proof.
-  (* TODO *)
-Admitted.
-Hint Resolve decls_dom_subset_nil.
-
-Lemma decls_dom_subset_refl: forall DS,
-  decls_dom_subset DS DS.
-Proof.
-  unfold decls_dom_subset. destruct DS. unfold "[<l=]". intros a H. assumption. reflexivity.
-Qed.
-Hint Resolve decls_dom_subset_refl.
-
-Lemma decls_ok_fin_nil : decls_ok (decls_fin nil).
-Proof.
-  unfolds decls_ok. split.
-    unfolds decls_uniq. introv Hx. inversion Hx; inversion H; subst; auto.
-    introv Hbinds. inversion Hbinds; inversion H; inversion H1; subst; inversion H0.
-Qed.
-
-Lemma expansion_decls_ok : forall E T DS,
-  expands E T DS -> decls_ok DS.
-Proof.
-  introv H. induction H; try solve [
-    apply decls_ok_fin_nil |
-    inversion H0; assumption |
-    inversion H1; assumption].
-Qed.
-
 Theorem sub_tp_transitive : forall TMid, transitivity_on TMid.
 Proof.
 

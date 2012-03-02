@@ -11,7 +11,53 @@ Require Import Coq.Classes.EquivDec.
 Require Import Coq.Logic.Decidable.
 
 (* ********************************************************************** *)
+(** ** Declarations *)
+
+Lemma decls_dom_subset_nil: forall ds,
+  decls_dom_subset (decls_fin ds) (decls_fin nil) -> ds = nil.
+Proof.
+  (* TODO *)
+Admitted.
+Hint Resolve decls_dom_subset_nil.
+
+Lemma decls_dom_subset_refl: forall DS,
+  decls_dom_subset DS DS.
+Proof.
+  unfold decls_dom_subset. destruct DS. unfold "[<l=]". intros a H. assumption. reflexivity.
+Qed.
+Hint Resolve decls_dom_subset_refl.
+
+Lemma decls_ok_fin_nil : decls_ok (decls_fin nil).
+Proof.
+  unfolds decls_ok. split.
+    unfolds decls_uniq. introv Hx. inversion Hx; inversion H; subst; auto.
+    introv Hbinds. inversion Hbinds; inversion H; inversion H1; subst; inversion H0.
+Qed.
+
+Lemma decls_and_exists : forall ds1 ds2,
+  decls_ok ds1 -> decls_ok ds2 -> exists dsm, and_decls ds1 ds2 dsm.
+Proof.
+  (* TODO *)
+Admitted.
+
+Lemma decls_or_exists : forall ds1 ds2,
+  decls_ok ds1 -> decls_ok ds2 -> exists dsm, or_decls ds1 ds2 dsm.
+Proof.
+  (* TODO *)
+Admitted.
+
+(* ********************************************************************** *)
 (** ** Expansion *)
+
+Lemma expansion_decls_ok : forall E T DS,
+  expands E T DS -> decls_ok DS.
+Proof.
+  introv H. induction H; try solve [
+    apply decls_ok_fin_nil |
+    inversion H0; assumption |
+    inversion H1; assumption].
+Qed.
+Hint Resolve expansion_decls_ok.
 
 Lemma expands_bot_inf_nil : forall E, wf_env E -> E |= tp_bot ~< decls_inf nil.
 Proof.
@@ -104,8 +150,8 @@ Proof.
     splits; try assumption.
     inversion HeT1. subst. rename DT into DT1. rename H1 into HwT1. rename H2 into HxT1.
     inversion HeT2. subst. rename DT into DT2. rename H1 into HwT2. rename H2 into HxT2.
-    assert (DSM : decls). auto.
-    assert (and_decls DT1 DT2 DSM). skip.
+    assert (exists DSM, and_decls DT1 DT2 DSM) as Hdsm'. apply decls_and_exists; eauto 3.
+    inversion Hdsm' as [DSM Hdsm].
     apply wfe_any with (DT:=DSM); auto.
     apply wf_and; try assumption.
     apply expands_and with (DS1:=DT1) (DS2:=DT2); try assumption.
@@ -116,8 +162,8 @@ Proof.
     inversion H0. subst. rename DT0 into DT2. rename H2 into HwT2. rename H3 into HxT2.
     inversion HeT1. subst. rename DT0 into DT1. rename H2 into HwT1. rename H3 into HxT1.
     splits; try assumption.
-    assert (DSM : decls). auto.
-    assert (and_decls DT1 DT2 DSM). skip.
+    assert (exists DSM, and_decls DT1 DT2 DSM) as Hdsm'. apply decls_and_exists; eauto 3.
+    inversion Hdsm' as [DSM Hdsm].
     apply wfe_any with (DT:=DSM); try assumption.
     apply wf_and; try assumption.
     apply expands_and with (DS1:=DT1) (DS2:=DT2); try assumption.
@@ -128,8 +174,8 @@ Proof.
     inversion H0. subst. rename DT0 into DT1. rename H2 into HwT1. rename H3 into HxT1.
     inversion HeT2. subst. rename DT0 into DT2. rename H2 into HwT2. rename H3 into HxT2.
     splits; try assumption.
-    assert (DSM : decls). auto.
-    assert (and_decls DT1 DT2 DSM). skip.
+    assert (exists DSM, and_decls DT1 DT2 DSM) as Hdsm'. apply decls_and_exists; eauto 3.
+    inversion Hdsm' as [DSM Hdsm].
     apply wfe_any with (DT:=DSM); try assumption.
     apply wf_and; try assumption.
     apply expands_and with (DS1:=DT1) (DS2:=DT2); try assumption.
@@ -140,8 +186,8 @@ Proof.
     inversion H0. subst. rename DT0 into DT2. rename H2 into HwT2. rename H3 into HxT2.
     inversion HeT1. subst. rename DT0 into DT1. rename H2 into HwT1. rename H3 into HxT1.
     splits; try assumption.
-    assert (DSM : decls). auto.
-    assert (or_decls DT1 DT2 DSM). skip.
+    assert (exists DSM, or_decls DT1 DT2 DSM) as Hdsm'. apply decls_or_exists; eauto 3.
+    inversion Hdsm' as [DSM Hdsm].
     apply wfe_any with (DT:=DSM); try assumption.
     apply wf_or; try assumption.
     apply expands_or with (DS1:=DT1) (DS2:=DT2); try assumption.
@@ -152,8 +198,8 @@ Proof.
     inversion H0. subst. rename DT0 into DT1. rename H2 into HwT1. rename H3 into HxT1.
     inversion HeT2. subst. rename DT0 into DT2. rename H2 into HwT2. rename H3 into HxT2.
     splits; try assumption.
-    assert (DSM : decls). auto.
-    assert (or_decls DT1 DT2 DSM). skip.
+    assert (exists DSM, or_decls DT1 DT2 DSM) as Hdsm'. apply decls_or_exists; eauto 3.
+    inversion Hdsm' as [DSM Hdsm].
     apply wfe_any with (DT:=DSM); try assumption.
     apply wf_or; try assumption.
     apply expands_or with (DS1:=DT1) (DS2:=DT2); try assumption.
@@ -165,8 +211,8 @@ Proof.
     splits; try assumption.
     inversion HeT1. subst. rename DT into DT1. rename H1 into HwT1. rename H2 into HxT1.
     inversion HeT2. subst. rename DT into DT2. rename H1 into HwT2. rename H2 into HxT2.
-    assert (DSM : decls). auto.
-    assert (or_decls DT1 DT2 DSM). skip.
+    assert (exists DSM, or_decls DT1 DT2 DSM) as Hdsm'. apply decls_or_exists; eauto 3.
+    inversion Hdsm' as [DSM Hdsm].
     apply wfe_any with (DT:=DSM); auto.
     apply wf_or; try assumption.
     apply expands_or with (DS1:=DT1) (DS2:=DT2); try assumption.
