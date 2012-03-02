@@ -202,7 +202,6 @@
 
 (define-metafunction dot
   is_wfe-type : (T ...) env T -> bool
-  [(is_wfe-type (T_p ...) env Bottom) #t]
   [(is_wfe-type (T_p ...) env T)
    (is_wf-type (T_p ...) env T)
    (judgment-holds (expansion env z T ((DLt ...) (Dl ...))))]
@@ -373,7 +372,8 @@
    (where (S_p (side-condition U_p (and (not (member (term U_p) (term (T_p ... (sel p Lt)))))
                                         (< (length (term (T_p ...))) max-iter))))
           any_bound)
-   (expansion-iter (T_p ... (sel p Lt)) env z U_p ((DLt_u ...) (Dl_u ...)))])
+   (expansion-iter (T_p ... (sel p Lt)) env z U_p ((DLt_u ...) (Dl_u ...)))]
+  [(expansion-iter (T_p ...) env z Bottom (() ()))]) ;; kludge
 
 (define-judgment-form dot
   #:mode (expansion I I I O)
@@ -818,3 +818,6 @@
               (sel w (label-class T))
               ((Dl ...) (DLt ...)))
    ((Dl ...) (DLt ...))))
+
+#;
+(typecheck (term (() ())) (term (λ (x Bottom) ((λ (y Top) y) (λ (z (sel x (label-class Lt))) z)))))
