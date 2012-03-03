@@ -78,6 +78,12 @@ Proof.
 Qed.
 Hint Resolve expands_bot_inf_nil.
 
+Lemma expansion_exists : forall E T,
+  wfe_tp E T -> exists DS, E |= T ~< DS.
+Proof.
+  introv Hwfe. inversion Hwfe. subst. exists DT. assumption.
+Qed.
+
 (* ********************************************************************** *)
 (** ** Well-formedness *)
 
@@ -106,135 +112,48 @@ Hint Resolve wfe_fun.
 (* ********************************************************************** *)
 (** ** Regularity *)
 
+Ltac add_expands_hyp E T DT HxT :=
+  let HxT_ := fresh "HxT_" in
+    assert (exists DT, E |= T ~< DT) as HxT_; try solve [apply expansion_exists; eauto 3];
+      inversion HxT_ as [DT HxT]; clear HxT_.
+
 Lemma sub_tp_regular : forall E S T,
   E |= S ~<: T ->
   wf_env E /\ wfe_tp E S /\ wfe_tp E T.
 Proof.
-  introv H. induction H.
-  Case "refl". auto.
-  Case "fun".
-    inversion IHsub_tp1 as [Henv IHsub_tp1'].
-    inversion IHsub_tp1' as [HeT1 HeS1].
-    inversion IHsub_tp2 as [Henv2 IHsub_tp2'].
-    inversion IHsub_tp2' as [HeS2 HeT2].
-    splits; try solve [
-      assumption |
-      apply wfe_any with (DT:=decls_fin nil); try (apply wf_fun; assumption); try (apply expands_fun; assumption)
-    ].
-  Case "rfn_r".
-    inversion IHsub_tp as [Henv IHsub_tp'].
-    inversion IHsub_tp' as [HeS HeT].
-    splits; try assumption.
-  Case "rfn_l".
-    inversion IHsub_tp as [Henv IHsub_tp'].
-    inversion IHsub_tp' as [HeS HeT].
-    splits; try assumption.
-  Case "tsel_r".
-    inversion IHsub_tp1 as [Henv IHsub_tp1'].
-    inversion IHsub_tp1' as [HeS HeU].
-    inversion IHsub_tp2 as [Henv_ IHsub_tp2'].
-    inversion IHsub_tp2' as [HeS' HeS_].
-    splits; try assumption.
-    inversion HeU. subst. rename DT into DU. rename H4 into HwU. rename H5 into HxU.
-    apply wfe_any with (DT:=DU); try assumption.
-    apply wf_tsel_1 with (S:=S) (U:=U); try assumption.
-    apply expands_tsel with (S:=S) (U:=U); try assumption.
-  Case "tsel_l".
-    inversion IHsub_tp1 as [Henv IHsub_tp1'].
-    inversion IHsub_tp1' as [HeS HeU].
-    inversion IHsub_tp2 as [Henv_ IHsub_tp2'].
-    inversion IHsub_tp2' as [HeU_ HeU'].
-    splits; try assumption.
-    inversion HeU. subst. rename DT into DU. rename H4 into HwU. rename H5 into HxU.
-    apply wfe_any with (DT:=DU); try assumption.
-    apply wf_tsel_1 with (S:=S) (U:=U); try assumption.
-    apply expands_tsel with (S:=S) (U:=U); try assumption.
-  Case "and_r".
-    inversion IHsub_tp1 as [Henv IHsub_tp1'].
-    inversion IHsub_tp1' as [HeT HeT1].
-    inversion IHsub_tp2 as [Henv_ IHsub_tp2'].
-    inversion IHsub_tp2' as [HeT_ HeT2].
-    splits; try assumption.
-    inversion HeT1. subst. rename DT into DT1. rename H1 into HwT1. rename H2 into HxT1.
-    inversion HeT2. subst. rename DT into DT2. rename H1 into HwT2. rename H2 into HxT2.
-    assert (exists DSM, and_decls DT1 DT2 DSM) as Hdsm'. apply decls_and_exists; eauto 3.
-    inversion Hdsm' as [DSM Hdsm].
-    apply wfe_any with (DT:=DSM); auto.
-    apply wf_and; try assumption.
-    apply expands_and with (DS1:=DT1) (DS2:=DT2); try assumption.
-  Case "and_l1".
-    inversion IHsub_tp as [Henv IHsub_tp'].
-    inversion IHsub_tp' as [HeT1 HeT].
-    inversion HeT. subst. rename H2 into HwT. rename H3 into HxT.
-    inversion H0. subst. rename DT0 into DT2. rename H2 into HwT2. rename H3 into HxT2.
-    inversion HeT1. subst. rename DT0 into DT1. rename H2 into HwT1. rename H3 into HxT1.
-    splits; try assumption.
-    assert (exists DSM, and_decls DT1 DT2 DSM) as Hdsm'. apply decls_and_exists; eauto 3.
-    inversion Hdsm' as [DSM Hdsm].
-    apply wfe_any with (DT:=DSM); try assumption.
-    apply wf_and; try assumption.
-    apply expands_and with (DS1:=DT1) (DS2:=DT2); try assumption.
-  Case "and_l2".
-    inversion IHsub_tp as [Henv IHsub_tp'].
-    inversion IHsub_tp' as [HeT2 HeT].
-    inversion HeT. subst. rename H2 into HwT. rename H3 into HxT.
-    inversion H0. subst. rename DT0 into DT1. rename H2 into HwT1. rename H3 into HxT1.
-    inversion HeT2. subst. rename DT0 into DT2. rename H2 into HwT2. rename H3 into HxT2.
-    splits; try assumption.
-    assert (exists DSM, and_decls DT1 DT2 DSM) as Hdsm'. apply decls_and_exists; eauto 3.
-    inversion Hdsm' as [DSM Hdsm].
-    apply wfe_any with (DT:=DSM); try assumption.
-    apply wf_and; try assumption.
-    apply expands_and with (DS1:=DT1) (DS2:=DT2); try assumption.
-  Case "or_r1".
-    inversion IHsub_tp as [Henv IHsub_tp'].
-    inversion IHsub_tp' as [HeT HeT1].
-    inversion HeT. subst. rename H2 into HwT. rename H3 into HxT.
-    inversion H0. subst. rename DT0 into DT2. rename H2 into HwT2. rename H3 into HxT2.
-    inversion HeT1. subst. rename DT0 into DT1. rename H2 into HwT1. rename H3 into HxT1.
-    splits; try assumption.
-    assert (exists DSM, or_decls DT1 DT2 DSM) as Hdsm'. apply decls_or_exists; eauto 3.
-    inversion Hdsm' as [DSM Hdsm].
-    apply wfe_any with (DT:=DSM); try assumption.
-    apply wf_or; try assumption.
-    apply expands_or with (DS1:=DT1) (DS2:=DT2); try assumption.
-  Case "or_r2".
-    inversion IHsub_tp as [Henv IHsub_tp'].
-    inversion IHsub_tp' as [HeT HeT2].
-    inversion HeT. subst. rename H2 into HwT. rename H3 into HxT.
-    inversion H0. subst. rename DT0 into DT1. rename H2 into HwT1. rename H3 into HxT1.
-    inversion HeT2. subst. rename DT0 into DT2. rename H2 into HwT2. rename H3 into HxT2.
-    splits; try assumption.
-    assert (exists DSM, or_decls DT1 DT2 DSM) as Hdsm'. apply decls_or_exists; eauto 3.
-    inversion Hdsm' as [DSM Hdsm].
-    apply wfe_any with (DT:=DSM); try assumption.
-    apply wf_or; try assumption.
-    apply expands_or with (DS1:=DT1) (DS2:=DT2); try assumption.
-  Case "or_l".
-    inversion IHsub_tp1 as [Henv IHsub_tp1'].
-    inversion IHsub_tp1' as [HeT1 HeT].
-    inversion IHsub_tp2 as [Henv_ IHsub_tp2'].
-    inversion IHsub_tp2' as [HeT2 HeT_].
-    splits; try assumption.
-    inversion HeT1. subst. rename DT into DT1. rename H1 into HwT1. rename H2 into HxT1.
-    inversion HeT2. subst. rename DT into DT2. rename H1 into HwT2. rename H2 into HxT2.
-    assert (exists DSM, or_decls DT1 DT2 DSM) as Hdsm'. apply decls_or_exists; eauto 3.
-    inversion Hdsm' as [DSM Hdsm].
-    apply wfe_any with (DT:=DSM); auto.
-    apply wf_or; try assumption.
-    apply expands_or with (DS1:=DT1) (DS2:=DT2); try assumption.
-  Case "top".
-    splits; try assumption.
-    apply wfe_any with (DT:=decls_fin nil).
-    apply wf_top.
-    apply expands_top.
-    assumption.
-  Case "bot".
-    splits; try assumption.
-    apply wfe_any with (DT:=decls_inf nil).
-    apply wf_bot.
-    apply expands_bot_inf_nil.
-    assumption.
+
+Hint Extern 1 (wf_env ?E) =>
+  match goal with
+  | IH: wf_env ?E /\ _ /\ _ |- _ => apply (proj1 IH)
+  end.
+Hint Extern 1 (wfe_tp ?E ?T) =>
+  match goal with
+  | IH: _ /\ wfe_tp ?E ?T /\ _ |- _ => apply (proj1 (proj2 IH))
+  | IH: _ /\ _ /\ wfe_tp ?E ?T |- _ => apply (proj2 (proj2 IH))
+  end.
+Hint Extern 2 (wfe_tp ?E (tp_sel ?p ?L)) =>
+  match goal with
+  | H: ?E |= ?p ~mem~ ?L ~: decl_tp ?S ?U |- _ => let DU := fresh "DU" with HxU := fresh "HxU" in
+    add_expands_hyp E U DU HxU; apply wfe_any with (DT:=DU); eauto 3
+  end.
+
+Ltac combine_decls E T1 T2 DSM cmb_decls decls_cmb_exists :=
+  let DT1 := fresh "DT1" with HxT1 := fresh "HxT1" with DT2 := fresh "DT2" with HxT2 := fresh "HxT2"
+    with Hdsm' := fresh "Hdsm'" with Hdsm := fresh "Hdsm" in
+      add_expands_hyp E T1 DT1 HxT1; add_expands_hyp E T2 DT2 HxT2;
+      assert (exists DSM, cmb_decls DT1 DT2 DSM) as Hdsm'; try solve [apply decls_cmb_exists; eauto 3];
+        inversion Hdsm' as [DSM Hdsm].
+
+Ltac wfe_by_combine_decls E T1 T2 cmb_decls decls_cmb_exists :=
+  let DSM := fresh "DSM" in combine_decls E T1 T2 DSM cmb_decls decls_cmb_exists;
+    apply wfe_any with (DT:=DSM); eauto 3.
+
+Hint Extern 2 (wfe_tp ?E (tp_and ?T1 ?T2)) => wfe_by_combine_decls E T1 T2 and_decls decls_and_exists.
+Hint Extern 2 (wfe_tp ?E (tp_or ?T1 ?T2)) => wfe_by_combine_decls E T1 T2 or_decls decls_or_exists.
+
+Hint Constructors wf_tp expands.
+
+  introv H. induction H; splits; eauto 3.
 Qed.
 
 (* *********************************************************************** *)

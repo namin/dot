@@ -41,12 +41,6 @@ Hint Resolve narrow_sub_decls.
 Theorem sub_tp_transitive : forall TMid, transitivity_on TMid.
 Proof.
 
-Lemma expansion_exists : forall E T,
-  wfe_tp E T -> exists DS, E |= T ~< DS.
-Proof.
-  introv Hwfe. inversion Hwfe. subst. exists DT. assumption.
-Admitted.
-
 Lemma decls_sub_transitive : forall LST LTU LSU E S T DS DT DU,
   E |= S ~<: T ->
   (forall z, z `notin` LST -> forall_decls (ctx_bind E z S) (DS ^ds^ z) (DT ^ds^ z) sub_decl) ->
@@ -78,12 +72,21 @@ Admitted.
 
 Ltac crush_rfn_r := repeat (
   match goal with
-    | [ _ : forall z, z `notin` ?L' -> forall_decls (ctx_bind ?E _ ?T_Mid) (?D_T_Mid ^ds^ _) (decls_fin ?DT_ ^ds^ _) sub_decl |- ?E |= ?S ~<: tp_rfn ?T ?DT ] => 
-      assert (E |= S ~<: T_Mid) as Htl; eauto 3;
-      assert (E |= T_Mid ~<: tp_rfn T DT) as Htr; eauto 3;
-      let D_S:=fresh "D_S" in (assert (exists D_S, E |= S ~< D_S) as Hexp_S_e; try apply expansion_exists; eauto; inversion Hexp_S_e as [D_S Hexp_S]); apply sub_tp_rfn_r with (L:=L') (DS':=D_S)
-    | [ _ : forall z, z `notin` ?L' -> forall_decls (ctx_bind ?E _ ?T_Mid) (?D_T_Mid ^ds^ _) (decls_fin ?DT_ ^ds^ _) sub_decl |- forall z, z `notin` ?L -> forall_decls (ctx_bind ?E _ ?S) (?D_S ^ds^ _) (decls_fin ?DT_ ^ds^ _) sub_decl] => apply decls_sub_transitive with (LST:=L') (LTU:=L') (T:=T_Mid) (DT:=D_T_Mid); eauto 3; apply sub_tp_expands_decls_sub with (U:=T_Mid); eauto 3
-    | [ _ : decls_dom_subset (decls_fin ?DT_) ?D_T_Mid, _ : ?E_ |= ?S_ ~< ?D_S, _ : ?E_ |= ?T_Mid ~< ?D_T_Mid |- decls_dom_subset (decls_fin ?DT_) ?D_S ] => apply decls_dom_subset_transitive with (DT:=D_T_Mid); eauto 3; apply sub_tp_expands_decls_dom_subset with (U:=T_Mid) (S:=S_) (E:=E_); eauto 3
+    | [ _ : forall z, z `notin` ?L' -> forall_decls (ctx_bind ?E _ ?T_Mid) (?D_T_Mid ^ds^ _) (decls_fin ?DT_ ^ds^ _) sub_decl
+      |- ?E |= ?S ~<: tp_rfn ?T ?DT ] => 
+    assert (E |= S ~<: T_Mid) as Htl; eauto 3;
+    assert (E |= T_Mid ~<: tp_rfn T DT) as Htr; eauto 3;
+    let D_S :=fresh "D_S" with Hexp_S := fresh "Hexp_S" in
+    add_expands_hyp E S D_S Hexp_S;
+    apply sub_tp_rfn_r with (L:=L') (DS':=D_S)
+    | [ _ : forall z, z `notin` ?L' -> forall_decls (ctx_bind ?E _ ?T_Mid) (?D_T_Mid ^ds^ _) (decls_fin ?DT_ ^ds^ _) sub_decl
+      |- forall z, z `notin` ?L -> forall_decls (ctx_bind ?E _ ?S) (?D_S ^ds^ _) (decls_fin ?DT_ ^ds^ _) sub_decl] =>
+    apply decls_sub_transitive with (LST:=L') (LTU:=L') (T:=T_Mid) (DT:=D_T_Mid); eauto 3;
+    apply sub_tp_expands_decls_sub with (U:=T_Mid); eauto 3
+    | [ _ : decls_dom_subset (decls_fin ?DT_) ?D_T_Mid, _ : ?E_ |= ?S_ ~< ?D_S, _ : ?E_ |= ?T_Mid ~< ?D_T_Mid
+      |- decls_dom_subset (decls_fin ?DT_) ?D_S ] =>
+    apply decls_dom_subset_transitive with (DT:=D_T_Mid); eauto 3;
+    apply sub_tp_expands_decls_dom_subset with (U:=T_Mid) (S:=S_) (E:=E_); eauto 3
     | [ |- _ ] => eauto 3
   end).
 
