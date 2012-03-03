@@ -120,12 +120,6 @@ inversion H; subst.
 apply decls_dom_subset_nil in H2.  subst.
 apply sub_tp_rfn_r with (L:=L) (DS':=decls_fin nil); eauto 3.
 
-(* E |= tp_fun S1 S2 ~<: tp_top *)
-assert (E |= tp_fun S1 S2 ~<: tp_fun TMid1 TMid2) as Ht1; eauto 3.
-
-(* E |= tp_bot ~<: tp_fun T1 T2 *)
-assert (E |= tp_fun S1 S2 ~<: tp_fun T1 T2) as Ht2; eauto 3.
-
 assert (E |= T ~<: tp_and TMid1 TMid2) as Ht1; eauto 3.
 assert (E |= tp_and TMid1 TMid2 ~<: tp_rfn T0 DS) as Ht2; eauto 3.
 assert (E |= T ~<: T0). eauto 3.

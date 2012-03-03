@@ -30,6 +30,7 @@ Ltac crush_rules :=
             | [ |- value (lam ?T ?B) ] => apply value_lam
             | [ |- context[decls_binds _ _ _] ] => let H:=fresh "H" in introv H; inversion H
             | [ |- context[lbl.binds _ _ _] ] => let H:=fresh "H" in introv H; inversion H
+            | [ |- context[ctx_bind _ _ _] ] => unfold ctx_bind; simpl
             | [ H: (?L, _) = (?L', _) |- _ ] => inversion H; subst; simpl; split
             | [ H: False |- _ ] => inversion H
             | [ H: decls_fin ?DSL1 = ?DSL2 \/ decls_inf ?DSL1 = ?DSL2 |- _ ] => inversions H
@@ -80,8 +81,7 @@ Example ex1_typ : (nil,nil) |= ex1 ~: tp_top.
 Proof.
   unfold ex1. apply typing_app with (S:=tp_top) (T':=tp_fun tp_top tp_top); crush_rules.
   apply sub_tp_top; crush_rules.
-  apply wfe_any with (DT:=decls_fin nil); crush_rules.
-  apply wf_fun; crush_rules.
+  apply wfe_fun; crush_rules.
 Qed.
 
 Example ex2_typ : (nil,nil) |= ex2 ~: tp_top.
@@ -91,83 +91,57 @@ Example cast_typ : (nil,nil) |= (lam tp_bot (app (lam tp_top 0) (lam (tp_sel 0 L
 Proof.
   (* yuck *)
   crush_rules.
-  apply typing_app with (S:=tp_top) (T':=(tp_fun (tp_sel x Lt) (tp_sel x Lt))); crush_rules.
-  apply wfe_any with (DT:=decls_fin nil). auto. apply expands_top. unfold ctx_bind. simpl. crush_rules.
-  simpl. crush_rules. apply wfe_any with (DT:=decls_inf nil).
+  apply typing_app with (S:=tp_top) (T':=(tp_fun (tp_sel x Lt) (tp_sel x Lt))); simpl; crush_rules.
+  apply wfe_top; crush_rules.
+  simpl. crush_rules.
+  apply wfe_any with (DT:=decls_inf nil).
   apply wf_tsel_1 with (S:=tp_top) (U:=tp_bot); crush_rules.
     replace (decl_tp tp_top tp_bot) with ((decl_tp tp_top tp_bot) ^d^ x).
     apply mem_path with (T:=tp_bot) (DS:=decls_inf nil); crush_rules.
-    apply expands_bot; crush_rules.
-    unfold ctx_bind. simpl. crush_rules.
-    unfold bot_decls. splits. unfold decls_ok. splits; crush_rules.
-    inversions H2; inversions H0; crush_rules.
-    intros l d. split; intros.
-      inversion H; crush_rules; inversions H2; inversions H0. apply bot_decl_tp. apply bot_decl_tm. auto. auto.
-      apply decls_binds_inf with (dsl:=nil).
-        reflexivity. intros F. inversion F.
-        inversions H; inversions H1; inversions H0; auto.
+    apply expands_bot_inf_nil; crush_rules.
     apply decls_binds_inf with (dsl:=nil).
       reflexivity. intros F. inversion F. left. auto. crush_rules.
-    apply wfe_any with (DT:=decls_fin nil). auto. apply expands_top. unfold ctx_bind. simpl. crush_rules.
-    apply wfe_bot. unfold ctx_bind. simpl. crush_rules.
-    unfold ctx_bind. simpl. apply expands_tsel with (S:=tp_top) (U:=tp_bot); crush_rules.
+    apply wfe_top; crush_rules.
+    apply wfe_bot; crush_rules.
+    apply expands_tsel with (S:=tp_top) (U:=tp_bot); crush_rules.
     replace (decl_tp tp_top tp_bot) with ((decl_tp tp_top tp_bot) ^d^ x).
     apply mem_path with (T:=tp_bot) (DS:=decls_inf nil); crush_rules.
-    apply expands_bot_inf_nil. crush_rules.
-    apply decls_binds_inf with (dsl:=nil). reflexivity. intros F. inversion F. left. auto.
-    crush_rules.
-    apply expands_bot_inf_nil. crush_rules.
+    apply expands_bot_inf_nil; crush_rules.
+    apply decls_binds_inf with (dsl:=nil).
+      reflexivity. intros F. inversion F. left. auto. crush_rules.
+    apply expands_bot_inf_nil; crush_rules.
     simpl. crush_rules.
     apply vars_ok_tp_sel. eapply vars_ok_var. crush_rules.
     apply sub_tp_top; crush_rules.
-    unfold ctx_bind. simpl. crush_rules.
-    apply wfe_any with (DT:=decls_fin nil); crush_rules.
-    apply wf_fun; crush_rules.
+    apply wfe_fun; crush_rules.
     apply wfe_any with (DT:=decls_inf nil); crush_rules.
-    unfold ctx_bind. simpl.
     apply wf_tsel_1 with (S:=tp_top) (U:=tp_bot); crush_rules.
-    simpl.
     replace (decl_tp tp_top tp_bot) with ((decl_tp tp_top tp_bot) ^d^ x).
     apply mem_path with (T:=tp_bot) (DS:=decls_inf nil); crush_rules.
     apply expands_bot_inf_nil. crush_rules.
-    apply decls_binds_inf with (dsl:=nil). reflexivity. intros F. inversion F. left. auto.
-    crush_rules.
-    apply wfe_any with (DT:=decls_fin nil); crush_rules.
-    apply expands_top. crush_rules.
-    apply wfe_bot. crush_rules.
-    unfold ctx_bind. simpl.
+    apply decls_binds_inf with (dsl:=nil). reflexivity. intros F. inversion F. left. auto. crush_rules.
+    apply wfe_top; crush_rules.
+    apply wfe_bot; crush_rules.
     apply expands_tsel with (S:=tp_top) (U:=tp_bot); crush_rules.
     replace (decl_tp tp_top tp_bot) with ((decl_tp tp_top tp_bot) ^d^ x).
     apply mem_path with (T:=tp_bot) (DS:=decls_inf nil); crush_rules.
     apply expands_bot_inf_nil; crush_rules.
-    apply decls_binds_inf with (dsl:=nil). reflexivity. intros F. inversion F. left. auto.
-    crush_rules.
+    apply decls_binds_inf with (dsl:=nil). reflexivity. intros F. inversion F. left. auto. crush_rules.
     apply expands_bot_inf_nil; crush_rules.
     apply wfe_any with (DT:=decls_inf nil); crush_rules.
     apply wf_tsel_1 with (S:=tp_top) (U:=tp_bot); crush_rules.
-    simpl.
     replace (decl_tp tp_top tp_bot) with ((decl_tp tp_top tp_bot) ^d^ x).
     apply mem_path with (T:=tp_bot) (DS:=decls_inf nil); crush_rules.
     apply expands_bot_inf_nil. crush_rules.
-    unfold ctx_bind. simpl. crush_rules.
-    apply decls_binds_inf with (dsl:=nil). reflexivity. intros F. inversion F. left. auto.
-    crush_rules.
-    apply wfe_any with (DT:=decls_fin nil); crush_rules.
-    apply expands_top. crush_rules.
-    unfold ctx_bind. simpl. crush_rules.
-    apply wfe_bot. crush_rules.
-    unfold ctx_bind. simpl. crush_rules.
+    apply decls_binds_inf with (dsl:=nil). reflexivity. intros F. inversion F. left. auto. crush_rules.
+    apply wfe_top; crush_rules.
+    apply wfe_bot; crush_rules.
     apply expands_tsel with (S:=tp_top) (U:=tp_bot); crush_rules.
     replace (decl_tp tp_top tp_bot) with ((decl_tp tp_top tp_bot) ^d^ x).
     apply mem_path with (T:=tp_bot) (DS:=decls_inf nil); crush_rules.
     apply expands_bot_inf_nil; crush_rules.
-    unfold ctx_bind. simpl. crush_rules.
-    apply decls_binds_inf with (dsl:=nil). reflexivity. intros F. inversion F. left. auto.
-    crush_rules.
+    apply decls_binds_inf with (dsl:=nil). reflexivity. intros F. inversion F. left. auto. crush_rules.
     apply expands_bot_inf_nil; crush_rules.
-    unfold ctx_bind. simpl. crush_rules.
-    unfold ctx_bind. simpl.
-    apply expands_fun. crush_rules.
 Qed.
 
 End Ex.

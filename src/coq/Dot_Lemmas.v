@@ -96,6 +96,13 @@ Proof.
 Qed.
 Hint Resolve wfe_top.
 
+Lemma wfe_fun : forall E S T, wf_env E -> wfe_tp E S -> wfe_tp E T -> wfe_tp E (tp_fun S T).
+Proof.
+  introv Henv HeS HeT.
+  apply wfe_any with (DT:=decls_fin nil); auto using wf_fun, expands_fun.
+Qed.
+Hint Resolve wfe_fun.
+
 (* ********************************************************************** *)
 (** ** Regularity *)
 
