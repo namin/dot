@@ -23,6 +23,10 @@ Ltac crush_rules :=
             | [ |- lc_tm (new ?Tc ?A ?B) ] => let x:= fresh "x" in pick fresh x and apply lc_new
             | [ |- lc_tp (tp_rfn _ _) ] =>  let x:= fresh "x" in pick fresh x and apply lc_tp_rfn
             | [ |- lc_args ( _ :: _ ) ] => apply lc_args_cons
+            | [ |- wfe_tp _ tp_top ] => apply wfe_top
+            | [ |- wfe_tp _ tp_bot ] => apply wfe_bot
+            | [ |- wfe_tp _ (tp_fun _ _) ] => apply wfe_fun
+            | [ |- _ |= _ ~<: tp_top ] => apply sub_tp_top
             | [ |- context[(?Y ^ ?X)] ] => unfold open; unfold open_rec_tm; simpl
             | [ |- context[(?Y ^^ ?X)] ] => unfold open; unfold open_rec_tm; simpl
             | [ |- context[(?Y ^ds^ ?X)] ] => unfold open_decls; simpl
@@ -41,7 +45,7 @@ Ltac crush_rules :=
             | [ H: lbl.binds _ _ _ |- _ ] => inversions H
             | [ |- decls_uniq _ ] => unfold decls_uniq; intros
             | [ |- _ /\ _ ] => split
-            | [ |- _ ] => eauto
+            | [ |- _ ] => simpl; eauto
           end).
 
 Parameter l : label.
@@ -80,8 +84,6 @@ Proof. crush_rules. Qed.
 Example ex1_typ : (nil,nil) |= ex1 ~: tp_top.
 Proof.
   unfold ex1. apply typing_app with (S:=tp_top) (T':=tp_fun tp_top tp_top); crush_rules.
-  apply sub_tp_top; crush_rules.
-  apply wfe_fun; crush_rules.
 Qed.
 
 Example ex2_typ : (nil,nil) |= ex2 ~: tp_top.
@@ -89,59 +91,30 @@ Proof. unfold ex2. crush_rules. Qed.
 
 Example cast_typ : (nil,nil) |= (lam tp_bot (app (lam tp_top 0) (lam (tp_sel 0 Lt) 0))) ~: tp_fun tp_bot tp_top.
 Proof.
-  (* yuck *)
   crush_rules.
   apply typing_app with (S:=tp_top) (T':=(tp_fun (tp_sel x Lt) (tp_sel x Lt))); simpl; crush_rules.
-  apply wfe_top; crush_rules.
-  simpl. crush_rules.
-  apply wfe_any with (DT:=decls_inf nil).
-  apply wf_tsel_1 with (S:=tp_top) (U:=tp_bot); crush_rules.
+  Lemma wfe_sel_bot_mem : forall L x, x `notin` L ->
+    ((x, tp_bot) :: nil, nil) |= x ~mem~ Lt ~: decl_tp tp_top tp_bot.
+  Proof.
+    introv H.
     replace (decl_tp tp_top tp_bot) with ((decl_tp tp_top tp_bot) ^d^ x).
     apply mem_path with (T:=tp_bot) (DS:=decls_inf nil); crush_rules.
     apply expands_bot_inf_nil; crush_rules.
-    apply decls_binds_inf with (dsl:=nil).
-      reflexivity. intros F. inversion F. left. auto. crush_rules.
-    apply wfe_top; crush_rules.
-    apply wfe_bot; crush_rules.
-    apply expands_tsel with (S:=tp_top) (U:=tp_bot); crush_rules.
-    replace (decl_tp tp_top tp_bot) with ((decl_tp tp_top tp_bot) ^d^ x).
-    apply mem_path with (T:=tp_bot) (DS:=decls_inf nil); crush_rules.
-    apply expands_bot_inf_nil; crush_rules.
-    apply decls_binds_inf with (dsl:=nil).
-      reflexivity. intros F. inversion F. left. auto. crush_rules.
-    apply expands_bot_inf_nil; crush_rules.
-    simpl. crush_rules.
-    apply vars_ok_tp_sel. eapply vars_ok_var. crush_rules.
-    apply sub_tp_top; crush_rules.
-    apply wfe_fun; crush_rules.
+    apply decls_binds_inf with (dsl:=nil). reflexivity. intros F. inversion F. left. auto. crush_rules.
+  Qed.
+  Lemma wfe_sel_bot : forall L x, x `notin` L -> wfe_tp ((x, tp_bot) :: nil, nil) (tp_sel x Lt).
+    introv H.
     apply wfe_any with (DT:=decls_inf nil); crush_rules.
     apply wf_tsel_1 with (S:=tp_top) (U:=tp_bot); crush_rules.
-    replace (decl_tp tp_top tp_bot) with ((decl_tp tp_top tp_bot) ^d^ x).
-    apply mem_path with (T:=tp_bot) (DS:=decls_inf nil); crush_rules.
-    apply expands_bot_inf_nil. crush_rules.
-    apply decls_binds_inf with (dsl:=nil). reflexivity. intros F. inversion F. left. auto. crush_rules.
-    apply wfe_top; crush_rules.
-    apply wfe_bot; crush_rules.
+    apply wfe_sel_bot_mem with (L:=L); assumption.
     apply expands_tsel with (S:=tp_top) (U:=tp_bot); crush_rules.
-    replace (decl_tp tp_top tp_bot) with ((decl_tp tp_top tp_bot) ^d^ x).
-    apply mem_path with (T:=tp_bot) (DS:=decls_inf nil); crush_rules.
+    apply wfe_sel_bot_mem with (L:=L); assumption.
     apply expands_bot_inf_nil; crush_rules.
-    apply decls_binds_inf with (dsl:=nil). reflexivity. intros F. inversion F. left. auto. crush_rules.
-    apply expands_bot_inf_nil; crush_rules.
-    apply wfe_any with (DT:=decls_inf nil); crush_rules.
-    apply wf_tsel_1 with (S:=tp_top) (U:=tp_bot); crush_rules.
-    replace (decl_tp tp_top tp_bot) with ((decl_tp tp_top tp_bot) ^d^ x).
-    apply mem_path with (T:=tp_bot) (DS:=decls_inf nil); crush_rules.
-    apply expands_bot_inf_nil. crush_rules.
-    apply decls_binds_inf with (dsl:=nil). reflexivity. intros F. inversion F. left. auto. crush_rules.
-    apply wfe_top; crush_rules.
-    apply wfe_bot; crush_rules.
-    apply expands_tsel with (S:=tp_top) (U:=tp_bot); crush_rules.
-    replace (decl_tp tp_top tp_bot) with ((decl_tp tp_top tp_bot) ^d^ x).
-    apply mem_path with (T:=tp_bot) (DS:=decls_inf nil); crush_rules.
-    apply expands_bot_inf_nil; crush_rules.
-    apply decls_binds_inf with (dsl:=nil). reflexivity. intros F. inversion F. left. auto. crush_rules.
-    apply expands_bot_inf_nil; crush_rules.
+  Qed.
+  apply wfe_sel_bot with (L:=empty) (x:=x); assumption.
+  apply vars_ok_tp_sel. eapply vars_ok_var. crush_rules.
+  apply wfe_sel_bot with (L:=empty) (x:=x); assumption.
+  apply wfe_sel_bot with (L:=empty) (x:=x); assumption.
 Qed.
 
 End Ex.
