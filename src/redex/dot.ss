@@ -821,3 +821,16 @@
 
 #;
 (typecheck (term (() ())) (term (λ (x Bottom) ((λ (y Top) y) (λ (z (sel x (label-class Lt))) z)))))
+
+#;
+(let ((typeX (term (refinement Top z
+                               (: (label-abstract-type A) Top Top)
+                               (: (label-value l) (sel z (label-abstract-type A))))))
+      (typeY (term (refinement Top z
+                               (: (label-value l) Top)))))
+  (preservation
+   (term
+    (valnew
+     (u (,typeX ((label-value l) u)))
+     (sel ((λ (y (-> Top ,typeY)) (y u)) (λ (d Top) ((λ (x ,typeX) x) u))) (label-value l))))))
+
