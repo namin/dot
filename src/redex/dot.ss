@@ -877,3 +877,20 @@
      (u (,typeX ((label-value l) u)))
      (sel ((λ (y (-> Top ,typeY)) (y u)) (λ (d Top) ((λ (x ,typeX) x) u))) (label-value l))))))
 
+#;
+(preservation
+ (term
+  (valnew
+   (b ((refinement Top z
+                   (: (label-abstract-type X) Top Top)
+                   (: (label-value l) (sel z (label-abstract-type X))))
+       ((label-value l) b)))
+   (valnew
+    (a ((refinement Top z
+                    (: (label-value i) (refinement Top z
+                                                   (: (label-abstract-type X) Bottom Top)
+                                                   (: (label-value l) (sel z (label-abstract-type X))))))
+        ((label-value i) b)))
+    ((λ (x Top) x)
+     ((λ (x (sel (sel a (label-value i)) (label-abstract-type X))) x)
+      (sel (sel a (label-value i)) (label-value l))))))))
