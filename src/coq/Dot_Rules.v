@@ -43,6 +43,38 @@ Inductive red : store -> tm -> store -> tm -> Prop :=
 where "s |~ a ~~> b  ~| s'" := (red s a s' b).
 
 (* ********************************************************************** *)
+(** * #<a name="ev"></a># Evaluation *)
+
+Reserved Notation "s |~ a ~>~ b ~| s'" (at level 60).
+
+Inductive ev : store -> tm -> store -> tm -> Prop :=
+  | ev_value : forall s v,
+     wf_store s ->
+     value v ->
+     s |~ v ~>~ v ~| s
+  | ev_beta : forall si s1 s2 sf t1 t2 t11 v2 vf T,
+     si |~ t1 ~>~ (lam T t11) ~| s1 ->
+     lc_tm (lam T t11) ->
+     s1 |~ t2 ~>~ v2 ~| s2 ->
+     s2 |~ (t11 ^^ v2) ~>~ vf ~| sf ->
+     si |~ (app t1 t2) ~>~ vf ~| sf
+  | ev_sel : forall si sf a Tc ags t l v,
+     si |~ t ~>~ (ref a) ~| sf ->
+     binds a (Tc, ags) sf ->
+     lbl.binds l v ags ->
+     si |~ (sel t l) ~>~ v ~| sf
+  | ev_new : forall si sf a Tc ags t vf,
+     wf_store si ->
+     lc_tm (new Tc ags t) ->
+     concrete Tc ->
+     (forall l v, lbl.binds l v ags -> value_label l /\ value (v ^^ (ref a))) ->
+     a `notin` dom si ->
+     ((a ~ ((Tc, ags ^args^ (ref a)))) ++ si) |~ t ~>~ vf ~| sf ->
+     si |~ (new Tc ags t) ~>~ vf ~| sf
+
+where "s |~ a ~>~ b  ~| s'" := (ev s a s' b).
+
+(* ********************************************************************** *)
 (** * #<a name="typing"></a># Typing *)
 
 (* Type Assigment *)
