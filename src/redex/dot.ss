@@ -146,6 +146,30 @@
 ;(trace-dot (term (valnew (u (Top)) ((λ (x Top) x) (λ (x Top) x)))))
 ;(trace-dot (term (valnew (u ((refinement Top self (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
 
+(define-metafunction dot
+  ev : store e -> (v store)
+  [(ev store v) (v store)]
+  [(ev store_i (e_1 e_2)) (v_f store_f)
+   (where ((λ (x T) e_11) store_1) (ev store_i e_1))
+   (where (v_2 store_2) (ev store_1 e_2))
+   (where (v_f store_f) (ev store_2 (subst e_11 x v_2)))]
+  [(ev store_i (valnew (x_i c_i) e_i)) (v_f store_f)
+   (where loc_new (store-fresh-location store_i))
+   (where e_s (subst e_i x_i loc_new))
+   (where store_s (store-extend store_i (subst c_i x_i loc_new)))
+   (where (v_f store_f) (ev store_s e_s))]
+  [(ev store_i (sel e_i l_i)) (v_f store_f)
+   (where ((location i_f) store_f) (ev store_i e_i))
+   (where c_f (store-lookup store_f i_f))
+   (judgment-holds (found c_f #t))
+   (where v_f (value-label-lookup c_f l_i))
+   (judgment-holds (found v_f #t))])
+
+;(term (ev () ((λ (x Top) x) (λ (x Top) x))))
+;(term (ev () (valnew (u (Top)) u)))
+;(term (ev () (valnew (u (Top)) ((λ (x Top) x) (λ (x Top) x)))))
+;(term (ev () (valnew (u ((refinement Top self (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
+
 (define value? (redex-match dot v))
 (define (single-step? e)
   (= (length (apply-reduction-relation red-rr (term (() ,e))))
@@ -607,11 +631,28 @@
                 [_ (error 'preservation "expect match")]))))
       #t))
 
+(define (big-step-preservation e)
+  (if (and (well-formed? e) (typecheck (term (() ())) e))
+      (begin
+        (printf "big-step preservation: trying ~a\n" e)
+        (redex-let dot ([(e_ev store_ev) (term (ev () ,e))])
+          (let ([t_e  (typecheck (term (() ())) e)]
+                [t_ev (typecheck (term (() store_ev)) (term e_ev))])
+            (and t_ev
+                 (judgment-holds (subtype (() store_ev) ,t_ev ,t_e))))))
+      #t))
+
 (preservation (term (valnew (u (Top)) u)))
 (preservation (term ((λ (x Top) x) (λ (x Top) x))))
 (preservation (term (valnew (u ((refinement Top u (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
 (preservation (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
 (preservation dotExample)
+
+(big-step-preservation (term (valnew (u (Top)) u)))
+(big-step-preservation (term ((λ (x Top) x) (λ (x Top) x))))
+(big-step-preservation (term (valnew (u ((refinement Top u (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
+(big-step-preservation (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
+(big-step-preservation dotExample)
 
 (define-metafunction dot
   vars : any -> (x ...)
@@ -663,7 +704,8 @@
 (let ([R (reduction-relation mini-dot
   [--> (valnew (x ((refinement Top z (: l_1 Top) Dl ...) (l vx) ...)) e) (valnew (x ((refinement Top z (: l_1 Top) Dl ...) (l vx) ...)) e)])])
   (redex-check mini-dot e (progress (term e)) #:source R #:prepare prepare-mini)
-  (redex-check mini-dot e (preservation (term e)) #:source R #:prepare prepare-mini))
+  (redex-check mini-dot e (preservation (term e)) #:source R #:prepare prepare-mini)
+  (redex-check mini-dot e (big-step-preservation (term e)) #:source R #:prepare prepare-mini))
 
 (define-metafunction dot
   path-var : p -> x
@@ -702,7 +744,8 @@
 (let ([R (reduction-relation dot
   [--> (valnew (x ((refinement Top z DLt ... Dl ...) (l vx) ...)) e) (valnew (x ((refinement Top z DLt ... Dl ...) (l vx) ...)) e)])])
   (redex-check dot e (progress (term e)) #:source R #:prepare prepare)
-  (redex-check dot e (preservation (term e)) #:source R #:prepare prepare))
+  (redex-check dot e (preservation (term e)) #:source R #:prepare prepare)
+  (redex-check dot e (big-step-preservation (term e)) #:source R #:prepare prepare))
 
 (define (subtyping-transitive env s t u)
   (if (and (judgment-holds (wfe-type ,env ,s)) (judgment-holds (wfe-type ,env ,t)) (judgment-holds (wfe-type ,env ,u))
