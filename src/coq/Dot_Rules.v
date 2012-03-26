@@ -64,7 +64,6 @@ Inductive ev : store -> tm -> store -> tm -> Prop :=
      lbl.binds l v ags ->
      si |~ (sel t l) ~>~ v ~| sf
   | ev_new : forall si sf a Tc ags t vf,
-     wf_store si ->
      lc_tm (new Tc ags t) ->
      concrete Tc ->
      (forall l v, lbl.binds l v ags -> value_label l /\ value (v ^^ (ref a))) ->

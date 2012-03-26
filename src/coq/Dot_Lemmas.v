@@ -11,6 +11,19 @@ Require Import Coq.Classes.EquivDec.
 Require Import Coq.Logic.Decidable.
 
 (* ********************************************************************** *)
+(** ** Evaluation *)
+
+Lemma ev_wf_store : forall s s' t t',
+  s |~ t ~>~ t' ~| s' -> wf_store s /\ wf_store s'.
+Proof.
+  introv H. split.
+    induction H; try assumption.
+      Case "ev_new".
+        inversion IHev; subst. assumption.
+    induction H; try assumption.
+Qed.
+
+(* ********************************************************************** *)
 (** ** Declarations *)
 
 Lemma decls_dom_subset_nil: forall ds,
