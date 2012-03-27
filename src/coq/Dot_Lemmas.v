@@ -23,6 +23,33 @@ Proof.
     induction H; try assumption.
 Qed.
 
+Lemma wf_store_lbl_binds_value : forall s l v a Tc ags,
+  wf_store s -> binds a (Tc, ags) s -> lbl.binds l v ags -> value v.
+Proof.
+  introv Hwf Hb Hlb. induction Hwf.
+  Case "nil". inversion Hb.
+  Case "rest".
+   rewrite_env ((x, (Tc0, args))::E) in Hb.
+   apply binds_cons_1 in Hb. inversions Hb.
+   SCase "x = a ".
+     inversions H3. inversions H5.
+     apply (proj2 (H l v Hlb)).
+   SCase "x <> a".
+     apply IHHwf.
+     assumption.
+Qed.
+
+Lemma ev_to_value : forall s s' t v,
+  s |~ t ~>~ v ~| s' -> value v.
+Proof.
+  introv H. induction H; try assumption.
+    Case "ev_sel".
+      apply wf_store_lbl_binds_value with (s:=sf) (l:=l) (a:=a) (Tc:=Tc) (ags:=ags).
+      apply (proj2 (ev_wf_store H)).
+      assumption.
+      assumption.
+Qed.
+
 (* ********************************************************************** *)
 (** ** Declarations *)
 
