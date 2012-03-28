@@ -894,3 +894,24 @@
     ((λ (x Top) x)
      ((λ (x (sel (sel a (label-value i)) (label-abstract-type X))) x)
       (sel (sel a (label-value i)) (label-value l))))))))
+
+#;
+(typecheck
+ (term (() ()))
+ (term
+  (valnew
+   (u ((refinement Top z
+                   (: (label-abstract-type A) (-> Top Top) (-> Top Top))
+                   (: (label-value l) (sel z (label-abstract-type A))))
+       ((label-value l) (λ (x Top) x))))
+   (((λ (x (-> Top (-> Top Top))) (x x)) (λ (x Top) (sel u (label-value l)))) (λ (x Top) x)))))
+
+#;
+(preservation
+ (term
+  (valnew
+   (u ((refinement Top z
+                   (: (label-abstract-type A) (-> Top Top) (-> Top Top))
+                   (: (label-value l) (sel z (label-abstract-type A))))
+       ((label-value l) (λ (x Top) x))))
+   (((λ (x (-> Top (-> Top Top))) (x x)) (λ (x Top) (sel u (label-value l)))) (λ (x Top) x)))))
