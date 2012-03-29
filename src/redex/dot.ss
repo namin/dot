@@ -648,11 +648,11 @@
 (preservation (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
 (preservation dotExample)
 
-(big-step-preservation (term (valnew (u (Top)) u)))
-(big-step-preservation (term ((λ (x Top) x) (λ (x Top) x))))
-(big-step-preservation (term (valnew (u ((refinement Top u (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
-(big-step-preservation (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
-(big-step-preservation dotExample)
+;(big-step-preservation (term (valnew (u (Top)) u)))
+;(big-step-preservation (term ((λ (x Top) x) (λ (x Top) x))))
+;(big-step-preservation (term (valnew (u ((refinement Top u (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
+;(big-step-preservation (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
+;(big-step-preservation dotExample)
 
 (define-metafunction dot
   vars : any -> (x ...)
