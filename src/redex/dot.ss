@@ -924,3 +924,12 @@
                    (: (label-value l) (sel z (label-abstract-type A))))
        ((label-value l) (λ (x Top) x))))
    (((λ (x (-> Top (-> Top Top))) (x x)) (λ (x Top) (sel u (label-value l)))) (λ (x Top) x)))))
+
+#;
+(big-step-preservation
+ (term
+  (valnew
+   (u ((refinement Top z (: (label-class C) (-> Top Top) (-> Top Top)))))
+   (valnew
+    (f ((sel u (label-class C))))
+    ((λ (g (-> Top Top)) (λ (a Top) (g (λ (x Top) x)))) f)))))
