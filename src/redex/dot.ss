@@ -639,7 +639,8 @@
           (let ([t_e  (typecheck (term (() ())) e)]
                 [t_ev (typecheck (term (() store_ev)) (term e_ev))])
             (and t_ev
-                 (judgment-holds (subtype (() store_ev) ,t_ev ,t_e))))))
+                 (judgment-holds (subtype (() store_ev) ,t_ev ,t_e))
+                 (term e_ev)))))
       #t))
 
 (preservation (term (valnew (u (Top)) u)))
@@ -876,6 +877,19 @@
     (valnew
      (u (,typeX ((label-value l) u)))
      (sel ((λ (y (-> Top ,typeY)) (y u)) (λ (d Top) ((λ (x ,typeX) x) u))) (label-value l))))))
+
+#;
+(let ((typeX (term (refinement Top z
+                               (: (label-abstract-type A) Top Top)
+                               (: (label-value l) (sel z (label-abstract-type A))))))
+      (typeY (term (refinement Top z
+                               (: (label-value l) Top)))))
+  (big-step-preservation
+   (term
+    (valnew
+     (u (,typeX ((label-value l) u)))
+     ((λ (y (-> Top ,typeY)) (λ (d Top) (sel (y u) (label-value l))))
+      (λ (d Top) ((λ (x ,typeX) x) u)))))))
 
 #;
 (preservation
