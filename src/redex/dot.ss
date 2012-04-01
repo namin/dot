@@ -428,12 +428,9 @@
   is_subtype : ((T T) ...) env S T -> bool
   [(is_subtype ((T_a T_b) ...) env S T) #f
    (side-condition (member (term (S T)) (term ((T_a T_b) ...))))]
-  [(is_subtype ((T_a T_b) ...) env T T) #t
-   (judgment-holds (wfe-type env T))]
-  [(is_subtype ((T_a T_b) ...) env T Top) #t
-   (judgment-holds (wfe-type env T))]
-  [(is_subtype ((T_a T_b) ...) env Bottom T) #t
-   (judgment-holds (wfe-type env T))]
+  [(is_subtype ((T_a T_b) ...) env T T) #t]
+  [(is_subtype ((T_a T_b) ...) env T Top) #t]
+  [(is_subtype ((T_a T_b) ...) env Bottom T) #t]
   [(is_subtype ((T_a T_b) ...) env (-> S_1 S_2) (-> T_1 T_2)) #t
    (side-condition (term (is_subtype ((T_a T_b) ... ((-> S_1 S_2) (-> T_1 T_2))) env T_1 S_1)))
    (side-condition (term (is_subtype ((T_a T_b) ... ((-> S_1 S_2) (-> T_1 T_2))) env S_2 T_2)))]
@@ -441,11 +438,9 @@
    (side-condition (term (is_subtype ((T_a T_b) ... (S (refinement T z DLt ... Dl ...))) env S T)))
    (judgment-holds (expansion env z S ((DLt_s ...) (Dl_s ...))))
    (judgment-holds (subdecls env (sorted-decls (Dl_s ...)) (sorted-decls (Dl ...))))
-   (judgment-holds (subdecls env (sorted-decls (DLt_s ...)) (sorted-decls (DLt ...))))
-   (judgment-holds (wfe-type env (refinement T z DLt ... Dl ...)))]
+   (judgment-holds (subdecls env (sorted-decls (DLt_s ...)) (sorted-decls (DLt ...))))]
   [(is_subtype ((T_a T_b) ...) env (refinement T_1 z DLt ... Dl ...) T_2) #t
-   (side-condition (term (is_subtype ((T_a T_b) ... ((refinement T_1 z DLt ... Dl ...) T_2)) env T_1 T_2)))
-   (judgment-holds (wfe-type env (refinement T_1 z DLt ... Dl ...)))]
+   (side-condition (term (is_subtype ((T_a T_b) ... ((refinement T_1 z DLt ... Dl ...) T_2)) env T_1 T_2)))]
   [(is_subtype ((T_a T_b) ...) env S_1 (sel p Lt)) #t
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))
@@ -462,20 +457,16 @@
    (side-condition (term (is_subtype ((T_a T_b) ... (T_o (intersection T_1 T_2))) env T_o T_1)))
    (side-condition (term (is_subtype ((T_a T_b) ... (T_o (intersection T_1 T_2))) env T_o T_2)))]
   [(is_subtype ((T_a T_b) ...) env (intersection T_1 T_2) T_o) #t
-   (side-condition (term (is_subtype ((T_a T_b) ... ((intersection T_1 T_2) T_o)) env T_1 T_o)))
-   (judgment-holds (wfe-type env T_2))]
+   (side-condition (term (is_subtype ((T_a T_b) ... ((intersection T_1 T_2) T_o)) env T_1 T_o)))]
   [(is_subtype ((T_a T_b) ...) env (intersection T_1 T_2) T_o) #t
-   (side-condition (term (is_subtype ((T_a T_b) ... ((intersection T_1 T_2) T_o)) env T_2 T_o)))
-   (judgment-holds (wfe-type env T_1))]
+   (side-condition (term (is_subtype ((T_a T_b) ... ((intersection T_1 T_2) T_o)) env T_2 T_o)))]
   [(is_subtype ((T_a T_b) ...) env (union T_1 T_2) T_o) #t
    (side-condition (term (is_subtype ((T_a T_b) ... ((union T_1 T_2) T_o)) env T_1 T_o)))
    (side-condition (term (is_subtype ((T_a T_b) ... ((union T_1 T_2) T_o)) env T_2 T_o)))]
   [(is_subtype ((T_a T_b) ...) env T_o (union T_1 T_2)) #t
-   (side-condition (term (is_subtype ((T_a T_b) ... (T_o (union T_1 T_2))) env T_o T_1)))
-   (judgment-holds (wfe-type env T_2))]
+   (side-condition (term (is_subtype ((T_a T_b) ... (T_o (union T_1 T_2))) env T_o T_1)))]
   [(is_subtype ((T_a T_b) ...) env T_o (union T_1 T_2)) #t
-   (side-condition (term (is_subtype ((T_a T_b) ... (T_o (union T_1 T_2))) env T_o T_2)))
-   (judgment-holds (wfe-type env T_1))]  
+   (side-condition (term (is_subtype ((T_a T_b) ... (T_o (union T_1 T_2))) env T_o T_2)))]  
   [(is_subtype ((T_a T_b) ...) env S T) #f])
 
 (define-judgment-form dot
