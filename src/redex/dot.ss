@@ -896,6 +896,25 @@
       (sel (sel a (label-value i)) (label-value l))))))))
 
 #;
+(big-step-preservation
+ (term
+  (valnew
+   (b ((refinement Top z
+                   (: (label-abstract-type X) Top Top)
+                   (: (label-value l) (sel z (label-abstract-type X))))
+       ((label-value l) b)))
+   (valnew
+    (a ((refinement Top z
+                    (: (label-value i) (refinement Top z
+                                                   (: (label-abstract-type X) Bottom Top)
+                                                   (: (label-value l) (sel z (label-abstract-type X))))))
+        ((label-value i) b)))
+    ((λ (x Top) x)
+     ((λ (x (sel (sel a (label-value i)) (label-abstract-type X))) 
+        (λ (d Top) ((λ (x (sel (sel a (label-value i)) (label-abstract-type X))) x) x)))
+      (sel (sel a (label-value i)) (label-value l))))))))
+
+#;
 (typecheck
  (term (() ()))
  (term
