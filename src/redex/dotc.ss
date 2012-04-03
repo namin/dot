@@ -416,8 +416,11 @@
   [(is_subtype ((T_a T_b) ...) env S (refinement T z DLt ... Dl ...)) #t
    (side-condition (term (is_subtype ((T_a T_b) ... (S (refinement T z DLt ... Dl ...))) env S T)))
    (judgment-holds (expansion env z S ((DLt_s ...) (Dl_s ...))))
-   (judgment-holds (subdecls env (sorted-decls (Dl_s ...)) (sorted-decls (Dl ...))))
-   (judgment-holds (subdecls env (sorted-decls (DLt_s ...)) (sorted-decls (DLt ...))))]
+   (where (Gamma store) env)
+   ;(where Gamma_z (gamma-extend Gamma z S))
+   (where Gamma_z Gamma)
+   (judgment-holds (subdecls (Gamma_z store) (sorted-decls (Dl_s ...)) (sorted-decls (Dl ...))))
+   (judgment-holds (subdecls (Gamma_z store) (sorted-decls (DLt_s ...)) (sorted-decls (DLt ...))))]
   [(is_subtype ((T_a T_b) ...) env (refinement T_1 z DLt ... Dl ...) T_2) #t
    (side-condition (term (is_subtype ((T_a T_b) ... ((refinement T_1 z DLt ... Dl ...) T_2)) env T_1 T_2)))]
   [(is_subtype ((T_a T_b) ...) env S_1 (sel p Lt)) #t
@@ -452,6 +455,47 @@
   #:mode (subtype I I I)
   #:contract (subtype env S T)
   [(subtype env S T) (found (is_subtype () env S T) #t)])
+
+(define-metafunction dot
+  fresh-var : env -> x
+  [(fresh-var env) ,(variable-not-in (term env) 'x)])
+
+(define-metafunction dot
+  indexify : (any ...) -> ((i any) ...)
+  [(indexify (any ...))
+   ,(let loop ((i 0) (xs (term (any ...))))
+      (if (null? xs)
+          '()
+          (cons (term (,i ,(car xs)))
+                (loop (add1 i) (cdr xs)))))])
+
+(define-judgment-form dot
+  #:mode (c-consistent I I I)
+  #:contract (c-consistent env c i)
+  [(c-consistent (Gamma store) c i)
+   (where (Tc (l (x_l T_l) e_l) ...) c)
+   (wfe-type (Gamma store) Tc)
+   (where x (fresh-var (Gamma store)))
+   (where loc (location i))
+   (expansion (Gamma store) x Tc (((: Lt_x S_x U_x) ...) (Dl_x ...)))
+   (where ((: Lt S U) ...) (subst ((: Lt_x S_x U_x) ...) x loc))
+   (where (Dl ...) (subst (Dl_x ...) x loc))
+   (where ((l_s (y_s V_s) e_s) ...) (sorted-assigns ((l (x_l T_l) e_l) ...)))
+   (where ((: l_s V_d W_d) ...) (sorted-decls (Dl ...)))
+   (where Gamma_Tc (gamma-extend Gamma x Tc))
+   (wfe-type (Gamma_Tc store) V_s) ...
+   (subtype (Gamma_Tc store) S U) ...
+   (subtype (Gamma_Tc store) V_d V_s) ...
+   (typeof ((gamma-extend Gamma_Tc y_s V_s) store) e_s W_s) ...
+   (subtype ((gamma-extend Gamma_Tc y_s V_s) store) W_s W_d) ...])
+
+(define-judgment-form dot
+  #:mode (env-consistent I)
+  #:contract (env-consistent env)
+  [(env-consistent env)
+   (where (Gamma store) env)
+   (where ((i c) ...) (indexify store))
+   (c-consistent env c i) ...])
 
 (define-judgment-form dot
   #:mode (typeof I I O)
@@ -511,27 +555,41 @@
 ;                                        (sel u (label-value f) u))))
 
 (define-metafunction dot
+  arrow- : x (DLt ...) S T -> W
+  [(arrow- x (DLt ...) S T) (refinement Top x
+                              DLt ...
+                              (: (label-value apply) S T))])
+
+(define-metafunction dot
+  fun- : x (DLt ...) (x S) T e -> e
+  [(fun- x_f (DLt ...) (x S) T e) (valnew
+                         (x_f ((arrow- x_f (DLt ...) S T)
+                               [(label-value apply) (x S) e]))
+                         x_f)])
+
+(define-metafunction dot
+  arrow : S T -> W
+  [(arrow S T) (arrow- x_self () S T)
+   (where x_self ,(variable-not-in (term (S T)) 'self))])
+
+(define-metafunction dot
   fun : (x S) T e -> e
-  [(fun (x S) T e) (valnew (x_f ((refinement Top x_f (: (label-value apply) S T)) [(label-value apply) (x S) e])) x_f)
+  [(fun (x S) T e) (fun- x_f () (x S) T e)
    (where x_f ,(variable-not-in (term (x S T e)) 'f))])
 
 (define-metafunction dot
   app : e e -> e
   [(app e_1 e_2) (sel e_1 (label-value apply) e_2)])
 
-;(typecheck (term (() ())) (term (fun (x Top) Top x)))
-;(typecheck (term (() ())) (term (valnew (d (Top)) (fun (x Top) Top x))))
-;(typecheck (term (() ())) (term (valnew (d (Top)) (app (fun (x Top) Top x) d))))
-
-(define-metafunction dot
-  arrow : S T -> W
-  [(arrow S T) (refinement Top x_self (: (label-value apply) S T))
-   (where x_self ,(variable-not-in (term (S T)) 'self))])
-
 (define-metafunction dot
   cast : T e -> e
   [(cast T e) (app (fun (x T) T x) e)
    (where x ,(variable-not-in (term (T e)) 'id))])
+
+
+;(typecheck (term (() ())) (term (fun (x Top) Top x)))
+;(typecheck (term (() ())) (term (valnew (d (Top)) (fun (x Top) Top x))))
+;(typecheck (term (() ())) (term (valnew (d (Top)) (app (fun (x Top) Top x) d))))
 
 (define (dotExample)
   (term (valnew (dummy (Top)) (valnew (root ((refinement
@@ -645,6 +703,7 @@
                 [(list store_to e_to)
                  (let ((t_new (typecheck (term (() ,store_to)) e_to)))
                    (and t_new
+                        ;(judgment-holds (env-consistent (() ,store_to)))
                         (judgment-holds (subtype (() ,store_to) ,t_new ,t))
                         (loop e_to store_to t_new)))]
                 [_ (error 'preservation "expect match")]))))
@@ -658,6 +717,7 @@
           (let ([t_e  (typecheck (term (() ())) e)]
                 [t_ev (typecheck (term (() store_ev)) (term e_ev))])
             (and t_ev
+                 (judgment-holds (env-consistent (() store_ev)))
                  (judgment-holds (subtype (() store_ev) ,t_ev ,t_e))
                  t_ev))))
       #t))
@@ -791,7 +851,6 @@
      (u (,typeX ((label-value l) (dummy Top) u)))
      (sel (app (fun (y (arrow Top ,typeY)) ,typeY (app y u)) (fun (d Top) ,typeX (cast ,typeX u))) (label-value l) u)))))
 
-;; TODO: can this fail now?
 #;
 (let ((typeX (term (refinement Top z
                                (: (label-abstract-type A) Top Top)
@@ -801,11 +860,11 @@
   (big-step-preservation
    (term
     (valnew
-     (u (,typeX ((label-value l) (dummy Top) u)))
-     (sel (app (fun (y (arrow Top ,typeY)) ,typeY (app y u))
-               (fun (d Top) ,typeX u))
-          (label-value l)
-          u)))))
+     (u (,typeX ((label-value l) (dummy Top) u))) (cast Top
+      (app (fun (y (arrow- f ((: (label-abstract-type Y) ,typeX ,typeY)) Top (sel f (label-abstract-type Y)))) 
+                (arrow Top Top)
+                (fun (d Top) Top (sel (cast (sel y (label-abstract-type Y)) (app y u)) (label-value l) u)))
+           (fun- f ((: (label-abstract-type Y) ,typeX ,typeX)) (d Top) (sel f (label-abstract-type Y)) u)))))))
 
 #;
 (preservation
