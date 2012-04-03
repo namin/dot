@@ -884,7 +884,6 @@
      (cast (sel (sel a (label-value i) d) (label-abstract-type X))
       (sel (sel a (label-value i) d) (label-value l) d))))))))
 
-;; TODO: can this fail now?
 #;
 (big-step-preservation
  (term (valnew (d (Top))
