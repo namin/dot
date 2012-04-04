@@ -907,3 +907,43 @@
                (arrow Top Top)
                (fun (d Top) (sel (sel a (label-value i) d) (label-abstract-type X)) x))
           (sel (sel a (label-value i) d) (label-value l) d))))))))
+
+#;
+(preservation
+ (term (valnew (d (Top))
+   (valnew
+    (a ((refinement Top z
+                    (: (label-value i) Top (refinement Top z
+                                                       (: (label-abstract-type X) Bottom Top)
+                                                       (: (label-value l) Top (sel z (label-abstract-type X))))))
+        ((label-value i) (dummy Top)
+                         (valnew
+                          (b ((refinement Top z
+                                          (: (label-abstract-type X) Top Top)
+                                          (: (label-value l) Top (sel z (label-abstract-type X))))
+                              ((label-value l) (dummy Top) b)))
+                          b))))
+    (cast Top
+     (cast (sel (sel a (label-value i) d) (label-abstract-type X))
+      (sel (sel a (label-value i) d) (label-value l) d)))))))
+
+#;
+(big-step-preservation
+ (term (valnew (d (Top))
+   (valnew
+    (a ((refinement Top z
+                    (: (label-value i) Top (refinement Top z
+                                                       (: (label-abstract-type X) Bottom Top)
+                                                       (: (label-value l) Top (sel z (label-abstract-type X))))))
+        ((label-value i) (dummy Top)
+                           (valnew
+                            (b ((refinement Top z
+                                            (: (label-abstract-type X) Top Top)
+                                            (: (label-value l) Top (sel z (label-abstract-type X))))
+                                ((label-value l) (dummy Top) b)))
+                            b))))
+    (cast Top
+     (app (fun (x (sel (sel a (label-value i) d) (label-abstract-type X)))
+               (arrow Top Top)
+               (fun (d Top) (sel (sel a (label-value i) d) (label-abstract-type X)) x))
+          (sel (sel a (label-value i) d) (label-value l) d)))))))
