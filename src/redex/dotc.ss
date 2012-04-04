@@ -417,8 +417,7 @@
    (side-condition (term (is_subtype ((T_a T_b) ... (S (refinement T z DLt ... Dl ...))) env S T)))
    (judgment-holds (expansion env z S ((DLt_s ...) (Dl_s ...))))
    (where (Gamma store) env)
-   ;(where Gamma_z (gamma-extend Gamma z S))
-   (where Gamma_z Gamma)
+   (where Gamma_z (gamma-extend Gamma z S))
    (judgment-holds (subdecls (Gamma_z store) (sorted-decls (Dl_s ...)) (sorted-decls (Dl ...))))
    (judgment-holds (subdecls (Gamma_z store) (sorted-decls (DLt_s ...)) (sorted-decls (DLt ...))))]
   [(is_subtype ((T_a T_b) ...) env (refinement T_1 z DLt ... Dl ...) T_2) #t
@@ -947,3 +946,17 @@
                (arrow Top Top)
                (fun (d Top) (sel (sel a (label-value i) d) (label-abstract-type X)) x))
           (sel (sel a (label-value i) d) (label-value l) d)))))))
+
+#;
+(let* ([typeX (term (refinement Top z
+                                (: (label-abstract-type A) Top Top)
+                                (: (label-abstract-type B) Top Top)
+                                (: (label-abstract-type C) Bottom (sel z (label-abstract-type B)))))]
+       [typeY (term (refinement Top z
+                                (: (label-abstract-type A) Bottom Top)
+                                (: (label-abstract-type B) Bottom Top)
+                                (: (label-abstract-type C) Bottom (sel z (label-abstract-type A)))))]
+       [typeZ (term (refinement ,typeX z
+                                (: (label-abstract-type A) Bottom Bottom)
+                                (: (label-abstract-type B) Bottom Bottom)))])
+  (subtyping-transitive (term (() ())) typeZ typeX typeY))
