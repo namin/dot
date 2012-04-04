@@ -9,7 +9,7 @@
   (v loc)
   (vx v x)
   (e vx (valnew (x c) e) (sel e l e))
-  (p vx (sel p l p))
+  (p e) ; vx (sel p l p))
   (c (Tc (l (x T) e) ...))
   (Gamma ([x T] ...))
   (store (c ...))
@@ -448,7 +448,11 @@
   [(is_subtype ((T_a T_b) ...) env T_o (union T_1 T_2)) #t
    (side-condition (term (is_subtype ((T_a T_b) ... (T_o (union T_1 T_2))) env T_o T_1)))]
   [(is_subtype ((T_a T_b) ...) env T_o (union T_1 T_2)) #t
-   (side-condition (term (is_subtype ((T_a T_b) ... (T_o (union T_1 T_2))) env T_o T_2)))]  
+   (side-condition (term (is_subtype ((T_a T_b) ... (T_o (union T_1 T_2))) env T_o T_2)))]
+  [(is_subtype ((T_a T_b) ...) env T (sel p_1 Lt)) #t
+   (where (Gamma store) env)
+   (judgment-holds (red store p_1 p_2 store_discard))
+   (side-condition (term (is_subtype ((T_a T_b) ... (T (sel p_1 Lt))) env T (sel p_2 Lt))))]
   [(is_subtype ((T_a T_b) ...) env S T) #f])
 
 (define-judgment-form dot
