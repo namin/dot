@@ -406,6 +406,17 @@
    (expansion-iter () env z T ((DLt ...) (Dl ...)))])
 
 (define-judgment-form dot
+  #:mode (path-red I I O)
+  #:contract (path-red env p p)
+  [(path-red (Gamma store) (sel (location i_1) l) (location i_2))
+   (where c (store-lookup store i_1))
+   (found c #t)
+   (where v (value-label-lookup c l))
+   (where (location i_2) v)]
+  [(path-red env (sel p_1 l) (sel p_2 l))
+   (path-red env p_1 p_2)])
+
+(define-judgment-form dot
   #:mode (subdecl I I I)
   #:contract (subdecl env D D)
   [(subdecl env (: l_1 T_1) (: l_1 T_2))
@@ -466,7 +477,10 @@
   [(is_subtype ((T_a T_b) ...) env T_o (union T_1 T_2)) #t
    (side-condition (term (is_subtype ((T_a T_b) ... (T_o (union T_1 T_2))) env T_o T_1)))]
   [(is_subtype ((T_a T_b) ...) env T_o (union T_1 T_2)) #t
-   (side-condition (term (is_subtype ((T_a T_b) ... (T_o (union T_1 T_2))) env T_o T_2)))]  
+   (side-condition (term (is_subtype ((T_a T_b) ... (T_o (union T_1 T_2))) env T_o T_2)))]
+  [(is_subtype ((T_a T_b) ...) env T (sel p_1 Lt)) #t
+   (judgment-holds (path-red env p_1 p_2))
+   (side-condition (term (is_subtype ((T_a T_b) ... (T (sel p_1 Lt))) env T (sel p_2 Lt))))]
   [(is_subtype ((T_a T_b) ...) env S T) #f])
 
 (define-judgment-form dot
