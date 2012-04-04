@@ -30,9 +30,9 @@
   ((S T U V) (-> T T) Top)
   ((Sc Tc) (refinement Tc z Dl ...) Top))
 
-(redex-match dot e (term (λ (x Top) x)))
-(redex-match dot e (term (valnew (u (Top)) u)))
-(redex-match dot e (term (valnew (u ((refinement Top self (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
+;(redex-match dot e (term (λ (x Top) x)))
+;(redex-match dot e (term (valnew (u (Top)) u)))
+;(redex-match dot e (term (valnew (u ((refinement Top self (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
 
 (define-metafunction dot
   subst : any x any -> any
@@ -84,12 +84,12 @@
   [(subst-var x_1 x_1 x_2) x_2]
   [(subst-var any_1 x_1 x_2) any_1])
 
-(term (subst (λ (x Top) x) x y))
-(term (subst (λ (y Top) x) x y))
-(term (subst (λ (z Top) (z x)) x y))
-(term (subst (valnew (u (Top)) x) x y))
-(term (subst (valnew (u (Top)) x) x u))
-(term (subst (valnew (u ((refinement Top self (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l))) l x))
+;(term (subst (λ (x Top) x) x y))
+;(term (subst (λ (y Top) x) x y))
+;(term (subst (λ (z Top) (z x)) x y))
+;(term (subst (valnew (u (Top)) x) x y))
+;(term (subst (valnew (u (Top)) x) x u))
+;(term (subst (valnew (u ((refinement Top self (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l))) l x))
 
 (define-metafunction dot
   store-extend : store c -> store
@@ -514,17 +514,17 @@
               "multiple typing derivations for term ~a in environment ~a"
               e env)]))
 
-(typecheck (term (() ())) (term (valnew (u (Top)) u)))
-(typecheck (term (() ())) (term (valnew (o (Top)) (valnew (o (Top)) o))))
-(typecheck (term (() ())) (term (λ (x Top) x)))
-(typecheck (term (() ())) (term ((λ (x Top) x) (λ (x Top) x))))
-(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
-(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) u)))
-(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
-(typecheck (term (() ())) (term (valnew (u ((refinement Top self (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
-(typecheck (term (() ())) (term (valnew (u ((refinement Top self (: (label-abstract-type l) Top Top)))) ((λ (x (sel u (label-abstract-type l))) u) u))))
+;(typecheck (term (() ())) (term (valnew (u (Top)) u)))
+;(typecheck (term (() ())) (term (valnew (o (Top)) (valnew (o (Top)) o))))
+;(typecheck (term (() ())) (term (λ (x Top) x)))
+;(typecheck (term (() ())) (term ((λ (x Top) x) (λ (x Top) x))))
+;(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
+;(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) u)))
+;(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
+;(typecheck (term (() ())) (term (valnew (u ((refinement Top self (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
+;(typecheck (term (() ())) (term (valnew (u ((refinement Top self (: (label-abstract-type l) Top Top)))) ((λ (x (sel u (label-abstract-type l))) u) u))))
 
-(define dotExample
+(define (dotExample)
   (term (valnew (root ((refinement
                         Top rootThis
                         (: (label-class UnitClass) Bottom Top)
@@ -583,8 +583,7 @@
                     ((sel ((sel ((sel ((sel root (label-value zero)) unit) (label-value succ)) unit) (label-value pred)) unit) (label-value isZero)) unit)
                     ) ((sel root (label-value unit)) (sel root (label-value unit))))))))
 
-(typecheck (term (() ())) dotExample)
-
+;(typecheck (term (() ())) (dotExample))
 
 (define-metafunction dot
   wf-prog : any -> bool
@@ -643,11 +642,11 @@
                  (term e_ev)))))
       #t))
 
-(preservation (term (valnew (u (Top)) u)))
-(preservation (term ((λ (x Top) x) (λ (x Top) x))))
-(preservation (term (valnew (u ((refinement Top u (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
-(preservation (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
-(preservation dotExample)
+;(preservation (term (valnew (u (Top)) u)))
+;(preservation (term ((λ (x Top) x) (λ (x Top) x))))
+;(preservation (term (valnew (u ((refinement Top u (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l)))))
+;(preservation (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) ((λ (x (sel u (label-class l))) u) u))))
+;(preservation (dotExample))
 
 ;(big-step-preservation (term (valnew (u (Top)) u)))
 ;(big-step-preservation (term ((λ (x Top) x) (λ (x Top) x))))
@@ -764,18 +763,21 @@
 
 ;; (subtyping-transitive (term (([x (refinement Top self (: (label-class L) Bottom (sel self (label-class L))))]) ())) (term (sel x (label-class L))) (term Top) (term (refinement Top z)))
 ;; (preservation (term (valnew (u ((refinement Top self (: (label-class L) Bottom (sel self (label-class L)))))) (λ (x Top) x))))
+
 #;
 (typecheck (term (() ())) (term (valnew (u ((refinement Top self (: (label-class L) Bottom (sel self (label-class L)))))) ((λ (x Top) x)
 ((λ (a (-> (sel u (label-class L)) (refinement Top z))) a)
  ((λ (b (-> (sel u (label-class L)) Top)) b)
   (λ (c (sel u (label-class L))) c)))
 ))))
+
 #;
 (preservation (term (valnew (u ((refinement Top self (: (label-class L) Bottom (sel self (label-class L)))))) ((λ (x Top) x)
 ((λ (a (-> (sel u (label-class L)) (refinement Top z))) a)
  ((λ (b (-> (sel u (label-class L)) Top)) b)
   (λ (c (sel u (label-class L))) c)))
 ))))
+
 #;
 (typecheck (term (() ())) (term (valnew (u ((refinement Top self 
                                                         (: (label-abstract-type L1) Bottom (sel self (label-abstract-type L1)))
@@ -786,6 +788,7 @@
  ((λ (b (-> (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1))) (sel u (label-abstract-type L4)))) b)
   (λ (c (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1)))) c)))
 ))))
+
 #;
 (preservation (term (valnew (u ((refinement Top self 
                                                         (: (label-abstract-type L1) Bottom (sel self (label-abstract-type L1)))
@@ -796,6 +799,7 @@
  ((λ (b (-> (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1))) (sel u (label-abstract-type L4)))) b)
   (λ (c (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1)))) c)))
 ))))
+
 #;
 (let ([env (term (([u (refinement Top self 
                                   (: (label-class Bad) Bottom (sel self (label-class Bad))) 
@@ -806,6 +810,7 @@
       [t (term (sel u (label-class Mix)))]
       [u (term (refinement (sel u (label-class Mix)) z))])
   (subtyping-transitive env s t u))
+
 #;
 (let ([env (term (([u (refinement Top self
                                   (: (label-class Bad) Bottom (sel self (label-class Bad)))
@@ -818,6 +823,7 @@
       [t (term (sel u (label-class Lower)))]
       [u (term (refinement (sel u (label-class X)) z (: (label-class L) Bottom Top)))])
   (subtyping-transitive env s t u))
+
 #;
 (let ([Tc (term (refinement Top self
                             (: (label-class Bad) Bottom (sel self (label-class Bad)))
@@ -833,6 +839,7 @@
      ((λ (f (-> ,s ,t)) f)
       ((λ (f (-> ,s ,s)) f) 
        (λ (x ,s) x)))))))))
+
 #;
 (typecheck (term (() ())) (term (valnew (u ((refinement Top self 
                               (: (label-class Bar) Bottom (refinement Top self (: (label-class T) Bottom Top)))
@@ -841,6 +848,7 @@
               ((label-value foo) (λ (x Top) (valnew (foo ((sel u (label-class Foo)))) foo)))))
               ((λ (x Top) x)
                (sel u (label-value foo))))))
+
 #;
 (typecheck (term (() ())) (term (valnew (u ((refinement Top self 
                               (: (label-class Bar) Bottom (refinement Top self (: (label-class T) Bottom Top) (: (label-value some) (sel self (label-class T)))))
@@ -849,6 +857,7 @@
               ((label-value foo) (λ (x Top) (valnew (foo ((sel u (label-class Foo)) ((label-value some) foo))) foo)))))
               ((λ (x Top) x)
                (sel u (label-value foo))))))
+
 #;
 (let ((w (term (refinement Top b
                            (: (label-class T) Bottom (sel (sel b (label-value x)) (label-class T)))
