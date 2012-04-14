@@ -1,0 +1,59 @@
+metavar x, y, z        ::= {{ com Variable }}
+metavar l              ::= {{ com Value label }}
+
+metavar Lc             ::= {{ com class label }}
+metavar La             ::= {{ com abstract type label }}
+
+indexvar n             ::=
+
+grammar
+v :: v_                ::= {{ com Value }}
+  | x                  :: :: Variable
+
+t :: t_                ::= {{ com Term }}
+  | x                  :: :: Variable
+  | val x = new c ; t  :: :: NewInstance
+  | t l t'             :: :: Selection
+
+p :: p_                ::= {{ com Path }}
+  | x                  :: :: Variable
+  | val x = new c ; p  :: :: NewInstance
+  | p l p'             :: :: Selection
+
+c :: c_                ::= {{ com Constructor }}
+  | Tc { l1 ( x1 ) = v1 , .. , ln ( xn ) = vn } :: :: Constructor
+
+G :: G_                ::= {{ com Environment }}
+  | x1 : T1 , .. , xn : Tn :: :: Environment
+
+s :: s_                ::= {{ com Store }}
+  | x1 |-> c1 , .. , xn |-> cn :: :: Store
+
+L :: L_                ::= {{ com Type label }}
+  | Lc                 :: :: Class
+  | La                 :: :: Abstract
+
+S, T, U, V :: T_       ::= {{ com Type }}
+  | p . La             :: :: AbstractTypeSelection
+  | p . Lc             :: :: ClassTypeSelection
+  | T { z => ( D1 .. Dn ) } :: :: Refinement
+  | T /\ T'            :: :: Intersection
+  | T \/ T'            :: :: Union
+  | Top                :: :: Top
+  | Bottom             :: :: Bottom
+
+Sc, Tc :: Tc_          ::= {{ com Concrete Type }}
+  | p . Lc             :: :: ClassTypeSelection
+  | Tc { z => ( D1 .. Dn ) } :: :: Refinement
+  | Tc /\ Tc'          :: :: Intersection
+  | Top                :: :: Top
+
+D :: D_                ::= {{ com Declaration }}
+  | L : S '..' U       :: :: Type
+  | l : S -> T         :: :: Term
+
+subrules
+  v  <:: t
+  v  <:: p
+  p  <:: t
+  Tc <:: T
