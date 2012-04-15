@@ -8,12 +8,12 @@ indexvar i, n          ::=
 
 grammar
 v :: v_                ::= {{ com Value }}
-  | x                  :: :: Variable
+  | x                  :: :: Variable {{ com variable }}
 
 t :: t_                ::= {{ com Term }}
-  | x                  :: :: Variable
-  | val x = new c ; t  :: :: NewInstance
-  | t l t'             :: :: Selection
+  | x                  :: :: Variable {{ com value }}
+  | val x = new c ; t  :: :: NewInstance {{ com new instance }}
+  | t l t'             :: :: Selection {{ com selection }}
   | ( t )              :: S:: Paren
   | [ t / x ] t'       :: M:: Sub
   | e [ t ]            :: M:: Ctx
@@ -39,13 +39,13 @@ L :: L_                ::= {{ com Type label }}
   | La                 :: :: Abstract
 
 S, T, U, V :: T_       ::= {{ com Type }}
-  | p . La             :: :: AbstractTypeSelection
+  | p . La             :: :: AbstractTypeSelection {{ com type selection }}
   | p . Lc             :: :: ClassTypeSelection
-  | T { z => D0 .. Dn } :: :: Refinement
-  | T /\ T'            :: :: Intersection
-  | T \/ T'            :: :: Union
-  | Top                :: :: Top
-  | Bottom             :: :: Bottom
+  | T { z => D0 .. Dn } :: :: Refinement {{ com refinement }}
+  | T /\ T'            :: :: Intersection {{ com intersection type }}
+  | T \/ T'            :: :: Union {{ com union type }}
+  | Top                :: :: Top {{ com top type }}
+  | Bottom             :: :: Bottom {{ com bottom type }}
 
 Sc {{ tex S_c }}, Tc {{ tex T_c }} :: Tc_ ::= {{ com Concrete Type }}
   | p . Lc             :: :: ClassTypeSelection
@@ -54,8 +54,8 @@ Sc {{ tex S_c }}, Tc {{ tex T_c }} :: Tc_ ::= {{ com Concrete Type }}
   | Top                :: :: Top
 
 D :: D_                ::= {{ com Declaration }}
-  | L : S '..' U       :: :: Type
-  | l : S -> T         :: :: Term
+  | L : S '..' U       :: :: Type {{ com type declaration }}
+  | l : S -> T         :: :: Term {{ com term declaration }}
 
 e :: e_                ::= {{ com Context }}
   | __ l t             :: :: SelLeft
@@ -90,7 +90,7 @@ defns
 Job :: '' ::=
 
  defn
- t | s --> t' | s' :: ::reduce:: red_ by
+ t | s --> t' | s' :: ::reduce:: red_ {{ com Reduction }} by
 
 
  --------------------------------------- :: New
