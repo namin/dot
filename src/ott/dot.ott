@@ -1,8 +1,8 @@
 metavar x, y, z        ::= {{ com Variable }}
 metavar l              ::= {{ com Value label }}
 
-metavar Lc             ::= {{ com class label }}
-metavar La             ::= {{ com abstract type label }}
+metavar Lc {{ tex L_c }} ::= {{ com class label }}
+metavar La {{ tex L_a }} ::= {{ com abstract type label }}
 
 indexvar i, n          ::=
 
@@ -26,12 +26,12 @@ p :: p_                ::= {{ com Path }}
 c :: c_                ::= {{ com Constructor }}
   | Tc { l0 ( x0 ) = t0 , .. , ln ( xn ) = tn } :: :: Constructor
 
-G :: G_                ::= {{ com Environment }}
-  | empty              :: :: Nil
+G {{ tex \Gamma }} :: G_ ::= {{ com Environment }}
+  | []                 :: :: Nil
   | G , x : T          :: :: Cons
 
 s :: s_                ::= {{ com Store }}
-  | empty              :: :: Nil
+  | []                 :: :: Nil
   | s , x |-> c        :: :: Cons
 
 L :: L_                ::= {{ com Type label }}
@@ -41,15 +41,15 @@ L :: L_                ::= {{ com Type label }}
 S, T, U, V :: T_       ::= {{ com Type }}
   | p . La             :: :: AbstractTypeSelection
   | p . Lc             :: :: ClassTypeSelection
-  | T { z => ( D0 .. Dn ) } :: :: Refinement
+  | T { z => D0 .. Dn } :: :: Refinement
   | T /\ T'            :: :: Intersection
   | T \/ T'            :: :: Union
   | Top                :: :: Top
   | Bottom             :: :: Bottom
 
-Sc, Tc :: Tc_          ::= {{ com Concrete Type }}
+Sc {{ tex S_c }}, Tc {{ tex T_c }} :: Tc_ ::= {{ com Concrete Type }}
   | p . Lc             :: :: ClassTypeSelection
-  | Tc { z => ( D0 .. Dn ) } :: :: Refinement
+  | Tc { z => D0 .. Dn } :: :: Refinement
   | Tc /\ Tc'          :: :: Intersection
   | Top                :: :: Top
 
@@ -61,9 +61,21 @@ e :: e_                ::= {{ com Context }}
   | __ l t             :: :: SelLeft
   | v l __             :: :: SelRight
 
+terminals :: terminals_ ::=
+  | |->                :: :: mapsto {{ tex \mapsto }}
+  | ->                 :: :: rightarrow {{ tex \rightarrow }}
+  | -->                :: :: longrightarrow {{ tex \;\longrightarrow\; }}
+  | =>                 :: :: Rightarrow {{ tex \Rightarrow }}
+  | \/                 :: :: tand {{ tex \wedge }}
+  | /\                 :: :: tor {{ tex \vee }}
+  | Top                :: :: top {{ tex \top }}
+  | Bottom             :: :: bot {{ tex \bot }}
+  | __                 :: :: hole {{ tex [\,] }}
+  | in                 :: :: in {{ tex \in }}
+
 formula :: formula_    ::=
- | judgement           :: :: judgement
- | x |-> c in s        :: :: StoreLookup
+  | judgement           :: :: judgement
+  | x |-> c in s        :: :: StoreLookup
 
 subrules
   v  <:: t
