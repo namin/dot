@@ -24,7 +24,7 @@ p :: p_                ::= {{ com Path }}
   | p l p'             :: :: Selection
 
 c :: c_                ::= {{ com Constructor }}
-  | Tc { l1 ( x1 ) = t1 , .. , ln ( xn ) = tn } :: :: Constructor
+  | Tc { l0 ( x0 ) = t0 , .. , ln ( xn ) = tn } :: :: Constructor
 
 G :: G_                ::= {{ com Environment }}
   | empty              :: :: Nil
@@ -41,7 +41,7 @@ L :: L_                ::= {{ com Type label }}
 S, T, U, V :: T_       ::= {{ com Type }}
   | p . La             :: :: AbstractTypeSelection
   | p . Lc             :: :: ClassTypeSelection
-  | T { z => ( D1 .. Dn ) } :: :: Refinement
+  | T { z => ( D0 .. Dn ) } :: :: Refinement
   | T /\ T'            :: :: Intersection
   | T \/ T'            :: :: Union
   | Top                :: :: Top
@@ -49,7 +49,7 @@ S, T, U, V :: T_       ::= {{ com Type }}
 
 Sc, Tc :: Tc_          ::= {{ com Concrete Type }}
   | p . Lc             :: :: ClassTypeSelection
-  | Tc { z => ( D1 .. Dn ) } :: :: Refinement
+  | Tc { z => ( D0 .. Dn ) } :: :: Refinement
   | Tc /\ Tc'          :: :: Intersection
   | Top                :: :: Top
 
@@ -85,7 +85,7 @@ Job :: '' ::=
  val x = new c; t | s --> t | s, x |-> c
 
 
- x |-> Tc { l1(x1)=t1, .., ln(xn)=tn } in s
+ x |-> Tc { l0(x0)=t0, .., ln(xn)=tn } in s
  ------------------------------------------- :: Sel
  x li v | s --> [v/xi] ti | s
 
