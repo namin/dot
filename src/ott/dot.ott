@@ -4,7 +4,7 @@ metavar l              ::= {{ com Value label }}
 metavar Lc {{ tex L_c }} ::= {{ com class label }}
 metavar La {{ tex L_a }} ::= {{ com abstract type label }}
 
-indexvar i, n          ::=
+indexvar i, j, n       ::=
 
 grammar
 v :: v_                ::= {{ com Value }}
@@ -24,7 +24,7 @@ p :: p_                ::= {{ com Path }}
   | p l p'             :: :: Selection
 
 c :: c_                ::= {{ com Constructor }}
-  | Tc { l0 ( x0 ) = t0 , .. , ln ( xn ) = tn } :: :: Constructor
+  | Tc { l0 ( x0 : T0 ) = t0 , .. , ln ( xn : Tn ) = tn } :: :: Constructor
 
 G {{ tex \Gamma }} :: G_ ::= {{ com Environment }}
   | []                 :: :: Nil
@@ -38,10 +38,10 @@ L :: L_                ::= {{ com Type label }}
   | Lc                 :: :: Class
   | La                 :: :: Abstract
 
-S, T, U, V :: T_       ::= {{ com Type }}
+S, T, U, V, W :: T_    ::= {{ com Type }}
   | p . La             :: :: AbstractTypeSelection {{ com type selection }}
   | p . Lc             :: :: ClassTypeSelection
-  | T { z => D0 .. Dn } :: :: Refinement {{ com refinement }}
+  | T { z => Dseq }    :: :: Refinement {{ com refinement }}
   | T /\ T'            :: :: Intersection {{ com intersection type }}
   | T \/ T'            :: :: Union {{ com union type }}
   | Top                :: :: Top {{ com top type }}
@@ -49,13 +49,16 @@ S, T, U, V :: T_       ::= {{ com Type }}
 
 Sc {{ tex S_c }}, Tc {{ tex T_c }} :: Tc_ ::= {{ com Concrete Type }}
   | p . Lc             :: :: ClassTypeSelection
-  | Tc { z => D0 .. Dn } :: :: Refinement
+  | Tc { z => Dseq }   :: :: Refinement
   | Tc /\ Tc'          :: :: Intersection
   | Top                :: :: Top
 
 D :: D_                ::= {{ com Declaration }}
   | L : S '..' U       :: :: Type {{ com type declaration }}
   | l : S -> T         :: :: Term {{ com term declaration }}
+
+Dseq {{ tex \overline{D} }} :: Dseq_ ::=
+  | D0 , .. , Dn           :: :: Seq
 
 e :: e_                ::= {{ com Context }}
   | __ l t             :: :: SelLeft
@@ -72,10 +75,26 @@ terminals :: terminals_ ::=
   | Bottom             :: :: bot {{ tex \bot }}
   | __                 :: :: hole {{ tex [\,] }}
   | in                 :: :: in {{ tex \in }}
+  | mem                :: :: mem {{ tex \ni }}
+  | |-                 :: :: ts {{ tex \,\vdash\, }}
+  | fn                 :: :: fn {{ tex \text{\sl fn} }}
+  | notin              :: :: notin {{ tex \not\in }}
+
+rule :: rule_          ::=
+  | t : T              :: :: Typing
+  | S <: T             :: :: Subtyping
+  | t mem D            :: :: Membership
+  | T expands z Dseq :: :: Expansion {{ tex [[T]] \prec_[[z]] [[Dseq]] }}
+  | T wf               :: :: WF
+  | T wfe              :: :: WFE
 
 formula :: formula_    ::=
-  | judgement           :: :: judgement
-  | x |-> c in s        :: :: StoreLookup
+  | judgement          :: :: judgement
+  | G , s |- rule1 , .. , rulen :: :: rules
+  | x |-> c in s       :: :: StoreLookup
+  | x : T in G         :: :: EnvLookup
+  | x notin fn ( T )   :: :: NotFreeCheck
+  | formula1 .. formulan :: :: dots
 
 subrules
   v  <:: t
@@ -97,10 +116,29 @@ Job :: '' ::=
  val x = new c; t | s --> t | s, x |-> c
 
 
- x |-> Tc { l0(x0)=t0, .., ln(xn)=tn } in s
- ------------------------------------------- :: Sel
+ x |-> Tc { l0(x0:T0)=t0, .., ln(xn:Tn)=tn } in s
+ ------------------------------------------------ :: Sel
  x li v | s --> [v/xi] ti | s
 
  t | s --> t' | s'
  ----------------------- :: Ctx
  e[t] | s --> e[t'] | s'
+
+ defn
+ G , s |- t : T :: ::typing:: typ_ {{ com Type Assignment }} by
+
+ x : T in G
+ ------------- :: Var
+ G, s |- x : T
+
+ G, s |- t1 mem l1 : S1 -> T1, t2 : T2, T2 <: S1
+ ----------------------------------------------- :: Sel
+ G, s |- t1 l t2 : T1
+
+ x notin fn(T)
+ G, s |- Tc wfe, Tc expands x </ Lj : Sj .. Uj // j/>, </ li : Vi -> Wi // i/>
+ G, x : Tc, s |- </ Ti wfe // i/>, </ Vi <: Ti // i/>, </ Sj <: Uj // j/>, t : T
+ </ G, x : Tc, xi : Ti, s |- ti : Wi', Wi' <: Wi // i/>
+ ------------------------------------------------------------------------------ :: New
+ G, s |- val x = new Tc { </ li(xi:Ti)=ti // i/> }; t : T
+
