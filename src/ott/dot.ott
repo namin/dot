@@ -1,10 +1,14 @@
 metavar x, y, z        ::= {{ com Variable }}
+{{ coq nat }} {{ coq-equality }}
 metavar l              ::= {{ com Value label }}
-
+{{ coq nat }} {{ coq-equality }}
 metavar Lc {{ tex L_c }} ::= {{ com class label }}
+{{ coq nat }} {{ coq-equality }}
 metavar La {{ tex L_a }} ::= {{ com abstract type label }}
+{{ coq nat }} {{ coq-equality }}
 
-indexvar i, j, n       ::=
+indexvar index, i, j, n ::=
+{{ coq nat }}
 
 grammar
 v :: v_                ::= {{ com Value }}
@@ -14,9 +18,9 @@ t :: t_                ::= {{ com Term }}
   | x                  :: :: Variable {{ com value }}
   | val x = new c ; t  :: :: NewInstance {{ com new instance }}
   | t l t'             :: :: Selection {{ com selection }}
-  | ( t )              :: S:: Paren
-  | [ t / x ] t'       :: M:: Sub
-  | e [ t ]            :: M:: Ctx
+  | ( t )              :: S:: Paren {{ icho [[t]] }}
+  | [ t / x ] t'       :: M:: Sub {{ icho (tsubst_t [[t]] [[x]] [[t']]) }}
+  | e [ t ]            :: M:: Ctx {{ icho (appctx_e_t [[e]] [[t]]) }}
 
 p :: p_                ::= {{ com Path }}
   | x                  :: :: Variable
@@ -26,19 +30,23 @@ p :: p_                ::= {{ com Path }}
 c :: c_                ::= {{ com Constructor }}
   | Tc { l0 ( x0 : T0 ) = t0 , .. , ln ( xn : Tn ) = tn } :: :: Constructor
 
-G {{ tex \Gamma }} :: G_ ::= {{ com Environment }}
+G {{ tex \Gamma }} :: G_ ::=  {{ coq list (x*T) }} {{ com Environment }}
   | []                 :: :: Nil
+   {{ coq G_nil }}
   | G , x : T          :: :: Cons
+   {{ coq (cons ([[x]],[[T]]) [[G]]) }}
 
-s :: s_                ::= {{ com Store }}
+s :: s_                ::=  {{ coq list (x*c) }} {{ com Store }}
   | []                 :: :: Nil
+   {{ coq s_nil }}
   | s , x |-> c        :: :: Cons
+   {{ coq (cons ([[x]],[[c]]) [[s]]) }}
 
 L :: L_                ::= {{ com Type label }}
   | Lc                 :: :: Class
   | La                 :: :: Abstract
 
-S, T, U, V, W :: T_    ::= {{ com Type }}
+T, S {{ coq St }}, U, V, W :: T_ ::= {{ com Type }}
   | p . La             :: :: AbstractTypeSelection {{ com type selection }}
   | p . Lc             :: :: ClassTypeSelection
   | T { z => Dseq }    :: :: Refinement {{ com refinement }}
@@ -47,7 +55,7 @@ S, T, U, V, W :: T_    ::= {{ com Type }}
   | Top                :: :: Top {{ com top type }}
   | Bottom             :: :: Bottom {{ com bottom type }}
 
-Sc {{ tex S_c }}, Tc {{ tex T_c }} :: Tc_ ::= {{ com Concrete Type }}
+Tc {{ tex T_c }}, Sc {{ tex S_c }} :: Tc_ ::= {{ com Concrete Type }}
   | p . Lc             :: :: ClassTypeSelection
   | Tc { z => Dseq }   :: :: Refinement
   | Tc /\ Tc'          :: :: Intersection
@@ -56,10 +64,10 @@ Sc {{ tex S_c }}, Tc {{ tex T_c }} :: Tc_ ::= {{ com Concrete Type }}
 D :: D_                ::= {{ com Declaration }}
   | L : S '..' U       :: :: Type {{ com type declaration }}
   | l : S -> T         :: :: Term {{ com term declaration }}
-  | [ t / x ] D        :: M:: Sub
+  | [ t / x ] D        :: M:: Sub {{ icho (tsubst_D [[t]] [[x]] [[D]]) }}
 
 Dseq {{ tex \overline{D} }} :: Dseq_ ::=
-  | D0 , .. , Dn           :: :: Seq
+  | </ Di // , // i />  :: :: Seq
 
 e :: e_                ::= {{ com Context }}
   | __ l t             :: :: SelLeft
@@ -81,21 +89,29 @@ terminals :: terminals_ ::=
   | fn                 :: :: fn {{ tex \text{\sl fn} }}
   | notin              :: :: notin {{ tex \not\in }}
 
-rule :: rule_          ::=
-  | t : T              :: :: Typing
-  | S <: T             :: :: Subtyping
-  | t mem D            :: :: Membership
-  | T expands z Dseq :: :: Expansion {{ tex [[T]] \prec_[[z]] [[Dseq]] }}
-  | T wf               :: :: WF
-  | T wfe              :: :: WFE
-
 formula :: formula_    ::=
   | judgement          :: :: judgement
-  | G , s |- rule1 , .. , rulen :: :: rules
   | x |-> c in s       :: :: StoreLookup
+    {{ coq (store_bound [[x]] [[c]] [[s]]) }}
   | x : T in G         :: :: EnvLookup
+    {{ coq (env_bound [[x]] [[T]] [[G]]) }}
   | x notin fn ( T )   :: :: NotFreeCheck
+    {{ coq (~In [[x]] (fv_T [[T]])) }}
   | formula1 .. formulan :: :: dots
+
+embed
+{{ coq
+Notation G_nil := (@nil (x*T)).
+Definition env_bound x0 T0 G :=
+  exists G1, exists G2,
+    (G = List.app G1 (List.cons (x0,T0) G2)) /\
+    ~In x0 (List.map (@fst x T) G1).
+Notation s_nil := (@nil (x*c)).
+Definition store_bound x0 c0 s :=
+  exists s1, exists s2,
+    (s = List.app s1 (List.cons (x0,c0) s2)) /\
+    ~In x0 (List.map (@fst x c) s1).
+}}
 
 subrules
   v  <:: t
@@ -105,6 +121,12 @@ subrules
 
 contextrules
   e _:: t :: t
+
+substitutions
+  single t x :: tsubst
+
+freevars
+  t x :: fv
 
 defns
 Job :: '' ::=
@@ -132,21 +154,40 @@ Job :: '' ::=
  ------------- :: Var
  G, s |- x : T
 
- G, s |- t1 mem l1 : S1 -> T1, t2 : T2, T2 <: S1
+ G, s |- t1 mem l1 : S1 -> T1
+ G, s |- t2 : T2
+ G, s |- T2 <: S1
  ----------------------------------------------- :: Sel
  G, s |- t1 l t2 : T1
 
  x notin fn(T)
- G, s |- Tc wfe, Tc expands x </ Lj : Sj .. Uj // j/>, </ li : Vi -> Wi // i/>
- G, x : Tc, s |- </ Ti wfe // i/>, </ Vi <: Ti // i/>, </ Sj <: Uj // j/>, t : T
- </ G, x : Tc, xi : Ti, s |- ti : Wi', Wi' <: Wi // i/>
- ------------------------------------------------------------------------------- :: New
+ G, s |- Tc wfe
+ G, s |- Tc expands x </ Lj : Sj .. Uj // j/>, </ li : Vi -> Wi // i/>
+ </ G, x : Tc, s |- Ti wfe // i/>
+ </ G, x : Tc, s |- Vi <: Ti // i/>
+ </ G, x : Tc, s |- Sj <: Uj // j/>
+ G, x : Tc, s |- t : T
+ </ G, x : Tc, xi : Ti, s |- ti : Wi' // i/>
+ </ G, x : Tc, xi : Ti, s |- Wi' <: Wi // i/>
+ --------------------------------------------------------------------- :: New
  G, s |- val x = new Tc { </ li(xi:Ti)=ti // i/> }; t : T
 
  defn
  G , s |- t mem D :: ::membership:: mem_ {{ com Membership }} by
 
- G, s |- p : T, T expands z </ Di // i/>
+ G, s |- p : T
+ G, s |- T expands z </ Di // i />
  --------------------------------------- :: Path
  G, s |- p mem [p/z] Di
 
+ defn
+ G , s |- T expands z Dseq :: ::expansion:: exp_ {{com Expansion }} {{ tex [[G]], [[s]] [[|-]] [[T]] \prec_[[z]] [[Dseq]] }} by
+
+ defn
+ G , s |- S <: T :: ::subtyping:: sub_ {{com Subtyping }} by
+
+ defn
+ G , s |- T wf :: ::wf:: wf_ {{com Well-Formedness }} by
+
+ defn
+ G , s |- T wfe :: ::wfe:: wfe_ {{com Expanding Well-Formedness }} by
