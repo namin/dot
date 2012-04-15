@@ -4,7 +4,7 @@ metavar l              ::= {{ com Value label }}
 metavar Lc             ::= {{ com class label }}
 metavar La             ::= {{ com abstract type label }}
 
-indexvar n             ::=
+indexvar i, n          ::=
 
 grammar
 v :: v_                ::= {{ com Value }}
@@ -14,6 +14,9 @@ t :: t_                ::= {{ com Term }}
   | x                  :: :: Variable
   | val x = new c ; t  :: :: NewInstance
   | t l t'             :: :: Selection
+  | ( t )              :: S:: Paren
+  | [ t / x ] t'       :: M:: Sub
+  | e [ t ]            :: M:: Ctx
 
 p :: p_                ::= {{ com Path }}
   | x                  :: :: Variable
@@ -21,13 +24,15 @@ p :: p_                ::= {{ com Path }}
   | p l p'             :: :: Selection
 
 c :: c_                ::= {{ com Constructor }}
-  | Tc { l1 ( x1 ) = v1 , .. , ln ( xn ) = vn } :: :: Constructor
+  | Tc { l1 ( x1 ) = t1 , .. , ln ( xn ) = tn } :: :: Constructor
 
 G :: G_                ::= {{ com Environment }}
-  | x1 : T1 , .. , xn : Tn :: :: Environment
+  | empty              :: :: Nil
+  | G , x : T          :: :: Cons
 
 s :: s_                ::= {{ com Store }}
-  | x1 |-> c1 , .. , xn |-> cn :: :: Store
+  | empty              :: :: Nil
+  | s , x |-> c        :: :: Cons
 
 L :: L_                ::= {{ com Type label }}
   | Lc                 :: :: Class
@@ -52,8 +57,38 @@ D :: D_                ::= {{ com Declaration }}
   | L : S '..' U       :: :: Type
   | l : S -> T         :: :: Term
 
+e :: e_                ::= {{ com Context }}
+  | __ l t             :: :: SelLeft
+  | v l __             :: :: SelRight
+
+formula :: formula_    ::=
+ | judgement           :: :: judgement
+ | x |-> c in s        :: :: StoreLookup
+
 subrules
   v  <:: t
   v  <:: p
   p  <:: t
   Tc <:: T
+
+contextrules
+  e _:: t :: t
+
+defns
+Job :: '' ::=
+
+ defn
+ t | s --> t' | s' :: ::reduce:: red_ by
+
+
+ --------------------------------------- :: New
+ val x = new c; t | s --> t | s, x |-> c
+
+
+ x |-> Tc { l1(x1)=t1, .., ln(xn)=tn } in s
+ ------------------------------------------- :: Sel
+ x li v | s --> [v/xi] ti | s
+
+ t | s --> t' | s'
+ ----------------------- :: Ctx
+ e[t] | s --> e[t'] | s'
