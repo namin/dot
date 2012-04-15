@@ -56,6 +56,7 @@ Sc {{ tex S_c }}, Tc {{ tex T_c }} :: Tc_ ::= {{ com Concrete Type }}
 D :: D_                ::= {{ com Declaration }}
   | L : S '..' U       :: :: Type {{ com type declaration }}
   | l : S -> T         :: :: Term {{ com term declaration }}
+  | [ t / x ] D        :: M:: Sub
 
 Dseq {{ tex \overline{D} }} :: Dseq_ ::=
   | D0 , .. , Dn           :: :: Seq
@@ -139,6 +140,13 @@ Job :: '' ::=
  G, s |- Tc wfe, Tc expands x </ Lj : Sj .. Uj // j/>, </ li : Vi -> Wi // i/>
  G, x : Tc, s |- </ Ti wfe // i/>, </ Vi <: Ti // i/>, </ Sj <: Uj // j/>, t : T
  </ G, x : Tc, xi : Ti, s |- ti : Wi', Wi' <: Wi // i/>
- ------------------------------------------------------------------------------ :: New
+ ------------------------------------------------------------------------------- :: New
  G, s |- val x = new Tc { </ li(xi:Ti)=ti // i/> }; t : T
+
+ defn
+ G , s |- t mem D :: ::membership:: mem_ {{ com Membership }} by
+
+ G, s |- p : T, T expands z </ Di // i/>
+ --------------------------------------- :: Path
+ G, s |- p mem [p/z] Di
 
