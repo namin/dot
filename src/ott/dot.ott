@@ -47,7 +47,8 @@ L :: L_                ::= {{ com Type label }}
   | La                 :: :: Abstract
 
 T, S {{ coq St }}, U, V, W :: T_ ::= {{ com Type }}
-  | p . La             :: :: AbstractTypeSelection {{ com type selection }}
+  | p . L              :: :: TypeSelection {{ com type selection }}
+  | p . La             :: :: AbstractTypeSelection
   | p . Lc             :: :: ClassTypeSelection
   | T { z => Dseq }    :: :: Refinement {{ com refinement }}
   | T /\ T'            :: :: Intersection {{ com intersection type }}
@@ -67,7 +68,15 @@ D :: D_                ::= {{ com Declaration }}
   | [ t / x ] D        :: M:: Sub {{ icho (tsubst_D [[t]] [[x]] [[D]]) }}
 
 Dseq {{ tex \overline{D} }} :: Dseq_ ::=
-  | </ Di // , // i />  :: :: Seq
+  | {}                 :: S:: Empty
+   {{ coq (Dseq_Seq nil) }}
+  | </ Di // , // i /> :: :: Seq
+  | Dseq /\ Dseq'      :: M:: And
+   {{ coq [[Dseq]] }} % TODO
+  | Dseq \/ Dseq'      :: M:: Or
+   {{ coq [[Dseq]] }} % TODO
+  | DseqBottom         :: M:: Bottom {{ tex \overline{D_\bot} }}
+   {{ coq (Dseq_Seq nil) }} % TODO
 
 e :: e_                ::= {{ com Context }}
   | __ l t             :: :: SelLeft
@@ -182,6 +191,33 @@ Job :: '' ::=
 
  defn
  G , s |- T expands z Dseq :: ::expansion:: exp_ {{com Expansion }} {{ tex [[G]], [[s]] [[|-]] [[T]] \prec_[[z]] [[Dseq]] }} by
+
+ G, s |- T expands z Dseq'
+ ----------------------------------------------- :: Rfn
+ G, s |- T { z => Dseq } expands z Dseq /\ Dseq'
+
+ G, s |- T1 expands z Dseq1
+ G, s |- T2 expands z Dseq2
+ ----------------------------------------- :: And
+ G, s |- T1 /\ T2 expands z Dseq1 /\ Dseq2
+
+ G, s |- T1 expands z Dseq1
+ G, s |- T2 expands z Dseq2
+ ----------------------------------------- :: Or
+ G, s |- T1 \/ T2 expands z Dseq1 \/ Dseq2
+
+ G, s |- p mem L : S .. U
+ G, s |- U expands z Dseq
+ -------------------------- :: Sel
+ G, s |- p.L expands z Dseq
+
+
+ ------------------------ :: Top
+ G, s |- Top expands z {}
+
+
+ ----------------------------------- :: Bot
+ G, s |- Bottom expands z DseqBottom
 
  defn
  G , s |- S <: T :: ::subtyping:: sub_ {{com Subtyping }} by
