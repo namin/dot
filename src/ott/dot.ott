@@ -222,6 +222,79 @@ Job :: '' ::=
  defn
  G , s |- S <: T :: ::subtyping:: sub_ {{com Subtyping }} by
 
+
+ -------------- :: Refl
+ G, s |- T <: T
+
+ G, s |- S <: T
+ G, s |- S expands z Dseq'
+ G, z : S, s |- Dseq' <: Dseq
+ ---------------------------- :: RfnR
+ G, s |- S <: T { z => Dseq }
+
+ G, s |- T <: T'
+ ----------------------------- :: RfnL
+ G, s |- T { z => Dseq } <: T'
+
+ G, s |- p mem L : S .. U
+ G, s |- S <: U
+ G, s |- S' <: S
+ ------------------------- :: TselR
+ G, s |- S' <: p.L
+
+ G, s |- p mem L : S .. U
+ G, s |- S <: U
+ G, s |- U <: U'
+ ------------------------- :: TselL
+ G, s |- p.L <: U'
+
+ G, s |- T <: T1
+ G, s |- T <: T2
+ --------------------- :: AndR
+ G, s |- T <: T1 /\ T2
+
+ G, s |- Ti <: T
+ --------------------- :: AndL
+ G, s |- T1 /\ T2 <: T
+
+ G, s |- T <: Ti
+ --------------------- :: OrR
+ G, s |- T <: T1 \/ T2
+
+ G, s |- T1 <: T
+ G, s |- T2 <: T
+ --------------------- :: OrL
+ G, s |- T1 \/ T2 <: T
+
+
+ ---------------- :: TopR
+ G, s |- T <: Top
+
+
+ ------------------- :: BottomL
+ G, s |- Bottom <: T
+
+ p1 | s --> p2 | s'
+ G, s |- T <: p2.L
+ ------------------ :: PathRedR
+ G, s |- T <: p1.L
+
+ defn
+ G , s |- D <: D' :: ::dsub:: dsub_ {{com Declaration subsumption }} by
+
+ G, s |- S' <: S
+ G, s |- U <: U'
+ --------------------------------- :: Type
+ G, s |- L : S .. U <: L : S' .. U'
+
+ G, s |- S' <: S
+ G, s |- T <: T'
+ --------------------------------- :: Value
+ G, s |- l : S -> T <: l : S' -> T'
+
+ defn
+ G , s |- Dseq <: Dseq' :: ::dseq_sub:: dseq_sub by
+
  defn
  G , s |- T wf :: ::wf:: wf_ {{com Well-Formedness }} by
 
