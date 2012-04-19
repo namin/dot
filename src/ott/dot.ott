@@ -28,7 +28,7 @@ p :: p_                ::= {{ com Path }}
   | p l p'             :: :: Selection
 
 c :: c_                ::= {{ com Constructor }}
-  | Tc { l0 ( x0 : T0 ) = t0 , .. , ln ( xn : Tn ) = tn } :: :: Constructor
+  | Tc { </ li ( xi : Ti ) = ti // , // i /> } :: :: Constructor
 
 G {{ tex \Gamma }} :: G_ ::=  {{ coq list (x*T) }} {{ com Environment }}
   | []                 :: :: Nil
