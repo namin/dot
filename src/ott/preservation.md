@@ -4,21 +4,15 @@ Preservation
 
 Statement
 ---------
-$$ \forall [[G]], [[s]], [[t]], [[T]], [[t']], [[s']] $$
+if 
 
-if
+* $[[G |= s]]$
+* $[[G, s |- t : T]]$
+* $[[t|s --> t'|s']]$
 
-$$ [[G |= s]] $$
-$$ [[G, s |- t : T]] $$
-$$ [[t|s --> t'|s']] $$
+then $\exists [[G']], [[T']]$ such that
 
-then
-
-$$ \exists [[G']], [[T']] $$
-
-such that
-
-$$ [[G]] \subseteq [[G']] $$
-$$ [[G' |= s']] $$
-$$ [[G', s' |- t' : T']] $$
-$$ [[G', s' |- T' <: T]] $$
+* $[[G]] \subseteq [[G']]$
+* $[[G' |= s']]$
+* $[[G', s' |- t' : T']]$
+* $[[G', s' |- T' <: T]]$
