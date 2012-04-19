@@ -95,6 +95,7 @@ terminals :: terminals_ ::=
   | in                 :: :: in {{ tex \in }}
   | mem                :: :: mem {{ tex \ni }}
   | |-                 :: :: ts {{ tex \,\vdash\, }}
+  | |=                 :: :: ms {{ tex \,\models\, }}
   | fn                 :: :: fn {{ tex \text{\sl fn} }}
   | notin              :: :: notin {{ tex \not\in }}
 
@@ -354,3 +355,7 @@ Job :: '' ::=
  G, s |- T expands z Dseq
  ------------------------ :: All
  G, s |- T wfe
+
+ defn
+ G |= s :: ::ctx:: ctx_ {{com Consistent Context }} by
+
