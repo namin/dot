@@ -296,7 +296,61 @@ Job :: '' ::=
  G , s |- Dseq <: Dseq' :: ::dseq_sub:: dseq_sub by
 
  defn
- G , s |- T wf :: ::wf:: wf_ {{com Well-Formedness }} by
+ G , s |- T wf :: ::wf:: wf_ {{com Well-formed types }} by
+
+ G, s |- T wfe
+ G, z : T { z => Dseq }, s |- Dseq wf
+ ------------------------------------ :: Rfn
+ G, s |- T { z => Dseq } wf
+
+ G, s |- p mem L : S .. U
+ G, s |- S wfe
+ G, s |- U wfe
+ ------------------------- :: TSel1
+ G, s |- p.L wf
+
+ G, s |- p mem L : Bottom .. U
+ ----------------------------- :: TSel2
+ G, s |- p.L wf
+
+ G, s |- T wfe
+ G, s |- T' wfe
+ ------------------ :: And
+ G, s |- T /\ T' wf
+
+ G, s |- T wfe
+ G, s |- T' wfe
+ ------------------ :: Or
+ G, s |- T \/ T' wf
+
+
+ ------------------ :: Bot
+ G, s |- Bottom wf
+
+
+ -------------- :: Top
+ G, s |- Top wf
 
  defn
- G , s |- T wfe :: ::wfe:: wfe_ {{com Expanding Well-Formedness }} by
+ G , s |- D wf :: ::dwf:: dwf_ {{com Well-formed declarations }} by
+
+ G, s |- S wfe
+ G, s |- U wfe
+ --------------------------------- :: Type
+ G, s |- L : S .. U wf
+
+ G, s |- S wfe
+ G, s |- T wfe
+ --------------------------------- :: Value
+ G, s |- l : S -> T wf
+
+ defn
+ G , s |- Dseq wf :: ::dseq_wf:: dseq_wf by
+
+ defn
+ G , s |- T wfe :: ::wfe:: wfe_ {{com Well-formed and expanding types }} by
+
+ G, s |- T wf
+ G, s |- T expands z Dseq
+ ------------------------ :: All
+ G, s |- T wfe
