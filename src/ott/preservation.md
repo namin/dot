@@ -19,7 +19,7 @@ then $\exists [[G']], [[T']]$ such that
 Proof Sketch
 ------------
 
-By induction on the derivation of $[[t|s --> t'|s']]$$.
+By induction on the derivation of $[[t|s --> t'|s']]$.
 
 ### Case **Red-New** ###
 
