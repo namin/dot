@@ -960,3 +960,12 @@
                                 (: (label-abstract-type A) Bottom Bottom)
                                 (: (label-abstract-type B) Bottom Bottom)))])
   (subtyping-transitive (term (() ())) typeZ typeX typeY))
+
+#;
+(preservation
+ (term
+  (valnew (v ((refinement Top z (: (label-class L) Bottom (refinement Top z (: (label-abstract-type A) Top Bottom))))))
+          (app (fun (x (refinement Top z (: (label-class L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top)))))
+                    Top
+                    (valnew (z ((sel x (label-class L)))) (cast Top z)))
+               v))))
