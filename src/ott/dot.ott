@@ -55,6 +55,7 @@ T, S {{ coq St }}, U, V, W :: T_ ::= {{ com Type }}
   | T \/ T'            :: :: Union {{ com union type }}
   | Top                :: :: Top {{ com top type }}
   | Bottom             :: :: Bottom {{ com bottom type }}
+  | [ t / x ] T        :: M:: Sub {{ icho (tsubst_T [[t]] [[x]] [[T]]) }}
 
 Tc {{ tex T_c }}, Sc {{ tex S_c }} :: Tc_ ::= {{ com Concrete Type }}
   | p . Lc             :: :: ClassTypeSelection
