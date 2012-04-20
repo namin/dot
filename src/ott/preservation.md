@@ -83,12 +83,12 @@ If
 * $[[G, xi : S', s |- ti: W']]$
 * $[[G, s |- v : S']]$
 
-then
+then $\exists [[W'']]$ such that
 
-* $[[G, s |- [v/xi] ti : [v/xi] W']]$
-* If $[[G, xi : S', s |- W' <: T]]$, then $[[G, s |- [v/xi] W' <: T]]$
-    
-The narrowing and substitution lemmas apply. $[[T']] = [v/xi] W'$.
+* $[[G, s |- [v/xi] ti : W'']]$
+* $[[G, xi : S', s |- W'' <: W']]$
+
+The narrowing and substitution lemmas apply. $[[T']] = [[W'']]$.
 	
 ### Case **Red-Ctx** ###
 
