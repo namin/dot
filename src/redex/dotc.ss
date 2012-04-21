@@ -969,3 +969,16 @@
                     Top
                     (valnew (z ((sel x (label-class L)))) (cast Top z)))
                v))))
+
+#;
+(preservation
+ (term
+  (valnew (v ((refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A))))))))
+  (app (fun (x (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top))))) Top
+            (valnew (z ((refinement Top z (: (label-value l) Bottom Top))
+                        ((label-value l) (y (intersection 
+                                             (sel x (label-abstract-type L))
+                                             (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top))))
+                                         (fun (a (sel y (label-abstract-type A))) Top a))))
+                    (cast Top z)))
+       v))))
