@@ -130,3 +130,106 @@ then $\exists [[S1']], [[T']]$ such that
 
 The narrowing membership lemma and **DSub-Value** and **Typ-Sel**
 rules apply, with result $[[T']]$.
+
+Substitution Lemma
+==================
+
+Statement
+---------
+
+If
+
+* $[[G, x : S, s |- t : T]]$
+* $[[G, s |- v : S]]$
+
+then $\exists [[T']]$ such that
+
+* $[[G, s |- [v/x]t : T']]$
+* $[[G, x : S, s |- T' <: T]]$
+
+Proof Sketch
+------------
+
+By induction on the derivation of $[[G, x : S, s |- t : T]]$.
+
+### Case **Typ-Var** ###
+
+$[[t]] = [[z]]$. Premise: $[[z : T in G, x : S]]$.
+
+If $[[z]] = [[x]]$, then $[[T]] = [[S]] = [[T']]$, since $[[ [v/x] z]]
+= [[ [v/x] x]] = [[x]]$. If $[[z]] \not= [[x]]$, then $[[ [v/x] z]] =
+[[z]]$, so $[[T]] = [[T']]$.
+
+### Case **Typ-Sel** ###
+
+$[[t]] = [[t1 l t2]]$. Premises:
+
+* $[[G, s |- t1 mem l1 : S1 -> T]]$
+* $[[G, s |- t1 : T1]]$
+* $[[G, s |- t2 : T2]]$
+* $[[G, s |- T2 <: S1]]$
+
+Let $[[ [v/x]t]] = [[t']] = [[t1' l t2']] = [[ [v/x]t1 l [v/x]t2]]$.
+
+By induction hypothesis:
+
+* $[[G, s |- t2 : T2]]$ implies
+
+  * $[[G, s |- t2' : T2']]$
+  * $[[G, s |- T2' <: T2']]$
+
+* $[[G, s |- t1 : T1]]$ implies
+
+  * $[[G, s |- t1' : T1']]$
+  * $[[G, s |- T1' <: T1']]$
+
+By **membership narrowing lemma**:
+
+* $[[G, s |- t1' mem l : S1' -> T']]$
+* $[[G, s |- l : S1' -> T' <: l : S1 -> T]]$
+
+By **declaration subsumption**:
+
+* $[[G, s |- S1 <: S1']]$
+* $[[G, s |- T' <: T]]$
+
+By transitivity of subtyping, the **Typ-Sel** rule applies with result $[[T']]$.
+
+### Case **Typ-New** ###
+
+$[[t]] = [[val z = new Tc { </ li(xi:Ti) = ti // i /> }; t0]]$
+
+$[[t']] = [[ [v/x]t]] = [[val z = new [v/x]Tc { </ li(xi:[v/x]Ti) = [v/x]ti // i /> }; [v/x]t0]]$
+
+For the **Typ-New** rule to apply again, we need substitution to
+preserve the properties checked by the **Typ-New** rule. In
+particular, substitution must preserve good bounds and well-formed and
+expanding types.
+
+For well-formed and expanding types, this is not the case, when taking
+into account possible narrowing of the type of the substituted
+term. This leads to a counterexample to preservation:
+
+$[[
+val z0 = new Top { z =>
+                   L : Bottom .. Top { z =>
+                                       La1: Bottom .. Top,
+                                       La2: Bottom .. z.La1
+                                     }
+                 }
+             {};
+(app (fun (x: Top { z =>
+                    L : Bottom .. Top { z =>
+                                        La1: Bottom .. Top,
+                                        La2: Bottom .. Top
+                                      }
+                  }) Top
+           val z = new Top { z => l : Bottom -> Top }
+                   {l(y : x.L /\ Top { z =>
+                                       La1: Bottom .. z.La2,
+                                       La2: Bottom .. Top
+                                     }
+                     ) = (fun (x0: y.La1) Top x0)};
+		   (cast Top z))
+     z0)
+]]$

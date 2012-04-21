@@ -2,9 +2,9 @@ metavar x, y, z        ::= {{ com Variable }}
 {{ coq nat }} {{ coq-equality }}
 metavar l              ::= {{ com Value label }}
 {{ coq nat }} {{ coq-equality }}
-metavar Lc {{ tex L_c }} ::= {{ com class label }}
+metavar Lc {{ tex {L_c} }} ::= {{ com class label }}
 {{ coq nat }} {{ coq-equality }}
-metavar La {{ tex L_a }} ::= {{ com abstract type label }}
+metavar La {{ tex {L_a} }} ::= {{ com abstract type label }}
 {{ coq nat }} {{ coq-equality }}
 
 indexvar index, i, j, n ::=
@@ -21,6 +21,9 @@ t :: t_                ::= {{ com Term }}
   | ( t )              :: S:: Paren {{ icho [[t]] }}
   | [ t / x ] t'       :: M:: Sub {{ icho (tsubst_t [[t]] [[x]] [[t']]) }}
   | e [ t ]            :: M:: Ctx {{ icho (appctx_e_t [[e]] [[t]]) }}
+  | fun ( x : T ) T' t :: S:: Fun {{ icho [[t]] }} % TODO
+  | app t t'           :: S:: App {{ icho [[t]] }} % TODO
+  | cast T t           :: S:: Cast {{ icho [[t]] }} % TODO
 
 p :: p_                ::= {{ com Path }}
   | x                  :: :: Variable
@@ -28,7 +31,7 @@ p :: p_                ::= {{ com Path }}
   | p l p'             :: :: Selection
 
 c :: c_                ::= {{ com Constructor }}
-  | Tc { </ li ( xi : Ti ) = ti // , // i /> } :: :: Constructor
+  | Tc { </ li ( xi : Ti ) = ti // , // i IN 0 .. n /> } :: :: Constructor
 
 G {{ tex \Gamma }} :: G_ ::=  {{ coq list (x*T) }} {{ com Environment }}
   | []                 :: :: Nil
@@ -62,6 +65,7 @@ Tc {{ tex T_c }}, Sc {{ tex S_c }} :: Tc_ ::= {{ com Concrete Type }}
   | Tc { z => Dseq }   :: :: Refinement
   | Tc /\ Tc'          :: :: Intersection
   | Top                :: :: Top
+  | [ t / x ] Tc       :: M:: Sub {{ icho (tsubst_Tc [[t]] [[x]] [[Tc]]) }}
 
 D :: D_                ::= {{ com Declaration }}
   | L : S '..' U       :: :: Type {{ com type declaration }}
