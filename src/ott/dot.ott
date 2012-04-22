@@ -1,91 +1,91 @@
-metavar x, y, z        ::= {{ com Variable }}
+metavar var, x, y, z ::= {{ com Variable }}
 {{ coq nat }} {{ coq-equality }}
-metavar l              ::= {{ com Value label }}
+metavar vlabel, l ::= {{ com Value label }}
 {{ coq nat }} {{ coq-equality }}
-metavar Lc {{ tex {L_c} }} ::= {{ com class label }}
+metavar clabel, Lc {{ tex {L_c} }} ::= {{ com class label }}
 {{ coq nat }} {{ coq-equality }}
-metavar La {{ tex {L_a} }} ::= {{ com abstract type label }}
+metavar alabel, La {{ tex {L_a} }} ::= {{ com abstract type label }}
 {{ coq nat }} {{ coq-equality }}
 
 indexvar index, i, j, n ::=
 {{ coq nat }}
 
 grammar
-v :: v_                ::= {{ com Value }}
-  | x                  :: :: Variable {{ com variable }}
+val, v :: val_         ::= {{ com Value }}
+  | x                  :: :: var {{ com variable }}
 
-t :: t_                ::= {{ com Term }}
-  | x                  :: :: Variable {{ com value }}
-  | val x = new c ; t  :: :: NewInstance {{ com new instance }}
-  | t l t'             :: :: Selection {{ com selection }}
-  | ( t )              :: S:: Paren {{ icho [[t]] }}
-  | [ t / x ] t'       :: M:: Sub {{ icho (tsubst_t [[t]] [[x]] [[t']]) }}
-  | e [ t ]            :: M:: Ctx {{ icho (appctx_e_t [[e]] [[t]]) }}
-  | fun ( x : T ) T' t :: S:: Fun {{ icho [[t]] }} % TODO
-  | app t t'           :: S:: App {{ icho [[t]] }} % TODO
-  | cast T t           :: S:: Cast {{ icho [[t]] }} % TODO
+tm, t :: tm_           ::= {{ com Term }}
+  | x                  :: :: var {{ com value }}
+  | val x = new c ; t  :: :: new {{ com new instance }}
+  | t l t'             :: :: sel {{ com selection }}
+  | ( t )              :: S:: paren {{ icho [[t]] }}
+  | [ t / x ] t'       :: M:: subst {{ icho (subst_tm [[t]] [[x]] [[t']]) }}
+  | e [ t ]            :: M:: ctx {{ icho (appctx_ctx_tm [[e]] [[t]]) }}
+  | fun ( x : T ) T' t :: S:: lam {{ icho [[t]] }} % TODO
+  | app t t'           :: S:: app {{ icho [[t]] }} % TODO
+  | cast T t           :: S:: cast {{ icho [[t]] }} % TODO
 
-p :: p_                ::= {{ com Path }}
-  | x                  :: :: Variable
-  | val x = new c ; p  :: :: NewInstance
-  | p l p'             :: :: Selection
+path, p :: path_       ::= {{ com Path }}
+  | x                  :: :: var
+  | val x = new c ; p  :: :: new
+  | p l p'             :: :: sel
 
-c :: c_                ::= {{ com Constructor }}
-  | Tc { </ li ( xi : Ti ) = ti // , // i IN 0 .. n /> } :: :: Constructor
+constr, c :: constr_ ::= {{ com Constructor }}
+  | Tc { </ li ( xi : Ti ) = ti // , // i IN 0 .. n /> } :: :: any
 
-G {{ tex \Gamma }} :: G_ ::=  {{ coq list (x*T) }} {{ com Environment }}
-  | []                 :: :: Nil
+gamma, G {{ tex \Gamma }} :: gamma_ ::=  {{ coq list (var*tp) }} {{ com Environment }}
+  | []                 :: :: nil
    {{ coq G_nil }}
-  | G , x : T          :: :: Cons
+  | G , x : T          :: :: cons
    {{ coq (cons ([[x]],[[T]]) [[G]]) }}
 
-s :: s_                ::=  {{ coq list (x*c) }} {{ com Store }}
-  | []                 :: :: Nil
+store, s :: store_     ::=  {{ coq list (var*constr) }} {{ com Store }}
+  | []                 :: :: nil
    {{ coq s_nil }}
-  | s , x |-> c        :: :: Cons
+  | s , x |-> c        :: :: cons
    {{ coq (cons ([[x]],[[c]]) [[s]]) }}
 
-L :: L_                ::= {{ com Type label }}
-  | Lc                 :: :: Class
-  | La                 :: :: Abstract
+tlabel, L :: tlabel_   ::= {{ com Type label }}
+  | Lc                 :: :: class
+  | La                 :: :: abstract
 
-T, S {{ coq St }}, U, V, W :: T_ ::= {{ com Type }}
-  | p . L              :: :: TypeSelection {{ com type selection }}
-  | p . La             :: :: AbstractTypeSelection
-  | p . Lc             :: :: ClassTypeSelection
-  | T { z => Dseq }    :: :: Refinement {{ com refinement }}
-  | T /\ T'            :: :: Intersection {{ com intersection type }}
-  | T \/ T'            :: :: Union {{ com union type }}
-  | Top                :: :: Top {{ com top type }}
-  | Bottom             :: :: Bottom {{ com bottom type }}
-  | [ t / x ] T        :: M:: Sub {{ icho (tsubst_T [[t]] [[x]] [[T]]) }}
+tp, T, S {{ coq St }}, U, V, W :: tp_ ::= {{ com Type }}
+  | p . L              :: :: tsel {{ com type selection }}
+  | p . La             :: :: asel
+  | p . Lc             :: :: csel
+  | T { z => Dseq }    :: :: rfn {{ com refinement }}
+  | T /\ T'            :: :: and {{ com intersection type }}
+  | T \/ T'            :: :: or {{ com union type }}
+  | Top                :: :: top {{ com top type }}
+  | Bottom             :: :: bot {{ com bottom type }}
+  | [ t / x ] T        :: M:: subst {{ icho (subst_tp [[t]] [[x]] [[T]]) }}
 
-Tc {{ tex T_c }}, Sc {{ tex S_c }} :: Tc_ ::= {{ com Concrete Type }}
-  | p . Lc             :: :: ClassTypeSelection
-  | Tc { z => Dseq }   :: :: Refinement
-  | Tc /\ Tc'          :: :: Intersection
-  | Top                :: :: Top
-  | [ t / x ] Tc       :: M:: Sub {{ icho (tsubst_Tc [[t]] [[x]] [[Tc]]) }}
+concrete, Tc {{ tex T_c }}, Sc {{ tex S_c }} :: concrete_ ::= {{ com Concrete Type }}
+  | p . Lc             :: :: sel
+  | Tc { z => Dseq }   :: :: rfn
+  | Tc /\ Tc'          :: :: and
+  | Top                :: :: top
+  | [ t / x ] Tc       :: M:: subst {{ icho (subst_concrete [[t]] [[x]] [[Tc]]) }}
 
-D :: D_                ::= {{ com Declaration }}
-  | L : S '..' U       :: :: Type {{ com type declaration }}
-  | l : S -> T         :: :: Term {{ com term declaration }}
-  | [ t / x ] D        :: M:: Sub {{ icho (tsubst_D [[t]] [[x]] [[D]]) }}
+decl, D :: decl_       ::= {{ com Declaration }}
+  | L : S '..' U       :: :: tp {{ com type declaration }}
+  | l : S -> T         :: :: tm {{ com term declaration }}
+  | [ t / x ] D        :: M:: subst {{ icho (subst_decl [[t]] [[x]] [[D]]) }}
 
-Dseq {{ tex \overline{D} }} :: Dseq_ ::=
-  | {}                 :: S:: Empty
-   {{ coq (Dseq_Seq nil) }}
-  | </ Di // , // i /> :: :: Seq
-  | Dseq /\ Dseq'      :: M:: And
+decls, Dseq {{ tex \overline{D} }} :: decls_ ::=
+  | {}                 :: S:: empty
+   {{ coq (decls_seq nil) }}
+  | </ Di // , // i /> :: :: seq
+  | Dseq /\ Dseq'      :: M:: and
    {{ coq [[Dseq]] }} % TODO
-  | Dseq \/ Dseq'      :: M:: Or
+  | Dseq \/ Dseq'      :: M:: or
    {{ coq [[Dseq]] }} % TODO
-  | DseqBottom         :: M:: Bottom {{ tex \overline{D_\bot} }}
-   {{ coq (Dseq_Seq nil) }} % TODO
+  | DseqBottom         :: M:: bot {{ tex \overline{D_\bot} }}
+   {{ coq (decls_seq nil) }} % TODO
 
-e :: e_                ::= {{ com Context }}
-  | __ l t             :: :: SelLeft
-  | v l __             :: :: SelRight
+ctx, e :: ctx_         ::= {{ com Context }}
+  | __ l t             :: :: sel_l
+  | v l __             :: :: sel_r
 
 terminals :: terminals_ ::=
   | |->                :: :: mapsto {{ tex \mapsto }}
@@ -99,49 +99,49 @@ terminals :: terminals_ ::=
   | __                 :: :: hole {{ tex [\,] }}
   | in                 :: :: in {{ tex \in }}
   | mem                :: :: mem {{ tex \ni }}
-  | |-                 :: :: ts {{ tex \,\vdash\, }}
+  | |-                < :: :: ts {{ tex \,\vdash\, }}
   | |=                 :: :: ms {{ tex \,\models\, }}
   | fn                 :: :: fn {{ tex \text{\sl fn} }}
   | notin              :: :: notin {{ tex \not\in }}
 
 formula :: formula_    ::=
   | judgement          :: :: judgement
-  | x |-> c in s       :: :: StoreLookup
+  | x |-> c in s       :: :: store_lookup
     {{ coq (store_bound [[x]] [[c]] [[s]]) }}
-  | x : T in G         :: :: EnvLookup
+  | x : T in G         :: :: gamma_lookup
     {{ coq (env_bound [[x]] [[T]] [[G]]) }}
-  | x notin fn ( T )   :: :: NotFreeCheck
-    {{ coq (~In [[x]] (fv_T [[T]])) }}
+  | x notin fn ( T )   :: :: not_free_check
+    {{ coq (~In [[x]] (fv_tp [[T]])) }}
   | formula1 .. formulan :: :: dots
 
 embed
 {{ coq
-Notation G_nil := (@nil (x*T)).
-Definition env_bound x0 T0 G :=
+Notation G_nil := (@nil (var*tp)).
+Definition env_bound x T G :=
   exists G1, exists G2,
-    (G = List.app G1 (List.cons (x0,T0) G2)) /\
-    ~In x0 (List.map (@fst x T) G1).
-Notation s_nil := (@nil (x*c)).
-Definition store_bound x0 c0 s :=
+    (G = List.app G1 (List.cons (x,T) G2)) /\
+    ~In x (List.map (@fst var tp) G1).
+Notation s_nil := (@nil (var*constr)).
+Definition store_bound x c s :=
   exists s1, exists s2,
-    (s = List.app s1 (List.cons (x0,c0) s2)) /\
-    ~In x0 (List.map (@fst x c) s1).
+    (s = List.app s1 (List.cons (x,c) s2)) /\
+    ~In x (List.map (@fst var constr) s1).
 }}
 
 subrules
-  v  <:: t
-  v  <:: p
-  p  <:: t
-  Tc <:: T
+  val  <:: tm
+  val  <:: path
+  path  <:: tm
+  concrete <:: tp
 
 contextrules
-  e _:: t :: t
+  ctx _:: tm :: tm
 
 substitutions
-  single t x :: tsubst
+  single tm var :: subst
 
 freevars
-  t x :: fv
+  tm var :: fv
 
 defns
 Job :: '' ::=
@@ -150,29 +150,29 @@ Job :: '' ::=
  t | s --> t' | s' :: ::reduce:: red_ {{ com Reduction }} by
 
 
- --------------------------------------- :: New
+ --------------------------------------- :: new
  val x = new c; t | s --> t | s, x |-> c
 
 
  x |-> Tc { l0(x0:T0)=t0, .., ln(xn:Tn)=tn } in s
- ------------------------------------------------ :: Sel
+ ------------------------------------------------ :: sel
  x li v | s --> [v/xi] ti | s
 
  t | s --> t' | s'
- ----------------------- :: Ctx
+ ----------------------- :: ctx
  e[t] | s --> e[t'] | s'
 
  defn
  G , s |- t : T :: ::typing:: typ_ {{ com Type Assignment }} by
 
  x : T in G
- ------------- :: Var
+ ------------- :: var
  G, s |- x : T
 
  G, s |- t1 mem l1 : S1 -> T1
  G, s |- t2 : T2
  G, s |- T2 <: S1
- ----------------------------------------------- :: Sel
+ ----------------------------------------------- :: sel
  G, s |- t1 l t2 : T1
 
  x notin fn(T)
@@ -184,7 +184,7 @@ Job :: '' ::=
  G, x : Tc, s |- t : T
  </ G, x : Tc, xi : Ti, s |- ti : Wi' // i/>
  </ G, x : Tc, xi : Ti, s |- Wi' <: Wi // i/>
- --------------------------------------------------------------------- :: New
+ --------------------------------------------------------------------- :: new
  G, s |- val x = new Tc { </ li(xi:Ti)=ti // i/> }; t : T
 
  defn
@@ -192,175 +192,175 @@ Job :: '' ::=
 
  G, s |- p : T
  G, s |- T expands z </ Di // i />
- --------------------------------------- :: Path
+ --------------------------------------- :: path
  G, s |- p mem [p/z] Di
 
  defn
  G , s |- T expands z Dseq :: ::expansion:: exp_ {{com Expansion }} {{ tex [[G]], [[s]] [[|-]] [[T]] \prec_[[z]] [[Dseq]] }} by
 
  G, s |- T expands z Dseq'
- ----------------------------------------------- :: Rfn
+ ----------------------------------------------- :: rfn
  G, s |- T { z => Dseq } expands z Dseq /\ Dseq'
 
  G, s |- T1 expands z Dseq1
  G, s |- T2 expands z Dseq2
- ----------------------------------------- :: And
+ ----------------------------------------- :: and
  G, s |- T1 /\ T2 expands z Dseq1 /\ Dseq2
 
  G, s |- T1 expands z Dseq1
  G, s |- T2 expands z Dseq2
- ----------------------------------------- :: Or
+ ----------------------------------------- :: or
  G, s |- T1 \/ T2 expands z Dseq1 \/ Dseq2
 
  G, s |- p mem L : S .. U
  G, s |- U expands z Dseq
- -------------------------- :: Sel
+ -------------------------- :: sel
  G, s |- p.L expands z Dseq
 
 
- ------------------------ :: Top
+ ------------------------ :: top
  G, s |- Top expands z {}
 
 
- ----------------------------------- :: Bot
+ ----------------------------------- :: bot
  G, s |- Bottom expands z DseqBottom
 
  defn
  G , s |- S <: T :: ::subtyping:: sub_ {{com Subtyping }} by
 
 
- -------------- :: Refl
+ -------------- :: refl
  G, s |- T <: T
 
  G, s |- S <: T
  G, s |- S expands z Dseq'
  G, z : S, s |- Dseq' <: Dseq
- ---------------------------- :: RfnR
+ ---------------------------- :: rfn_r
  G, s |- S <: T { z => Dseq }
 
  G, s |- T <: T'
- ----------------------------- :: RfnL
+ ----------------------------- :: rfn_l
  G, s |- T { z => Dseq } <: T'
 
  G, s |- p mem L : S .. U
  G, s |- S <: U
  G, s |- S' <: S
- ------------------------- :: TselR
+ ------------------------- :: tsel_r
  G, s |- S' <: p.L
 
  G, s |- p mem L : S .. U
  G, s |- S <: U
  G, s |- U <: U'
- ------------------------- :: TselL
+ ------------------------- :: tsel_l
  G, s |- p.L <: U'
 
  G, s |- T <: T1
  G, s |- T <: T2
- --------------------- :: AndR
+ --------------------- :: and_r
  G, s |- T <: T1 /\ T2
 
  G, s |- Ti <: T
- --------------------- :: AndL
+ --------------------- :: and_l
  G, s |- T1 /\ T2 <: T
 
  G, s |- T <: Ti
- --------------------- :: OrR
+ --------------------- :: or_r
  G, s |- T <: T1 \/ T2
 
  G, s |- T1 <: T
  G, s |- T2 <: T
- --------------------- :: OrL
+ --------------------- :: or_l
  G, s |- T1 \/ T2 <: T
 
 
- ---------------- :: TopR
+ ---------------- :: top
  G, s |- T <: Top
 
 
- ------------------- :: BottomL
+ ------------------- :: bot
  G, s |- Bottom <: T
 
  p1 | s --> p2 | s'
  G, s |- T <: p2.L
- ------------------ :: PathRedR
+ ------------------ :: path_red
  G, s |- T <: p1.L
 
  defn
- G , s |- D <: D' :: ::dsub:: dsub_ {{com Declaration subsumption }} by
+ G , s |- D <: D' :: ::decl_sub:: decl_sub_ {{com Declaration subsumption }} by
 
  G, s |- S' <: S
  G, s |- U <: U'
- --------------------------------- :: Type
+ --------------------------------- :: tp
  G, s |- L : S .. U <: L : S' .. U'
 
  G, s |- S' <: S
  G, s |- T <: T'
- --------------------------------- :: Value
+ --------------------------------- :: tm
  G, s |- l : S -> T <: l : S' -> T'
 
  defn
- G , s |- Dseq <: Dseq' :: ::dseq_sub:: dseq_sub by
+ G , s |- Dseq <: Dseq' :: ::decls_sub:: decls_sub by
 
  defn
  G , s |- T wf :: ::wf:: wf_ {{com Well-formed types }} by
 
  G, s |- T wfe
  G, z : T { z => Dseq }, s |- Dseq wf
- ------------------------------------ :: Rfn
+ ------------------------------------ :: rfn
  G, s |- T { z => Dseq } wf
 
  G, s |- p mem L : S .. U
  G, s |- S wfe
  G, s |- U wfe
- ------------------------- :: TSel1
+ ------------------------- :: tsel1
  G, s |- p.L wf
 
  G, s |- p mem L : Bottom .. U
- ----------------------------- :: TSel2
+ ----------------------------- :: tsel2
  G, s |- p.L wf
 
  G, s |- T wfe
  G, s |- T' wfe
- ------------------ :: And
+ ------------------ :: and
  G, s |- T /\ T' wf
 
  G, s |- T wfe
  G, s |- T' wfe
- ------------------ :: Or
+ ------------------ :: or
  G, s |- T \/ T' wf
 
 
- ------------------ :: Bot
+ ------------------ :: bot
  G, s |- Bottom wf
 
 
- -------------- :: Top
+ -------------- :: top
  G, s |- Top wf
 
  defn
- G , s |- D wf :: ::dwf:: dwf_ {{com Well-formed declarations }} by
+ G , s |- D wf :: ::decl_wf:: decl_wf_ {{com Well-formed declarations }} by
 
  G, s |- S wfe
  G, s |- U wfe
- --------------------------------- :: Type
+ --------------------------------- :: tp
  G, s |- L : S .. U wf
 
  G, s |- S wfe
  G, s |- T wfe
- --------------------------------- :: Value
+ --------------------------------- :: tm
  G, s |- l : S -> T wf
 
  defn
- G , s |- Dseq wf :: ::dseq_wf:: dseq_wf by
+ G , s |- Dseq wf :: ::decls_wf:: decls_wf by
 
  defn
  G , s |- T wfe :: ::wfe:: wfe_ {{com Well-formed and expanding types }} by
 
  G, s |- T wf
  G, s |- T expands z Dseq
- ------------------------ :: All
+ ------------------------ :: any
  G, s |- T wfe
 
  defn
- G |= s :: ::ctx:: ctx_ {{com Consistent Context }} by
+ G |= s :: ::ok_ctx:: ok_ctx_ {{com Consistent Context }} by
 
