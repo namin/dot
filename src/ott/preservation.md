@@ -233,3 +233,90 @@ val z0 = new Top { z =>
 		   (cast Top z))
      z0)
 ]]$
+
+Narrowing Lemma
+===============
+
+Statement
+---------
+
+If
+
+* $[[G, x : S, s |- t : T]]$
+* $[[G, s |- S' <: S]]$
+
+then $\exists [[T']]$ such that
+
+* $[[G, x : S', s |- t : T']]$
+* $[[G, x : S', s |- T' <: T]]$
+
+Proof Sketch
+------------
+
+Similar to **substitution lemma**, stuck at **Typ-New**.
+
+Membership Narrowing Lemma
+==========================
+
+Statement
+---------
+
+If
+
+* $[[G, s |- t : T]]$
+* $[[G, s |- t' : T']]$
+* $[[G, s |- T' <: T]]$
+* $[[G, s |- t mem l : S1 -> T1]]$
+* $[[G, s |- T' wfe]]$
+
+then $\exists [[S1']], [[T1']]$ such that
+
+* $[[G, s |- t' mem l : S1' -> T1']]$
+* $[[G, s |- l : S1' -> T1' <: l : S1 -> T1]]$
+
+Proof Sketch
+------------
+
+Depends on **expansion narrowing lemma**.
+
+Expansion Narrowing Lemma
+=========================
+
+Statement
+---------
+
+If
+
+* $[[G, s |- T expands z Dseq]]$
+* $[[G, s |- T' expands z Dseq']]$
+* $[[G, s |- T' <: T]]$
+
+then
+
+* $[[G, z : T', s |- Dseq' <: Dseq]]$
+
+Proof Sketch
+------------
+
+By induction on the derivation of $[[G, s |- T' <: T]]$. Todo.
+
+Subtyping Transitivity Narrowing Lemma
+======================================
+
+Statement
+---------
+
+If
+
+* $[[G, x : S1, s |- T1 <: T2]]$
+* $[[G, x : S2, s |- T2 <: T3]]$
+* $[[G, s |- S2 <: S1]]$
+
+then
+
+* $[[G, x : S2, s |- T1 <: T3]]$
+
+Proof Sketch
+------------
+
+Todo.
