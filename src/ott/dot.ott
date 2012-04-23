@@ -11,7 +11,7 @@ indexvar index, i, j, n ::=
 {{ coq nat }}
 
 grammar
-val, v :: val_         ::= {{ com Value }}
+v :: v_                ::= {{ com Value }}
   | x                  :: :: var {{ com variable }}
 
 tm, t :: tm_           ::= {{ com Term }}
@@ -129,8 +129,8 @@ Definition store_bound x c s :=
 }}
 
 subrules
-  val  <:: tm
-  val  <:: path
+  v  <:: tm
+  v  <:: path
   path  <:: tm
   concrete <:: tp
 
