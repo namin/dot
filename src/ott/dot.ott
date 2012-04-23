@@ -92,8 +92,8 @@ terminals :: terminals_ ::=
   | ->                 :: :: rightarrow {{ tex \rightarrow }}
   | -->                :: :: longrightarrow {{ tex \;\longrightarrow\; }}
   | =>                 :: :: Rightarrow {{ tex \Rightarrow }}
-  | \/                 :: :: tand {{ tex \wedge }}
-  | /\                 :: :: tor {{ tex \vee }}
+  | \/                 :: :: tand {{ tex \vee }}
+  | /\                 :: :: tor {{ tex \wedge }}
   | Top                :: :: top {{ tex \top }}
   | Bottom             :: :: bot {{ tex \bot }}
   | __                 :: :: hole {{ tex [\,] }}
