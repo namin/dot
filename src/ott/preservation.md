@@ -234,6 +234,34 @@ val z0 = new Top { z =>
      z0)
 ]]$
 
+The core issue is that expansion is not preserved by narrowing. Here
+is a counterexample which touches the expansion of the constructor
+required by the **Typ-New** rule.
+
+$[[
+val x0 = new Top { z =>
+                   La1 : Bottom .. Top { z =>
+                                         La2 : Bottom .. Top,
+                                         La3 : Bottom .. Top,
+                                         Lc2 : Bottom .. z.La2
+                                       }
+                 }{};
+val x1 = new Top { z =>
+                   Lc1 : Bottom .. Top { z => La1 : Bottom .. x0.La1 }
+                 }{};
+val x2 = new x1.Lc1 { z =>
+                      La1 : Bottom .. x0.La1 { z => La2 : Bottom .. z.La3 }
+                    }{};
+val x3 = new x1.Lc1 { z =>
+                      La1 : Bottom .. x0.La1 { z => La3 : Bottom .. z.La2 }
+                    }{};
+(app (fun (x: x1.Lc1) Top
+          (fun (z0: x.La1 /\ x3.La1) Top
+               val z = new z0.Lc2 {}; cast Top z
+          )
+     ) x2)
+]]$
+
 Narrowing Lemma
 ===============
 
