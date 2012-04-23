@@ -1,29 +1,29 @@
 metavar var, x, y, z ::= {{ com Variable }}
-{{ coq nat }} {{ coq-equality }}
+{{ coq nat }} {{ coq-equality }} {{ ocaml string }}
 metavar vlabel, l ::= {{ com Value label }}
-{{ coq nat }} {{ coq-equality }}
-metavar clabel, Lc {{ tex {L_c} }} ::= {{ com class label }}
-{{ coq nat }} {{ coq-equality }}
-metavar alabel, La {{ tex {L_a} }} ::= {{ com abstract type label }}
-{{ coq nat }} {{ coq-equality }}
+{{ coq nat }} {{ coq-equality }} {{ ocaml string }}
+metavar clabel, Lc {{ tex {L_c} }} {{ ocaml tLc }} ::= {{ com class label }}
+{{ coq nat }} {{ coq-equality }} {{ ocaml string }}
+metavar alabel, La {{ tex {L_a} }} {{ ocaml tLa }} ::= {{ com abstract type label }}
+{{ coq nat }} {{ coq-equality }} {{ ocaml string }}
 
 indexvar index, i, j, n ::=
-{{ coq nat }}
+{{ coq nat }} {{ ocaml int }}
 
 grammar
 v :: v_                ::= {{ com Value }}
   | x                  :: :: var {{ com variable }}
 
-tm, t :: tm_           ::= {{ com Term }}
+tm, t :: Tm_           ::= {{ com Term }}
   | x                  :: :: var {{ com value }}
   | val x = new c ; t  :: :: new {{ com new instance }}
   | t l t'             :: :: sel {{ com selection }}
   | ( t )              :: S:: paren {{ icho [[t]] }}
   | [ t / x ] t'       :: M:: subst {{ icho (subst_tm [[t]] [[x]] [[t']]) }}
   | e [ t ]            :: M:: ctx {{ icho (appctx_ctx_tm [[e]] [[t]]) }}
-  | fun ( x : T ) T' t :: S:: lam {{ icho [[t]] }} % TODO
-  | app t t'           :: S:: app {{ icho [[t]] }} % TODO
-  | cast T t           :: S:: cast {{ icho [[t]] }} % TODO
+  | fun ( x : T ) T' t :: :: lam
+  | app t t'           :: :: app
+  | cast T t           :: :: cast
 
 path, p :: path_       ::= {{ com Path }}
   | x                  :: :: var
@@ -33,7 +33,7 @@ path, p :: path_       ::= {{ com Path }}
 constr, c :: constr_ ::= {{ com Constructor }}
   | Tc { </ li ( xi : Ti ) = ti // , // i IN 0 .. n /> } :: :: any
 
-gamma, G {{ tex \Gamma }} :: gamma_ ::=  {{ coq list (var*tp) }} {{ com Environment }}
+gamma, G {{ tex \Gamma }} {{ ocaml gamma }} :: gamma_ ::=  {{ coq list (var*tp) }} {{ com Environment }}
   | []                 :: :: nil
    {{ coq G_nil }}
   | G , x : T          :: :: cons
@@ -45,11 +45,11 @@ store, s :: store_     ::=  {{ coq list (var*constr) }} {{ com Store }}
   | s , x |-> c        :: :: cons
    {{ coq (cons ([[x]],[[c]]) [[s]]) }}
 
-tlabel, L :: tlabel_   ::= {{ com Type label }}
+tlabel, L {{ ocaml tL }} :: tlabel_   ::= {{ com Type label }}
   | Lc                 :: :: class
   | La                 :: :: abstract
 
-tp, T, S {{ coq St }}, U, V, W :: tp_ ::= {{ com Type }}
+tp, T {{ ocaml tyT }}, S {{ coq St }} {{ ocaml tyS }}, U {{ ocaml tyU }}, V {{ ocaml tyV }}, W {{ ocaml tyW }} :: tp_ ::= {{ com Type }}
   | p . L              :: :: tsel {{ com type selection }}
   | p . La             :: :: asel
   | p . Lc             :: :: csel
@@ -60,28 +60,28 @@ tp, T, S {{ coq St }}, U, V, W :: tp_ ::= {{ com Type }}
   | Bottom             :: :: bot {{ com bottom type }}
   | [ t / x ] T        :: M:: subst {{ icho (subst_tp [[t]] [[x]] [[T]]) }}
 
-concrete, Tc {{ tex T_c }}, Sc {{ tex S_c }} :: concrete_ ::= {{ com Concrete Type }}
+concrete, Tc {{ tex T_c }} {{ ocaml tyTc }}, Sc {{ tex S_c }} {{ ocaml tySc }} :: concrete_ ::= {{ com Concrete Type }}
   | p . Lc             :: :: sel
   | Tc { z => Dseq }   :: :: rfn
   | Tc /\ Tc'          :: :: and
   | Top                :: :: top
   | [ t / x ] Tc       :: M:: subst {{ icho (subst_concrete [[t]] [[x]] [[Tc]]) }}
 
-decl, D :: decl_       ::= {{ com Declaration }}
+decl, D {{ ocaml decl }} :: decl_       ::= {{ com Declaration }}
   | L : S '..' U       :: :: tp {{ com type declaration }}
   | l : S -> T         :: :: tm {{ com term declaration }}
   | [ t / x ] D        :: M:: subst {{ icho (subst_decl [[t]] [[x]] [[D]]) }}
 
-decls, Dseq {{ tex \overline{D} }} :: decls_ ::=
+decls, Dseq {{ tex \overline{D} }} {{ ocaml seqD }} :: Decls_ ::=
   | {}                 :: S:: empty
-   {{ coq (decls_seq nil) }}
+   {{ icho (Decls_seq nil) }}
   | </ Di // , // i /> :: :: seq
   | Dseq /\ Dseq'      :: M:: and
-   {{ coq [[Dseq]] }} % TODO
+   {{ icho [[Dseq]] }} % TODO
   | Dseq \/ Dseq'      :: M:: or
-   {{ coq [[Dseq]] }} % TODO
+   {{ icho [[Dseq]] }} % TODO
   | DseqBottom         :: M:: bot {{ tex \overline{D_\bot} }}
-   {{ coq (decls_seq nil) }} % TODO
+   {{ icho (Decls_seq nil) }} % TODO
 
 ctx, e :: ctx_         ::= {{ com Context }}
   | __ l t             :: :: sel_l
