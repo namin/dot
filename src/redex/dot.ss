@@ -237,9 +237,9 @@
   [(is_wf-type (T_p ...) env (-> T_1 T_2)) #t
    (side-condition (term (is_wfe-type (T_p ...) env T_1)))
    (side-condition (term (is_wfe-type (T_p ...) env T_2)))]
-  [(is_wf-type (T_p ...) (Gamma store) (refinement Tc z D ...)) #t
-   (side-condition (term (is_wfe-type (T_p ...) (Gamma store) Tc)))
-   (where env_extended ((gamma-extend Gamma z (refinement Tc z D ...)) store))
+  [(is_wf-type (T_p ...) (Gamma store) (refinement T z D ...)) #t
+   (side-condition (term (is_wfe-type (T_p ...) (Gamma store) T)))
+   (where env_extended ((gamma-extend Gamma z (refinement T z D ...)) store))
    (side-condition (andmap (lambda (d) (judgment-holds (wf-decl env_extended ,d))) (term (D ...))))]
   [(is_wf-type (T_p ...) env (sel p Lt)) #t
    (where any_bound (membership-type-lookup env p Lt))
@@ -980,3 +980,38 @@
    (valnew
     (f ((sel u (label-class C))))
     ((λ (g (-> Top Top)) (λ (a Top) (g (λ (x Top) x)))) f)))))
+
+#;
+(preservation
+ (term
+  (valnew (v ((refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A))))))))
+  ((λ (x (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top)))))
+        (valnew (z ((refinement Top z (: (label-value l) (-> Bottom Top)))
+                    ((label-value l) (λ (y (intersection
+                                         (sel x (label-abstract-type L))
+                                         (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top))))
+                                       ((λ (x Top) x) (λ (a (sel y (label-abstract-type A))) a))))))
+                ((λ (x Top) x) z)))
+   v))))
+
+#;
+(preservation
+ (term
+  (valnew (x00 ((refinement Top z (: (label-abstract-type L) Bottom
+                                     (refinement Top self
+                                                 (: (label-abstract-type A) Bottom Top)
+                                                 (: (label-abstract-type B) Bottom Top)
+                                                 (: (label-class Lc2) Bottom (sel self (label-abstract-type A))))))))
+  (valnew (x0 ((refinement Top z (: (label-class Lc1) Bottom (refinement Top z (: (label-abstract-type L) Bottom (sel x00 (label-abstract-type L))))))))
+  (valnew (x1 ((refinement (sel x0 (label-class Lc1)) z (: (label-abstract-type L) Bottom 
+                                                           (refinement (sel x00 (label-abstract-type L)) self 
+                                                                       (: (label-abstract-type A) Bottom (sel self (label-abstract-type B))))))))
+  (valnew (x2 ((refinement (sel x0 (label-class Lc1)) z (: (label-abstract-type L) Bottom 
+                                                           (refinement (sel x00 (label-abstract-type L)) self 
+                                                                       (: (label-abstract-type B) Bottom (sel self (label-abstract-type A))))))))
+  ((λ (x (sel x0 (label-class Lc1)))
+     ((λ (d Top) d)
+      (λ (z0 (intersection (sel x (label-abstract-type L)) (sel x2 (label-abstract-type L))))
+        (valnew (z ((sel z0 (label-class Lc2))))
+                ((λ (x Top) x) z)))))
+   x1)))))))
