@@ -1,7 +1,7 @@
 metavar var, x, y, z ::= {{ com Variable }}
-{{ coq nat }} {{ coq-equality }} {{ ocaml string }} {{ lex alphanum }}
+{{ coq nat }} {{ coq-equality }} {{ ocaml string }} {{ ocamlvar "[[var]]" }} {{ lex alphanum }}
 metavar label ::= {{ com Label }}
-{{ coq nat }} {{ coq-equality }} {{ ocaml string }} {{ lex alphanum }}
+{{ coq nat }} {{ coq-equality }} {{ ocaml string }} {{ ocamlvar "[[label]]" }} {{ lex alphanum }}
 indexvar index, i, j, n ::=
 {{ coq nat }} {{ ocaml int }} {{ lex numeral }}
 
