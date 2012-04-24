@@ -62,12 +62,12 @@ tp, T {{ ocaml tyT }}, S {{ coq St }} {{ ocaml tyS }}, U {{ ocaml tyU }}, V {{ o
   | Bottom             :: :: bot {{ com bottom type }}
   | [ t / x ] T        :: M:: subst {{ icho (subst_tp [[t]] [[x]] [[T]]) }}
 
-concrete, Tc {{ tex T_c }} {{ ocaml tyTc }}, Sc {{ tex S_c }} {{ ocaml tySc }} :: concrete_ ::= {{ com Concrete Type }}
+tpc, Tc {{ tex T_c }} {{ ocaml tyTc }}, Sc {{ tex S_c }} {{ ocaml tySc }} :: tpc_ ::= {{ com Concrete Type }}
   | p . Lc             :: :: sel
   | Tc { z => Dseq }   :: :: rfn
   | Tc /\ Tc'          :: :: and
   | Top                :: :: top
-  | [ t / x ] Tc       :: M:: subst {{ icho (subst_concrete [[t]] [[x]] [[Tc]]) }}
+  | [ t / x ] Tc       :: M:: subst {{ icho (subst_tpc [[t]] [[x]] [[Tc]]) }}
 
 decl, D {{ ocaml decl }} :: decl_       ::= {{ com Declaration }}
   | L : S '..' U       :: :: tp {{ com type declaration }}
@@ -136,7 +136,7 @@ subrules
   v  <:: tm
   v  <:: path
   path  <:: tm
-  concrete <:: tp
+  tpc <:: tp
 
 contextrules
   ctx _:: tm :: tm
