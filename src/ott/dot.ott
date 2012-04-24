@@ -101,7 +101,7 @@ terminals :: terminals_ ::=
   | __                 :: :: hole {{ tex [\,] }}
   | in                 :: :: in {{ tex \in }}
   | mem                :: :: mem {{ tex \ni }}
-  | |-                < :: :: ts {{ tex \,\vdash\, }}
+  | |-                 :: :: ts {{ tex \,\vdash\, }}
   | |=                 :: :: ms {{ tex \,\models\, }}
   | fn                 :: :: fn {{ tex \text{\sl fn} }}
   | notin              :: :: notin {{ tex \not\in }}
