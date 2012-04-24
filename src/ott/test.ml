@@ -21,7 +21,7 @@ let tLc2 = Tlabel_class "Lc2"
 
 let tL = Tlabel_abstract "L"
 
-let l = Vlabel_any"l"
+let l = Vlabel_any "l"
 
 let ex1 = [[
 val z0 = new Top { z =>
