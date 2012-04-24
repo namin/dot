@@ -12,16 +12,16 @@ let y = "y"
 let z0 = "z0"
 let z = "z"
 
-let tLa1 = "La1"
-let tLa2 = "La2"
-let tLa3 = "La3"
+let tLa1 = Tlabel_abstract "La1"
+let tLa2 = Tlabel_abstract "La2"
+let tLa3 = Tlabel_abstract "La3"
 
-let tLc1 = "Lc1"
-let tLc2 = "Lc2"
+let tLc1 = Tlabel_class "Lc1"
+let tLc2 = Tlabel_class "Lc2"
 
 let tL = Tlabel_abstract "L"
 
-let l = "l"
+let l = Vlabel_any"l"
 
 let ex1 = [[
 val z0 = new Top { z =>

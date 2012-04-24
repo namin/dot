@@ -1,16 +1,20 @@
 metavar var, x, y, z ::= {{ com Variable }}
-{{ coq nat }} {{ coq-equality }} {{ ocaml string }}
-metavar vlabel, l ::= {{ com Value label }}
-{{ coq nat }} {{ coq-equality }} {{ ocaml string }}
-metavar clabel, Lc {{ tex {L_c} }} {{ ocaml tLc }} ::= {{ com class label }}
-{{ coq nat }} {{ coq-equality }} {{ ocaml string }}
-metavar alabel, La {{ tex {L_a} }} {{ ocaml tLa }} ::= {{ com abstract type label }}
-{{ coq nat }} {{ coq-equality }} {{ ocaml string }}
-
+{{ coq nat }} {{ coq-equality }} {{ ocaml string }} {{ lex alphanum }}
+metavar label ::= {{ com Label }}
+{{ coq nat }} {{ coq-equality }} {{ ocaml string }} {{ lex alphanum }}
 indexvar index, i, j, n ::=
-{{ coq nat }} {{ ocaml int }}
+{{ coq nat }} {{ ocaml int }} {{ lex numeral }}
 
 grammar
+vlabel, l :: vlabel_   ::= {{ com Value label }}
+  | label _v           :: :: any {{ tex [[label]] }}
+
+clabel, Lc {{ tex {L_c} }} {{ ocaml tLc }} :: clabel_ ::= {{ com class label }}
+  | label _c           :: :: any {{ tex {[[label]]}_c }}
+
+alabel, La {{ tex {L_a} }} {{ ocaml tLa }} :: alabel_ ::= {{ com abstract type label }}
+  | label _a           :: :: any {{ tex {[[label]]}_a }}
+
 v :: v_                ::= {{ com Value }}
   | x                  :: :: var {{ com variable }}
 
@@ -46,13 +50,11 @@ store, s :: store_     ::=  {{ coq list (var*constr) }} {{ com Store }}
    {{ coq (cons ([[x]],[[c]]) [[s]]) }}
 
 tlabel, L {{ ocaml tL }} :: tlabel_   ::= {{ com Type label }}
-  | Lc                 :: :: class
-  | La                 :: :: abstract
+  | label _c           :: :: class {{ tex {[[label]]}_c }}
+  | label _a           :: :: abstract {{ tex {[[label]]}_a }}
 
 tp, T {{ ocaml tyT }}, S {{ coq St }} {{ ocaml tyS }}, U {{ ocaml tyU }}, V {{ ocaml tyV }}, W {{ ocaml tyW }} :: tp_ ::= {{ com Type }}
   | p . L              :: :: tsel {{ com type selection }}
-  | p . La             :: :: asel
-  | p . Lc             :: :: csel
   | T { z => Dseq }    :: :: rfn {{ com refinement }}
   | T /\ T'            :: :: and {{ com intersection type }}
   | T \/ T'            :: :: or {{ com union type }}
@@ -129,6 +131,8 @@ Definition store_bound x c s :=
 }}
 
 subrules
+  Lc <:: L
+  La <:: L
   v  <:: tm
   v  <:: path
   path  <:: tm
