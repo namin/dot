@@ -226,8 +226,8 @@
 
 (define-metafunction dot
   is_wfe-type : (T ...) env T -> bool
-  [(is_wfe-type (T_p ...) env T)
-   (is_wf-type (T_p ...) env T)
+  [(is_wfe-type (T_p ...) env T) #t
+   (side-condition (term (is_wf-type (T_p ...) env T)))
    (judgment-holds (expansion env z T ((DLt ...) (Dl ...))))]
   [(is_wfe-type (T_p ...) env T) #f])
 
@@ -244,7 +244,8 @@
   [(is_wf-type (T_p ...) env (sel p Lt)) #t
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))
-   (where (Bottom U) any_bound)]
+   (where (S U) any_bound)
+   (judgment-holds (subtype env S Bottom))]
   [(is_wf-type (T_p ...) env (sel p Lt)) #t
    (side-condition (not (member (term (sel p Lt)) (term (T_p ...)))))
    (where any_bound (membership-type-lookup env p Lt))
@@ -1015,3 +1016,16 @@
         (valnew (z ((sel z0 (label-class Lc2))))
                 ((λ (x Top) x) z)))))
    x1)))))))
+
+#;
+(preservation
+ (term
+  (valnew (v ((refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) (sel z (label-abstract-type A)) Top))))))
+  ((λ (x (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top)))))
+        (valnew (z ((refinement Top z (: (label-value l) (-> Bottom Top)))
+                    ((label-value l) (λ (y (intersection
+                                         (sel x (label-abstract-type L))
+                                         (refinement Top z (: (label-abstract-type A) (sel z (label-abstract-type B)) Top) (: (label-abstract-type B) Bottom Top))))
+                                       ((λ (x Top) x) (λ (a (sel y (label-abstract-type A))) a))))))
+                ((λ (x Top) x) z)))
+   v))))
