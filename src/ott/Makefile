@@ -1,4 +1,4 @@
-OTT_HOME = ~/local/ott_distro_0.21.2
+OTT_HOME = ~/code/ott_distro_0.21.2
 OTT = $(OTT_HOME)/bin/ott
 
 sanity :

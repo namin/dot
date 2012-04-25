@@ -210,26 +210,26 @@ For well-formed and expanding types, this is not the case, when taking
 into account possible narrowing of the type of the substituted
 term. This leads to a counterexample to preservation:
 
-$[[
+$[[ :concrete:
 val z0 = new Top { z =>
-                   L : Bottom .. Top { z =>
-                                       La1: Bottom .. Top,
-                                       La2: Bottom .. z.La1
+                   L_a : Bottom .. Top { z =>
+                                         L1_a: Bottom .. Top,
+                                         L2_a: Bottom .. z.L1_a
                                      }
                  }
              {};
 (app (fun (x: Top { z =>
-                    L : Bottom .. Top { z =>
-                                        La1: Bottom .. Top,
-                                        La2: Bottom .. Top
-                                      }
+                    L_a : Bottom .. Top { z =>
+                                          L1_a: Bottom .. Top,
+                                          L2_a: Bottom .. Top
+                                        }
                   }) Top
-           val z = new Top { z => l : Bottom -> Top }
-                   {l(y : x.L /\ Top { z =>
-                                       La1: Bottom .. z.La2,
-                                       La2: Bottom .. Top
-                                     }
-                     ) = (fun (x0: y.La1) Top x0)};
+           val z = new Top { z => l_v : Bottom -> Top }
+                   {l_v(y : x.L_a /\ Top { z =>
+                                           L1_a: Bottom .. z.L2_a,
+                                           L2_a: Bottom .. Top
+                                         }
+                     ) = (fun (x0: y.L1_a) Top x0)};
 		   (cast Top z))
      z0)
 ]]$
@@ -238,28 +238,57 @@ The core issue is that expansion is not preserved by narrowing. Here
 is a counterexample which touches the expansion of the constructor
 required by the **Typ-New** rule.
 
-$[[
+$[[ :concrete:
 val x0 = new Top { z =>
-                   La1 : Bottom .. Top { z =>
-                                         La2 : Bottom .. Top,
-                                         La3 : Bottom .. Top,
-                                         Lc2 : Bottom .. z.La2
-                                       }
+                   L1_a : Bottom .. Top { z =>
+                                          L2_a : Bottom .. Top,
+                                          L3_a : Bottom .. Top,
+                                          C2_c : Bottom .. z.L2_a
+                                         }
                  }{};
 val x1 = new Top { z =>
-                   Lc1 : Bottom .. Top { z => La1 : Bottom .. x0.La1 }
+                   C1_c : Bottom .. Top { z => L1_a : Bottom .. x0.L1_a }
                  }{};
-val x2 = new x1.Lc1 { z =>
-                      La1 : Bottom .. x0.La1 { z => La2 : Bottom .. z.La3 }
-                    }{};
-val x3 = new x1.Lc1 { z =>
-                      La1 : Bottom .. x0.La1 { z => La3 : Bottom .. z.La2 }
-                    }{};
-(app (fun (x: x1.Lc1) Top
-          (fun (z0: x.La1 /\ x3.La1) Top
-               val z = new z0.Lc2 {}; cast Top z
+val x2 = new x1.C1_c { z =>
+                       L1_a : Bottom .. x0.L1_a { z => L2_a : Bottom .. z.L3_a }
+                      }{};
+val x3 = new x1.C1_c { z =>
+                       L1_a : Bottom .. x0.L1_a { z => L3_a : Bottom .. z.L2_a }
+                      }{};
+(app (fun (x: x1.C1_c) Top
+          (fun (z0: x.L1_a /\ x3.L1_a) Top
+               val z = new z0.C2_c {}; cast Top z
           )
      ) x2)
+]]$
+
+In fact, even well-formedness is not preserved by narrowing. By
+changing the first counterexample to operate on lower bounds instead
+of upper bounds for the self-references, we can concoct a
+counterexample where expansion is preserved but not well-formedness.
+
+$[[ :concrete:
+val z0 = new Top { z =>
+                   L_a : Bottom .. Top { z =>
+                                         L1_a: Bottom .. Top,
+                                         L2_a: z.L1_a .. Top
+                                     }
+                 }
+             {};
+(app (fun (x: Top { z =>
+                    L_a : Bottom .. Top { z =>
+                                          L1_a: Bottom .. Top,
+                                          L2_a: Bottom .. Top
+                                        }
+                  }) Top
+           val z = new Top { z => l_v : Bottom -> Top }
+                   {l_v(y : x.L_a /\ Top { z =>
+                                           L1_a: z.L2_a .. Top,
+                                           L2_a: Bottom .. Top
+                                         }
+                     ) = (fun (x0: y.L1_a) Top x0)};
+		   (cast Top z))
+     z0)
 ]]$
 
 Narrowing Lemma
