@@ -176,7 +176,7 @@
    (where (v_f store_f) (ev store_s e_s))]
   [(ev store_i (sel e_i l_i)) (v_f store_f)
    (where (v_i store_f) (ev store_i e_i))
-   (where (location i_f) (to_location v_i))
+   (where (location i_f) (to-location v_i))
    (where c_f (store-lookup store_f i_f))
    (judgment-holds (found c_f #t))
    (where v_f (value-label-lookup c_f l_i))
@@ -707,8 +707,7 @@
 
 (define-metafunction dot
   cast : T e -> e
-  [(cast T e) (app (fun (x T) T x) (as T e))
-   (where x ,(variable-not-in (term (T e)) 'id))])
+  [(cast T e) (as T e)])
 
 ;(typecheck (term (() ())) (term (fun (x Top) Top x)))
 ;(typecheck (term (() ())) (term (valnew (d (Top)) (fun (x Top) Top x))))
@@ -934,15 +933,15 @@
                               (: (label-class Foo) Bottom (refinement (sel self (label-class Bar)) z (: (label-class T) Bottom (sel self (label-class Foo)))))
                               (: (label-method foo) Top (arrow Top (sel self (label-class Foo)))))
               ((label-method foo) dummy (fun (x Top) (sel u (label-class Foo)) (valnew (foo ((sel u (label-class Foo)))) foo)))))
-              (cast Top (sel u (label-method foo) u)))))
+              (cast Top (sel u (label-method foo) (as Top u))))))
 
 #;
 (typecheck (term (() ())) (term (valnew (u ((refinement Top self 
                               (: (label-class Bar) Bottom (refinement Top self (: (label-class T) Bottom Top) (: (label-method some) Top (sel self (label-class T)))))
                               (: (label-class Foo) Bottom (refinement (sel self (label-class Bar)) z (: (label-class T) (sel self (label-class Foo)) Top)))
                               (: (label-method foo) Top (arrow Top (sel self (label-class Foo)))))
-              ((label-method foo) dummy (fun (x Top) (sel u (label-class Foo)) (valnew (foo ((sel u (label-class Foo)) ((label-method some) dummy foo))) foo)))))
-              (cast Top (sel u (label-method foo) u)))))
+              ((label-method foo) dummy (fun (x Top) (sel u (label-class Foo)) (valnew (foo ((sel u (label-class Foo)) ((label-method some) dummy (as (sel foo (label-class T)) foo)))) foo)))))
+              (cast Top (sel u (label-method foo) (as Top u))))))
 
 #;
 (let ((w (term (refinement Top b
@@ -961,7 +960,7 @@
 #;
 (typecheck (term (() ())) (term (fun (x Bottom) Top (fun (z (sel x (label-class Lt))) (sel x (label-class Lt)) z))))
 
-;; FAILS
+;; OK :-)
 #;
 (let ((typeX (term (refinement Top z
                                (: (label-abstract-type A) Top Top)
@@ -971,10 +970,10 @@
   (preservation
    (term
     (valnew
-     (u (,typeX ((label-method l) dummy u)))
-     (sel (app (fun (y (arrow Top ,typeY)) ,typeY (app y u)) (fun (d Top) ,typeX (cast ,typeX u))) (label-method l) u)))))
+     (u (,typeX ((label-method l) dummy (as (sel u (label-abstract-type A)) u))))
+     (sel (app (fun (y (arrow Top ,typeY)) ,typeY (app y (as Top u))) (as (arrow Top ,typeY) (fun (d Top) ,typeX (cast ,typeX u)))) (label-method l) (as Top u))))))
 
-;; FAILS
+;; OK :-)
 #;
 (let ((typeX (term (refinement Top z
                                (: (label-abstract-type A) Top Top)
@@ -984,12 +983,14 @@
   (big-step-preservation
    (term
     (valnew
-     (u (,typeX ((label-method l) dummy u))) (cast Top
+     (u (,typeX ((label-method l) dummy (as (sel u (label-abstract-type A)) u)))) (cast Top
       (app (fun (y (arrow- f ((: (label-abstract-type Y) ,typeX ,typeY)) Top (sel f (label-abstract-type Y)))) 
                 (arrow Top Top)
-                (fun (d Top) Top (sel (cast (sel y (label-abstract-type Y)) (app y u)) (label-method l) u)))
-           (fun- f ((: (label-abstract-type Y) ,typeX ,typeX)) (d Top) (sel f (label-abstract-type Y)) u)))))))
+                (fun (d Top) Top (sel (cast (sel y (label-abstract-type Y)) (app y (as Top u))) (label-method l) (as Top u))))
+           (as (arrow- f ((: (label-abstract-type Y) ,typeX ,typeY)) Top (sel f (label-abstract-type Y)))
+               (fun- f ((: (label-abstract-type Y) ,typeX ,typeX)) (d Top) (sel f (label-abstract-type Y)) (as (sel f (label-abstract-type Y)) u)))))))))
 
+;; FAIL
 #;
 (preservation
  (term
@@ -997,17 +998,20 @@
    (b ((refinement Top z
                    (: (label-abstract-type X) Top Top)
                    (: (label-value l) (sel z (label-abstract-type X))))
-       ((label-value l) b)))
+       ((label-value l) (as (sel b (label-abstract-type X)) b))))
    (valnew
     (a ((refinement Top z
                     (: (label-value i) (refinement Top z
                                                    (: (label-abstract-type X) Bottom Top)
                                                    (: (label-value l) (sel z (label-abstract-type X))))))
-        ((label-value i) b)))
+        ((label-value i) (as (refinement Top z
+                                         (: (label-abstract-type X) Bottom Top)
+                                         (: (label-value l) (sel z (label-abstract-type X)))) b))))
     (cast Top
      (cast (sel (sel a (label-value i)) (label-abstract-type X))
       (sel (sel a (label-value i)) (label-value l))))))))
 
+;; FAIL
 #;
 (big-step-preservation
  (term
@@ -1015,37 +1019,43 @@
    (b ((refinement Top z
                    (: (label-abstract-type X) Top Top)
                    (: (label-value l) (sel z (label-abstract-type X))))
-       ((label-value l) b)))
+       ((label-value l) (as (sel b (label-abstract-type X)) b))))
    (valnew
     (a ((refinement Top z
                     (: (label-value i) (refinement Top z
                                                    (: (label-abstract-type X) Bottom Top)
                                                    (: (label-value l) (sel z (label-abstract-type X))))))
-        ((label-value i) b)))
+        ((label-value i) (as (refinement Top z
+                                         (: (label-abstract-type X) Bottom Top)
+                                         (: (label-value l) (sel z (label-abstract-type X)))) b))))
     (cast Top
      (app (fun (x (sel (sel a (label-value i)) (label-abstract-type X)))
                (arrow Top Top)
                (fun (d Top) (sel (sel a (label-value i)) (label-abstract-type X)) x))
           (sel (sel a (label-value i)) (label-value l))))))))
 
+;; FAIL
 #;
 (preservation
  (term
    (valnew
     (b ((refinement Top z
                     (: (label-abstract-type X) Top Top)
-                    (: (label-method l) Top (sel z (label-abstract-type X))))
-        ((label-value l) b)))
+                    (: (label-value l) (sel z (label-abstract-type X))))
+        ((label-value l) (as (sel b (label-abstract-type X)) b))))
    (valnew
     (a ((refinement Top z
-                    (: (label-method i) Top (refinement Top z
-                                                       (: (label-abstract-type X) Bottom Top)
-                                                       (: (label-value l) (sel z (label-abstract-type X))))))
-        ((label-value i) b)))
+                    (: (label-value i) (refinement Top z
+                                                   (: (label-abstract-type X) Bottom Top)
+                                                   (: (label-value l) (sel z (label-abstract-type X))))))
+        ((label-value i) (as (refinement Top z
+                                         (: (label-abstract-type X) Bottom Top)
+                                         (: (label-value l) (sel z (label-abstract-type X)))) b))))
     (cast Top
      (cast (sel (sel a (label-value i)) (label-abstract-type X))
       (sel (sel a (label-value i)) (label-value l))))))))
 
+;; FAIL
 #;
 (big-step-preservation
  (term
@@ -1053,16 +1063,18 @@
     (b ((refinement Top z
                     (: (label-abstract-type X) Top Top)
                     (: (label-value l) (sel z (label-abstract-type X))))
-        ((label-value l) b)))
+        ((label-value l) (as (sel b (label-abstract-type X)) b))))
    (valnew
     (a ((refinement Top z
                     (: (label-value i) (refinement Top z
                                                    (: (label-abstract-type X) Bottom Top)
                                                    (: (label-value l) (sel z (label-abstract-type X))))))
-        ((label-value i) b)))
+        ((label-value i) (as (refinement Top z
+                                         (: (label-abstract-type X) Bottom Top)
+                                         (: (label-value l) (sel z (label-abstract-type X)))) b))))
     (cast Top
      (app (fun (x (sel (sel a (label-value i)) (label-abstract-type X)))
-               (arrow Top Top)
+               (arrow Top (sel (sel a (label-value i)) (label-abstract-type X)))
                (fun (d Top) (sel (sel a (label-value i)) (label-abstract-type X)) x))
           (sel (sel a (label-value i)) (label-value l))))))))
 
@@ -1089,21 +1101,20 @@
                     (valnew (z ((sel x (label-class L)))) (cast Top z)))
                v))))
 
-;; FAILS
 #;
 (preservation
  (term
   (valnew (v ((refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A))))))))
   (app (fun (x (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top))))) Top
-            (valnew (z ((refinement Top z (: (label-method l) Bottom Top))
-                        ((label-method l) (y (intersection 
-                                             (sel x (label-abstract-type L))
-                                             (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top))))
-                                         (fun (a (sel y (label-abstract-type A))) Top a))))
+            (valnew (z ((refinement Top z (: (label-method l)
+                                             (intersection
+                                              (sel x (label-abstract-type L))
+                                              (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top)))
+                                             Top))
+                        ((label-method l) y (as Top (fun (a (sel y (label-abstract-type A))) Top a)))))
                     (cast Top z)))
-       v))))
+       (as (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top)))) v)))))
 
-;; FAILS
 #;
 (preservation
  (term
@@ -1123,18 +1134,18 @@
             (fun (z0 (intersection (sel x (label-abstract-type L)) (sel x2 (label-abstract-type L)))) Top
                  (valnew (z ((sel z0 (label-class Lc2))))
                          (cast Top z))))
-       x1)))))))
+       (as (sel x0 (label-class Lc1)) x1))))))))
 
-;; FAILS
 #;
 (preservation
  (term
   (valnew (v ((refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) (sel z (label-abstract-type A)) Top))))))
   (app (fun (x (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top))))) Top
-            (valnew (z ((refinement Top z (: (label-method l) Bottom Top))
-                        ((label-method l) (y (intersection
-                                             (sel x (label-abstract-type L))
-                                             (refinement Top z (: (label-abstract-type A) (sel z (label-abstract-type B)) Top) (: (label-abstract-type B) Bottom Top))))
-                                         (fun (a (sel y (label-abstract-type A))) Top a))))
+            (valnew (z ((refinement Top z (: (label-method l)
+                                             (intersection
+                                              (sel x (label-abstract-type L))
+                                              (refinement Top z (: (label-abstract-type A) (sel z (label-abstract-type B)) Top) (: (label-abstract-type B) Bottom Top)))
+                                             Top))
+                        ((label-method l) y (as Top (fun (a (sel y (label-abstract-type A))) Top a)))))
                     (cast Top z)))
-       v))))
+       (as (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top)))) v)))))
