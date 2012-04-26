@@ -469,11 +469,13 @@
 (define-judgment-form dot
   #:mode (path-red I I O)
   #:contract (path-red env p p)
-  [(path-red (Gamma store) (sel (location i_1) l) (location i_2))
+  [(path-red (Gamma store) (sel v_1 l) (location i_2))
+   (where (location i_1) (to-location v_1))
    (where c (store-lookup store i_1))
    (found c #t)
-   (where v (value-label-lookup c l))
-   (where (location i_2) v)]
+   (where v_2 (value-label-lookup c l))
+   (where (location i_2) (to-location v_2))]
+  [(path-red env (as T p_1) p_1)]
   [(path-red env (sel p_1 l) (sel p_2 l))
    (path-red env p_1 p_2)])
 
@@ -592,7 +594,8 @@
    (where ((: m_s V_md W_md) ...) (sorted-decls (Dm ...)))
    (where Gamma_Tc (gamma-extend Gamma x Tc))
    (subtype (Gamma_Tc store) S U) ...
-   (typeof (Gamma_Tc store) vx_ls V_ld) ...
+   (typeof (Gamma_Tc store) vx_ls V_ls) ...
+   (found (same vx_ls (Gamma_Tc store) V_ls V_ld) #t) ...
    (wfe-type (Gamma_Tc store) V_md) ...
    (typeof ((gamma-extend Gamma_Tc y_ms V_md) store) e_ms W_ms) ...
    (found (same e_ms (Gamma_Tc store) W_ms W_md) #t) ...])
@@ -620,7 +623,8 @@
    (where ((: m_s V_md W_md) ...) (sorted-decls (Dm ...)))
    (where Gamma_Tc (gamma-extend Gamma x Tc))
    (subtype (Gamma_Tc store) S U) ...
-   (typeof (Gamma_Tc store) vx_ls V_ld) ...
+   (typeof (Gamma_Tc store) vx_ls V_ls) ...
+   (found (same vx_ls (Gamma_Tc store) V_ls V_ld) #t) ...
    (wfe-type (Gamma_Tc store) V_md) ...
    (typeof (Gamma_Tc store) e T)
    (found (fn T x) #f)
@@ -675,6 +679,7 @@
 ;(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-value l) Top))
 ;                                            [(label-value l) (as Top u)]))
 ;                                           (sel u (label-value l)))))
+;(typecheck (term (()())) (term (valnew (a ((refinement Top za (: (label-value i) (refinement Top zb))) ((label-value i) (as (refinement Top za) a)))) (as Top a))))
 
 (define-metafunction dot
   arrow- : x (DLt ...) S T -> W
@@ -824,10 +829,14 @@
               (match (steps-to store e)
                 [(list store_to e_to)
                  (let ((t_new (typecheck (term (() ,store_to)) e_to)))
-                   (and t_new
-                        ;(judgment-holds (env-consistent (() ,store_to)))
-                        (judgment-holds (subtype (() ,store_to) ,t_new ,t))
-                        (loop e_to store_to t_new)))]
+                   (if (and t_new
+                            ;(judgment-holds (env-consistent (() ,store_to)))
+                            (judgment-holds (subtype (() ,store_to) ,t_new ,t))
+                            (loop e_to store_to t_new))
+                       t_new
+                       (begin
+                         (printf "store: ~a\nterm:~a\n~a\nnot a subtype of\n~a" store_to e_to t_new t)
+                         #f)))]
                 [_ (error 'preservation "expect reducible typed (~a) term ~a\nstore:~a" t e store)]))))
       #t))
 
@@ -960,7 +969,6 @@
 #;
 (typecheck (term (() ())) (term (fun (x Bottom) Top (fun (z (sel x (label-class Lt))) (sel x (label-class Lt)) z))))
 
-;; OK :-)
 #;
 (let ((typeX (term (refinement Top z
                                (: (label-abstract-type A) Top Top)
@@ -973,7 +981,6 @@
      (u (,typeX ((label-method l) dummy (as (sel u (label-abstract-type A)) u))))
      (sel (app (fun (y (arrow Top ,typeY)) ,typeY (app y (as Top u))) (as (arrow Top ,typeY) (fun (d Top) ,typeX (cast ,typeX u)))) (label-method l) (as Top u))))))
 
-;; OK :-)
 #;
 (let ((typeX (term (refinement Top z
                                (: (label-abstract-type A) Top Top)
@@ -990,7 +997,6 @@
            (as (arrow- f ((: (label-abstract-type Y) ,typeX ,typeY)) Top (sel f (label-abstract-type Y)))
                (fun- f ((: (label-abstract-type Y) ,typeX ,typeX)) (d Top) (sel f (label-abstract-type Y)) (as (sel f (label-abstract-type Y)) u)))))))))
 
-;; FAIL
 #;
 (preservation
  (term
@@ -1011,7 +1017,6 @@
      (cast (sel (sel a (label-value i)) (label-abstract-type X))
       (sel (sel a (label-value i)) (label-value l))))))))
 
-;; FAIL
 #;
 (big-step-preservation
  (term
@@ -1034,7 +1039,6 @@
                (fun (d Top) (sel (sel a (label-value i)) (label-abstract-type X)) x))
           (sel (sel a (label-value i)) (label-value l))))))))
 
-;; FAIL
 #;
 (preservation
  (term
