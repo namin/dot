@@ -2,12 +2,15 @@ metavar var, x, y, z ::= {{ com Variable }}
 {{ coq nat }} {{ coq-equality }} {{ ocaml string }} {{ ocamlvar "[[var]]" }} {{ lex alphanum }}
 metavar label ::= {{ com Label }}
 {{ coq nat }} {{ coq-equality }} {{ ocaml string }} {{ ocamlvar "[[label]]" }} {{ lex alphanum }}
-indexvar index, i, j, n ::=
+indexvar index, i, j, k, n ::=
 {{ coq nat }} {{ ocaml int }} {{ lex numeral }}
 
 grammar
 vlabel, l :: vlabel_   ::= {{ com Value label }}
   | label _v           :: :: any {{ tex [[label]] }}
+
+mlabel, m :: mlabel_   ::= {{ com Method Label }}
+  | label _m           :: :: any {{ tex [[label]] }}
 
 clabel, Lc {{ tex {L_c} }} {{ ocaml tLc }} :: clabel_ ::= {{ com class label }}
   | label _c           :: :: any {{ tex {[[label]]}_c }}
@@ -17,25 +20,31 @@ alabel, La {{ tex {L_a} }} {{ ocaml tLa }} :: alabel_ ::= {{ com abstract type l
 
 v :: v_                ::= {{ com Value }}
   | x                  :: :: var {{ com variable }}
+  | v : T              :: :: wid {{ com widening }}
 
 tm, t :: Tm_           ::= {{ com Term }}
   | x                  :: :: var {{ com value }}
+  | t : T              :: :: wid {{ com widening }}
   | val x = new c ; t  :: :: new {{ com new instance }}
-  | t l t'             :: :: sel {{ com selection }}
+  | t . l              :: :: vsel {{ com value selection }}
+  | t m t'             :: :: msel {{ com method invocation }}
   | ( t )              :: S:: paren {{ icho [[t]] }}
   | [ t / x ] t'       :: M:: subst {{ icho (subst_tm [[t]] [[x]] [[t']]) }}
   | e [ t ]            :: M:: ctx {{ icho (appctx_ctx_tm [[e]] [[t]]) }}
   | fun ( x : T ) T' t :: :: lam
   | app t t'           :: :: app
-  | cast T t           :: :: cast
 
 path, p :: path_       ::= {{ com Path }}
   | x                  :: :: var
-  | val x = new c ; p  :: :: new
-  | p l p'             :: :: sel
+  | p : T              :: :: wid
+  | p . l              :: :: vsel
 
 constr, c :: constr_ ::= {{ com Constructor }}
-  | Tc { </ li ( xi : Ti ) = ti // , // i IN 0 .. n /> } :: :: any
+  | Tc { </ defi // , // i IN 0 .. n /> } :: :: any
+
+def :: def_ ::= {{ com Definition }}
+  | l = v          :: :: value
+  | m ( x ) = t    :: :: method
 
 gamma, G {{ tex \Gamma }} {{ ocaml gamma }} :: gamma_ ::=  {{ coq list (var*tp) }} {{ com Environment }}
   | []                 :: :: nil
@@ -60,6 +69,7 @@ tp, T {{ ocaml tyT }}, S {{ coq St }} {{ ocaml tyS }}, U {{ ocaml tyU }}, V {{ o
   | T \/ T'            :: :: or {{ com union type }}
   | Top                :: :: top {{ com top type }}
   | Bottom             :: :: bot {{ com bottom type }}
+  | ( T )              :: S:: paren {{ icho [[T]] }}
   | [ t / x ] T        :: M:: subst {{ icho (subst_tp [[t]] [[x]] [[T]]) }}
 
 tpc, Tc {{ tex T_c }} {{ ocaml tyTc }}, Sc {{ tex S_c }} {{ ocaml tySc }} :: tpc_ ::= {{ com Concrete Type }}
@@ -67,11 +77,13 @@ tpc, Tc {{ tex T_c }} {{ ocaml tyTc }}, Sc {{ tex S_c }} {{ ocaml tySc }} :: tpc
   | Tc { z => Dseq }   :: :: rfn
   | Tc /\ Tc'          :: :: and
   | Top                :: :: top
+  | ( Tc )             :: S:: paren {{ icho [[Tc]] }}
   | [ t / x ] Tc       :: M:: subst {{ icho (subst_tpc [[t]] [[x]] [[Tc]]) }}
 
 decl, D {{ ocaml decl }} :: decl_       ::= {{ com Declaration }}
-  | L : S '..' U       :: :: tp {{ com type declaration }}
-  | l : S -> T         :: :: tm {{ com term declaration }}
+  | L : S '..' U       :: :: type {{ com type declaration }}
+  | l : T              :: :: value {{ com value declaration }}
+  | m : S -> T         :: :: method {{ com method declaration }}
   | [ t / x ] D        :: M:: subst {{ icho (subst_decl [[t]] [[x]] [[D]]) }}
 
 decls, Dseq {{ tex \overline{D} }} {{ ocaml seqD }} :: Decls_ ::=
@@ -86,8 +98,10 @@ decls, Dseq {{ tex \overline{D} }} {{ ocaml seqD }} :: Decls_ ::=
    {{ icho (Decls_seq nil) }} % TODO
 
 ctx, e :: ctx_         ::= {{ com Context }}
-  | __ l t             :: :: sel_l
-  | v l __             :: :: sel_r
+  | __ . l             :: :: vsel
+  | __ m t             :: :: msel_l
+  | v m __             :: :: msel_r
+  | __ : T             :: :: wid
 
 terminals :: terminals_ ::=
   | |->                :: :: mapsto {{ tex \mapsto }}
@@ -108,6 +122,8 @@ terminals :: terminals_ ::=
 
 formula :: formula_    ::=
   | judgement          :: :: judgement
+  | def is def'        :: :: def_eq
+    {{ coq ([[def]] = [[def']]) }}
   | x |-> c in s       :: :: store_lookup
     {{ coq (store_bound [[x]] [[c]] [[s]]) }}
   | x : T in G         :: :: gamma_lookup
@@ -133,8 +149,8 @@ Definition store_bound x c s :=
 subrules
   Lc <:: L
   La <:: L
-  v  <:: tm
-  v  <:: path
+  v <:: tm
+  v <:: path
   path  <:: tm
   tpc <:: tp
 
@@ -157,14 +173,42 @@ Job :: '' ::=
  --------------------------------------- :: new
  val x = new c; t | s --> t | s, x |-> c
 
+ x |-> Tc { </ defi // i /> } in s
+ defi is l=v
+ --------------------------------- :: vsel
+ x.l | s --> v | s
 
- x |-> Tc { l0(x0:T0)=t0, .., ln(xn:Tn)=tn } in s
- ------------------------------------------------ :: sel
- x li v | s --> [v/xi] ti | s
+ x |-> Tc { </ defi // i /> } in s
+ defi is m(x)=t
+ --------------------------------- :: msel
+ x m v | s --> [v/x] t | s
 
  t | s --> t' | s'
  ----------------------- :: ctx
  e[t] | s --> e[t'] | s'
+
+ defn
+ G , s |- p path> p' :: :: path_reduce:: path_red_ {{ com Path Reduction }} by
+
+ x |-> Tc { </ defi // i /> } in s
+ defi is l=v
+ ---------------------------------- :: base
+ G, s |- x.l path> v
+
+ --------------------- :: wid
+ G, s |- p : T path> p
+
+ G, s |- p path> p'
+ ---------------------- :: rec
+ G, s |- p.l path> p'.l
+
+ defn
+ G , s |- T == T' :: ::tp_eq:: tp_eq_ {{ com Type Equality }} by
+
+ G, s |- T <: T'
+ G, s |- T' <: T
+ ---------------- :: any
+ G, s |- T == T'
 
  defn
  G , s |- t : T :: ::typing:: typ_ {{ com Type Assignment }} by
@@ -173,23 +217,33 @@ Job :: '' ::=
  ------------- :: var
  G, s |- x : T
 
- G, s |- t1 mem l1 : S1 -> T1
+ G, s |- t mem l : T
+ --------------------- :: vsel
+ G, s |- t.l : T
+
+ G, s |- t1 mem m : S1 -> T1
  G, s |- t2 : T2
- G, s |- T2 <: S1
- ----------------------------------------------- :: sel
- G, s |- t1 l t2 : T1
+ G, s |- T2 == S1
+ --------------------------- :: msel
+ G, s |- t1 m t2 : T1
+
+ G, s |- t : T'
+ G, s |- T' <: T
+ ----------------- :: wid
+ G, s |- t : T : T
 
  x notin fn(T)
  G, s |- Tc wfe
- G, s |- Tc expands x </ Lj : Sj .. Uj // j/>, </ li : Vi -> Wi // i/>
- </ G, x : Tc, s |- Ti wfe // i/>
- </ G, x : Tc, s |- Vi <: Ti // i/>
- </ G, x : Tc, s |- Sj <: Uj // j/>
+ G, s |- Tc expands x </ Lj : Sj .. Uj // j/>, </ lk : Tk // k/>, </ mi : Vi -> Wi // i/>
  G, x : Tc, s |- t : T
- </ G, x : Tc, xi : Ti, s |- ti : Wi' // i/>
- </ G, x : Tc, xi : Ti, s |- Wi' <: Wi // i/>
- --------------------------------------------------------------------- :: new
- G, s |- val x = new Tc { </ li(xi:Ti)=ti // i/> }; t : T
+ </ G, x : Tc, s |- Sj <: Uj // j/>
+ </ G, x : Tc, s |- vk' : Tk' // k/>
+ </ G, x : Tc, s |- Tk' == Tk // k/>
+ </ G, x : Tc, s |- Vi wfe // i/>
+ </ G, x : Tc, xi : Vi, s |- ti : Wi' // i/>
+ </ G, x : Tc, s |- Wi' == Wi // i/>
+ ------------------------------------------------------------------------------------------ :: new
+ G, s |- val x = new Tc { </ lk=vk // k/>, </ mi(xi)=ti // i/> }; t : T
 
  defn
  G , s |- t mem D :: ::membership:: mem_ {{ com Membership }} by
@@ -198,6 +252,12 @@ Job :: '' ::=
  G, s |- T expands z </ Di // i />
  --------------------------------------- :: path
  G, s |- p mem [p/z] Di
+
+ z notin fn(T)
+ G, s |- t : T
+ G, s |- T expands z </ Di // i />
+ --------------------------------------- :: term
+ G, s |- t mem Di
 
  defn
  G , s |- T expands z Dseq :: ::expansion:: exp_ {{com Expansion }} {{ tex [[G]], [[s]] [[|-]] [[T]] \prec_[[z]] [[Dseq]] }} by
@@ -284,9 +344,9 @@ Job :: '' ::=
  ------------------- :: bot
  G, s |- Bottom <: T
 
- p1 | s --> p2 | s'
+ G, s |- p1 path> p2
  G, s |- T <: p2.L
- ------------------ :: path_red
+ -------------------- :: path_red
  G, s |- T <: p1.L
 
  defn
@@ -294,13 +354,17 @@ Job :: '' ::=
 
  G, s |- S' <: S
  G, s |- U <: U'
- --------------------------------- :: tp
+ --------------------------------- :: type
  G, s |- L : S .. U <: L : S' .. U'
+
+ G, s |- T <: T'
+ --------------------------------- :: value
+ G, s |- l : T <: l : T'
 
  G, s |- S' <: S
  G, s |- T <: T'
- --------------------------------- :: tm
- G, s |- l : S -> T <: l : S' -> T'
+ --------------------------------- :: method
+ G, s |- m : S -> T <: m : S' -> T'
 
  defn
  G , s |- Dseq <: Dseq' :: ::decls_sub:: decls_sub by
@@ -346,13 +410,17 @@ Job :: '' ::=
 
  G, s |- S wfe
  G, s |- U wfe
- --------------------------------- :: tp
+ --------------------------------- :: type
  G, s |- L : S .. U wf
+
+ G, s |- T wfe
+ --------------------------------- :: value
+ G, s |- l : T wf
 
  G, s |- S wfe
  G, s |- T wfe
- --------------------------------- :: tm
- G, s |- l : S -> T wf
+ --------------------------------- :: method
+ G, s |- m : S -> T wf
 
  defn
  G , s |- Dseq wf :: ::decls_wf:: decls_wf by

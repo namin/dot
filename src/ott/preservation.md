@@ -23,7 +23,7 @@ By induction on the derivation of $[[t|s --> t'|s']]$.
 
 ### Case **Red-New** ###
 
-$[[t]] = [[val x = new c; t']]$ where $[[c]] = [[Tc { </ li(xi:Ti) = ti // i /> }]]$.
+$[[t]] = [[val x = new c; t']]$ where $[[c]] = [[Tc { </ mi(xi) = ti // i /> }]]$.
 
 For $[[G, s |- t : T]]$, only the **Typ-New** rule applies.
 
@@ -45,15 +45,15 @@ Thus $T = T'$ and we are done.
 
 ### Case **Red-Sel** ###
 
-$[[t]] = [[x li v]]$ where $[[x |-> Tc { </ li(xi:Ti) = ti // i /> } in s]]$.
+$[[t]] = [[x mi v]]$ where $[[x |-> Tc { </ mi(xi) = ti // i /> } in s]]$.
 
 $s' = s$
 
 $[[t']] = [[ [v/xi] ti ]]$
 
-For $[[G, s |- x li v : T]]$, only the **Typ-Sel** rule applies. Premises:
+For $[[G, s |- x mi v : T]]$, only the **Typ-Sel** rule applies. Premises:
 
-* $[[G, s |- x mem li : S -> T]]$
+* $[[G, s |- x mem mi : S -> T]]$
 * $[[G, s |- v : S']]$
 * $[[G, s |- S' <: S]]$
     
@@ -94,12 +94,12 @@ The narrowing and substitution lemmas apply. $[[T']] = [[W'']]$.
 
 There are two cases:
 
-1. $[[t1 l t2 | s --> t1' l t2 | s']]$
-2. $[[v1 l t2 | s --> v1 l t2' | s']]$
+1. $[[t1 m t2 | s --> t1' m t2 | s']]$
+2. $[[v1 m t2 | s --> v1 m t2' | s']]$
 
 In both cases, only the **Typ-Sel** rule applies. Premises:
 
-* $[[G, s |- t1 mem l : S1 -> T]]$
+* $[[G, s |- t1 mem m : S1 -> T]]$
 * $[[G, s |- t2 : T2]]$
 * $[[G, s |- T2 <: S1]]$
 
@@ -121,12 +121,12 @@ If
 * $[[G, s |- t1 : T1]]$
 * $[[G, s |- t1' : T1']]$
 * $[[G, s |- T1' <: T1]]$
-* $[[G, s |- t1 mem l : S1 -> T]]$
+* $[[G, s |- t1 mem m : S1 -> T]]$
     
 then $\exists [[S1']], [[T']]$ such that
 
-* $[[G, s |- t1' mem l : S1' -> T']]$
-* $[[G, s |- l : S1' -> T' <: l : S1 -> T]]$
+* $[[G, s |- t1' mem m : S1' -> T']]$
+* $[[G, s |- m : S1' -> T' <: m : S1 -> T]]$
 
 The narrowing membership lemma and **DSub-Value** and **Typ-Sel**
 rules apply, with result $[[T']]$.
@@ -162,14 +162,14 @@ If $[[z]] = [[x]]$, then $[[T]] = [[S]] = [[T']]$, since $[[ [v/x] z]]
 
 ### Case **Typ-Sel** ###
 
-$[[t]] = [[t1 l t2]]$. Premises:
+$[[t]] = [[t1 m t2]]$. Premises:
 
-* $[[G, s |- t1 mem l1 : S1 -> T]]$
+* $[[G, s |- t1 mem m1 : S1 -> T]]$
 * $[[G, s |- t1 : T1]]$
 * $[[G, s |- t2 : T2]]$
 * $[[G, s |- T2 <: S1]]$
 
-Let $[[ [v/x]t]] = [[t']] = [[t1' l t2']] = [[ [v/x]t1 l [v/x]t2]]$.
+Let $[[ [v/x]t]] = [[t']] = [[t1' m t2']] = [[ [v/x]t1 m [v/x]t2]]$.
 
 By induction hypothesis:
 
@@ -185,8 +185,8 @@ By induction hypothesis:
 
 By **membership narrowing lemma**:
 
-* $[[G, s |- t1' mem l : S1' -> T']]$
-* $[[G, s |- l : S1' -> T' <: l : S1 -> T]]$
+* $[[G, s |- t1' mem m : S1' -> T']]$
+* $[[G, s |- m : S1' -> T' <: m : S1 -> T]]$
 
 By **declaration subsumption**:
 
@@ -197,9 +197,9 @@ By transitivity of subtyping, the **Typ-Sel** rule applies with result $[[T']]$.
 
 ### Case **Typ-New** ###
 
-$[[t]] = [[val z = new Tc { </ li(xi:Ti) = ti // i /> }; t0]]$
+$[[t]] = [[val z = new Tc { </ mi(xi) = ti // i /> }; t0]]$
 
-$[[t']] = [[ [v/x]t]] = [[val z = new [v/x]Tc { </ li(xi:[v/x]Ti) = [v/x]ti // i /> }; [v/x]t0]]$
+$[[t']] = [[ [v/x]t]] = [[val z = new [v/x]Tc { </ mi(xi) = [v/x]ti // i /> }; [v/x]t0]]$
 
 For the **Typ-New** rule to apply again, we need substitution to
 preserve the properties checked by the **Typ-New** rule. In
@@ -224,13 +224,12 @@ val z0 = new Top { z =>
                                           L2_a: Bottom .. Top
                                         }
                   }) Top
-           val z = new Top { z => l_v : Bottom -> Top }
-                   {l_v(y : x.L_a /\ Top { z =>
+           val z = new Top { z => l_m : x.L_a /\ Top { z =>
                                            L1_a: Bottom .. z.L2_a,
                                            L2_a: Bottom .. Top
-                                         }
-                     ) = (fun (x0: y.L1_a) Top x0)};
-		   (cast Top z))
+                                        } -> Top }
+                   {l_m(y) = (fun (x0: y.L1_a) Top x0)};
+		   z:Top)
      z0)
 ]]$
 
@@ -257,7 +256,7 @@ val x3 = new x1.C1_c { z =>
                       }{};
 (app (fun (x: x1.C1_c) Top
           (fun (z0: x.L1_a /\ x3.L1_a) Top
-               val z = new z0.C2_c {}; cast Top z
+               val z = new z0.C2_c {}; z:Top
           )
      ) x2)
 ]]$
@@ -281,13 +280,12 @@ val z0 = new Top { z =>
                                           L2_a: Bottom .. Top
                                         }
                   }) Top
-           val z = new Top { z => l_v : Bottom -> Top }
-                   {l_v(y : x.L_a /\ Top { z =>
+           val z = new Top { z => l_m : x.L_a /\ Top { z =>
                                            L1_a: z.L2_a .. Top,
                                            L2_a: Bottom .. Top
-                                         }
-                     ) = (fun (x0: y.L1_a) Top x0)};
-		   (cast Top z))
+                                        } -> Top }
+                   {l_m(y) = (fun (x0: y.L1_a) Top x0)};
+		   z:Top)
      z0)
 ]]$
 
@@ -323,13 +321,13 @@ If
 * $[[G, s |- t : T]]$
 * $[[G, s |- t' : T']]$
 * $[[G, s |- T' <: T]]$
-* $[[G, s |- t mem l : S1 -> T1]]$
+* $[[G, s |- t mem m : S1 -> T1]]$
 * $[[G, s |- T' wfe]]$
 
 then $\exists [[S1']], [[T1']]$ such that
 
-* $[[G, s |- t' mem l : S1' -> T1']]$
-* $[[G, s |- l : S1' -> T1' <: l : S1 -> T1]]$
+* $[[G, s |- t' mem m : S1' -> T1']]$
+* $[[G, s |- m : S1' -> T1' <: m : S1 -> T1]]$
 
 Proof Sketch
 ------------
