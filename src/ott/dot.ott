@@ -107,6 +107,7 @@ terminals :: terminals_ ::=
   | |->                :: :: mapsto {{ tex \mapsto }}
   | ->                 :: :: rightarrow {{ tex \rightarrow }}
   | -->                :: :: longrightarrow {{ tex \;\longrightarrow\; }}
+  | path>              :: :: longrightarrow_path {{ tex \;\longrightarrow_p\; }}
   | =>                 :: :: Rightarrow {{ tex \Rightarrow }}
   | \/                 :: :: tand {{ tex \vee }}
   | /\                 :: :: tor {{ tex \wedge }}
@@ -119,6 +120,7 @@ terminals :: terminals_ ::=
   | |=                 :: :: ms {{ tex \,\models\, }}
   | fn                 :: :: fn {{ tex \text{\sl fn} }}
   | notin              :: :: notin {{ tex \not\in }}
+  | ==                 :: :: equiv {{ tex \equiv }}
 
 formula :: formula_    ::=
   | judgement          :: :: judgement
