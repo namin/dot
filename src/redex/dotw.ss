@@ -840,6 +840,26 @@
                 [_ (error 'preservation "expect reducible typed (~a) term ~a\nstore:~a" t e store)]))))
       #t))
 
+(define (exact-preservation e)
+  (if (and (well-formed? e) (typecheck (term (() ())) e) (single-step? e))
+      (begin
+        (printf "preservation: trying ~a\n" e)
+        (let loop ((e e) (store (term ())) (t (typecheck (term (() ())) e)))
+          (or (and (value? e) t)
+              (match (steps-to store e)
+                [(list store_to e_to)
+                 (let ((t_new (typecheck (term (() ,store_to)) e_to)))
+                   (if (and t_new
+                            ;(judgment-holds (env-consistent (() ,store_to)))
+                            (term (same e_to (() ,store_to) ,t_new ,t))
+                            (loop e_to store_to t_new))
+                       t_new
+                       (begin
+                         (printf "store: ~a\nterm:~a\n~a\nnot same as\n~a" store_to e_to t_new t)
+                         #f)))]
+                [_ (error 'preservation "expect reducible typed (~a) term ~a\nstore:~a" t e store)]))))
+      #t))
+
 (define (big-step-preservation e)
   (if (and (well-formed? e) (typecheck (term (() ())) e))
       (begin
@@ -1059,7 +1079,6 @@
      (cast (sel (sel a (label-value i)) (label-abstract-type X))
       (sel (sel a (label-value i)) (label-value l))))))))
 
-;; FAIL
 #;
 (big-step-preservation
  (term
