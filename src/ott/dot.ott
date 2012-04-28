@@ -25,7 +25,7 @@ v :: v_                ::= {{ com Value }}
 tm, t :: Tm_           ::= {{ com Term }}
   | x                  :: :: var {{ com value }}
   | t : T              :: :: wid {{ com widening }}
-  | val x = new c ; t  :: :: new {{ com new instance }}
+  | val x = new c ; t  :: :: new  (+ bind x in c +) (+ bind x in t +) {{ com new instance }}
   | t . l              :: :: vsel {{ com value selection }}
   | t m t'             :: :: msel {{ com method invocation }}
   | ( t )              :: S:: paren {{ icho [[t]] }}
@@ -44,7 +44,7 @@ constr, c :: constr_ ::= {{ com Constructor }}
 
 def :: def_ ::= {{ com Definition }}
   | l = v          :: :: value
-  | m ( x ) = t    :: :: method
+  | m ( x ) = t    :: :: method (+ bind x in t +)
 
 gamma, G {{ tex \Gamma }} {{ ocaml gamma }} :: gamma_ ::=  {{ coq list (var*tp) }} {{ com Environment }}
   | []                 :: :: nil
@@ -64,7 +64,7 @@ tlabel, L {{ ocaml tL }} :: tlabel_   ::= {{ com Type label }}
 
 tp, T {{ ocaml tyT }}, S {{ coq St }} {{ ocaml tyS }}, U {{ ocaml tyU }}, V {{ ocaml tyV }}, W {{ ocaml tyW }} :: tp_ ::= {{ com Type }}
   | p . L              :: :: tsel {{ com type selection }}
-  | T { z => Dseq }    :: :: rfn {{ com refinement }}
+  | T { z => Dseq }    :: :: rfn (+ bind z in Dseq +) {{ com refinement }}
   | T /\ T'            :: :: and {{ com intersection type }}
   | T \/ T'            :: :: or {{ com union type }}
   | Top                :: :: top {{ com top type }}
