@@ -7,6 +7,11 @@ Require Export Dot_Syntax Dot_Definitions.
 (* ********************************************************************** *)
 (** * #<a name="red"></a># Reduction *)
 
+Inductive value_to_ref : tm -> tm -> Prop :=
+  | value_to_ref_ref : forall a, value_to_ref (ref a) (ref a)
+  | value_to_ref_wid : forall a v t, value_to_ref v (ref a) -> value_to_ref (wid v t) (ref a)
+.
+
 Reserved Notation "s |~ a ~~> b  ~| s'" (at level 60).
 
 Inductive red : store -> tm -> store -> tm -> Prop :=
@@ -23,13 +28,15 @@ Inductive red : store -> tm -> store -> tm -> Prop :=
      value v ->
      s |~        e ~~> e'        ~| s' ->
      s |~  app v e ~~> app v e'  ~| s'*)
-  | red_msel : forall s a Tc ags l t v,
+  | red_msel : forall s a Tc ags l t v v',
      wf_store s ->
      binds a (Tc, ags) s ->
      lbl.binds l t ags ->
      method_label l ->
+     value v' ->
      value v ->
-     s |~ (msel (ref a) l v) ~~> (t ^^ v) ~| s
+     value_to_ref v (ref a) ->
+     s |~ (msel v l v') ~~> (t ^^ v') ~| s
   | red_msel_tgt1 : forall s s' l e1 e2 e1',
      s |~             e1 ~~> e1'             ~| s' ->
      s |~ (msel e1 l e2) ~~> (msel e1' l e2) ~| s'
@@ -37,15 +44,20 @@ Inductive red : store -> tm -> store -> tm -> Prop :=
     value v1 ->
      s |~             e2 ~~> e2'             ~| s' ->
      s |~ (msel v1 l e2) ~~> (msel v1 l e2') ~| s'
-  | red_sel : forall s a Tc ags l v,
+  | red_sel : forall s a Tc ags l v v',
      wf_store s -> 
      binds a (Tc, ags) s ->
-     lbl.binds l v ags -> 
+     lbl.binds l v' ags ->
      value_label l ->
-     s |~ (sel (ref a) l) ~~> v ~| s
+     value v ->
+     value_to_ref v (ref a) ->
+     s |~ (sel v l) ~~> v' ~| s
   | red_sel_tgt : forall s s' l e e',
      s |~         e ~~> e'         ~| s' ->
      s |~ (sel e l) ~~> (sel e' l) ~| s'
+  | red_wid_tgt : forall s s' e e' t,
+     s |~         e ~~> e'         ~| s' ->
+     s |~ (wid e t) ~~> (wid e' t) ~| s'
   | red_new : forall s Tc a ags t,
      wf_store s -> 
      lc_tm (new Tc ags t) ->
@@ -66,22 +78,27 @@ Inductive ev : store -> tm -> store -> tm -> Prop :=
      wf_store s ->
      value v ->
      s |~ v ~>~ v ~| s
+  | ev_wid : forall s s' e t v,
+     s |~ e ~>~ v ~| s' ->
+     s |~ (wid e t) ~>~ (wid v t) ~| s'
 (*| ev_beta : forall si s1 s2 sf t1 t2 t11 v2 vf T,
      si |~ t1 ~>~ (lam T t11) ~| s1 ->
      lc_tm (lam T t11) ->
      s1 |~ t2 ~>~ v2 ~| s2 ->
      s2 |~ (t11 ^^ v2) ~>~ vf ~| sf ->
      si |~ (app t1 t2) ~>~ vf ~| sf*)
-  | ev_msel : forall si s1 s2 sf a Tc ags l t tl t' v' v,
-     si |~ t ~>~ (ref a) ~| s1 ->
+  | ev_msel : forall si s1 s2 sf va a Tc ags l t tl t' v' v,
+     si |~ t ~>~ va ~| s1 ->
+     value_to_ref va (ref a) ->
      s1 |~ t' ~>~ v' ~| s2 ->
      binds a (Tc, ags) sf ->
      lbl.binds l tl ags ->
      s2 |~ (tl ^^ v') ~>~ v ~| sf ->
      method_label l ->
      si |~ (msel t l t') ~>~ v ~| sf
-  | ev_sel : forall si sf a Tc ags t l v,
-     si |~ t ~>~ (ref a) ~| sf ->
+  | ev_sel : forall si sf va a Tc ags t l v,
+     si |~ t ~>~ va ~| sf ->
+     value_to_ref va (ref a) ->
      binds a (Tc, ags) sf ->
      lbl.binds l v ags ->
      value_label l ->
@@ -124,6 +141,10 @@ Inductive typing : env -> tm -> tp -> Prop :=
       wf_env (G, P) ->
       binds a (T, args) P ->
       (G, P) |= (ref a) ~: T
+  | typing_wid : forall E t T T',
+      E |= t ~: T' ->
+      E |= T' ~<: T ->
+      E |= (wid t T) ~: T
   | typing_sel : forall E t l T',
       value_label l ->
       E |= t ~mem~ l ~: (decl_tm T') ->
@@ -361,7 +382,7 @@ Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ :=
   (forall (e : env) (d : decl) (H : wf_decl e d), (P6_ e d H)) /\
   (forall (e : env) (t : tp) (H : wfe_tp e t), (P7_ e t H))); [tauto | 
     apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_); try unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_, P7_ in *; try clear P0_ P1_ P2_ P3_ P4_ P5_ P6_; [  (* only try unfolding and clearing in case the PN_ aren't just identifiers *)
-      Case "typing_var" | Case "typing_ref" | Case "typing_sel" | Case "typing_msel" | Case "typing_new" | Case "mem_path" | Case "mem_term" | Case "expands_rfn" | Case "expands_tsel" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "expands_bot" | Case "sub_tp_refl" | Case "sub_tp_rfn_r" | Case "sub_tp_rfn_l" | Case "sub_tp_tsel_r" | Case "sub_tp_tsel_l" | Case "sub_tp_and_r" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_tp_or_l" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "wf_rfn" | Case "wf_tsel_1" | Case "wf_tsel_2" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" | Case "wfe_any" ]; 
+      Case "typing_var" | Case "typing_ref" | Case "typing_wid" | Case "typing_sel" | Case "typing_msel" | Case "typing_new" | Case "mem_path" | Case "mem_term" | Case "expands_rfn" | Case "expands_tsel" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "expands_bot" | Case "sub_tp_refl" | Case "sub_tp_rfn_r" | Case "sub_tp_rfn_l" | Case "sub_tp_tsel_r" | Case "sub_tp_tsel_l" | Case "sub_tp_and_r" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_tp_or_l" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "wf_rfn" | Case "wf_tsel_1" | Case "wf_tsel_2" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" | Case "wfe_any" ]; 
       introv; eauto ].
 
 

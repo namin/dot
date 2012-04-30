@@ -30,8 +30,6 @@ Proof.
   rewrite <- H0 in H. inversion H.
 Qed.
 
-
-
 Lemma wf_store_lbl_binds_value : forall s l v a Tc ags,
   wf_store s -> binds a (Tc, ags) s -> lbl.binds l v ags -> value_label l -> value v.
 Proof.
@@ -55,6 +53,8 @@ Lemma ev_to_value : forall s s' t v,
   s |~ t ~>~ v ~| s' -> value v.
 Proof.
   introv H. induction H; try assumption.
+    Case "ev_wid".
+      apply value_wid. assumption.
     Case "ev_sel".
       apply wf_store_lbl_binds_value with (s:=sf) (l:=l) (a:=a) (Tc:=Tc) (ags:=ags).
       apply (proj2 (ev_wf_store H)).
