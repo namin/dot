@@ -17,7 +17,7 @@ Inductive decls_binds (l: label) (d: decl) (ds: decls) : Prop :=
     lbl.binds l d dsl -> decls_binds l d ds
   | decls_binds_inf : forall dsl, decls_inf dsl = ds ->
     ~(lbl.binds l d dsl) ->
-    (type_label l /\ decl_tp tp_top tp_bot = d) \/ (value_label l /\ decl_tm tp_bot = d) ->
+    (type_label l /\ decl_tp tp_top tp_bot = d) \/ (value_label l /\ decl_tm tp_bot = d) \/ (method_label l /\ decl_mt tp_top tp_bot = d) ->
     decls_binds l d ds
 .
 
@@ -49,6 +49,7 @@ Definition forall_decls (E: env) (DS1: decls) (DS2: decls) (P: env -> decl -> de
 Inductive valid_label : label -> decl -> Prop :=
   | valid_label_type : forall L S U, type_label L -> valid_label L (decl_tp S U)
   | valid_label_value : forall l T, value_label l -> valid_label l (decl_tm T)
+  | valid_label_method : forall m S U, method_label m -> valid_label m (decl_mt S U)
 .
 
 Definition decls_ok (ds: decls) := decls_uniq ds /\ (forall l d, decls_binds l d ds -> valid_label l d).
@@ -58,6 +59,8 @@ Inductive and_decl : decl -> decl -> decl -> Prop :=
       and_decl (decl_tm T1) (decl_tm T2) (decl_tm (tp_and T1 T2))
   | and_decl_tp : forall S1 U1 S2 U2,
       and_decl (decl_tp S1 U1) (decl_tp S2 U2) (decl_tp (tp_or S1 S2) (tp_and U1 U2))
+  | and_decl_mt : forall S1 U1 S2 U2,
+      and_decl (decl_mt S1 U1) (decl_mt S2 U2) (decl_mt (tp_or S1 S2) (tp_and U1 U2))
 .
 
 Inductive or_decl : decl -> decl -> decl -> Prop :=
@@ -65,11 +68,14 @@ Inductive or_decl : decl -> decl -> decl -> Prop :=
       or_decl (decl_tm T1) (decl_tm T2) (decl_tm (tp_or T1 T2))
   | or_decl_tp : forall S1 U1 S2 U2,
       or_decl (decl_tp S1 U1) (decl_tp S2 U2) (decl_tp (tp_and S1 S2) (tp_or U1 U2))
+  | or_decl_mt : forall S1 U1 S2 U2,
+      or_decl (decl_mt S1 U1) (decl_mt S2 U2) (decl_mt (tp_and S1 S2) (tp_or U1 U2))
 .
 
 Inductive bot_decl : decl -> Prop :=
   | bot_decl_tm : bot_decl (decl_tm tp_bot)
   | bot_decl_tp : bot_decl (decl_tp tp_top tp_bot)
+  | bot_decl_mt : bot_decl (decl_mt tp_top tp_bot)
 .
 
 Definition and_decls (ds1: decls) (ds2: decls) (dsm: decls) :=
@@ -96,16 +102,17 @@ Fixpoint open_rec_tm (k : nat) (u : tm) (e : tm) {struct e} : tm :=
     | bvar i => if k == i then u else (bvar i)
     | fvar x => fvar x
     | ref x => ref x
-    | lam T b => lam (open_rec_tp k u T) (open_rec_tm (k+1) u b)
-    | app f a => app (open_rec_tm k u f) (open_rec_tm k u a)
-    | new T args b => new (open_rec_tp k u T) (List.map (fun a => match a with (l, a) => (l, open_rec_tm (k+1) u a) end) args) (open_rec_tm (k+1) u b)
+(*  | lam T b => lam (open_rec_tp k u T) (open_rec_tm (k+1) u b)*)
+(*  | app f a => app (open_rec_tm k u f) (open_rec_tm k u a)*)
+    | new T args b => new (open_rec_tp k u T) (List.map (fun a => match a with (l, a) => (l, open_rec_tm (k+(match l with | lm _ => 2 | _ => 1 end)) u a) end) args) (open_rec_tm (k+1) u b)
     | sel e1 l => sel (open_rec_tm k u e1) l
+    | msel e1 m e2 => msel (open_rec_tm k u e1) m (open_rec_tm k u e2)
   end
 with open_rec_tp (k : nat) (u : tm) (t : tp) {struct t} : tp :=
   match t with
     | tp_sel e1 l => tp_sel (open_rec_tm k u e1) l
     | tp_rfn parent decls => tp_rfn (open_rec_tp k u parent) (lbl.map (open_rec_decl (k+1) u) decls)
-    | tp_fun f t => tp_fun (open_rec_tp k u f) (open_rec_tp k u t)
+(*  | tp_fun f t => tp_fun (open_rec_tp k u f) (open_rec_tp k u t)*)
     | tp_and t1 t2 => tp_and (open_rec_tp k u t1) (open_rec_tp k u t2)
     | tp_or t1 t2 => tp_or (open_rec_tp k u t1) (open_rec_tp k u t2)
     | tp_top => tp_top
@@ -115,6 +122,7 @@ with open_rec_decl (k : nat) (u : tm) (d : decl) {struct d} : decl :=
   match d with
     | decl_tp tl tu => decl_tp (open_rec_tp k u tl) (open_rec_tp k u tu)
     | decl_tm t => decl_tm (open_rec_tp k u t)
+    | decl_mt t1 t2 => decl_mt (open_rec_tp k u t1) (open_rec_tp k u t2)
   end.
 
 Notation "{ k ~> u } t" := (open_rec_tm k u t) (at level 67).
@@ -151,10 +159,10 @@ Inductive  lc_tp : tp -> Prop :=
       lc_tp parent ->
       (forall x: atom, x \notin L -> lc_decls_lst (ds ^dsl^ x)) ->
       lc_tp (tp_rfn parent ds)
-  | lc_tp_fun : forall f a,
+(*| lc_tp_fun : forall f a,
       lc_tp f ->
       lc_tp a ->
-      lc_tp (tp_fun f a)
+      lc_tp (tp_fun f a)*)
   | lc_tp_and : forall t1 t2,
       lc_tp t1 ->
       lc_tp t2 ->
@@ -174,20 +182,24 @@ with lc_decl : decl -> Prop :=
   | lc_decl_tm : forall t1,
       lc_tp t1 ->
       lc_decl (decl_tm t1)
+  | lc_decl_mt : forall t1 t2,
+      lc_tp t1 ->
+      lc_tp t2 ->
+      lc_decl (decl_mt t1 t2)
 
 with lc_tm : tm -> Prop :=
   | lc_var : forall x,
       lc_tm (fvar x)
   | lc_ref : forall x,
       lc_tm (ref x)
-  | lc_lam : forall L t b,
+(*| lc_lam : forall L t b,
       lc_tp t ->
       (forall x:var, x \notin L -> lc_tm (b ^^ x)) ->
-      lc_tm (lam t b)
-  | lc_app : forall f a,
+      lc_tm (lam t b)*)
+(*| lc_app : forall f a,
       lc_tm f ->
       lc_tm a ->
-      lc_tm (app f a)
+      lc_tm (app f a)*)
   | lc_new : forall L t cas b,
       lc_tp t ->
       (forall x:var, x \notin L -> lc_args (cas ^args^ x) /\ lc_tm (b ^^ x)) ->
@@ -195,6 +207,10 @@ with lc_tm : tm -> Prop :=
   | lc_sel : forall tgt l,
       lc_tm tgt ->
       lc_tm (sel tgt l)
+  | lc_msel : forall a m b,
+      lc_tm a ->
+      lc_tm b ->
+      lc_tm (msel a m b)
 
 with lc_decls_lst : decls_lst -> Prop :=
   | lc_decl_nil :
@@ -205,15 +221,16 @@ with lc_decls_lst : decls_lst -> Prop :=
 with lc_args : args -> Prop :=
   | lc_args_nil :
       lc_args (nil)
-  | lc_args_cons : forall l t cs,
-      lc_tm t -> lc_args cs -> lc_args ((l, t) :: cs)
+  | lc_args_cons_value : forall l t cs,
+      lc_tm t -> lc_args cs -> value_label l -> lc_args ((l, t) :: cs)
+  | lc_args_cons_method : forall L l t cs,
+      (forall x:var, x \notin L -> lc_tm (t ^^ x)) -> lc_args cs -> method_label l ->
+      lc_args ((l, t) :: cs)
 .
 
 Inductive value : tm -> Prop := 
   | value_ref : forall l,
       value (ref l)
-  | value_lam : forall t b,
-      lc_tm (lam t b) -> value (lam t b)
 .
 
 Inductive syn_value : tm -> Prop :=
@@ -244,10 +261,10 @@ Inductive  vars_ok_tp : env -> tp -> Prop :=
       vars_ok_tp E t ->
       (forall x: atom, x \notin L -> vars_ok_decls_lst (ctx_bind E x t) (ds ^dsl^ x)) ->
       vars_ok_tp E (tp_rfn t ds)
-  | vars_ok_tp_fun : forall E f a,
+(*| vars_ok_tp_fun : forall E f a,
       vars_ok_tp E f ->
       vars_ok_tp E a ->
-      vars_ok_tp E (tp_fun f a)
+      vars_ok_tp E (tp_fun f a)*)
   | vars_ok_tp_and : forall E t1 t2,
       vars_ok_tp E t1 ->
       vars_ok_tp E t2 ->
@@ -275,14 +292,14 @@ with vars_ok_tm : env -> tm -> Prop :=
   | vars_ok_ref : forall G P a obj,
       binds a obj P ->
       vars_ok_tm (G, P) (ref a)
-  | vars_ok_lam : forall E L t b,
+(*| vars_ok_lam : forall E L t b,
       vars_ok_tp E t ->
       (forall x: var, x \notin L -> vars_ok_tm (ctx_bind E x t) (b ^^ x)) ->
-      vars_ok_tm E (lam t b)
-  | vars_ok_app : forall E f a,
+      vars_ok_tm E (lam t b)*)
+(*| vars_ok_app : forall E f a,
       vars_ok_tm E f ->
       vars_ok_tm E a ->
-      vars_ok_tm E (app f a)
+      vars_ok_tm E (app f a)*)
   | vars_ok_new : forall E L t cas b,
       vars_ok_tp E t ->
       (forall x: var, x \notin L -> vars_ok_args (ctx_bind E x t) (cas ^args^ x)) ->
@@ -291,6 +308,10 @@ with vars_ok_tm : env -> tm -> Prop :=
   | vars_ok_sel : forall E tgt l,
       vars_ok_tm E tgt ->
       vars_ok_tm E (sel tgt l)
+  | vars_ok_msel : forall E a m b,
+      vars_ok_tm E a ->
+      vars_ok_tm E b ->
+      vars_ok_tm E (msel a m b)
 
 with vars_ok_decls_lst : env -> decls_lst -> Prop :=
   | vars_ok_decl_nil : forall E,
@@ -301,8 +322,11 @@ with vars_ok_decls_lst : env -> decls_lst -> Prop :=
 with vars_ok_args : env -> args -> Prop :=
   | vars_ok_args_nil : forall E,
       vars_ok_args E (nil)
-  | vars_ok_args_cons : forall E l t cs,
-      vars_ok_tm E t -> vars_ok_args E cs -> vars_ok_args E ((l, t) :: cs)
+  | vars_ok_args_cons_value : forall E l t cs,
+      vars_ok_tm E t -> vars_ok_args E cs -> value_label l -> vars_ok_args E ((l, t) :: cs)
+  | vars_ok_args_cons_method : forall E L l T t cs,
+      (forall x: var, x \notin L -> vars_ok_tm (ctx_bind E x T) (t ^^ x)) ->
+      vars_ok_args E cs -> method_label l -> vars_ok_args E ((l, t) :: cs)
 .
 
 Scheme   vars_ok_tp_indm   := Induction for vars_ok_tp Sort Prop
@@ -321,17 +345,18 @@ Fixpoint fv_tm (e : tm) {struct e} : vars :=
     | bvar i => {}
     | fvar x => {{x}}
     | ref x => {{x}}
-    | lam T b => (fv_tp T) \u (fv_tm b)
-    | app f a => (fv_tm f) \u (fv_tm a)
+(*  | lam T b => (fv_tp T) \u (fv_tm b)*)
+(*  | app f a => (fv_tm f) \u (fv_tm a)*)
     | new T args b => (fv_tp T) \u  (fold_left (fun (ats: vars) (l_a :  label * tm) => match l_a with (l, t) => ats \u (fv_tm t) end) args {})
     | sel e1 l => fv_tm e1
+    | msel e1 m e2 => (fv_tm e1) \u (fv_tm e2)
   end
 
 with fv_tp (t : tp) {struct t} : vars :=
   match t with
     | tp_sel e1 l => fv_tm e1
     | tp_rfn parent decls => (fv_tp parent) \u (fold_left (fun (ats: vars) (d : (label * decl)) => ats \u (fv_decl (snd d))) decls {})
-    | tp_fun f t => (fv_tp f) \u (fv_tp t)
+(*  | tp_fun f t => (fv_tp f) \u (fv_tp t)*)
     | tp_and t1 t2 => (fv_tp t1) \u (fv_tp t2)
     | tp_or t1 t2 => (fv_tp t1) \u (fv_tp t2)
     | tp_top => {}
@@ -342,6 +367,7 @@ with fv_decl (d : decl) {struct d} : vars :=
   match d with
     | decl_tp tl tu => (fv_tp tl) \u (fv_tp tu)
     | decl_tm t => fv_tp t
+    | decl_mt t1 t2 => (fv_tp t1) \u (fv_tp t2)
   end.
 
 Definition fv_decls_lst (decls: decls_lst) := (fold_left (fun (ats: vars) (d : (label * decl)) => ats \u (fv_decl (snd d))) decls {}).
@@ -354,17 +380,18 @@ Fixpoint subst_tm (z : atom) (u : tm) (e : tm) {struct e} : tm :=
     | bvar i => bvar i
     | ref x => if x == z then u else (ref x) (* TODO: ??? *)
     | fvar x => if x == z then u else (fvar x)
-    | lam T b => lam (subst_tp z u T) (subst_tm z u b)
-    | app f a => app (subst_tm z u f) (subst_tm z u a)
+(*  | lam T b => lam (subst_tp z u T) (subst_tm z u b)*)
+(*  | app f a => app (subst_tm z u f) (subst_tm z u a)*)
     | new T args b => new (subst_tp z u T) (lbl.map (subst_tm z u) args) (subst_tm z u b)
     | sel e1 l => sel (subst_tm z u e1) l
+    | msel e1 m e2 => msel (subst_tm z u e1) m (subst_tm z u e2)
   end
 
 with subst_tp (z : atom) (u : tm) (t : tp) {struct t} : tp :=
   match t with
     | tp_sel e1 l => tp_sel (subst_tm z u e1) l
     | tp_rfn parent decls => tp_rfn (subst_tp z u parent) (lbl.map (subst_decl z u) decls)
-    | tp_fun f t => tp_fun (subst_tp z u f) (subst_tp z u t)
+(*  | tp_fun f t => tp_fun (subst_tp z u f) (subst_tp z u t)*)
     | tp_and t1 t2 => tp_and (subst_tp z u t1) (subst_tp z u t2)
     | tp_or t1 t2 => tp_or (subst_tp z u t1) (subst_tp z u t2)
     | tp_top => tp_top
@@ -375,6 +402,7 @@ with subst_decl (z : atom) (u : tm) (d : decl) {struct d} : decl :=
   match d with
     | decl_tp tl tu => decl_tp (subst_tp z u tl) (subst_tp z u tu)
     | decl_tm t => decl_tm (subst_tp z u t)
+    | decl_mt t1 t2 => decl_mt (subst_tp z u t1) (subst_tp z u t2)
   end
 .
 
@@ -383,9 +411,10 @@ with subst_decl (z : atom) (u : tm) (d : decl) {struct d} : decl :=
 
 Inductive wf_store : store -> Prop := 
   | wf_store_nil : wf_store nil
-  | wf_store_cons_tp : forall E x Tc args,
+  | wf_store_cons_tp : forall L E x Tc args,
      wf_store E ->
-     (forall l v, lbl.binds l v args -> value_label l /\ value v) ->
+     (forall l v, lbl.binds l v args ->
+       ((value_label l /\ value v) \/ (method_label l /\ (forall x: atom, x \notin L -> syn_value (v ^ x))))) ->
      lc_tp Tc -> concrete Tc ->
      x \notin dom E ->
      wf_store (x ~ (Tc, args) ++ E)

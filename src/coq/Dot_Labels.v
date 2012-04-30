@@ -4,6 +4,7 @@ Require Import Metatheory.
 
 Inductive label : Set :=
   | lv : atom -> label          (* Value label *)          (* l *)
+  | lm : atom -> label          (* Method label *)         (* m *)
                                 (* Type label *)           (* L *)
   | lc : atom -> label            (* class label *)          (* Lc *)
   | la : atom -> label            (* abstract type label *)  (* La *)
@@ -11,6 +12,10 @@ Inductive label : Set :=
 
 Inductive value_label : label -> Prop :=
   | value_labe_lv : forall a, value_label (lv a)
+.
+
+Inductive method_label : label -> Prop :=
+  | method_label_lm : forall a, method_label (lm a)
 .
 
 Inductive type_label : label -> Prop :=
@@ -29,9 +34,10 @@ Program Instance eq_label_dec : @EqDec label eq eq_equivalence :=
   { equiv_dec x y :=
     match x, y with
       | lv n, lv n' => if n == n' then in_left else in_right
+      | lm n, lm n' => if n == n' then in_left else in_right
       | la n, la n' => if n == n' then in_left else in_right
       | lc n, lc n' => if n == n' then in_left else in_right
-      | lv n, la n' | la n, lv n' | lv n, lc n' | lc n, lv n' | la n, lc n' | lc n, la n'  => in_right (* why does wildcard pattern not work?*)
+      | lv n, lm n' | lm n, lv n' | lv n, la n' | la n, lv n' | lv n, lc n' | lc n, lv n' | lm n, la n' | la n, lm n' | lm n, lc n' | lc n, lm n' | la n, lc n' | lc n, la n'  => in_right (* why does wildcard pattern not work?*)
     end }.
   Obligation Tactic := unfold complement, equiv ; program_simpl.
   Solve Obligations using unfold equiv, complement in * ; program_simpl ; intuition (discriminate || eauto).

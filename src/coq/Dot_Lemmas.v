@@ -23,17 +23,29 @@ Proof.
     induction H; try assumption.
 Qed.
 
-Lemma wf_store_lbl_binds_value : forall s l v a Tc ags,
-  wf_store s -> binds a (Tc, ags) s -> lbl.binds l v ags -> value v.
+Lemma value_xor_method_label : forall l,
+  value_label l -> method_label l -> False.
 Proof.
-  introv Hwf Hb Hlb. induction Hwf.
+  introv Hvalue Hmethod. inversion Hvalue. inversion Hmethod.
+  rewrite <- H0 in H. inversion H.
+Qed.
+
+
+
+Lemma wf_store_lbl_binds_value : forall s l v a Tc ags,
+  wf_store s -> binds a (Tc, ags) s -> lbl.binds l v ags -> value_label l -> value v.
+Proof.
+  introv Hwf Hb Hlb Hvalue. induction Hwf.
   Case "nil". inversion Hb.
   Case "rest".
    rewrite_env ((x, (Tc0, args))::E) in Hb.
    apply binds_cons_1 in Hb. inversions Hb.
    SCase "x = a ".
-     inversions H3. inversions H5.
-     apply (proj2 (H l v Hlb)).
+     inversions H3. inversions H5. 
+     remember (H l v Hlb) as H'.
+     inversions H'.
+       inversions H3. assumption.
+       inversions H3. assert False as Contra. apply value_xor_method_label with (l:=l); assumption. inversion Contra.
    SCase "x <> a".
      apply IHHwf.
      assumption.
@@ -46,6 +58,7 @@ Proof.
     Case "ev_sel".
       apply wf_store_lbl_binds_value with (s:=sf) (l:=l) (a:=a) (Tc:=Tc) (ags:=ags).
       apply (proj2 (ev_wf_store H)).
+      assumption.
       assumption.
       assumption.
 Qed.
@@ -109,10 +122,12 @@ Proof.
       SSCase "decls_uniq (decls_inf nil)". unfold decls_uniq.
         introv H. inversions H; inversions H0; auto.
       SSCase "valid label". introv Hbind.
-        inversions Hbind; inversions H; inversion H1; subst; try inversions H0; inversions H; subst; auto.
+        inversions Hbind. inversions H. inversions H1. inversions H1. inversions H0.
+        inversions H1. inversions H2. auto. inversions H2. inversions H1. auto. inversions H1. auto.
     SCase "binds <-> bot /\ valid". intros l d. splits.
       SSCase "->". intro Hbind.
-        inversions Hbind; inversions H; inversion H1; subst; try inversions H0; inversions H; subst; auto.
+        inversions Hbind. inversions H. inversions H1. inversions H1. inversions H0. inversions H.
+        inversions H1. inversions H. auto. inversions H. inversions H1. auto. inversions H1. auto.
       SSCase "<-". intro H.
         inversions H. apply decls_binds_inf with (dsl:=nil); auto. inversions H0; inversions H1; auto.
 Qed.
@@ -141,13 +156,6 @@ Proof.
   apply wfe_any with (DT:=decls_fin nil); auto using wf_top, expands_top.
 Qed.
 Hint Resolve wfe_top.
-
-Lemma wfe_fun : forall E S T, wf_env E -> wfe_tp E S -> wfe_tp E T -> wfe_tp E (tp_fun S T).
-Proof.
-  introv Henv HeS HeT.
-  apply wfe_any with (DT:=decls_fin nil); auto using wf_fun, expands_fun.
-Qed.
-Hint Resolve wfe_fun.
 
 (* ********************************************************************** *)
 (** ** Regularity *)

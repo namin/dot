@@ -8,7 +8,7 @@ Definition loc := var.
 Inductive tp : Set :=                         (* Type *)                 (* S, T, U, V *)
   | tp_sel : tm -> label -> tp                  (* type selection *)       (* p.L *)
   | tp_rfn : tp -> list (label * decl) -> tp    (* refinement *)           (* T { z => Ds } *)
-  | tp_fun : tp -> tp -> tp                     (* function type *)        (* T -> T *)
+(*| tp_fun : tp -> tp -> tp                     (* function type *)        (* T -> T *)*)
   | tp_and : tp -> tp -> tp                     (* intersection type *)    (* T /\ T *)
   | tp_or  : tp -> tp -> tp                     (* union type *)           (* T \/ T *)
   | tp_top : tp                                 (* top type *)             (* ⊤ *)
@@ -19,14 +19,16 @@ with tm : Set :=                              (* Term *)                 (* t *)
   | bvar : nat -> tm                            (* bound variable *)
   | fvar : var -> tm                            (* free variable *)
   | ref  : loc -> tm                            (* object reference *)
-  | lam  : tp -> tm -> tm                       (* function *)             (* λx:T.t *)
-  | app  : tm -> tm -> tm                       (* application *)          (* t t *)
+(*| lam  : tp -> tm -> tm                       (* function *)             (* λx:T.t *)*)
+(*| app  : tm -> tm -> tm                       (* application *)          (* t t *)*)
   | new  : tp -> list (label * tm) -> tm -> tm  (* new instance *)         (* val x = new c; t *)
   | sel  : tm -> label -> tm                    (* selection *)            (* t.l *)
+  | msel : tm -> label -> tm -> tm              (* method invocation *)    (* t m t *)
 
 with decl : Set :=                            (* Declaration *)          (* D *)
   | decl_tp : tp -> tp -> decl                  (* type declaration *)     (* L : S .. U *)
   | decl_tm : tp -> decl                        (* value declaration *)    (* l : T *)
+  | decl_mt : tp -> tp -> decl                  (* method declaration *)   (* m : S -> U *)
 .
 
 Inductive path : tm -> Prop :=
