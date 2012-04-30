@@ -111,4 +111,8 @@ assert (E |= S' ~<: tp_sel t l) as Ht1; eauto 3.
 assert (E |= tp_sel t l ~<: U') as Ht2; eauto 3.
 skip. (* TODO *)
 
+assert (E |= T ~<: tp_sel t l) as Ht1; eauto 3.
+assert (E |= tp_sel t l ~<: U') as Ht2; eauto 3.
+skip. (* TODO *)
+
 Qed.

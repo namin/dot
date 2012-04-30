@@ -207,9 +207,11 @@ Job :: '' ::=
  G , s |- p path> p' :: :: path_reduce:: path_red_ {{ com Path Reduction }} by
 
  x |-> Tc { </ defi // i /> } in s
- defi is l=v
+ defi is l=v'
+ v downto x
+ v' downto x'
  ---------------------------------- :: base
- G, s |- x.l path> v
+ G, s |- v.l path> x'
 
  --------------------- :: wid
  G, s |- p : T path> p
