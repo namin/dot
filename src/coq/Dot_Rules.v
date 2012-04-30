@@ -124,7 +124,7 @@ Inductive typing : env -> tm -> tp -> Prop :=
         (forall l d, decls_binds l d ds ->
           (forall S U, d ^d^ x = decl_tp S U -> (ctx_bind E x Tc) |= S ~<: U) /\
           (forall V, d ^d^ x = decl_tm V -> (exists v,
-            lbl.binds l v args /\ value (v ^ x) /\ (exists V', (ctx_bind E x Tc) |= (v ^ x) ~: V' /\ (ctx_bind E x Tc) |= V' ~<: V))))) ->
+            lbl.binds l v args /\ syn_value (v ^ x) /\ (exists V', (ctx_bind E x Tc) |= (v ^ x) ~: V' /\ (ctx_bind E x Tc) |= V' ~<: V))))) ->
       (forall x, x \notin L -> (ctx_bind E x Tc) |= t ^ x ~: T') ->
       E |= (new Tc args t) ~: T'
 where "E |= t ~: T" := (typing E t T)
