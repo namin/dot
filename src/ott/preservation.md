@@ -14,7 +14,7 @@ then $\exists [[G']], [[T']]$ such that
 * $[[G]] \subseteq [[G']]$
 * $[[G' |= s']]$
 * $[[G', s' |- t' : T']]$
-* $[[G', s' |- T' <: T]]$
+* $[[G', s' |- T' == T]]$
 
 Proof Sketch
 ------------
@@ -23,7 +23,7 @@ By induction on the derivation of $[[t|s --> t'|s']]$.
 
 ### Case **Red-New** ###
 
-$[[t]] = [[val x = new c; t']]$ where $[[c]] = [[Tc { </ mi(xi) = ti // i /> }]]$.
+$[[t]] = [[val x = new c; t']]$ where $[[c]] = [[Tc { </ defi // i /> }]]$.
 
 For $[[G, s |- t : T]]$, only the **Typ-New** rule applies.
 
@@ -37,99 +37,129 @@ By construction, $[[G]] \subseteq [[G']]$ and $[[G' |= s']]$.
 
 Through the **Typ-New** rule, we know that
 
-$[[G',s |- t' : T]]$
+$[[G', s |- t' : T]]$
 
-so $[[G',s' |- t' : T]]$, since $s \subseteq s'$, and the same derivation is possible.
+so $[[G', s' |- t' : T]]$, since $[[s]] \subseteq [[s']]$, and the same derivation is possible.
 
-Thus $T = T'$ and we are done.
+Thus $[[T]] = [[T']]$ and we are done.
 
-### Case **Red-Sel** ###
+### Case **Red-VSel** ###
 
-$[[t]] = [[x mi v]]$ where $[[x |-> Tc { </ mi(xi) = ti // i /> } in s]]$.
+$[[t]] = [[x.l]]$ where $[[x |-> Tc { </ defi // i /> } in s]]$ and $[[defi is l=v]]$.
 
-$s' = s$
+$[[G']] = [[G]]$ and $[[s']] = [[s]]$.
 
-$[[t']] = [[ [v/xi] ti ]]$
+$[[t']] = [[v]]$.
 
-For $[[G, s |- x mi v : T]]$, only the **Typ-Sel** rule applies. Premises:
+For $[[G, s |- x.l : T]]$, only the **Typ-VSel** rule applies, with premise: $[[G, s |- t mem l : T]]$.
 
-* $[[G, s |- x mem mi : S -> T]]$
+By $[[G |= s]]$: $\exists [[T']]$, such that
+
+* $[[G, s |- v : T']]$
+* $[[G, s |- T' == T]]$
+
+### Case **Red-MSel** ###
+
+$[[t]] = [[x m v]]$ where $[[x |-> Tc { </ defi // i /> } in s]]$ and $[[defi is m(x)=ti]]$.
+
+$[[s']] = [[s]]$.
+
+$[[t']] = [[ [v/x] ti ]]$
+
+For $[[G, s |- x m v : T]]$, only the **Typ-MSel** rule applies. Premises:
+
+* $[[G, s |- x mem m : S -> T]]$
 * $[[G, s |- v : S']]$
-* $[[G, s |- S' <: S]]$
+* $[[G, s |- S' == S]]$
     
-By $[[G |= s]]$: $\exists W$, such that
+By $[[G |= s]]$: $\exists [[W]]$, such that
 
-* $[[G, s |- S <: Ti]]$
-* $[[G, xi : Ti, s |- ti : W]]$
-* $[[G, xi : Ti, s |- W <: T]]$
+* $[[G, x : S, s |- ti : W]]$
+* $[[G, x : S, s |- W == T]]$
 
-#### Narrowing Lemma ####
+#### $[[==]]$ Lemma ####
 
 If
 
-* $[[G, xi : Ti, s |- ti : W]]$
-* $[[G, xi : Ti, s |- S' <: Ti]]$ (by transitivity of subtyping through $[[S]]$)
+* $[[G, x : S, s |- ti : W]]$
+* $[[G, x : S, s |- S' == S]]$
 
 then $\exists [[W']]$ such that
 
-* $[[G, xi : S', s |- ti : W']]$
-* $[[G, xi : S', s |- W' <: W]]$
-* If $[[G, xi : Ti, s |- W <: T]]$, then $[[G, xi : S', s |- W' <: T]]$.
+* $[[G, x : S', s |- ti : W']]$
+* $[[G, x : S', s |- W' == W]]$
+* If $[[G, x : S, s |- W == T]]$, then $[[G, x : S', s |- W' == T]]$.
     
 #### Substitution lemma ####
 
 If
 
-* $[[G, xi : S', s |- ti: W']]$
+* $[[G, x : S', s |- ti: W']]$
 * $[[G, s |- v : S']]$
 
 then $\exists [[W'']]$ such that
 
 * $[[G, s |- [v/xi] ti : W'']]$
-* $[[G, xi : S', s |- W'' <: W']]$
+* $[[G, xi : S', s |- W'' == W']]$
 
-The narrowing and substitution lemmas apply. $[[T']] = [[W'']]$.
+The $[[==]]$ and substitution lemmas apply. $[[T']] = [[W'']]$.
 	
 ### Case **Red-Ctx** ###
 
-There are two cases:
+There are four cases:
 
-1. $[[t1 m t2 | s --> t1' m t2 | s']]$
-2. $[[v1 m t2 | s --> v1 m t2' | s']]$
+1. $[[t1.l | s --> t1'.l | s']]$
+2. $[[t1 m t2 | s --> t1' m t2 | s']]$
+3. $[[v1 m t2 | s --> v1 m t2' | s']]$
+4. $[[t1 : T | s --> t1' : T | s']]$
 
-In both cases, only the **Typ-Sel** rule applies. Premises:
+For case 1, only the **Typ-VSel** rule applies, with premise:
+$[[G, s |- t1 mem l : T]]$. By induction hypothesis, $\exists [[G']],
+[[s']], [[T1']]$ such that $[[G', s' |- t1' : T1']]$ and
+$[[G', s' |- T1' == T1]]$ where $[[G, s |- t1 : T1]]$. The conclusion
+follows by the membership $[[==]]$ lemma.
+
+For cases 2 and 3, only the **Typ-Sel** rule applies. Premises:
 
 * $[[G, s |- t1 mem m : S1 -> T]]$
 * $[[G, s |- t2 : T2]]$
-* $[[G, s |- T2 <: S1]]$
+* $[[G, s |- T2 == S1]]$
 
-For case 2, by induction hypothesis, $\exists [[G']], [[T2']]$
-such that $[[G', s' |- t2': T2']]$ and
-$[[G', s' |- T2' <: T2]]$. By transitivity of subtyping on
-$[[T2]]$ (with strengthening of context),
-$[[G', s' |- T2' <: S1]]$. So the **Typ-Sel** rule applies with
-the result $[[T']] = [[T]]$.
+For case 3, by induction hypothesis, $\exists [[G']], [[s']], [[T2']]$
+such that $[[G', s' |- t2': T2']]$ and $[[G', s' |- T2' == T2]]$. By
+transitivity of $[[==]]$ on $[[T2]]$ (with strengthening of context),
+$[[G', s' |- T2' == S1]]$. So the **Typ-Sel** rule applies with the
+result $[[T']] = [[T]]$.
 	
-For case 1, by induction hypothesis, $\exists [[G']], [[T1']]$
-such that $[[G', s |- t1' : T1']]$ and $[[G', s' |- T1' <: T1]]$
-where $[[G,s |- t1 : T1]]$.
-    	
-#### Membership narrowing lemma ####
+For case 2, by induction hypothesis, $\exists [[G']], [[s']], [[T1']]$
+such that $[[G', s' |- t1' : T1']]$ and $[[G', s' |- T1' <: T1]]$ where
+$[[G, s |- t1 : T1]]$. The conclusion follows by the membership
+$[[==]]$ lemma.
+
+For case 4, only the **Typ-Wid** rule applies with premises:
+
+* $[[G, s |- t1 : T1]]$
+* $[[G, s |- T1 <: T]]$
+
+By induction hypothesis, $\exists [[G']], [[s']], [[T1']]$ such that
+$[[G', s' |- t1' : T1']]$ and $[[G', s' |- T1' == T1]]$. So,
+$[[G', s' |- T1' <: T]]$, and the **Typ-Wid** rule applies again with
+result $[[T']] = [[T]]$.
+
+#### Membership $[[==]]$ lemma ####
 
 If
 
 * $[[G, s |- t1 : T1]]$
 * $[[G, s |- t1' : T1']]$
-* $[[G, s |- T1' <: T1]]$
+* $[[G, s |- T1' == T1]]$
 * $[[G, s |- t1 mem m : S1 -> T]]$
     
 then $\exists [[S1']], [[T']]$ such that
 
 * $[[G, s |- t1' mem m : S1' -> T']]$
-* $[[G, s |- m : S1' -> T' <: m : S1 -> T]]$
-
-The narrowing membership lemma and **DSub-Value** and **Typ-Sel**
-rules apply, with result $[[T']]$.
+* $[[G, s |- S1 == S1']]$
+* $[[G, s |- T' == T]]$
 
 Substitution Lemma
 ==================
@@ -145,7 +175,7 @@ If
 then $\exists [[T']]$ such that
 
 * $[[G, s |- [v/x]t : T']]$
-* $[[G, x : S, s |- T' <: T]]$
+* $[[G, x : S, s |- T' == T]]$
 
 Proof Sketch
 ------------
@@ -160,14 +190,14 @@ If $[[z]] = [[x]]$, then $[[T]] = [[S]] = [[T']]$, since $[[ [v/x] z]]
 = [[ [v/x] x]] = [[x]]$. If $[[z]] \not= [[x]]$, then $[[ [v/x] z]] =
 [[z]]$, so $[[T]] = [[T']]$.
 
-### Case **Typ-Sel** ###
+### Case **Typ-MSel** ###
 
 $[[t]] = [[t1 m t2]]$. Premises:
 
 * $[[G, s |- t1 mem m1 : S1 -> T]]$
 * $[[G, s |- t1 : T1]]$
 * $[[G, s |- t2 : T2]]$
-* $[[G, s |- T2 <: S1]]$
+* $[[G, s |- T2 == S1]]$
 
 Let $[[ [v/x]t]] = [[t']] = [[t1' m t2']] = [[ [v/x]t1 m [v/x]t2]]$.
 
@@ -176,120 +206,33 @@ By induction hypothesis:
 * $[[G, s |- t2 : T2]]$ implies
 
   * $[[G, s |- t2' : T2']]$
-  * $[[G, s |- T2' <: T2']]$
+  * $[[G, s |- T2' == T2']]$
 
 * $[[G, s |- t1 : T1]]$ implies
 
   * $[[G, s |- t1' : T1']]$
-  * $[[G, s |- T1' <: T1']]$
+  * $[[G, s |- T1' == T1']]$
 
-By **membership narrowing lemma**:
+By **membership $[[==]]$ lemma**:
 
 * $[[G, s |- t1' mem m : S1' -> T']]$
-* $[[G, s |- m : S1' -> T' <: m : S1 -> T]]$
+* $[[G, s |- S1 == S1']]$
+* $[[G, s |- T' == T]]$
 
-By **declaration subsumption**:
-
-* $[[G, s |- S1 <: S1']]$
-* $[[G, s |- T' <: T]]$
-
-By transitivity of subtyping, the **Typ-Sel** rule applies with result $[[T']]$.
+The **Typ-MSel** rule applies with result $[[T']]$.
 
 ### Case **Typ-New** ###
 
-$[[t]] = [[val z = new Tc { </ mi(xi) = ti // i /> }; t0]]$
+$[[t]] = [[val z = new Tc { </ defi // i /> }; t0]]$
 
-$[[t']] = [[ [v/x]t]] = [[val z = new [v/x]Tc { </ mi(xi) = [v/x]ti // i /> }; [v/x]t0]]$
+$[[t']] = [[ [v/x]t]] = [[val z = new [v/x]Tc { </ [v/x]defi // i /> }; [v/x]t0]]$
 
 For the **Typ-New** rule to apply again, we need substitution to
 preserve the properties checked by the **Typ-New** rule. In
 particular, substitution must preserve good bounds and well-formed and
 expanding types.
 
-For well-formed and expanding types, this is not the case, when taking
-into account possible narrowing of the type of the substituted
-term. This leads to a counterexample to preservation:
-
-$[[ :concrete:
-val z0 = new Top { z =>
-                   L_a : Bottom .. Top { z =>
-                                         L1_a: Bottom .. Top,
-                                         L2_a: Bottom .. z.L1_a
-                                     }
-                 }
-             {};
-(app (fun (x: Top { z =>
-                    L_a : Bottom .. Top { z =>
-                                          L1_a: Bottom .. Top,
-                                          L2_a: Bottom .. Top
-                                        }
-                  }) Top
-           val z = new Top { z => l_m : x.L_a /\ Top { z =>
-                                           L1_a: Bottom .. z.L2_a,
-                                           L2_a: Bottom .. Top
-                                        } -> Top }
-                   {l_m(y) = (fun (x0: y.L1_a) Top x0)};
-		   z:Top)
-     z0)
-]]$
-
-The core issue is that expansion is not preserved by narrowing. Here
-is a counterexample which touches the expansion of the constructor
-required by the **Typ-New** rule.
-
-$[[ :concrete:
-val x0 = new Top { z =>
-                   L1_a : Bottom .. Top { z =>
-                                          L2_a : Bottom .. Top,
-                                          L3_a : Bottom .. Top,
-                                          C2_c : Bottom .. z.L2_a
-                                         }
-                 }{};
-val x1 = new Top { z =>
-                   C1_c : Bottom .. Top { z => L1_a : Bottom .. x0.L1_a }
-                 }{};
-val x2 = new x1.C1_c { z =>
-                       L1_a : Bottom .. x0.L1_a { z => L2_a : Bottom .. z.L3_a }
-                      }{};
-val x3 = new x1.C1_c { z =>
-                       L1_a : Bottom .. x0.L1_a { z => L3_a : Bottom .. z.L2_a }
-                      }{};
-(app (fun (x: x1.C1_c) Top
-          (fun (z0: x.L1_a /\ x3.L1_a) Top
-               val z = new z0.C2_c {}; z:Top
-          )
-     ) x2)
-]]$
-
-In fact, even well-formedness is not preserved by narrowing. By
-changing the first counterexample to operate on lower bounds instead
-of upper bounds for the self-references, we can concoct a
-counterexample where expansion is preserved but not well-formedness.
-
-$[[ :concrete:
-val z0 = new Top { z =>
-                   L_a : Bottom .. Top { z =>
-                                         L1_a: Bottom .. Top,
-                                         L2_a: z.L1_a .. Top
-                                     }
-                 }
-             {};
-(app (fun (x: Top { z =>
-                    L_a : Bottom .. Top { z =>
-                                          L1_a: Bottom .. Top,
-                                          L2_a: Bottom .. Top
-                                        }
-                  }) Top
-           val z = new Top { z => l_m : x.L_a /\ Top { z =>
-                                           L1_a: z.L2_a .. Top,
-                                           L2_a: Bottom .. Top
-                                        } -> Top }
-                   {l_m(y) = (fun (x0: y.L1_a) Top x0)};
-		   z:Top)
-     z0)
-]]$
-
-Narrowing Lemma
+$[[==]]$ Lemma
 ===============
 
 Statement
@@ -298,19 +241,19 @@ Statement
 If
 
 * $[[G, x : S, s |- t : T]]$
-* $[[G, s |- S' <: S]]$
+* $[[G, s |- S' == S]]$
 
 then $\exists [[T']]$ such that
 
 * $[[G, x : S', s |- t : T']]$
-* $[[G, x : S', s |- T' <: T]]$
+* $[[G, x : S', s |- T' == T]]$
 
 Proof Sketch
 ------------
 
-Similar to **substitution lemma**, stuck at **Typ-New**.
+TODO.
 
-Membership Narrowing Lemma
+Membership $[[==]]$ Lemma
 ==========================
 
 Statement
@@ -320,58 +263,18 @@ If
 
 * $[[G, s |- t : T]]$
 * $[[G, s |- t' : T']]$
-* $[[G, s |- T' <: T]]$
+* $[[G, s |- T' == T]]$
 * $[[G, s |- t mem m : S1 -> T1]]$
 * $[[G, s |- T' wfe]]$
 
 then $\exists [[S1']], [[T1']]$ such that
 
 * $[[G, s |- t' mem m : S1' -> T1']]$
-* $[[G, s |- m : S1' -> T1' <: m : S1 -> T1]]$
+* $[[G, s |- S1 == S1']]$
+* $[[G, s |- T1' == T1]]$
 
 Proof Sketch
 ------------
 
-Depends on **expansion narrowing lemma**.
+TODO.
 
-Expansion Narrowing Lemma
-=========================
-
-Statement
----------
-
-If
-
-* $[[G, s |- T expands z Dseq]]$
-* $[[G, s |- T' expands z Dseq']]$
-* $[[G, s |- T' <: T]]$
-
-then
-
-* $[[G, z : T', s |- Dseq' <: Dseq]]$
-
-Proof Sketch
-------------
-
-By induction on the derivation of $[[G, s |- T' <: T]]$. Todo.
-
-Subtyping Transitivity Narrowing Lemma
-======================================
-
-Statement
----------
-
-If
-
-* $[[G, x : S1, s |- T1 <: T2]]$
-* $[[G, x : S2, s |- T2 <: T3]]$
-* $[[G, s |- S2 <: S1]]$
-
-then
-
-* $[[G, x : S2, s |- T1 <: T3]]$
-
-Proof Sketch
-------------
-
-Todo.

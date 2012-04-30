@@ -43,8 +43,9 @@ constr, c :: constr_ ::= {{ com Constructor }}
   | Tc { </ defi // , // i IN 0 .. n /> } :: :: any
 
 def :: def_ ::= {{ com Definition }}
-  | l = v          :: :: value
-  | m ( x ) = t    :: :: method (+ bind x in t +)
+  | l = v              :: :: value
+  | m ( x ) = t        :: :: method (+ bind x in t +)
+  | [ t / x ] def      :: M:: subst {{ icho (subst_def [[t]] [[x]] [[def]]) }}
 
 gamma, G {{ tex \Gamma }} {{ ocaml gamma }} :: gamma_ ::=  {{ coq list (var*tp) }} {{ com Environment }}
   | []                 :: :: nil
