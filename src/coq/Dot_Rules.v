@@ -116,6 +116,8 @@ where "s |~ a ~>~ b  ~| s'" := (ev s a s' b).
 (* ********************************************************************** *)
 (** * #<a name="typing"></a># Typing *)
 
+(* Typ Equivalence *)
+Reserved Notation "E |= T ~= T'" (at level 69).
 (* Type Assigment *)
 Reserved Notation "E |= t ~: T" (at level 69).
 (* Membership *)
@@ -131,7 +133,14 @@ Reserved Notation "E |= t ~<: T" (at level 69).
 (* Well-formed declarations *)
 (* E |= D ~wf *)
 
-Inductive typing : env -> tm -> tp -> Prop :=
+Inductive same_tp : env -> tp -> tp -> Prop :=
+  | same_tp_any : forall E T T',
+      E |= T ~<: T' ->
+      E |= T' ~<: T ->
+      E |= T ~= T'
+where "E |= T ~= T'" := (same_tp E T T')
+
+with typing : env -> tm -> tp -> Prop :=
   | typing_var : forall G P x T,
       wf_env (G, P) ->
       lc_tp T ->
@@ -359,7 +368,8 @@ with wfe_tp : env -> tp -> Prop :=
 (* ********************************************************************** *)
 (** * #<a name="auto"></a># Automation *)
 
-Scheme typing_indm         := Induction for typing Sort Prop
+Scheme same_tp_indm        := Induction for same_tp Sort Prop
+  with typing_indm         := Induction for typing Sort Prop
   with mem_indm            := Induction for mem Sort Prop
   with expands_indm        := Induction for expands Sort Prop
   with sub_tp_indm         := Induction for sub_tp Sort Prop
@@ -369,26 +379,28 @@ Scheme typing_indm         := Induction for typing Sort Prop
   with wfe_tp_indm         := Induction for wfe_tp Sort Prop
 .
 
-Combined Scheme typing_mutind from typing_indm, mem_indm, expands_indm, sub_tp_indm, sub_decl_indm, wf_tp_indm, wf_decl_indm, wfe_tp_indm.
+Combined Scheme typing_mutind from same_tp_indm, typing_indm, mem_indm, expands_indm, sub_tp_indm, sub_decl_indm, wf_tp_indm, wf_decl_indm, wfe_tp_indm.
 
 Require Import LibTactics_sf.
-Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ :=
-  cut ((forall E t T (H: E |= t ~: T), (P0_ E t T H)) /\ 
-  (forall E t l d (H: E |= t ~mem~ l ~: d), (P1_ E t l d H)) /\
-  (forall E T DS (H: E |= T ~< DS), (P2_ E T DS H)) /\ 
-  (forall E T T' (H: E |= T ~<: T'), (P3_  E T T' H))  /\ 
-  (forall (e : env) (d d' : decl) (H : sub_decl e d d'), (P4_ e d d' H)) /\  
-  (forall (e : env) (t : tp) (H : wf_tp e t), (P5_ e t H)) /\  
-  (forall (e : env) (d : decl) (H : wf_decl e d), (P6_ e d H)) /\
-  (forall (e : env) (t : tp) (H : wfe_tp e t), (P7_ e t H))); [tauto | 
-    apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_); try unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_, P7_ in *; try clear P0_ P1_ P2_ P3_ P4_ P5_ P6_; [  (* only try unfolding and clearing in case the PN_ aren't just identifiers *)
-      Case "typing_var" | Case "typing_ref" | Case "typing_wid" | Case "typing_sel" | Case "typing_msel" | Case "typing_new" | Case "mem_path" | Case "mem_term" | Case "expands_rfn" | Case "expands_tsel" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "expands_bot" | Case "sub_tp_refl" | Case "sub_tp_rfn_r" | Case "sub_tp_rfn_l" | Case "sub_tp_tsel_r" | Case "sub_tp_tsel_l" | Case "sub_tp_and_r" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_tp_or_l" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "wf_rfn" | Case "wf_tsel_1" | Case "wf_tsel_2" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" | Case "wfe_any" ]; 
+Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ :=
+  cut ((forall E T T' (H: E |= T ~= T'), (P0_ E T T' H)) /\
+  (forall E t T (H: E |= t ~: T), (P1_ E t T H)) /\
+  (forall E t l d (H: E |= t ~mem~ l ~: d), (P2_ E t l d H)) /\
+  (forall E T DS (H: E |= T ~< DS), (P3_ E T DS H)) /\
+  (forall E T T' (H: E |= T ~<: T'), (P4_  E T T' H))  /\
+  (forall (e : env) (d d' : decl) (H : sub_decl e d d'), (P5_ e d d' H)) /\
+  (forall (e : env) (t : tp) (H : wf_tp e t), (P6_ e t H)) /\
+  (forall (e : env) (d : decl) (H : wf_decl e d), (P7_ e d H)) /\
+  (forall (e : env) (t : tp) (H : wfe_tp e t), (P8_ e t H))); [tauto |
+    apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_); try unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_, P7_, P8_ in *; try clear P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_; [  (* only try unfolding and clearing in case the PN_ aren't just identifiers *)
+      Case "same_tp_any" | Case "typing_var" | Case "typing_ref" | Case "typing_wid" | Case "typing_sel" | Case "typing_msel" | Case "typing_new" | Case "mem_path" | Case "mem_term" | Case "expands_rfn" | Case "expands_tsel" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "expands_bot" | Case "sub_tp_refl" | Case "sub_tp_rfn_r" | Case "sub_tp_rfn_l" | Case "sub_tp_tsel_r" | Case "sub_tp_tsel_l" | Case "sub_tp_and_r" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_tp_or_l" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "wf_rfn" | Case "wf_tsel_1" | Case "wf_tsel_2" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" | Case "wfe_any" ];
       introv; eauto ].
 
 
 Section TestMutInd.
 (* mostly reusable boilerplate for the mutual induction: *)
-  Let Ptyp (E: env) (t: tm) (T: tp) (H: E |=  t ~: T) := True.  
+  Let Psame (E: env) (T: tp) (T': tp) (H: E |=  T ~= T') := True.
+  Let Ptyp (E: env) (t: tm) (T: tp) (H: E |=  t ~: T) := True.
   Let Pmem (E: env) (t: tm) (l: label) (d: decl) (H: E |= t ~mem~ l ~: d) := True.
   Let Pexp (E: env) (T: tp) (DS : decls) (H: E |= T ~< DS) := True.
   Let Psub (E: env) (T T': tp) (H: E |= T ~<: T') := True.
@@ -396,6 +408,6 @@ Section TestMutInd.
   Let Pwft (E: env) (t: tp) (H: wf_tp E t) := True.
   Let Pwfd (E: env) (d: decl) (H: wf_decl E d) := True.
   Let Pwfe (E: env) (t: tp) (H: wfe_tp E t) := True.
-Lemma EnsureMutindTypingTacticIsUpToDate : True. 
-Proof. mutind_typing Ptyp Pmem Pexp Psub Psbd Pwft Pwfd Pwfe; intros; auto. Qed.
+Lemma EnsureMutindTypingTacticIsUpToDate : True.
+Proof. mutind_typing Psame Ptyp Pmem Pexp Psub Psbd Pwft Pwfd Pwfe; intros; auto. Qed.
 End TestMutInd.
