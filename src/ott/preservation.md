@@ -45,61 +45,64 @@ Thus $[[T]] = [[T']]$ and we are done.
 
 ### Case **Red-VSel** ###
 
-$[[t]] = [[x.l]]$ where $[[x |-> Tc { </ defi // i /> } in s]]$ and $[[defi is l=v]]$.
+$[[t]] = [[v.l]]$ where $[[x |-> Tc { </ defi // i /> } in s]]$,
+$[[defi is l=v']]$, $[[v downto x]]$.
 
 $[[G']] = [[G]]$ and $[[s']] = [[s]]$.
 
-$[[t']] = [[v]]$.
+$[[t']] = [[v']]$.
 
-For $[[G, s |- x.l : T]]$, only the **Typ-VSel** rule applies, with premise: $[[G, s |- t mem l : T]]$.
+For $[[G, s |- v.l : T]]$, only the **Typ-VSel** rule applies, with
+premise: $[[G, s |- v mem l : T]]$.
 
 By $[[G |= s]]$: $\exists [[T']]$, such that
 
-* $[[G, s |- v : T']]$
+* $[[G, s |- v' : T']]$
 * $[[G, s |- T' == T]]$
 
 ### Case **Red-MSel** ###
 
-$[[t]] = [[x m v]]$ where $[[x |-> Tc { </ defi // i /> } in s]]$ and $[[defi is m(x)=ti]]$.
+$[[t]] = [[v m v']]$ where $[[x |-> Tc { </ defi // i /> } in s]]$,
+$[[defi is m(xi)=ti]]$, $[[v downto x]]$.
 
 $[[s']] = [[s]]$.
 
-$[[t']] = [[ [v/x] ti ]]$
+$[[t']] = [[ [v'/xi] ti ]]$
 
-For $[[G, s |- x m v : T]]$, only the **Typ-MSel** rule applies. Premises:
+For $[[G, s |- v m v' : T]]$, only the **Typ-MSel** rule applies. Premises:
 
-* $[[G, s |- x mem m : S -> T]]$
-* $[[G, s |- v : S']]$
+* $[[G, s |- v mem m : S -> T]]$
+* $[[G, s |- v' : S']]$
 * $[[G, s |- S' == S]]$
     
 By $[[G |= s]]$: $\exists [[W]]$, such that
 
-* $[[G, x : S, s |- ti : W]]$
-* $[[G, x : S, s |- W == T]]$
+* $[[G, xi : S, s |- ti : W]]$
+* $[[G, xi : S, s |- W == T]]$
 
 #### $[[==]]$ Lemma ####
 
 If
 
-* $[[G, x : S, s |- ti : W]]$
-* $[[G, x : S, s |- S' == S]]$
+* $[[G, xi : S, s |- ti : W]]$
+* $[[G, xi : S, s |- S' == S]]$
 
 then $\exists [[W']]$ such that
 
-* $[[G, x : S', s |- ti : W']]$
-* $[[G, x : S', s |- W' == W]]$
-* If $[[G, x : S, s |- W == T]]$, then $[[G, x : S', s |- W' == T]]$.
+* $[[G, xi : S', s |- ti : W']]$
+* $[[G, xi : S', s |- W' == W]]$
+* If $[[G, xi : S, s |- W == T]]$, then $[[G, xi : S', s |- W' == T]]$.
     
 #### Substitution lemma ####
 
 If
 
-* $[[G, x : S', s |- ti: W']]$
-* $[[G, s |- v : S']]$
+* $[[G, xi : S', s |- ti: W']]$
+* $[[G, s |- v' : S']]$
 
 then $\exists [[W'']]$ such that
 
-* $[[G, s |- [v/xi] ti : W'']]$
+* $[[G, s |- [v'/xi] ti : W'']]$
 * $[[G, xi : S', s |- W'' == W']]$
 
 The $[[==]]$ and substitution lemmas apply. $[[T']] = [[W'']]$.
@@ -117,7 +120,7 @@ For case 1, only the **Typ-VSel** rule applies, with premise:
 $[[G, s |- t1 mem l : T]]$. By induction hypothesis, $\exists [[G']],
 [[s']], [[T1']]$ such that $[[G', s' |- t1' : T1']]$ and
 $[[G', s' |- T1' == T1]]$ where $[[G, s |- t1 : T1]]$. The conclusion
-follows by the membership $[[==]]$ lemma.
+follows by the membership-$[[==]]$ lemma.
 
 For cases 2 and 3, only the **Typ-Sel** rule applies. Premises:
 
@@ -132,9 +135,9 @@ $[[G', s' |- T2' == S1]]$. So the **Typ-Sel** rule applies with the
 result $[[T']] = [[T]]$.
 	
 For case 2, by induction hypothesis, $\exists [[G']], [[s']], [[T1']]$
-such that $[[G', s' |- t1' : T1']]$ and $[[G', s' |- T1' <: T1]]$ where
-$[[G, s |- t1 : T1]]$. The conclusion follows by the membership
-$[[==]]$ lemma.
+such that $[[G', s' |- t1' : T1']]$ and $[[G', s' |- T1' <: T1]]$
+where $[[G, s |- t1 : T1]]$. The conclusion follows by the
+membership-$[[==]]$ lemma.
 
 For case 4, only the **Typ-Wid** rule applies with premises:
 
@@ -146,19 +149,31 @@ $[[G', s' |- t1' : T1']]$ and $[[G', s' |- T1' == T1]]$. So,
 $[[G', s' |- T1' <: T]]$, and the **Typ-Wid** rule applies again with
 result $[[T']] = [[T]]$.
 
-#### Membership $[[==]]$ lemma ####
+#### Membership-$[[==]]$ lemma ####
 
 If
 
 * $[[G, s |- t1 : T1]]$
 * $[[G, s |- t1' : T1']]$
 * $[[G, s |- T1' == T1]]$
+
+and if
+
 * $[[G, s |- t1 mem m : S1 -> T]]$
     
 then $\exists [[S1']], [[T']]$ such that
 
 * $[[G, s |- t1' mem m : S1' -> T']]$
 * $[[G, s |- S1 == S1']]$
+* $[[G, s |- T' == T]]$
+
+or if
+
+* $[[G, s |- t1 mem l : T]]$
+
+then $\exists [[T']]$ such that
+
+* $[[G, s |- t1' mem l : T']]$
 * $[[G, s |- T' == T]]$
 
 Substitution Lemma
@@ -190,34 +205,48 @@ If $[[z]] = [[x]]$, then $[[T]] = [[S]] = [[T']]$, since $[[ [v/x] z]]
 = [[ [v/x] x]] = [[x]]$. If $[[z]] \not= [[x]]$, then $[[ [v/x] z]] =
 [[z]]$, so $[[T]] = [[T']]$.
 
+### Case **Typ-VSel** ###
+
+$[[t]] = [[t1.l]]$ with premises $[[G, s |- t1 mem l : T]]$ and $[[G, x : S, s |- t1 : T1]]$.
+
+Let $[[ [v/x]t]] = [[t']] = [[t1'.l]] = [[ [v/x]t1.l]]$.
+
+By induction hypothesis, $[[G, x : S, s |- t1 : T1]]$ implies
+$[[G, s |- t1' : T1']]$ and $[[G, x : S, s |- T1' == T1]]$.
+
+By the **membership-$[[==]]$ lemma**, $[[G, s |- t1' mem l : T']]$ and
+$[[G, x : S, s |- T' == T]]$.
+
+The **Typ-VSel** rule applies with result $[[T']]$.
+
 ### Case **Typ-MSel** ###
 
 $[[t]] = [[t1 m t2]]$. Premises:
 
-* $[[G, s |- t1 mem m1 : S1 -> T]]$
-* $[[G, s |- t1 : T1]]$
-* $[[G, s |- t2 : T2]]$
-* $[[G, s |- T2 == S1]]$
+* $[[G, x : S, s |- t1 mem m1 : S1 -> T]]$
+* $[[G, x : S, s |- t1 : T1]]$
+* $[[G, x : S, s |- t2 : T2]]$
+* $[[G, x : S, s |- T2 == S1]]$
 
 Let $[[ [v/x]t]] = [[t']] = [[t1' m t2']] = [[ [v/x]t1 m [v/x]t2]]$.
 
 By induction hypothesis:
 
-* $[[G, s |- t2 : T2]]$ implies
+* $[[G, x : S, s |- t2 : T2]]$ implies
 
   * $[[G, s |- t2' : T2']]$
-  * $[[G, s |- T2' == T2']]$
+  * $[[G, x : S, s |- T2' == T2]]$
 
-* $[[G, s |- t1 : T1]]$ implies
+* $[[G, x : S, s |- t1 : T1]]$ implies
 
   * $[[G, s |- t1' : T1']]$
-  * $[[G, s |- T1' == T1']]$
+  * $[[G, x : S, s |- T1' == T1]]$
 
-By **membership $[[==]]$ lemma**:
+By the **membership-$[[==]]$ lemma**:
 
 * $[[G, s |- t1' mem m : S1' -> T']]$
-* $[[G, s |- S1 == S1']]$
-* $[[G, s |- T' == T]]$
+* $[[G, x : S, s |- S1 == S1']]$
+* $[[G, x : S, s |- T' == T]]$
 
 The **Typ-MSel** rule applies with result $[[T']]$.
 
@@ -230,7 +259,19 @@ $[[t']] = [[ [v/x]t]] = [[val z = new [v/x]Tc { </ [v/x]defi // i /> }; [v/x]t0]
 For the **Typ-New** rule to apply again, we need substitution to
 preserve the properties checked by the **Typ-New** rule. In
 particular, substitution must preserve good bounds and well-formed and
-expanding types.
+expanding types. We rely on the fact that two $[[==]]$-equivalent
+types are indistingushable by judgements.
+
+### Case **Typ-Wid** ###
+
+$[[t]] = [[t1 : T]]$ with premises $[[G, s |- t1 : T1]]$ and
+$[[G, s |- T1 <: T]]$.
+
+Let $[[ [v/x]t]] = [[t']] = [[t1' : T']] = [[ [v/x]t1 : [v/x]T]]$.
+
+If $[[x notin fn(T)]]$, then straightforward by induction hypothesis.
+
+Otherwise, is $[[G, x : S, s |- [v/x] T == T]]$? TODO: is this case possible? TODO: then what?
 
 $[[==]]$ Lemma
 ===============
@@ -253,7 +294,7 @@ Proof Sketch
 
 TODO.
 
-Membership $[[==]]$ Lemma
+Membership-$[[==]]$ Lemma
 ==========================
 
 Statement
@@ -264,13 +305,25 @@ If
 * $[[G, s |- t : T]]$
 * $[[G, s |- t' : T']]$
 * $[[G, s |- T' == T]]$
-* $[[G, s |- t mem m : S1 -> T1]]$
 * $[[G, s |- T' wfe]]$
+
+and if
+
+* $[[G, s |- t mem m : S1 -> T1]]$
 
 then $\exists [[S1']], [[T1']]$ such that
 
 * $[[G, s |- t' mem m : S1' -> T1']]$
 * $[[G, s |- S1 == S1']]$
+* $[[G, s |- T1' == T1]]$
+
+or if
+
+* $[[G, s |- t mem l : T1]]$
+
+then $\exists [[T1']]$ such that
+
+* $[[G, s |- t' mem l : T1']]$
 * $[[G, s |- T1' == T1]]$
 
 Proof Sketch
