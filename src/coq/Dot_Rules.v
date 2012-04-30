@@ -162,7 +162,7 @@ with typing : env -> tm -> tp -> Prop :=
       method_label l ->
       E |= t ~mem~ l ~: (decl_mt S T) ->
       E |= t' ~: T' ->
-      E |= T' ~<: S ->
+      E |= T' ~= S ->
       E |= (msel t l t') ~: T
 (* | typing_app : forall E t t' S T T',
       E |= t ~: (tp_fun S T) ->
@@ -184,9 +184,9 @@ with typing : env -> tm -> tp -> Prop :=
           (forall S U, d ^d^ x = decl_tp S U -> (ctx_bind E x Tc) |= S ~<: U) /\
           (forall S U, d ^d^ x = decl_mt S U -> (exists v,
             lbl.binds l v args /\ (forall y, y \notin L' ->
-              syn_value ((v ^ x) ^ y) /\ (exists U', (ctx_bind (ctx_bind E x Tc) y S) |= ((v ^ x) ^ y) ~: U' /\ (ctx_bind (ctx_bind E x Tc) y S) |= U' ~<: U)))) /\
+              syn_value ((v ^ x) ^ y) /\ (exists U', (ctx_bind (ctx_bind E x Tc) y S) |= ((v ^ x) ^ y) ~: U' /\ (ctx_bind (ctx_bind E x Tc) y S) |= U' ~= U)))) /\
           (forall V, d ^d^ x = decl_tm V -> (exists v,
-            lbl.binds l v args /\ syn_value (v ^ x) /\ (exists V', (ctx_bind E x Tc) |= (v ^ x) ~: V' /\ (ctx_bind E x Tc) |= V' ~<: V))))) ->
+            lbl.binds l v args /\ syn_value (v ^ x) /\ (exists V', (ctx_bind E x Tc) |= (v ^ x) ~: V' /\ (ctx_bind E x Tc) |= V' ~= V))))) ->
       (forall x, x \notin L -> (ctx_bind E x Tc) |= t ^ x ~: T') ->
       E |= (new Tc args t) ~: T'
 where "E |= t ~: T" := (typing E t T)
