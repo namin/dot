@@ -122,6 +122,7 @@ terminals :: terminals_ ::=
   | fn                 :: :: fn {{ tex \text{\sl fn} }}
   | notin              :: :: notin {{ tex \not\in }}
   | ==                 :: :: equiv {{ tex \equiv }}
+  | downto             :: :: downto {{ tex \downarrow }}
 
 formula :: formula_    ::=
   | judgement          :: :: judgement
@@ -170,6 +171,16 @@ defns
 Job :: '' ::=
 
  defn
+ v downto x :: ::nowid:: nowid_ {{ com Remove Widening }} by
+
+ ---------- :: var
+ x downto x
+
+ v downto x
+ -------------- :: wid
+ v : T downto x
+
+ defn
  t | s --> t' | s' :: ::reduce:: red_ {{ com Reduction }} by
 
 
@@ -177,14 +188,16 @@ Job :: '' ::=
  val x = new c; t | s --> t | s, x |-> c
 
  x |-> Tc { </ defi // i /> } in s
- defi is l=v
+ defi is l=v'
+ v downto x
  --------------------------------- :: vsel
- x.l | s --> v | s
+ v.l | s --> v' | s
 
  x |-> Tc { </ defi // i /> } in s
- defi is m(x)=t
+ defi is m(x)=t'
+ v downto x
  --------------------------------- :: msel
- x m v | s --> [v/x] t | s
+ v m v' | s --> [v'/x] t' | s
 
  t | s --> t' | s'
  ----------------------- :: ctx
