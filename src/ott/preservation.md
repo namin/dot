@@ -60,6 +60,19 @@ By $[[G |= s]]$: $\exists [[T']]$, such that
 * $[[G, s |- v' : T']]$
 * $[[G, s |- T' == T]]$
 
+Counterexample: $[[ :concrete:
+  val v = new Top { z =>
+                    L_a : Bottom .. Top,
+                    l_v : Top { z => L_a : Bottom .. Top }
+                  }{l_v = v : Top { z => L_a : Bottom .. Top }};
+  (app (fun (x: Top) Top x)
+       ((v : Top { z => l_v : Top }).l_v))
+]]$.
+
+The problem is that the guarantee from $[[G |= s]]$ is with respect to
+the expansion of $[[Tc]]$, not the possibly widened type
+$[[v]]$. Ditto for the following case.
+
 ### Case **Red-MSel** ###
 
 $[[t]] = [[v m v']]$ where $[[x |-> Tc { </ defi // i /> } in s]]$,
