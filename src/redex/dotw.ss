@@ -1189,3 +1189,28 @@
        (sel (as (refinement Top z (: (label-method m) (refinement Top z (: (label-method m) Top Top)) Top)) v)
             (label-method m)
             v)))))
+
+#;
+(preservation
+ (term
+  (valnew (v ((refinement Top z
+                          (: (label-abstract-type A) Top Top)
+                          (: (label-method m) (refinement Top z (: (label-abstract-type A) Top Top)) (refinement Top z (: (label-abstract-type A) Top Top))))
+             ((label-method m) x x)))
+  (app (fun (x Top) Top x)
+       (sel (as (refinement Top z (: (label-method m) (refinement Top z (: (label-abstract-type A) Top Top)) Top)) v)
+            (label-method m)
+            (as (refinement Top z (: (label-abstract-type A) Top Top)) v))))))
+
+#;
+(preservation
+ (term
+  (valnew (v ((refinement Top z
+                          (: (label-abstract-type A) Top Top)
+                          (: (label-abstract-type B) Bottom Top)
+                          (: (label-method m) (refinement Top z (: (label-abstract-type A) Top Top)) (refinement Top z (: (label-abstract-type A) Top Top))))
+             ((label-method m) x x)))
+  (app (fun (x Top) Top x)
+       (sel (as (refinement Top z (: (label-method m) (refinement Top z (: (label-abstract-type A) Top Top) (: (label-abstract-type B) Bottom Top)) Top)) v)
+            (label-method m)
+            (as (refinement Top z (: (label-abstract-type A) Top Top) (: (label-abstract-type B) Bottom Top)) v))))))
