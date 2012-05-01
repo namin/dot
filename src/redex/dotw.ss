@@ -831,11 +831,10 @@
                  (let ((t_new (typecheck (term (() ,store_to)) e_to)))
                    (if (and t_new
                             ;(judgment-holds (env-consistent (() ,store_to)))
-                            (judgment-holds (subtype (() ,store_to) ,t_new ,t))
-                            (loop e_to store_to t_new))
-                       t_new
+                            (judgment-holds (subtype (() ,store_to) ,t_new ,t)))
+                       (loop e_to store_to t_new)
                        (begin
-                         (printf "store: ~a\nterm:~a\n~a\nnot a subtype of\n~a" store_to e_to t_new t)
+                         (printf "\nstore: ~a\nterm:~a\n~a\nnot a subtype of\n~a\n" store_to e_to t_new t)
                          #f)))]
                 [_ (error 'preservation "expect reducible typed (~a) term ~a\nstore:~a" t e store)]))))
       #t))
@@ -1172,3 +1171,11 @@
                         ((label-method l) y (as Top (fun (a (sel y (label-abstract-type A))) Top a)))))
                     (cast Top z)))
        (as (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top)))) v)))))
+
+#;
+(preservation
+ (term
+  (valnew (v ((refinement Top z (: (label-abstract-type L) Bottom Top) (: (label-value l) (refinement Top z (: (label-abstract-type L) Bottom Top))))
+              ((label-value l) (as (refinement Top z (: (label-abstract-type L) Bottom Top)) v))))
+  (app (fun (x Top) Top x)
+       (sel (as (refinement Top z (: (label-value l) Top)) v) (label-value l))))))
