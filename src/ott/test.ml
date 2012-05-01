@@ -10,5 +10,26 @@ let ex1 = [[ :concrete:
        ((v : Top { z => l_v : Top }).l_v))
 ]]
 
+let ex2 = [[ :concrete:
+  val v = new Top { z =>
+                    A_a : Top .. Top,
+                    B_a : Bottom .. Top,
+                    m_m : Top { z => A_a : Top .. Top } -> Top { z => A_a : Top .. Top }
+                   }{m_m(x)=x};
+  (app (fun (x: Top) Top x)
+       ((v : Top { z => m_m : Top { z =>
+                                    A_a : Top .. Top,
+                                    B_a : Bottom .. Top
+                                   }
+                              ->
+                              Top })
+        m_m
+        (v : Top { z =>
+                   A_a : Top .. Top,
+                   B_a : Bottom .. Top
+                 })))
+]]
+
 let _ =
   print_string(toredex_preservation(ex1));
+  print_string(toredex_preservation(ex2));

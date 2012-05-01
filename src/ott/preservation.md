@@ -93,6 +93,26 @@ By $[[G |= s]]$: $\exists [[W]]$, such that
 * $[[G, xi : S, s |- ti : W]]$
 * $[[G, xi : S, s |- W == T]]$
 
+Counterexample: $[[ :concrete:
+  val v = new Top { z =>
+                    A_a : Top .. Top,
+                    B_a : Bottom .. Top,
+                    m_m : Top { z => A_a : Top .. Top } -> Top { z => A_a : Top .. Top }
+                   }{m_m(x)=x};
+  (app (fun (x: Top) Top x)
+       ((v : Top { z => m_m : Top { z =>
+                                    A_a : Top .. Top,
+                                    B_a : Bottom .. Top
+                                   }
+                              ->
+                              Top })
+        m_m
+        (v : Top { z =>
+                   A_a : Top .. Top,
+                   B_a : Bottom .. Top
+                 })))
+]]$.
+
 #### $[[==]]$ Lemma ####
 
 If

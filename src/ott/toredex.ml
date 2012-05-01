@@ -8,7 +8,7 @@ toredex_tm t = match t with
   | (Tm_vsel (t,l)) ->
     "(sel "^(toredex_tm t)^" "^(toredex_vlabel l)^")"
   | (Tm_msel (t,m,t')) ->
-    "("^(toredex_tm t)^" "^(toredex_mlabel m)^" "^(toredex_tm t')^")"
+    "(sel "^(toredex_tm t)^" "^(toredex_mlabel m)^" "^(toredex_tm t')^")"
   | (Tm_lam (x,tyT,tyT',t)) ->
     "(fun ("^x^" "^(toredex_tp tyT)^") "^(toredex_tp tyT')^" "^(toredex_tm t)^")"
   | (Tm_app (t,t')) ->
