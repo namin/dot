@@ -1179,3 +1179,13 @@
               ((label-value l) (as (refinement Top z (: (label-abstract-type L) Bottom Top)) v))))
   (app (fun (x Top) Top x)
        (sel (as (refinement Top z (: (label-value l) Top)) v) (label-value l))))))
+
+#;
+(preservation
+ (term
+  (valnew (v ((refinement Top z (: (label-method m) Top Top))
+              ((label-method m) x x)))
+  (app (fun (x Top) Top x)
+       (sel (as (refinement Top z (: (label-method m) (refinement Top z (: (label-method m) Top Top)) Top)) v)
+            (label-method m)
+            v)))))
