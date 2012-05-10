@@ -530,6 +530,8 @@
    (where (S_p U_p) any_bound)
    (side-condition (term (is_subtype ((T_a T_b) ... ((sel p Lt) U_1)) env S_p U_p)))
    (side-condition (term (is_subtype ((T_a T_b) ... ((sel p Lt) U_1)) env U_p U_1)))]
+  [(is_subtype ((T_a T_b) ...) env (sel (as T_1 p_1) Lt) (sel (as T_2 p_2) Lt)) #t
+   (side-condition (term (is_subtype ((T_a T_b) ...) env T_1 T_2)))]
   [(is_subtype ((T_a T_b) ...) env T_o (intersection T_1 T_2)) #t
    (side-condition (term (is_subtype ((T_a T_b) ... (T_o (intersection T_1 T_2))) env T_o T_1)))
    (side-condition (term (is_subtype ((T_a T_b) ... (T_o (intersection T_1 T_2))) env T_o T_2)))]
@@ -1141,7 +1143,19 @@
                     (valnew (z ((sel x (label-class L)))) (cast Top z)))
                v))))
 
-;; FAIL
+#;
+(preservation
+ (term
+  (valnew (v ((refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A))))))))
+  (app (fun (x (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top))))) Top
+            (valnew (z ((refinement Top z (: (label-method l)
+                                             (sel x (label-abstract-type L))
+                                             Top))
+                        ((label-method l) (y (sel x (label-abstract-type L)))
+                                          (as Top y))))
+                    (cast Top z)))
+       v))))
+
 #;
 (preservation
  (term
@@ -1159,7 +1173,6 @@
                     (cast Top z)))
        (as (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top)))) v)))))
 
-;; FAIL
 #;
 (preservation
  (term
@@ -1181,7 +1194,6 @@
                          (cast Top z))))
        (as (sel x0 (label-class Lc1)) x1))))))))
 
-;; FAIL
 #;
 (preservation
  (term
