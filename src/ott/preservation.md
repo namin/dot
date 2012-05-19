@@ -46,11 +46,11 @@ Thus $[[T]] = [[T']]$ and we are done.
 ### Case **Red-VSel** ###
 
 $[[t]] = [[v.l]]$ where $[[x |-> Tc { </ defi // i /> } in s]]$,
-$[[defi is l=v']]$, $[[v downto x]]$.
+$[[defi is l=v']]$, $[[v downto x]]$, $[[propagate_widening_value s v l v' v'']]$.
 
 $[[G']] = [[G]]$ and $[[s']] = [[s]]$.
 
-$[[t']] = [[v']]$.
+$[[t']] = [[v'']]$.
 
 For $[[G, s |- v.l : T]]$, only the **Typ-VSel** rule applies, with
 premise: $[[G, s |- v mem l : T]]$.
@@ -60,27 +60,16 @@ By $[[G |= s]]$: $\exists [[T']]$, such that
 * $[[G, s |- v' : T']]$
 * $[[G, s |- T' == T]]$
 
-Counterexample: $[[ :concrete:
-  val v = new Top { z =>
-                    L_a : Bottom .. Top,
-                    l_v : Top { z => L_a : Bottom .. Top }
-                  }{l_v = v : Top { z => L_a : Bottom .. Top }};
-  (app (fun (x: Top) Top x)
-       ((v : Top { z => l_v : Top }).l_v))
-]]$.
-
-The problem is that the guarantee from $[[G |= s]]$ is with respect to
-the expansion of $[[Tc]]$, not the possibly widened type
-$[[v]]$. Ditto for the following case.
+Because we propagate the widening, $\exists [[T'']]$, such that
+* $[[G, s |- v'' : T']]$
+* $[[G, s |- T'' == T']]$
 
 ### Case **Red-MSel** ###
 
 $[[t]] = [[v m v']]$ where $[[x |-> Tc { </ defi // i /> } in s]]$,
-$[[defi is m(xi)=ti]]$, $[[v downto x]]$.
+$[[defi is m(xi)=ti]]$, $[[v downto x]]$, $[[propagate_widening_method s v m v' xi ti t']]$.
 
 $[[s']] = [[s]]$.
-
-$[[t']] = [[ [v'/xi] ti ]]$
 
 For $[[G, s |- v m v' : T]]$, only the **Typ-MSel** rule applies. Premises:
 
@@ -93,25 +82,9 @@ By $[[G |= s]]$: $\exists [[W]]$, such that
 * $[[G, xi : S, s |- ti : W]]$
 * $[[G, xi : S, s |- W == T]]$
 
-Counterexample: $[[ :concrete:
-  val v = new Top { z =>
-                    A_a : Top .. Top,
-                    B_a : Bottom .. Top,
-                    m_m : Top { z => A_a : Top .. Top } -> Top { z => A_a : Top .. Top }
-                   }{m_m(x)=x};
-  (app (fun (x: Top) Top x)
-       ((v : Top { z => m_m : Top { z =>
-                                    A_a : Top .. Top,
-                                    B_a : Bottom .. Top
-                                   }
-                              ->
-                              Top })
-        m_m
-        (v : Top { z =>
-                   A_a : Top .. Top,
-                   B_a : Bottom .. Top
-                 })))
-]]$.
+Because we propagate the widening, $\exists [[T']]$, such that
+* $[[G, s |- t' : T']]$
+* $[[G, s |- T' == W]]$
 
 #### $[[==]]$ Lemma ####
 
