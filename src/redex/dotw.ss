@@ -192,13 +192,15 @@
    (where e_s (subst e_i x_i loc_new))
    (where store_s (store-extend store_i (subst c_i x_i loc_new)))
    (where (v_f store_f) (ev store_s e_s))]
-  [(ev store_i (sel e_i l_i)) (v_f store_f)
+  [(ev store_i (sel e_i l_i)) (v_cf store_f)
    (where (v_i store_f) (ev store_i e_i))
    (where (location i_f) (to-location v_i))
    (where c_f (store-lookup store_f i_f))
    (judgment-holds (found c_f #t))
    (where v_f (value-label-lookup c_f l_i))
-   (judgment-holds (found v_f #t))]
+   (judgment-holds (found v_f #t))
+   (where v_cf (cast-sel-value store_f v_i l_i v_f))
+   (judgment-holds (found v_cf #t))]
   [(ev store_i (sel e_i1 m_i e_i2)) (v_f store_f)
    (where (v_1 store_1) (ev store_i e_i1))
    (where (location i_1) (to-location v_1))
@@ -208,7 +210,9 @@
    (judgment-holds (found any_lookup #t))
    (where (x e_11) any_lookup)
    (where (v_2 store_2) (ev store_1 e_i2))
-   (where (v_f store_f) (ev store_2 (subst e_11 x v_2)))]
+   (where e_f (cast-sel-method store_2 v_1 m_i v_2 x e_11))
+   (judgment-holds (found e_f #t))
+   (where (v_f store_f) (ev store_2 e_f))]
   [(ev store_i (as T e_i)) ((as T v_f) store_f)
    (where (v_f store_f) (ev store_i e_i))])
 
