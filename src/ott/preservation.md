@@ -61,6 +61,7 @@ By $[[G |= s]]$: $\exists [[T']]$, such that
 * $[[G, s |- T' == T]]$
 
 Because we propagate the widening, $\exists [[T'']]$, such that
+
 * $[[G, s |- v'' : T']]$
 * $[[G, s |- T'' == T']]$
 

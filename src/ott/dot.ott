@@ -125,6 +125,8 @@ terminals :: terminals_ ::=
   | notin              :: :: notin {{ tex \not\in }}
   | ==                 :: :: equiv {{ tex \equiv }}
   | downto             :: :: downto {{ tex \downarrow }}
+  | propagate_widening_value :: :: pwv {{ tex \uparrow_v }}
+  | propagate_widening_method :: :: pwm {{ tex \uparrow_m }}
 
 formula :: formula_    ::=
   | judgement          :: :: judgement
@@ -183,7 +185,7 @@ Job :: '' ::=
  v : T downto x
 
  defn
- propagate_widening_value s v l v' v'' :: ::propagate_widening_value:: propagate_widening_value_ {{ com Propagate Widening }} by
+ propagate_widening_value s v l v' v'' :: ::propagate_widening_value:: pwv_ {{ com Propagate Widening for Value Selections }} by
 
  ------------------------------------ :: var
  propagate_widening_value s x l v' v'
@@ -193,7 +195,7 @@ Job :: '' ::=
  propagate_widening_value s (v : T) l v' (v' : T')
 
  defn
- propagate_widening_method s v m v' x' t' t'' :: ::propagate_widening_method:: propagate_widening_method_ {{ com Propagate Widening }} by
+ propagate_widening_method s v m v' x' t' t'' :: ::propagate_widening_method:: pwm_ {{ com Propagate Widening for Method Invocations }} by
 
  ---------------------------------------------------- :: var
  propagate_widening_method s x m v' x' t' ([v'/x']t')
