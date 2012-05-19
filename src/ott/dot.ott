@@ -21,6 +21,7 @@ alabel, La {{ tex {L_a} }} {{ ocaml tLa }} :: alabel_ ::= {{ com abstract type l
 v :: v_                ::= {{ com Value }}
   | x                  :: :: var {{ com variable }}
   | v : T              :: :: wid {{ com widening }}
+  | ( v )              :: S:: paren {{ icho [[v]] }}
 
 tm, t :: Tm_           ::= {{ com Term }}
   | x                  :: :: var {{ com value }}
@@ -38,6 +39,7 @@ path, p :: path_       ::= {{ com Path }}
   | x                  :: :: var
   | p : T              :: :: wid
   | p . l              :: :: vsel
+  | ( p )              :: S:: paren {{ icho [[p]] }}
 
 constr, c :: constr_ ::= {{ com Constructor }}
   | Tc { </ defi // , // i IN 0 .. n /> } :: :: any
@@ -181,6 +183,26 @@ Job :: '' ::=
  v : T downto x
 
  defn
+ propagate_widening_value s v l v' v'' :: ::propagate_widening_value:: propagate_widening_value_ {{ com Propagate Widening }} by
+
+ ------------------------------------ :: var
+ propagate_widening_value s x l v' v'
+
+ [], s |- (v : T) mem l : T'
+ ------------------------------------------------ :: wid
+ propagate_widening_value s (v : T) l v' (v' : T')
+
+ defn
+ propagate_widening_method s v m v' x' t' t'' :: ::propagate_widening_method:: propagate_widening_method_ {{ com Propagate Widening }} by
+
+ ---------------------------------------------------- :: var
+ propagate_widening_method s x m v' x' t' ([v'/x']t')
+
+ [], s |- (v : T) mem m : S' -> T'
+ ------------------------------------------------------------------- :: wid
+ propagate_widening_method s (v : T) m v' x' t' (([(v':S')/x']t') : T')
+
+ defn
  t | s --> t' | s' :: ::reduce:: red_ {{ com Reduction }} by
 
 
@@ -190,14 +212,16 @@ Job :: '' ::=
  x |-> Tc { </ defi // i /> } in s
  defi is l=v'
  v downto x
- --------------------------------- :: vsel
- v.l | s --> v' | s
+ propagate_widening_value s v l v' v''
+ ------------------------------------- :: vsel
+ v.l | s --> v'' | s
 
  x |-> Tc { </ defi // i /> } in s
  defi is m(x)=t'
  v downto x
- --------------------------------- :: msel
- v m v' | s --> [v'/x] t' | s
+ propagate_widening_method s v m v' x t' t''
+ ------------------------------------------- :: msel
+ v m v' | s --> t'' | s
 
  t | s --> t' | s'
  ----------------------- :: ctx
