@@ -134,24 +134,42 @@
   [(found #f #f)]
   [(found (side-condition any (term any)) #t)])
 
+(define-metafunction dot
+  cast-sel-value : store v l v -> v or #f
+  [(cast-sel-value store (location i) l v) v]
+  [(cast-sel-value store v_i l v_f) (as T v_f)
+   (where T (membership-value-lookup (() store) v_i l))]
+  [(cast-sel-value store v_i l v_f) #f])
+
+(define-metafunction dot
+  cast-sel-method : store v m v x e -> e or #f
+  [(cast-sel-method store (location i) m v x e) (subst e x v)]
+  [(cast-sel-method store v_r m v x e) (as T (subst e x (as S v)))
+   (where (S T) (membership-method-lookup (() store) v_r m))]
+  [(cast-sel-method store v_r m v x e) #f])
+   
 (define-judgment-form dot
   #:mode (red I I O O)
   #:contract (red store e e store)
   [(red store (in-hole ec (valnew (x c) e)) (in-hole ec (subst e x loc_new)) (store-extend store (subst c x loc_new)))
    (where loc_new (store-fresh-location store))] ;; (New)
-  [(red store (in-hole ec (sel v_i l)) (in-hole ec v) store) ;; (VSel)
+  [(red store (in-hole ec (sel v_i l)) (in-hole ec v_f) store) ;; (VSel)
    (where (location i) (to-location v_i))
    (where c (store-lookup store i))
    (found c #t)
    (where v (value-label-lookup c l))
-   (found v #t)]
-  [(red store (in-hole ec (sel v_i m v)) (in-hole ec (subst e x v)) store) ;; (MSel/βv)
+   (found v #t)
+   (where v_f (cast-sel-value store v_i l v))
+   (found v_f #t)]
+  [(red store (in-hole ec (sel v_i m v)) (in-hole ec e_f) store) ;; (MSel/βv)
    (where (location i) (to-location v_i))
    (where c (store-lookup store i))
    (found c #t)
    (where any_lookup (method-label-lookup c m))
    (found any_lookup #t)
-   (where (x e) any_lookup)])
+   (where (x e) any_lookup)
+   (where e_f (cast-sel-method store v_i m v x e))
+   (found e_f #t)])
 
 (define red-rr
   (reduction-relation
