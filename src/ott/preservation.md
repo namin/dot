@@ -46,7 +46,7 @@ Thus $[[T]] = [[T']]$ and we are done.
 ### Case **Red-VSel** ###
 
 $[[t]] = [[v.l]]$ where $[[x |-> Tc { </ defi // i /> } in s]]$,
-$[[defi is l=v']]$, $[[v downto x]]$, $[[propagate_widening_value s v l v' v'']]$.
+$[[defi is l=v']]$, $[[v downto x]]$, $[[s |- v.l | v' up_value v'']]$.
 
 $[[G']] = [[G]]$ and $[[s']] = [[s]]$.
 
@@ -68,7 +68,7 @@ Because we propagate the widening, $\exists [[T'']]$, such that
 ### Case **Red-MSel** ###
 
 $[[t]] = [[v m v']]$ where $[[x |-> Tc { </ defi // i /> } in s]]$,
-$[[defi is m(xi)=ti]]$, $[[v downto x]]$, $[[propagate_widening_method s v m v' xi ti t']]$.
+$[[defi is m(xi)=ti]]$, $[[v downto x]]$, $[[s |- v.m(v') | \xi.ti up_method t']]$.
 
 $[[s']] = [[s]]$.
 

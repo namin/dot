@@ -125,8 +125,10 @@ terminals :: terminals_ ::=
   | notin              :: :: notin {{ tex \not\in }}
   | ==                 :: :: equiv {{ tex \equiv }}
   | downto             :: :: downto {{ tex \downarrow }}
-  | propagate_widening_value :: :: pwv {{ tex \uparrow_v }}
-  | propagate_widening_method :: :: pwm {{ tex \uparrow_m }}
+  | up_value           :: :: pwv {{ tex \uparrow_v }}
+  | up_method          :: :: pwm {{ tex \uparrow_m }}
+  | \                  :: :: lambda {{ tex \lambda }}
+  | '|'                :: :: bar {{ tex \,|\, }}
 
 formula :: formula_    ::=
   | judgement          :: :: judgement
@@ -185,24 +187,24 @@ Job :: '' ::=
  v : T downto x
 
  defn
- propagate_widening_value s v l v' v'' :: ::propagate_widening_value:: pwv_ {{ com Propagate Widening for Value Selections }} by
+s |- v . l | v' up_value v'' :: ::up_value:: up_value_ {{ com Propagate Widening for Value Selections }} by
 
  ------------------------------------ :: var
- propagate_widening_value s x l v' v'
+s |- x.l | v' up_value v'
 
  [], s |- (v : T) mem l : T'
  ------------------------------------------------ :: wid
- propagate_widening_value s (v : T) l v' (v' : T')
+s |- (v : T).l | v' up_value (v' : T')
 
  defn
- propagate_widening_method s v m v' x' t' t'' :: ::propagate_widening_method:: pwm_ {{ com Propagate Widening for Method Invocations }} by
+s |- v . m ( v' ) | \ x' . t' up_method t'' :: ::up_method:: up_method_ {{ com Propagate Widening for Method Invocations }} by
 
  ---------------------------------------------------- :: var
- propagate_widening_method s x m v' x' t' ([v'/x']t')
+s |- x.m(v') | \x'.t' up_method ([v'/x']t')
 
  [], s |- (v : T) mem m : S' -> T'
  ------------------------------------------------------------------- :: wid
- propagate_widening_method s (v : T) m v' x' t' (([(v':S')/x']t') : T')
+s |- (v : T).m(v') | \x'.t' up_method (([(v':S')/x']t') : T')
 
  defn
  t | s --> t' | s' :: ::reduce:: red_ {{ com Reduction }} by
@@ -214,14 +216,14 @@ Job :: '' ::=
  x |-> Tc { </ defi // i /> } in s
  defi is l=v'
  v downto x
- propagate_widening_value s v l v' v''
+ s |- v.l | v' up_value v''
  ------------------------------------- :: vsel
  v.l | s --> v'' | s
 
  x |-> Tc { </ defi // i /> } in s
  defi is m(x)=t'
  v downto x
- propagate_widening_method s v m v' x t' t''
+ s |- v.m(v') | \x.t' up_method t''
  ------------------------------------------- :: msel
  v m v' | s --> t'' | s
 
