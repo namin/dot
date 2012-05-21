@@ -6,6 +6,31 @@ Require Export Dot_Syntax Dot_Definitions.
 
 (* ********************************************************************** *)
 (** * #<a name="red"></a># Reduction *)
+Reserved Notation "s |~ a ~~> b  ~| s'" (at level 60).
+
+(* ********************************************************************** *)
+(** * #<a name="ev"></a># Evaluation *)
+Reserved Notation "s |~ a ~>~ b ~| s'" (at level 60).
+
+(* ********************************************************************** *)
+(** * #<a name="typing"></a># Typing *)
+(* Type Equivalence *)
+Reserved Notation "E |= T ~= T'" (at level 69).
+(* Type Assigment *)
+Reserved Notation "E |= t ~: T" (at level 69).
+(* Membership *)
+Reserved Notation "E |= t ~mem~ l ~: D" (at level 69).
+(* Expansion *)
+Reserved Notation "E |= T ~< DS" (at level 69).
+(* Subtyping *)
+Reserved Notation "E |= t ~<: T" (at level 69).
+(* Declaration subsumption *)
+(* E |= D ~<: D' *)
+(* Well-formed types *)
+(* E |= T ~wf~ *)
+(* Well-formed declarations *)
+(* E |= D ~wf *)
+
 
 Inductive value_to_ref : tm -> tm -> Prop :=
   | value_to_ref_ref : forall a, value_to_ref (ref a) (ref a)
@@ -29,9 +54,27 @@ Inductive path_red : env -> tm -> tm -> Prop :=
      path_red E (sel p l) (sel p' l)
 .
 
-Reserved Notation "s |~ a ~~> b  ~| s'" (at level 60).
+Inductive up_value : store -> tm -> label -> tm -> tm -> Prop :=
+  | up_value_var : forall s a l v,
+     value_label l ->
+     up_value s (ref a) l v v
+  | up_value_wid : forall s v T l v' T',
+     value_label l ->
+     value v ->
+     (nil, s) |= (wid v T) ~mem~ l ~: (decl_tm T') ->
+     up_value s (wid v T) l v' (wid v' T')
 
-Inductive red : store -> tm -> store -> tm -> Prop :=
+with up_method : store -> tm -> label -> tm -> tm -> tm -> Prop :=
+  | up_method_var : forall s a m v t,
+     method_label m ->
+     up_method s (ref a) m v t (t ^^ v)
+  | up_method_wid : forall s v T m v' t' S' T',
+     method_label m ->
+     value v ->
+     (nil, s) |= (wid v T) ~mem~ m ~: (decl_mt S' T') ->
+     up_method s (wid v T) m v' t' (wid (t' ^^ (wid v' S')) T')
+
+with red : store -> tm -> store -> tm -> Prop :=
 (*| red_beta : forall s T t v,
      wf_store s ->
      lc_tm (lam T t) ->
@@ -45,7 +88,7 @@ Inductive red : store -> tm -> store -> tm -> Prop :=
      value v ->
      s |~        e ~~> e'        ~| s' ->
      s |~  app v e ~~> app v e'  ~| s'*)
-  | red_msel : forall s a Tc ags l t v v',
+  | red_msel : forall s a Tc ags l t v v' t',
      wf_store s ->
      binds a (Tc, ags) s ->
      lbl.binds l t ags ->
@@ -53,7 +96,8 @@ Inductive red : store -> tm -> store -> tm -> Prop :=
      value v' ->
      value v ->
      value_to_ref v (ref a) ->
-     s |~ (msel v l v') ~~> (t ^^ v') ~| s
+     up_method s v l v' t t' ->
+     s |~ (msel v l v') ~~> t' ~| s
   | red_msel_tgt1 : forall s s' l e1 e2 e1',
      s |~             e1 ~~> e1'             ~| s' ->
      s |~ (msel e1 l e2) ~~> (msel e1' l e2) ~| s'
@@ -61,14 +105,15 @@ Inductive red : store -> tm -> store -> tm -> Prop :=
     value v1 ->
      s |~             e2 ~~> e2'             ~| s' ->
      s |~ (msel v1 l e2) ~~> (msel v1 l e2') ~| s'
-  | red_sel : forall s a Tc ags l v v',
+  | red_sel : forall s a Tc ags l v v' v'',
      wf_store s -> 
      binds a (Tc, ags) s ->
      lbl.binds l v' ags ->
      value_label l ->
      value v ->
      value_to_ref v (ref a) ->
-     s |~ (sel v l) ~~> v' ~| s
+     up_value s v l v' v'' ->
+     s |~ (sel v l) ~~> v'' ~| s
   | red_sel_tgt : forall s s' l e e',
      s |~         e ~~> e'         ~| s' ->
      s |~ (sel e l) ~~> (sel e' l) ~| s'
@@ -82,15 +127,9 @@ Inductive red : store -> tm -> store -> tm -> Prop :=
      (forall l v, lbl.binds l v ags -> value_label l /\ value (v ^^ (ref a))) ->
      a `notin` dom s ->
      s |~   (new Tc ags t) ~~> t ^^ (ref a)   ~| ((a ~ ((Tc, ags ^args^ (ref a)))) ++ s)
+where "s |~ a ~~> b  ~| s'" := (red s a s' b)
 
-where "s |~ a ~~> b  ~| s'" := (red s a s' b).
-
-(* ********************************************************************** *)
-(** * #<a name="ev"></a># Evaluation *)
-
-Reserved Notation "s |~ a ~>~ b ~| s'" (at level 60).
-
-Inductive ev : store -> tm -> store -> tm -> Prop :=
+with ev : store -> tm -> store -> tm -> Prop :=
   | ev_value : forall s v,
      wf_store s ->
      value v ->
@@ -104,22 +143,24 @@ Inductive ev : store -> tm -> store -> tm -> Prop :=
      s1 |~ t2 ~>~ v2 ~| s2 ->
      s2 |~ (t11 ^^ v2) ~>~ vf ~| sf ->
      si |~ (app t1 t2) ~>~ vf ~| sf*)
-  | ev_msel : forall si s1 s2 sf va a Tc ags l t tl t' v' v,
+  | ev_msel : forall si s1 s2 sf va a Tc ags l t tl t' v' v tl',
      si |~ t ~>~ va ~| s1 ->
      value_to_ref va (ref a) ->
      s1 |~ t' ~>~ v' ~| s2 ->
      binds a (Tc, ags) sf ->
      lbl.binds l tl ags ->
-     s2 |~ (tl ^^ v') ~>~ v ~| sf ->
      method_label l ->
+     up_method s2 va l v' tl tl' ->
+     s2 |~ tl' ~>~ v ~| sf ->
      si |~ (msel t l t') ~>~ v ~| sf
-  | ev_sel : forall si sf va a Tc ags t l v,
+  | ev_sel : forall si sf va a Tc ags t l v v',
      si |~ t ~>~ va ~| sf ->
      value_to_ref va (ref a) ->
      binds a (Tc, ags) sf ->
      lbl.binds l v ags ->
      value_label l ->
-     si |~ (sel t l) ~>~ v ~| sf
+     up_value sf va l v v' ->
+     si |~ (sel t l) ~>~ v' ~| sf
   | ev_new : forall si sf a Tc ags t vf,
      lc_tm (new Tc ags t) ->
      concrete Tc ->
@@ -127,30 +168,9 @@ Inductive ev : store -> tm -> store -> tm -> Prop :=
      a `notin` dom si ->
      ((a ~ ((Tc, ags ^args^ (ref a)))) ++ si) |~ t ~>~ vf ~| sf ->
      si |~ (new Tc ags t) ~>~ vf ~| sf
+where "s |~ a ~>~ b  ~| s'" := (ev s a s' b)
 
-where "s |~ a ~>~ b  ~| s'" := (ev s a s' b).
-
-(* ********************************************************************** *)
-(** * #<a name="typing"></a># Typing *)
-
-(* Typ Equivalence *)
-Reserved Notation "E |= T ~= T'" (at level 69).
-(* Type Assigment *)
-Reserved Notation "E |= t ~: T" (at level 69).
-(* Membership *)
-Reserved Notation "E |= t ~mem~ l ~: D" (at level 69).
-(* Expansion *)
-Reserved Notation "E |= T ~< DS" (at level 69).
-(* Subtyping *)
-Reserved Notation "E |= t ~<: T" (at level 69).
-(* Declaration subsumption *)
-(* E |= D ~<: D' *)
-(* Well-formed types *)
-(* E |= T ~wf~ *)
-(* Well-formed declarations *)
-(* E |= D ~wf *)
-
-Inductive same_tp : env -> tp -> tp -> Prop :=
+with same_tp : env -> tp -> tp -> Prop :=
   | same_tp_any : forall E T T',
       E |= T ~<: T' ->
       E |= T' ~<: T ->

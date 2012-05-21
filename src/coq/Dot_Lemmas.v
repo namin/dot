@@ -56,11 +56,10 @@ Proof.
     Case "ev_wid".
       apply value_wid. assumption.
     Case "ev_sel".
-      apply wf_store_lbl_binds_value with (s:=sf) (l:=l) (a:=a) (Tc:=Tc) (ags:=ags).
-      apply (proj2 (ev_wf_store H)).
-      assumption.
-      assumption.
-      assumption.
+      inversion H4; subst; try (apply value_wid);
+        apply wf_store_lbl_binds_value with (s:=sf) (l:=l) (a:=a) (Tc:=Tc) (ags:=ags);
+        try apply (proj2 (ev_wf_store H));
+        assumption.
 Qed.
 
 (* ********************************************************************** *)
