@@ -15,7 +15,7 @@ Reserved Notation "s |~ a ~>~ b ~| s'" (at level 60).
 (* ********************************************************************** *)
 (** * #<a name="typing"></a># Typing *)
 (* Type Equivalence *)
-Reserved Notation "E |= T ~= T'" (at level 69).
+Reserved Notation "E |= T ~=: T'" (at level 69).
 (* Type Assigment *)
 Reserved Notation "E |= t ~: T" (at level 69).
 (* Membership *)
@@ -174,8 +174,8 @@ with same_tp : env -> tp -> tp -> Prop :=
   | same_tp_any : forall E T T',
       E |= T ~<: T' ->
       E |= T' ~<: T ->
-      E |= T ~= T'
-where "E |= T ~= T'" := (same_tp E T T')
+      E |= T ~=: T'
+where "E |= T ~=: T'" := (same_tp E T T')
 
 with typing : env -> tm -> tp -> Prop :=
   | typing_var : forall G P x T,
@@ -199,7 +199,7 @@ with typing : env -> tm -> tp -> Prop :=
       method_label l ->
       E |= t ~mem~ l ~: (decl_mt S T) ->
       E |= t' ~: T' ->
-      E |= T' ~= S ->
+      E |= T' ~=: S ->
       E |= (msel t l t') ~: T
 (* | typing_app : forall E t t' S T T',
       E |= t ~: (tp_fun S T) ->
@@ -221,9 +221,9 @@ with typing : env -> tm -> tp -> Prop :=
           (forall S U, d ^d^ x = decl_tp S U -> (ctx_bind E x Tc) |= S ~<: U) /\
           (forall S U, d ^d^ x = decl_mt S U -> (exists v,
             lbl.binds l v args /\ (forall y, y \notin L' ->
-              (exists U', (ctx_bind (ctx_bind E x Tc) y S) |= ((v ^ x) ^ y) ~: U' /\ (ctx_bind (ctx_bind E x Tc) y S) |= U' ~= U)))) /\
+              (exists U', (ctx_bind (ctx_bind E x Tc) y S) |= ((v ^ x) ^ y) ~: U' /\ (ctx_bind (ctx_bind E x Tc) y S) |= U' ~=: U)))) /\
           (forall V, d ^d^ x = decl_tm V -> (exists v,
-            lbl.binds l v args /\ syn_value (v ^ x) /\ (exists V', (ctx_bind E x Tc) |= (v ^ x) ~: V' /\ (ctx_bind E x Tc) |= V' ~= V))))) ->
+            lbl.binds l v args /\ syn_value (v ^ x) /\ (exists V', (ctx_bind E x Tc) |= (v ^ x) ~: V' /\ (ctx_bind E x Tc) |= V' ~=: V))))) ->
       (forall x, x \notin L -> (ctx_bind E x Tc) |= t ^ x ~: T') ->
       E |= (new Tc args t) ~: T'
 where "E |= t ~: T" := (typing E t T)
@@ -425,7 +425,7 @@ Combined Scheme typing_mutind from same_tp_indm, typing_indm, mem_indm, expands_
 
 Require Import LibTactics_sf.
 Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ :=
-  cut ((forall E T T' (H: E |= T ~= T'), (P0_ E T T' H)) /\
+  cut ((forall E T T' (H: E |= T ~=: T'), (P0_ E T T' H)) /\
   (forall E t T (H: E |= t ~: T), (P1_ E t T H)) /\
   (forall E t l d (H: E |= t ~mem~ l ~: d), (P2_ E t l d H)) /\
   (forall E T DS (H: E |= T ~< DS), (P3_ E T DS H)) /\
@@ -440,7 +440,7 @@ Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ :=
 
 Section TestMutInd.
 (* mostly reusable boilerplate for the mutual induction: *)
-  Let Psame (E: env) (T: tp) (T': tp) (H: E |=  T ~= T') := True.
+  Let Psame (E: env) (T: tp) (T': tp) (H: E |=  T ~=: T') := True.
   Let Ptyp (E: env) (t: tm) (T: tp) (H: E |=  t ~: T) := True.
   Let Pmem (E: env) (t: tm) (l: label) (d: decl) (H: E |= t ~mem~ l ~: d) := True.
   Let Pexp (E: env) (T: tp) (DS : decls) (H: E |= T ~< DS) := True.
