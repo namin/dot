@@ -33,3 +33,29 @@ Definition preservation := forall G s t T s' t',
   G' |== s' /\
   (G',s') |= t' ~: T' /\
   (G',s') |= T' ~=: T.
+
+(*
+Lemma succ_env_stable : forall G s G' s' t t' t'' T,
+  G |== s -> G' |== s' -> (G,s) |= t ~: T -> s |~ t' ~~> t'' ~| s' ->
+  (G',s') |= t ~: T.
+Proof. (* TODO *) Admitted.
+*)
+
+Theorem preservation_holds : preservation.
+Proof. unfold preservation.
+  introv Hc Ht Hr. gen T. induction Hr.
+  Case "red_msel".  (* TODO *) skip.
+  Case "red_msel_tgt1". (* TODO *) skip.
+  Case "red_msel_tgt2". (* TODO *) skip.
+  Case "red_sel". (* TODO *) skip.
+  Case "red_sel_tgt". (* TODO *) skip.
+  Case "red_wid_tgt".
+    introv Ht. inversion Ht. subst.
+    specialize (IHHr Hc T' H2). inversion IHHr as [G' IHHr']. inversion IHHr' as [Te' IHHr'']. inversion IHHr'' as [Hc' IHHr''']. inversion IHHr''' as [Ht' Hs']. inversion Hs'. subst.
+    exists G'. exists T. splits.
+    assumption.
+    apply typing_wid with (T':=Te'). assumption.
+    apply sub_tp_transitive with (TMid:=T').
+    assumption. (* succ stable for subtyping *) skip. apply same_tp_any. apply sub_tp_refl. skip. skip. apply sub_tp_refl. skip. skip. 
+  Case "red_new". (* TODO *) skip.
+Qed.
