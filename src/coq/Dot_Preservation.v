@@ -13,7 +13,8 @@ Require Import Coq.Logic.Decidable.
 Definition typing_store G s :=
   wf_store s
   /\ (forall a Tc argsRT, binds a (Tc, argsRT) s ->
-    exists args, argsRT = args ^args^ (ref a)
+       wfe_tp (G,s) Tc
+    /\ exists args, argsRT = args ^args^ (ref a)
     /\ concrete Tc
     /\ lbl.uniq args
     /\ exists ds, (G, s) |= Tc ~< ds
@@ -25,14 +26,65 @@ Definition typing_store G s :=
 
 Notation "G |== s" := (typing_store G s) (at level 68).
 
+Definition ok_env G_s :=
+  wf_env G_s /\ (forall x T, binds x T (fst G_s) -> wfe_tp G_s T).
+
+Notation "G_s |= 'ok'" := (ok_env G_s) (at level 69).
+
+Lemma env_weakening_notin_wfe_tp: forall L E S T x t,
+  x `notin` L -> ctx_bind E x S |= t ^ x ~: T -> wfe_tp (ctx_bind E x S) T ->
+  wfe_tp E T.
+Proof. (* TODO *) Admitted.
+
+Lemma ok_env_plus: forall E s x S,
+  (E,s) |= ok -> E |== s -> 
+  ((x, S) :: E, s) |= ok.
+Proof. (* TODO *) Admitted.
+
+Lemma typing_store_plus: forall E s x S,
+  (E,s) |= ok -> E |== s ->
+  ((x, S) :: E) |== s.
+Proof. (* TODO *) Admitted.
+
+Lemma tp_regular : forall E s t T,
+  (E,s) |= ok -> E |== s ->
+  (E,s) |= t ~: T ->
+  wfe_tp (E,s) T.
+Proof.
+  introv Hok Hes H. dependent induction H.
+  Case "var".
+    inversion Hok as [Hwf_env Hbinds].
+    apply (Hbinds x T). simpl. assumption.
+  Case "ref".
+    inversion Hes as [Hwf_store Hcond].
+    apply (proj1 (Hcond a T args H0)).
+  Case "wid".
+    auto.
+  Case "sel".
+    (* TODO *) skip.
+  Case "msel".
+    (* TODO *) skip.
+  Case "new".
+    pick fresh x.
+    assert (wfe_tp (ctx_bind (E,s) x Tc) T') as Hwfe_tp.
+      apply H6 with (x:=x). apply notin_union_1 in Fr. assumption.
+      simpl. apply ok_env_plus; assumption.
+      simpl. apply typing_store_plus; assumption.
+      simpl. reflexivity.
+    apply env_weakening_notin_wfe_tp with (L:=L) (S:=Tc) (x:=x) (t:=t).
+    apply notin_union_1 in Fr. assumption. 
+    apply H5. apply notin_union_1 in Fr. assumption.
+    assumption.
+Qed.
+
 Definition preservation := forall G s t T s' t',
+  (G,s) |= ok ->
   G |== s ->
   (G,s) |= t ~: T ->
   s |~ t ~~> t' ~| s' ->
-  exists G' T',
-  G' |== s' /\
-  (G',s') |= t' ~: T' /\
-  (G',s') |= T' ~=: T.
+  exists T',
+  (G,s') |= t' ~: T' /\
+  (G,s') |= T' ~=: T.
 
 (*
 Lemma succ_env_stable : forall G s G' s' t t' t'' T,
@@ -43,7 +95,7 @@ Proof. (* TODO *) Admitted.
 
 Theorem preservation_holds : preservation.
 Proof. unfold preservation.
-  introv Hc Ht Hr. gen T. induction Hr.
+  introv Hok Hc Ht Hr. gen T. induction Hr.
   Case "red_msel".  (* TODO *) skip.
   Case "red_msel_tgt1". (* TODO *) skip.
   Case "red_msel_tgt2". (* TODO *) skip.
@@ -51,10 +103,9 @@ Proof. unfold preservation.
   Case "red_sel_tgt". (* TODO *) skip.
   Case "red_wid_tgt".
     introv Ht. inversion Ht. subst.
-    specialize (IHHr Hc T' H2). inversion IHHr as [G' IHHr']. inversion IHHr' as [Te' IHHr'']. inversion IHHr'' as [Hc' IHHr''']. inversion IHHr''' as [Ht' Hs']. inversion Hs'. subst.
-    exists G'. exists T. splits.
-    assumption.
-    apply typing_wid with (T':=Te'). assumption.
+    specialize (IHHr Hok Hc T' H2). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Hc' Hs']. inversion Hs' as [Hs1 Hs2]. subst.
+    exists T. splits.
+    apply typing_wid with (T':=Th'). assumption.
     apply sub_tp_transitive with (TMid:=T').
     assumption. (* succ stable for subtyping *) skip. apply same_tp_any. apply sub_tp_refl. skip. skip. apply sub_tp_refl. skip. skip. 
   Case "red_new". (* TODO *) skip.

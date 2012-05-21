@@ -96,7 +96,7 @@ Qed.
 Definition ex3 := new (tp_rfn tp_top [(l, decl_tm tp_top)]) [(l, bvar 0)] (sel 0 l).
 Example ex3_red : exists a, exists store', nil |~ ex3 ~~> (sel 0 l) ^^ (ref a) ~| store'.
 Proof.
-  unfold ex3. pick fresh a. exists a. eexists. apply red_new; crush_rules.
+  unfold ex3. pick fresh a. exists a. eexists. apply red_new; crush_rules. left. crush_rules.
 Qed.
 
 (*

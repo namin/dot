@@ -43,7 +43,7 @@ Proof.
      remember (H l v Hlb) as H'.
      inversions H'.
        inversions H3. assumption.
-       inversions H3. assert False as Contra. apply value_xor_method_label with (l:=l); assumption. inversion Contra.
+       assert False as Contra. apply value_xor_method_label with (l:=l); assumption. inversion Contra.
    SCase "x <> a".
      apply IHHwf.
      assumption.

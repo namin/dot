@@ -426,10 +426,10 @@ with subst_decl (z : atom) (u : tm) (d : decl) {struct d} : decl :=
 
 Inductive wf_store : store -> Prop := 
   | wf_store_nil : wf_store nil
-  | wf_store_cons_tp : forall L E x Tc args,
+  | wf_store_cons_tp : forall E x Tc args,
      wf_store E ->
      (forall l v, lbl.binds l v args ->
-       ((value_label l /\ value v) \/ (method_label l /\ (forall x: atom, x \notin L -> syn_value (v ^ x))))) ->
+       ((value_label l /\ value v) \/ method_label l)) ->
      lc_tp Tc -> concrete Tc ->
      x \notin dom E ->
      wf_store (x ~ (Tc, args) ++ E)
