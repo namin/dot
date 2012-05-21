@@ -46,6 +46,51 @@ Lemma typing_store_plus: forall E s x S,
   ((x, S) :: E) |== s.
 Proof. (* TODO *) Admitted.
 
+Lemma wf_env_gamma_uniq : forall E G P,
+  wf_env E -> E = (G,P) -> uniq G.
+Proof.
+  introv Hwf Heq. gen G.
+  induction Hwf. introv Heq. inversion Heq. subst. auto.
+  introv Heq. inversion Heq. subst. auto.
+Qed.
+
+Lemma wf_store_uniq : forall P,
+  wf_store P -> uniq P.
+Proof.
+  introv Hwf.
+  induction Hwf. auto. auto.
+Qed.
+
+Lemma wf_env_store_uniq : forall E G P,
+  wf_env E -> E = (G,P) -> uniq P.
+Proof.
+  introv Hwf Heq. gen P.
+  inversion Hwf; introv Heq; inversion Heq; subst; apply wf_store_uniq; assumption.
+Qed.
+
+Lemma tp_unique : forall E t T T',
+  E |= t ~: T -> E |= t ~: T' -> T = T'.
+Proof.
+  introv HT HT'. dependent induction t; inversion HT; inversion HT'; subst.
+  Case "a".
+    inversion H8. subst. clear H8. clear H6.
+    assert (uniq G). apply wf_env_gamma_uniq with (E:=(G,P)) (P:=P). assumption. reflexivity.
+    apply binds_unique with (x:=a) (E:=G); assumption.
+  Case "ref".
+    inversion H6. subst. clear H6. clear H5.
+    assert (uniq P). apply wf_env_store_uniq with (E:=(G,P)) (G:=G). assumption. reflexivity.
+    assert ((T, args) = (T', args0)) as Heq. apply binds_unique with (x:=l) (E:=P); assumption.
+    inversion Heq. subst. reflexivity.
+  Case "new".
+    skip.
+  Case "sel".
+    skip.
+  Case "msel".
+    skip.
+  Case "wid".
+    inversion HT'. reflexivity.
+Qed.
+
 Lemma tp_regular : forall E s t T,
   (E,s) |= ok -> E |== s ->
   (E,s) |= t ~: T ->
