@@ -106,9 +106,9 @@ Proof.
   Case "wid".
     auto.
   Case "sel".
-    (* TODO *) skip.
+    assumption.
   Case "msel".
-    (* TODO *) skip.
+    assumption.
   Case "new".
     pick fresh x.
     assert (wfe_tp (ctx_bind (E,s) x Tc) T') as Hwfe_tp.

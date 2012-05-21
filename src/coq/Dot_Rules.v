@@ -194,12 +194,14 @@ with typing : env -> tm -> tp -> Prop :=
   | typing_sel : forall E t l T',
       value_label l ->
       E |= t ~mem~ l ~: (decl_tm T') ->
+      wfe_tp E T' ->
       E |= (sel t l) ~: T'
   | typing_msel : forall E t t' l S T T',
       method_label l ->
       E |= t ~mem~ l ~: (decl_mt S T) ->
       E |= t' ~: T' ->
       E |= T' ~=: S ->
+      wfe_tp E T ->
       E |= (msel t l t') ~: T
 (* | typing_app : forall E t t' S T T',
       E |= t ~: (tp_fun S T) ->
