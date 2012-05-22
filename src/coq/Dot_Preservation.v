@@ -272,7 +272,43 @@ Lemma tp_env_extended_two_ways : forall L G s Tc t T a args,
   (G,[(a, (Tc,  args))] ++ s) |= ok -> G |== [(a, (Tc,  args))] ++ s ->
   (forall x, x `notin` L -> ctx_bind (G, s) x Tc |= t ^ x ~: T) ->
   (G, [(a, (Tc, args))] ++ s) |= t ^^ ref a ~: T.
-Proof. (* TODO *) Admitted.
+Proof. (*(* TODO *) Admitted.*)
+  introv Hok Hc Hok' Hc' Ht.
+  pick fresh x.
+  assert (x `notin` L) as FrL. auto.
+  specialize (Ht x FrL). dependent induction t.
+  Case "n".
+    unfold open in Ht. simpl in Ht. unfold "^^". simpl. destruct (equiv_dec 0 n).
+    SCase "n = 0".
+      inversion Ht. subst.
+      assert (uniq ((x, Tc)::G)). apply wf_env_gamma_uniq with (E:=((x, Tc)::G,s)) (P:=s). assumption. reflexivity.
+      assert (T = Tc) as Heq. apply binds_mid_eq with (x:=x) (F:=nil) (E:=G); auto.
+      subst.
+      inversion Hok' as [Henv' Hbinds'].
+      eapply typing_ref. auto. auto.
+    SCase "n <> 0".
+      inversion Ht.
+  Case "a".
+    unfold open in Ht. simpl in Ht. unfold open. simpl.
+    inversion Ht. subst.
+    assert (x `notin` fv_tm a0) as Fra0. apply notin_union_2 in Fr. apply notin_union_2 in Fr. apply notin_union_1 in Fr. assumption.
+    assert (a0 <> x) as Hneq. simpl in Fra0. apply notin_singleton_1. assumption.
+    inversion Hok' as [Henv' Hbinds'].
+    apply typing_var; try assumption. rewrite_env (nil ++ G). eapply binds_remove_mid. rewrite_env (nil ++ [(x,Tc)] ++ G) in H5. apply H5. assumption.
+  Case "ref".
+    inversion Hok' as [Henv' Hbinds'].
+    inversion Ht. subst. unfold open. simpl. eapply typing_ref. assumption.
+    assert (forall aargs, binds l (T, args0) ((a, aargs) :: s)) as Hbindsa. intros. rewrite_env (nil ++ [(a, aargs)] ++ s). apply binds_weaken. simpl. assumption.
+    apply Hbindsa.
+  Case "new".
+    skip.
+  Case "sel".
+    skip.
+  Case "msel".
+    skip.
+  Case "wid".
+    skip.
+Qed.
 
 Definition preservation := forall G s t T s' t',
   (G,s) |= ok ->
