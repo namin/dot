@@ -458,4 +458,5 @@ Ltac gather_atoms ::=
   let E := gather_atoms_with (fun x : decl => fv_decl x) in
   let F := gather_atoms_with (fun x : decls => decls_lift fv_decls_lst x) in
   let G := gather_atoms_with (fun x : env => dom (fst x)) in
-  constr:(A `union` B `union` C `union` D `union` E `union` F `union` G).
+  let H := gather_atoms_with (fun x : ctx => dom x) in
+  constr:(A `union` B `union` C `union` D `union` E `union` F `union` G `union` H).
