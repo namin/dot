@@ -280,7 +280,34 @@ Theorem preservation_holds : preservation.
 Proof. unfold preservation.
   introv Hok Hc Ht Hr. gen T. induction Hr.
   Case "red_msel".  (* TODO *) skip.
-  Case "red_msel_tgt1". (* TODO *) skip.
+  Case "red_msel_tgt1".
+    introv Ht. inversion Ht. subst.
+    inversion H3. subst.
+    specialize (IHHr Hok Hc T0 H1). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Hc' Hs'].
+    assert (exists S' T', (G,s') |= e1' ~mem~ l ~: decl_mt S' T' /\ (G,s') |= S ~=: S' /\ (G,s') |= T' ~=: T) as Hmem'.
+      apply membership_method_same_tp with (t1:=e1) (T1:=T0) (T1':=Th'); try assumption.
+      apply preserved_tp with (s:=s) (t:=e1) (t':=e1'); assumption.
+      apply preserved_mem with (s:=s) (t:=e1) (t':=e1'); assumption.
+    inversion Hmem' as [S'' Hmem'']. inversion Hmem'' as [T'' Hmem''']. inversion Hmem''' as [Hmem_ Hsame_]. inversion Hsame_ as [HsameS HsameT].
+    exists T''. split.
+    apply typing_msel with (S:=S'') (T':=T'); try assumption.
+      apply preserved_tp with (s:=s) (t:=e1) (t':=e1'); assumption.
+      apply same_tp_transitive with (TMid:=S); try assumption.
+      apply preserved_same_tp with (s:=s) (t:=e1) (t':=e1'); assumption.
+      inversion HsameT. subst. auto. assumption.
+    subst.
+    specialize (IHHr Hok Hc T0 H). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Hc' Hs'].
+    assert (exists S' T', (G,s') |= e1' ~mem~ l ~: decl_mt S' T' /\ (G,s') |= S ~=: S' /\ (G,s') |= T' ~=: T) as Hmem'.
+      apply membership_method_same_tp with (t1:=e1) (T1:=T0) (T1':=Th'); try assumption.
+      apply preserved_tp with (s:=s) (t:=e1) (t':=e1'); assumption.
+      apply preserved_mem with (s:=s) (t:=e1) (t':=e1'); assumption.
+    inversion Hmem' as [S'' Hmem'']. inversion Hmem'' as [T'' Hmem''']. inversion Hmem''' as [Hmem_ Hsame_]. inversion Hsame_ as [HsameS HsameT].
+    exists T''. split.
+    apply typing_msel with (S:=S'') (T':=T'); try assumption.
+      apply preserved_tp with (s:=s) (t:=e1) (t':=e1'); assumption.
+      apply same_tp_transitive with (TMid:=S); try assumption.
+      apply preserved_same_tp with (s:=s) (t:=e1) (t':=e1'); assumption.
+      inversion HsameT. subst. auto. assumption.
   Case "red_msel_tgt2".
     introv Ht. inversion Ht. subst.
     assert ((G, s') |= ok) as Hok'. apply preserved_env_ok with (s:=s) (t:=e2) (t':=e2'); assumption.
