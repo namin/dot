@@ -267,6 +267,13 @@ Proof.
   introv H. inversion H. subst. apply same_tp_any; assumption.
 Qed.
 
+Lemma tp_env_extended_two_ways : forall L G s Tc t T a args,
+  (G,s) |= ok -> G |== s ->
+  (G,[(a, (Tc,  args))] ++ s) |= ok -> G |== [(a, (Tc,  args))] ++ s ->
+  (forall x, x `notin` L -> ctx_bind (G, s) x Tc |= t ^ x ~: T) ->
+  (G, [(a, (Tc, args))] ++ s) |= t ^^ ref a ~: T.
+Proof. (* TODO *) Admitted.
+
 Definition preservation := forall G s t T s' t',
   (G,s) |= ok ->
   G |== s ->
@@ -278,12 +285,15 @@ Definition preservation := forall G s t T s' t',
 
 Theorem preservation_holds : preservation.
 Proof. unfold preservation.
-  introv Hok Hc Ht Hr. gen T. induction Hr.
+  introv Hok Hc Ht Hr.
+  assert ((G,s') |= ok) as Hok'. apply preserved_env_ok with (s:=s) (t:=t) (t':=t'); assumption.
+  assert (G |== s') as Hc'. apply preserved_env_typing with (s:=s) (t:=t) (t':=t') (T:=T); assumption.
+  gen T. induction Hr.
   Case "red_msel".  (* TODO *) skip.
   Case "red_msel_tgt1".
     introv Ht. inversion Ht. subst.
     inversion H3. subst.
-    specialize (IHHr Hok Hc T0 H1). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Hc' Hs'].
+    specialize (IHHr Hok Hc Hok' Hc' T0 H1). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Ht' Hs'].
     assert (exists S' T', (G,s') |= e1' ~mem~ l ~: decl_mt S' T' /\ (G,s') |= S ~=: S' /\ (G,s') |= T' ~=: T) as Hmem'.
       apply membership_method_same_tp with (t1:=e1) (T1:=T0) (T1':=Th'); try assumption.
       apply preserved_tp with (s:=s) (t:=e1) (t':=e1'); assumption.
@@ -296,7 +306,7 @@ Proof. unfold preservation.
       apply preserved_same_tp with (s:=s) (t:=e1) (t':=e1'); assumption.
       inversion HsameT. subst. auto. assumption.
     subst.
-    specialize (IHHr Hok Hc T0 H). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Hc' Hs'].
+    specialize (IHHr Hok Hc Hok' Hc' T0 H). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Ht' Hs'].
     assert (exists S' T', (G,s') |= e1' ~mem~ l ~: decl_mt S' T' /\ (G,s') |= S ~=: S' /\ (G,s') |= T' ~=: T) as Hmem'.
       apply membership_method_same_tp with (t1:=e1) (T1:=T0) (T1':=Th'); try assumption.
       apply preserved_tp with (s:=s) (t:=e1) (t':=e1'); assumption.
@@ -310,9 +320,8 @@ Proof. unfold preservation.
       inversion HsameT. subst. auto. assumption.
   Case "red_msel_tgt2".
     introv Ht. inversion Ht. subst.
-    assert ((G, s') |= ok) as Hok'. apply preserved_env_ok with (s:=s) (t:=e2) (t':=e2'); assumption.
     inversion Hok' as [Henv' Hbinds'].
-    specialize (IHHr Hok Hc T' H6). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Hc' Hs'].
+    specialize (IHHr Hok Hc Hok' Hc' T' H6). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Ht' Hs'].
     exists T. split.
       apply typing_msel with (S:=S) (T':=Th'); try assumption.
       apply preserved_mem with (s:=s) (t:=e2) (t':=e2'); assumption.
@@ -324,7 +333,7 @@ Proof. unfold preservation.
   Case "red_sel_tgt".
     introv Ht. inversion Ht. subst.
     inversion H3. subst.
-    specialize (IHHr Hok Hc T0 H2). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Hc' Hs'].
+    specialize (IHHr Hok Hc Hok' Hc' T0 H2). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Ht' Hs'].
     assert (exists T', (G,s') |= e' ~mem~ l ~: decl_tm T' /\ (G,s') |= T' ~=: T) as Hmem'.
       apply membership_value_same_tp with (t1:=e) (T1:=T0) (T1':=Th'); try assumption.
       apply preserved_tp with (s:=s) (t:=e) (t':=e'); assumption.
@@ -335,7 +344,7 @@ Proof. unfold preservation.
       inversion HT'eqT. subst. auto.
     assumption.
     subst.
-    specialize (IHHr Hok Hc T0 H). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Hc' Hs'].
+    specialize (IHHr Hok Hc Hok' Hc' T0 H). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Ht' Hs'].
     assert (exists T', (G,s') |= e' ~mem~ l ~: decl_tm T' /\ (G,s') |= T' ~=: T) as Hmem'.
       apply membership_value_same_tp with (t1:=e) (T1:=T0) (T1':=Th'); try assumption.
       apply preserved_tp with (s:=s) (t:=e) (t':=e'); assumption.
@@ -347,9 +356,8 @@ Proof. unfold preservation.
     assumption.
   Case "red_wid_tgt".
     introv Ht. inversion Ht. subst.
-    assert ((G, s') |= ok) as Hok'. apply preserved_env_ok with (s:=s) (t:=e) (t':=e'); assumption.
     inversion Hok' as [Henv' Hbinds'].
-    specialize (IHHr Hok Hc T' H2). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Hc' Hs']. inversion Hs' as [Hs1 Hs2]. subst.
+    specialize (IHHr Hok Hc Hok' Hc' T' H2). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Ht' Hs']. inversion Hs' as [Hs1 Hs2]. subst.
     exists T. splits.
     apply typing_wid with (T':=Th'). assumption.
     apply sub_tp_transitive with (TMid:=T').
@@ -357,5 +365,15 @@ Proof. unfold preservation.
     apply same_tp_any.
       apply sub_tp_refl. assumption. apply preserved_wfe with (s:=s) (t:=e) (t':=e'); auto.
       apply sub_tp_refl. assumption. apply preserved_wfe with (s:=s) (t:=e) (t':=e'); auto.
-  Case "red_new". (* TODO *) skip.
+  Case "red_new".
+    inversion Hok' as [Henv' Hbinds'].
+    assert (s |~ new Tc ags t ~~> t ^^ ref a ~| ([(a, (Tc, ags ^args^ ref a))] ++ s)) as Hr. apply red_new; assumption.
+    introv Ht. inversion Ht. subst.
+    exists T. split.
+    apply tp_env_extended_two_ways with (L:=L); assumption.
+    pick fresh x.
+    assert (x `notin` L) as FrL. auto.
+    specialize (H15 x FrL).
+    assert (wfe_tp (G,s) T) as Hwfe. apply tp_regular with (t:=new Tc ags t); assumption.
+    apply same_tp_any; apply sub_tp_refl; try assumption; apply preserved_wfe with (s:=s) (t:=new Tc ags t) (t':=t ^^ ref a); assumption.
 Qed.
