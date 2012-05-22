@@ -71,24 +71,22 @@ Qed.
 Lemma tp_unique : forall E t T T',
   E |= t ~: T -> E |= t ~: T' -> T = T'.
 Proof.
-  introv HT HT'. dependent induction t; inversion HT; inversion HT'; subst.
-  Case "a".
-    inversion H8. subst. clear H8. clear H6.
+  introv HT. dependent induction HT; introv HT'; inversion HT'; subst.
+  Case "x".
     assert (uniq G). apply wf_env_gamma_uniq with (E:=(G,P)) (P:=P). assumption. reflexivity.
-    apply binds_unique with (x:=a) (E:=G); assumption.
+    apply binds_unique with (x:=x) (E:=G); assumption.
   Case "ref".
-    inversion H6. subst. clear H6. clear H5.
     assert (uniq P). apply wf_env_store_uniq with (E:=(G,P)) (G:=G). assumption. reflexivity.
-    assert ((T, args) = (T', args0)) as Heq. apply binds_unique with (x:=l) (E:=P); assumption.
+    assert ((T, args) = (T', args0)) as Heq. apply binds_unique with (x:=a) (E:=P); assumption.
     inversion Heq. subst. reflexivity.
-  Case "new".
-    skip.
+  Case "wid".
+    reflexivity.
   Case "sel".
     skip.
   Case "msel".
     skip.
-  Case "wid".
-    inversion HT'. reflexivity.
+  Case "new".
+    pick fresh x for (union L L0). eauto.
 Qed.
 
 Lemma tp_regular : forall E s t T,
