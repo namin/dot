@@ -146,6 +146,79 @@ Proof.
     assumption.
 Qed.
 
+Lemma preserved_env_nil_ok : forall s t s' t',
+  (nil,s) |= ok ->
+  s |~ t ~~> t' ~| s' ->
+  (nil,s') |= ok.
+Proof.
+  introv Hok Hr. induction Hr; try solve [assumption | apply IHHr; assumption].
+  Case "red_new".
+  inversion H0. subst. inversion Hok as [Henv Hbinds].
+  split.
+  apply wf_env_nil. apply wf_store_cons_tp; assumption.
+  introv Hbinds_nil. inversion Hbinds_nil.
+Qed.
+
+Lemma preserved_env_nil_typing : forall s t s' t' T,
+  nil |== s ->
+  s |~ t ~~> t' ~| s' ->
+  (nil,s) |= t ~: T ->
+  nil |== s'.
+Proof.
+  introv Hc Hr. gen T. dependent induction Hr; introv Ht.
+  Case "red_msel".
+    assumption.
+  Case "red_msel_tgt1".
+    inversion Ht. inversion H3; subst; apply IHHr with (T:=T1); assumption.
+  Case "red_msel_tgt2".
+    inversion Ht. apply IHHr with (T:=T'); assumption.
+  Case "red_sel".
+    assumption.
+  Case "red_sel_tgt".
+    inversion Ht. inversion H3; subst; apply IHHr with (T:=T0); assumption.
+  Case "red_wid_tgt".
+    inversion Ht. subst. apply IHHr with (T:=T'); assumption.
+  Case "red_new".
+    (* TODO *) skip.
+Qed.
+
+Lemma preserved_env_ok : forall G s t s' t',
+  (G,s) |= ok ->
+  s |~ t ~~> t' ~| s' ->
+  (G,s') |= ok.
+Proof. (* TODO *) Admitted.
+
+Lemma preserved_env_typing : forall G s t s' t' T,
+  G |== s ->
+  s |~ t ~~> t' ~| s' ->
+  (G,s) |= t ~: T ->
+  G |== s'.
+Proof. (* TODO *) Admitted.
+
+Lemma preserved_wfe : forall G s t  s' t' T,
+  (G,s) |= ok ->
+  G |== s ->
+  s |~ t ~~> t' ~| s' ->
+  wfe_tp (G,s) T ->
+  wfe_tp (G,s') T.
+Proof. (* TODO *) Admitted.
+
+Lemma preserved_subtype : forall G s t s' t' S T,
+  (G,s) |= ok ->
+  G |== s ->
+  s |~ t ~~> t' ~| s' ->
+  (G,s) |= S ~<: T ->
+  (G,s') |= S ~<: T.
+Proof. (* TODO *) Admitted.
+
+Lemma preserved_tp : forall G s t s' t' tt T,
+  (G,s) |= ok ->
+  G |== s ->
+  s |~ t ~~> t' ~| s' ->
+  (G,s) |= tt ~: T ->
+  (G,s') |= tt ~: T.
+Proof. (* TODO *) Admitted.
+
 Definition preservation := forall G s t T s' t',
   (G,s) |= ok ->
   G |== s ->
@@ -154,13 +227,6 @@ Definition preservation := forall G s t T s' t',
   exists T',
   (G,s') |= t' ~: T' /\
   (G,s') |= T' ~=: T.
-
-(*
-Lemma succ_env_stable : forall G s G' s' t t' t'' T,
-  G |== s -> G' |== s' -> (G,s) |= t ~: T -> s |~ t' ~~> t'' ~| s' ->
-  (G',s') |= t ~: T.
-Proof. (* TODO *) Admitted.
-*)
 
 Theorem preservation_holds : preservation.
 Proof. unfold preservation.
@@ -172,10 +238,15 @@ Proof. unfold preservation.
   Case "red_sel_tgt". (* TODO *) skip.
   Case "red_wid_tgt".
     introv Ht. inversion Ht. subst.
+    assert ((G, s') |= ok) as Hok'. apply preserved_env_ok with (s:=s) (t:=e) (t':=e'); assumption.
+    inversion Hok' as [Henv' Hbinds'].
     specialize (IHHr Hok Hc T' H2). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Hc' Hs']. inversion Hs' as [Hs1 Hs2]. subst.
     exists T. splits.
     apply typing_wid with (T':=Th'). assumption.
     apply sub_tp_transitive with (TMid:=T').
-    assumption. (* succ stable for subtyping *) skip. apply same_tp_any. apply sub_tp_refl. skip. skip. apply sub_tp_refl. skip. skip. 
+    assumption. apply preserved_subtype with (s:=s) (t:=e) (t':=e'); assumption.
+    apply same_tp_any.
+      apply sub_tp_refl. assumption. apply preserved_wfe with (s:=s) (t:=e) (t':=e'); auto.
+      apply sub_tp_refl. assumption. apply preserved_wfe with (s:=s) (t:=e) (t':=e'); auto.
   Case "red_new". (* TODO *) skip.
 Qed.

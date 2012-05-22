@@ -124,7 +124,7 @@ with red : store -> tm -> store -> tm -> Prop :=
      wf_store s -> 
      lc_tm (new Tc ags t) ->
      concrete Tc ->
-     (forall l v, lbl.binds l v ags -> (value_label l /\ value (v ^^ (ref a))) \/ (method_label l)) ->
+     (forall l v, lbl.binds l v (ags ^args^ ref a) -> (value_label l /\ value v) \/ (method_label l)) ->
      a `notin` dom s ->
      s |~   (new Tc ags t) ~~> t ^^ (ref a)   ~| ((a ~ ((Tc, ags ^args^ (ref a)))) ++ s)
 where "s |~ a ~~> b  ~| s'" := (red s a s' b)
