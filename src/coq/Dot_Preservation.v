@@ -68,25 +68,51 @@ Proof.
   inversion Hwf; introv Heq; inversion Heq; subst; apply wf_store_uniq; assumption.
 Qed.
 
+Scheme tp_mem_typing_indm := Induction for typing Sort Prop
+  with tp_mem_mem_indm    := Induction for mem Sort Prop
+.
+
+Combined Scheme tp_mem_mutind from tp_mem_typing_indm, tp_mem_mem_indm.
+
+Ltac mutind_tp_mem Ptyp Pmem :=
+  cut ((forall E t T (H: E |= t ~: T), (Ptyp E t T H)) /\
+    (forall E t l d (H: E |= t ~mem~ l ~: d), (Pmem E t l d H))); [try tauto; Case "IH" |
+      apply (tp_mem_mutind Ptyp Pmem); try unfold Ptyp, Pmem in *; try clear Ptyp Pmem; [Case "typing_var" | Case "typing_ref" | Case "typing_wid" | Case "typing_sel" | Case "typing_msel" | Case "typing_new" | Case "mem_path" | Case "mem_term"]; introv; eauto ].
+
 Lemma tp_unique : forall E t T T',
   E |= t ~: T -> E |= t ~: T' -> T = T'.
 Proof.
-  introv HT. dependent induction HT; introv HT'; inversion HT'; subst.
-  Case "x".
+  mutind_tp_mem (fun E t T (H: E |= t ~: T) => forall T', E |= t ~: T' -> T = T')
+                (fun E t l d (H: E |= t ~mem~ l ~: d) => forall d', E |= t ~mem~ l ~: d' -> d = d').
+  Case "IH".
+    introv H. inversion H as [H1 H2]. introv HT HT'.
+    eauto.
+  Case "typing_var".
+    introv Hwf Hlc Hbinds. introv HT'. inversion HT'. subst.
     assert (uniq G). apply wf_env_gamma_uniq with (E:=(G,P)) (P:=P). assumption. reflexivity.
     apply binds_unique with (x:=x) (E:=G); assumption.
-  Case "ref".
+  Case "typing_ref".
+    introv Hwf Hbinds. introv HT'. inversion HT'. subst.
     assert (uniq P). apply wf_env_store_uniq with (E:=(G,P)) (G:=G). assumption. reflexivity.
     assert ((T, args) = (T', args0)) as Heq. apply binds_unique with (x:=a) (E:=P); assumption.
     inversion Heq. subst. reflexivity.
-  Case "wid".
-    reflexivity.
-  Case "sel".
-    skip.
-  Case "msel".
-    skip.
-  Case "new".
+  Case "typing_wid".
+    introv HT' IH Hsub Hwid. inversion Hwid. reflexivity.
+  Case "typing_sel".
+    introv Hlv Hmem IHmem Hwfe. intros T''. introv Hsel. inversion Hsel. subst.
+    assert (decl_tm T' = decl_tm T'') as Heq. apply IHmem. assumption.
+    inversion Heq. subst. reflexivity.
+  Case "typing_msel".
+    introv Hlm Hmem IHmem Ht'T' IHtyp Hsame Hwfe. intros T''. introv Hmsel. inversion Hmsel. subst.
+    assert (decl_mt S T = decl_mt S0 T'') as Heq. apply IHmem. assumption.
+    inversion Heq. subst. reflexivity.
+  Case "typing_new".
+    intros. inversion H0. subst.
     pick fresh x for (union L L0). eauto.
+  Case "mem_path".
+    (* rely on uniqueness of expansion *) skip.
+  Case "mem_term".
+    (* rely on uniqueness of expansion *) skip.
 Qed.
 
 Lemma tp_regular : forall E s t T,
