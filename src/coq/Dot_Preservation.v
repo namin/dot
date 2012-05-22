@@ -219,6 +219,22 @@ Lemma preserved_tp : forall G s t s' t' tt T,
   (G,s') |= tt ~: T.
 Proof. (* TODO *) Admitted.
 
+Lemma preserved_mem : forall G s t s' t' e l d,
+  (G,s) |= ok ->
+  G |== s ->
+  s |~ t ~~> t' ~| s' ->
+  (G,s) |= e ~mem~ l ~: d ->
+  (G,s') |= e ~mem~ l ~: d.
+Proof. (* TODO *) Admitted.
+
+Lemma membership_value_same_tp : forall E t1 T1 t1' T1' l T,
+  E |= t1 ~: T1 ->
+  E |= t1' ~: T1' ->
+  E |= T1' ~=: T1 ->
+  E |= t1 ~mem~ l ~: decl_tm T ->
+  exists T', E |= t1' ~mem~ l ~: decl_tm T' /\ E |= T' ~=: T.
+Proof. (* TODO *) Admitted.
+
 Definition preservation := forall G s t T s' t',
   (G,s) |= ok ->
   G |== s ->
@@ -235,7 +251,30 @@ Proof. unfold preservation.
   Case "red_msel_tgt1". (* TODO *) skip.
   Case "red_msel_tgt2". (* TODO *) skip.
   Case "red_sel". (* TODO *) skip.
-  Case "red_sel_tgt". (* TODO *) skip.
+  Case "red_sel_tgt".
+    introv Ht. inversion Ht. subst.
+    inversion H3. subst.
+    specialize (IHHr Hok Hc T0 H2). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Hc' Hs'].
+    assert (exists T', (G,s') |= e' ~mem~ l ~: decl_tm T' /\ (G,s') |= T' ~=: T) as Hmem'.
+      apply membership_value_same_tp with (t1:=e) (T1:=T0) (T1':=Th'); try assumption.
+      apply preserved_tp with (s:=s) (t:=e) (t':=e'); assumption.
+      apply preserved_mem with (s:=s) (t:=e) (t':=e'); assumption.
+    inversion Hmem' as [T' Hmem'']. inversion Hmem'' as [Hmem''' HT'eqT].
+    exists T'. split.
+    apply typing_sel; try assumption.
+      inversion HT'eqT. subst. auto.
+    assumption.
+    subst.
+    specialize (IHHr Hok Hc T0 H). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Hc' Hs'].
+    assert (exists T', (G,s') |= e' ~mem~ l ~: decl_tm T' /\ (G,s') |= T' ~=: T) as Hmem'.
+      apply membership_value_same_tp with (t1:=e) (T1:=T0) (T1':=Th'); try assumption.
+      apply preserved_tp with (s:=s) (t:=e) (t':=e'); assumption.
+      apply preserved_mem with (s:=s) (t:=e) (t':=e'); assumption.
+    inversion Hmem' as [T' Hmem'']. inversion Hmem'' as [Hmem''' HT'eqT].
+    exists T'. split.
+    apply typing_sel; try assumption.
+      inversion HT'eqT. subst. auto.
+    assumption.
   Case "red_wid_tgt".
     introv Ht. inversion Ht. subst.
     assert ((G, s') |= ok) as Hok'. apply preserved_env_ok with (s:=s) (t:=e) (t':=e'); assumption.
