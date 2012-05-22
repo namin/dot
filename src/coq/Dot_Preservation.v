@@ -227,6 +227,17 @@ Lemma preserved_mem : forall G s t s' t' e l d,
   (G,s') |= e ~mem~ l ~: d.
 Proof. (* TODO *) Admitted.
 
+Lemma preserved_same_tp : forall G s t s' t' T T',
+  (G,s) |= ok ->
+  G |== s ->
+  s |~ t ~~> t' ~| s' ->
+  (G,s) |= T' ~=: T ->
+  (G,s') |= T' ~=: T.
+Proof.
+  introv Hok Hc Hr Hs. inversion Hs. subst.
+  apply same_tp_any; apply preserved_subtype with (s:=s) (t:=t) (t':=t'); assumption.
+Qed.
+
 Lemma membership_value_same_tp : forall E t1 T1 t1' T1' l T,
   E |= t1 ~: T1 ->
   E |= t1' ~: T1' ->
@@ -234,6 +245,27 @@ Lemma membership_value_same_tp : forall E t1 T1 t1' T1' l T,
   E |= t1 ~mem~ l ~: decl_tm T ->
   exists T', E |= t1' ~mem~ l ~: decl_tm T' /\ E |= T' ~=: T.
 Proof. (* TODO *) Admitted.
+
+Lemma membership_method_same_tp : forall E t1 T1 t1' T1' l S T,
+  E |= t1 ~: T1 ->
+  E |= t1' ~: T1' ->
+  E |= T1' ~=: T1 ->
+  E |= t1 ~mem~ l ~: decl_mt S T ->
+  exists S' T', E |= t1' ~mem~ l ~: decl_mt S' T' /\ E |= S ~=: S' /\ E |= T' ~=: T.
+Proof. (* TODO *) Admitted.
+
+Lemma same_tp_transitive : forall TMid E T T',
+  E |= T ~=: TMid -> E |= TMid ~=: T' -> E |= T ~=: T'.
+Proof.
+  introv HT HT'. inversion HT. inversion HT'. subst.
+  apply same_tp_any; apply sub_tp_transitive with (TMid:=TMid); assumption.
+Qed.
+
+Lemma same_tp_reflexive : forall E T T',
+  E |= T ~=: T' -> E |= T' ~=: T.
+Proof.
+  introv H. inversion H. subst. apply same_tp_any; assumption.
+Qed.
 
 Definition preservation := forall G s t T s' t',
   (G,s) |= ok ->
@@ -249,7 +281,18 @@ Proof. unfold preservation.
   introv Hok Hc Ht Hr. gen T. induction Hr.
   Case "red_msel".  (* TODO *) skip.
   Case "red_msel_tgt1". (* TODO *) skip.
-  Case "red_msel_tgt2". (* TODO *) skip.
+  Case "red_msel_tgt2".
+    introv Ht. inversion Ht. subst.
+    assert ((G, s') |= ok) as Hok'. apply preserved_env_ok with (s:=s) (t:=e2) (t':=e2'); assumption.
+    inversion Hok' as [Henv' Hbinds'].
+    specialize (IHHr Hok Hc T' H6). inversion IHHr as [Th' IHHr']. inversion IHHr' as [Hc' Hs'].
+    exists T. split.
+      apply typing_msel with (S:=S) (T':=Th'); try assumption.
+      apply preserved_mem with (s:=s) (t:=e2) (t':=e2'); assumption.
+      apply same_tp_transitive with (TMid:=T'); try assumption.
+      apply preserved_same_tp with (s:=s) (t:=e2) (t':=e2'); assumption.
+      apply preserved_wfe with (s:=s) (t:=e2) (t':=e2'); assumption.
+      apply same_tp_any; apply sub_tp_refl; try assumption; apply preserved_wfe with (s:=s) (t:=e2) (t':=e2'); assumption.
   Case "red_sel". (* TODO *) skip.
   Case "red_sel_tgt".
     introv Ht. inversion Ht. subst.
