@@ -144,8 +144,9 @@
 (define-metafunction dot
   cast-sel-method : store v m v x e -> e or #f
   [(cast-sel-method store (location i) m v x e) (subst e x v)]
-  [(cast-sel-method store v_r m v x e) (as T (subst e x (as S v)))
-   (where (S T) (membership-method-lookup (() store) v_r m))]
+  [(cast-sel-method store v_r m v x e) (as T_r (subst e x (as S_i v)))
+   (where (S_i T_i) (membership-method-lookup (() store) (to-location v_r) m))
+   (where (S_r T_r) (membership-method-lookup (() store) v_r m))]
   [(cast-sel-method store v_r m v x e) #f])
    
 (define-judgment-form dot

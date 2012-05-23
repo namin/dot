@@ -203,8 +203,10 @@ s |- v . m ( v' ) | \ x' . t' up_method t'' :: ::up_method:: up_method_ {{ com P
 s |- x.m(v') | \x'.t' up_method ([v'/x']t')
 
  [], s |- (v : T) mem m : S' -> T'
+ v downto x
+ [], s |- x mem m : S'' -> T''
  ------------------------------------------------------------------- :: wid
-s |- (v : T).m(v') | \x'.t' up_method (([(v':S')/x']t') : T')
+s |- (v : T).m(v') | \x'.t' up_method (([(v':S'')/x']t') : T')
 
  defn
  t | s --> t' | s' :: ::reduce:: red_ {{ com Reduction }} by

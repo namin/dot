@@ -68,11 +68,13 @@ with up_method : store -> tm -> label -> tm -> tm -> tm -> Prop :=
   | up_method_var : forall s a m v t,
      method_label m ->
      up_method s (ref a) m v t (t ^^ v)
-  | up_method_wid : forall s v T m v' t' S' T',
+  | up_method_wid : forall s v T m v' t' a S' T' S'' T'',
      method_label m ->
      value v ->
      (nil, s) |= (wid v T) ~mem~ m ~: (decl_mt S' T') ->
-     up_method s (wid v T) m v' t' (wid (t' ^^ (wid v' S')) T')
+     value_to_ref v (ref a) ->
+     (nil, s) |= (ref a) ~mem~ m ~: (decl_mt S'' T'') ->
+     up_method s (wid v T) m v' t' (wid (t' ^^ (wid v' S'')) T')
 
 with red : store -> tm -> store -> tm -> Prop :=
 (*| red_beta : forall s T t v,
