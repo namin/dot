@@ -124,6 +124,10 @@ Proof.
     (* rely on uniqueness of expansion *) skip.
 Qed.
 
+Lemma mem_unique : forall E t l d d',
+  E |= t ~mem~ l ~: d -> E |= t ~mem~ l ~: d' -> d = d'.
+Proof. (* TODO *) Admitted.
+
 Lemma tp_regular : forall E s t T,
   (E,s) |= ok -> E |== s ->
   (E,s) |= t ~: T ->
@@ -339,6 +343,16 @@ Proof.
     skip.
 Qed.
 
+Lemma binds_exists_before_open : forall l v args a,
+  lbl.binds l v (args ^args^ ref a) ->
+  exists v', lbl.binds l v' args /\ v' ^^ ref a = v.
+Proof. (* TODO *) Admitted.
+
+Lemma nil_to_ctx_mem : forall G s t l d,
+  (G,s) |= ok -> G |== s -> (nil,s) |= t ~mem~ l ~: d ->
+  (G,s) |= t ~mem~ l ~: d.
+Proof. (* TODO *) Admitted.
+
 Definition preservation := forall G s t T s' t',
   (G,s) |= ok ->
   G |== s ->
@@ -471,7 +485,68 @@ Proof. unfold preservation.
       assert (decl_tm T ^d^ ref a = decl_tm T) as Hlc. apply subst_noop_if_lc. assumption.
       rewrite Hlc in Hdecl'. inversion Hdecl'. subst. eapply env_weakening_notin_same_tp with (L:=L). apply FrL. apply HV'2.
     SCase "upcast".
-      (* TODO *) skip.
+      subst.
+      inversion H10.
+      SSCase "mem path".
+      subst.
+      inversion H21. subst.
+      remember H1 as Hbinds_v'. clear HeqHbinds_v'.
+      apply binds_exists_before_open in H1. inversion H1 as [v'_ H1'].
+      inversion H1' as [Hbinds_v'_ Heqv'_].
+      specialize (H11 l v'_ Hbinds_v'_).
+      inversions H11.
+      inversion H24 as [d Hdecls_binds].
+      pick fresh x.
+      assert (x `notin` L) as FrL. auto.
+      specialize (H16 x FrL l d Hdecls_binds).
+      inversion H16 as [Htype_label Hlabels].
+      inversion Hlabels as [Hmethod_label Hvalue_label].
+      specialize (Hvalue_label H2).
+      inversion Hvalue_label as [V HV].
+      inversion HV as [Hdecl HV'].
+      inversion HV' as [va HV''].
+      inversion HV'' as [Hbinds_va HV'''].
+      inversion HV''' as [Hvalue_va HV''''].
+      inversion HV'''' as [V' HV'_].
+      inversion HV'_ as [HV'1 HV'2].
+      assert (va = v'_) as Heq. eapply lbl.binds_unique. apply Hbinds_va. assumption. assumption.
+      subst.
+      assert ((G,s) |= v'_ ^^ ref a ~: V') as Htv'_. eapply tp_two_ways with (L:=L); try assumption. apply H0. apply FrL. assumption.
+      exists T'. split.
+      apply typing_wid with (T':=V'). assumption. (* TODO: show subtyping *) skip.
+      assert (decl_tm T = decl_tm T') as Heq. eapply mem_unique. apply H10. apply nil_to_ctx_mem; assumption.
+      inversion Heq. subst.
+      apply same_tp_any; apply sub_tp_refl; try assumption; apply preserved_wfe with (s:=s) (t:=e2) (t':=e2'); assumption.
+      SSCase "mem term".
+      subst.
+      inversion H19. subst.
+      remember H1 as Hbinds_v'. clear HeqHbinds_v'.
+      apply binds_exists_before_open in H1. inversion H1 as [v'_ H1'].
+      inversion H1' as [Hbinds_v'_ Heqv'_].
+      specialize (H11 l v'_ Hbinds_v'_).
+      inversions H11.
+      inversion H24 as [d Hdecls_binds].
+      pick fresh x.
+      assert (x `notin` L) as FrL. auto.
+      specialize (H16 x FrL l d Hdecls_binds).
+      inversion H16 as [Htype_label Hlabels].
+      inversion Hlabels as [Hmethod_label Hvalue_label].
+      specialize (Hvalue_label H2).
+      inversion Hvalue_label as [V HV].
+      inversion HV as [Hdecl HV'].
+      inversion HV' as [va HV''].
+      inversion HV'' as [Hbinds_va HV'''].
+      inversion HV''' as [Hvalue_va HV''''].
+      inversion HV'''' as [V' HV'_].
+      inversion HV'_ as [HV'1 HV'2].
+      assert (va = v'_) as Heq. eapply lbl.binds_unique. apply Hbinds_va. assumption. assumption.
+      subst.
+      assert ((G,s) |= v'_ ^^ ref a ~: V') as Htv'_. eapply tp_two_ways with (L:=L); try assumption. apply H0. apply FrL. assumption.
+      exists T'. split.
+      apply typing_wid with (T':=V'). assumption. (* TODO: show subtyping *) skip.
+      assert (decl_tm T = decl_tm T') as Heq. eapply mem_unique. apply H10. apply nil_to_ctx_mem; assumption.
+      inversion Heq. subst.
+      apply same_tp_any; apply sub_tp_refl; try assumption; apply preserved_wfe with (s:=s) (t:=e2) (t':=e2'); assumption.
   Case "red_sel_tgt".
     introv Ht. inversion Ht. subst.
     inversion H3. subst.
