@@ -272,7 +272,7 @@ Lemma tp_env_extended_two_ways : forall L G s Tc t T a args,
   (G,[(a, (Tc,  args))] ++ s) |= ok -> G |== [(a, (Tc,  args))] ++ s ->
   (forall x, x `notin` L -> ctx_bind (G, s) x Tc |= t ^ x ~: T) ->
   (G, [(a, (Tc, args))] ++ s) |= t ^^ ref a ~: T.
-Proof. (*(* TODO *) Admitted.*)
+Proof.
   introv Hok Hc Hok' Hc' Ht.
   pick fresh x.
   assert (x `notin` L) as FrL. auto.
