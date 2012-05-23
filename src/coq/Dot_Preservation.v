@@ -292,6 +292,10 @@ Lemma decl_two_ways : forall L x G s Tc a args d d',
   d ^d^ ref a = d'.
 Proof. (* TODO *) Admitted.
 
+Lemma subst_noop_if_lc : forall T v,
+  lc_tp T -> decl_tm T ^d^ v = decl_tm T.
+Proof. (* TODO *) Admitted.
+
 Lemma tp_env_extended_two_ways : forall L G s Tc t T a args,
   (G,s) |= ok -> G |== s ->
   (G,[(a, (Tc,  args))] ++ s) |= ok -> G |== [(a, (Tc, args))] ++ s ->
@@ -438,7 +442,34 @@ Proof. unfold preservation.
       assert (D ^d^ ref a = decl_tm V) as Hdecl'. eapply decl_two_ways with (L:=L). apply Hok. assumption. apply H0. apply FrL. assumption.
       rewrite H17 in Hdecl'. inversion Hdecl'. subst. eapply env_weakening_notin_same_tp with (L:=L). apply FrL. apply HV'2.
       SSCase "mem term".
-        (* similar *) skip.
+      subst.
+      assert (T0 = Tc) as Heq. apply tp_unique with (E:=(G,s)) (t:=ref a). assumption. eapply typing_ref. assumption. apply H0.
+      subst.
+      pick fresh x.
+      assert (x `notin` L) as FrL. auto.
+      assert (ds = DS) as Heq. apply expansion_unique with (E:=(G,s)) (T:=Tc); assumption.
+      subst.
+      specialize (H16 x FrL l (decl_tm T) H19).
+      inversions H16.
+      inversions H22.
+      remember H15 as Hlabel. clear HeqHlabel.
+      apply H23 in H15.
+      inversion H15 as [V HV].
+      inversion HV as [Hdecl HV'].
+      inversion HV' as [va HV''].
+      inversion HV'' as [Hbinds_va HV'''].
+      inversion HV''' as [Hvalue_va HV''''].
+      inversion HV'''' as [V' HV'_].
+      inversion HV'_ as [HV'1 HV'2].
+      assert (lbl.binds l (va ^^ ref a) (args ^args^ ref a)) as Hbinds_va'. unfold "^^". unfold "^args^". apply lbl.binds_map_2. assumption.
+      assert (va ^^ ref a = v'') as Heq. eapply lbl.binds_unique. apply Hbinds_va'. assumption. apply lbl.uniq_map_2. assumption.
+      assert ((G,s) |= va ^^ ref a ~: V') as Htv''. eapply tp_two_ways with (L:=L); try assumption. apply H0. apply FrL. assumption.
+      rewrite Heq in Htv''.
+      exists V'. split. assumption.
+      assert ((decl_tm T) ^d^ ref a = decl_tm V) as Hdecl'. eapply decl_two_ways with (L:=L). apply Hok. assumption. apply H0. apply FrL. assumption.
+      inversion H20. subst.
+      assert (decl_tm T ^d^ ref a = decl_tm T) as Hlc. apply subst_noop_if_lc. assumption.
+      rewrite Hlc in Hdecl'. inversion Hdecl'. subst. eapply env_weakening_notin_same_tp with (L:=L). apply FrL. apply HV'2.
     SCase "upcast".
       (* TODO *) skip.
   Case "red_sel_tgt".
