@@ -20,9 +20,9 @@ Definition typing_store G s :=
     /\ exists ds, (G, s) |= Tc ~< ds
     /\ (forall l v, lbl.binds l v args -> (value_label l \/ method_label l) /\ (exists d, decls_binds l d ds))
     /\ (exists L L', (forall x, x \notin L -> (forall l d, decls_binds l d ds ->
-       (forall S U, d ^d^ x = decl_tp S U -> (ctx_bind (G,s) x Tc) |= S ~<: U) /\
-       (forall S U, d ^d^ x = decl_mt S U -> (exists v, lbl.binds l v args /\ (forall y, y \notin L' -> (exists U', (ctx_bind (ctx_bind (G,s) x Tc) y S) |= ((v ^ x) ^ y) ~: U' /\ (ctx_bind (ctx_bind (G,s) x Tc) y S) |= U' ~=: U)))) /\
-       (forall V, d ^d^ x = decl_tm V -> (exists v, lbl.binds l v args /\ syn_value(v ^ x) /\ (exists V', (ctx_bind (G,s) x Tc) |= (v ^ x) ~: V' /\ (ctx_bind (G,s) x Tc) |= V' ~=: V))))))).
+       (type_label l -> (exists S U, d ^d^ x = decl_tp S U /\ (ctx_bind (G,s) x Tc) |= S ~<: U)) /\
+       (method_label l -> (exists S U, d ^d^ x = decl_mt S U /\ (exists v, lbl.binds l v args /\ (forall y, y \notin L' -> (exists U', (ctx_bind (ctx_bind (G,s) x Tc) y S) |= ((v ^ x) ^ y) ~: U' /\ (ctx_bind (ctx_bind (G,s) x Tc) y S) |= U' ~=: U))))) /\
+       (value_label l -> (exists V, d ^d^ x = decl_tm V /\ (exists v, lbl.binds l v args /\ syn_value(v ^ x) /\ (exists V', (ctx_bind (G,s) x Tc) |= (v ^ x) ~: V' /\ (ctx_bind (G,s) x Tc) |= V' ~=: V)))))))).
 
 Notation "G |== s" := (typing_store G s) (at level 68).
 
@@ -34,6 +34,11 @@ Notation "G_s |= 'ok'" := (ok_env G_s) (at level 69).
 Lemma env_weakening_notin_wfe_tp: forall L E S T x t,
   x `notin` L -> ctx_bind E x S |= t ^ x ~: T -> wfe_tp (ctx_bind E x S) T ->
   wfe_tp E T.
+Proof. (* TODO *) Admitted.
+
+Lemma env_weakening_notin_same_tp: forall L E S T T' x,
+  x `notin` L -> ctx_bind E x S |= T ~=: T' ->
+  E |= T ~=: T'.
 Proof. (* TODO *) Admitted.
 
 Lemma ok_env_plus: forall E s x S,
@@ -78,6 +83,10 @@ Ltac mutind_tp_mem Ptyp Pmem :=
   cut ((forall E t T (H: E |= t ~: T), (Ptyp E t T H)) /\
     (forall E t l d (H: E |= t ~mem~ l ~: d), (Pmem E t l d H))); [try tauto; Case "IH" |
       apply (tp_mem_mutind Ptyp Pmem); try unfold Ptyp, Pmem in *; try clear Ptyp Pmem; [Case "typing_var" | Case "typing_ref" | Case "typing_wid" | Case "typing_sel" | Case "typing_msel" | Case "typing_new" | Case "mem_path" | Case "mem_term"]; introv; eauto ].
+
+Lemma expansion_unique : forall E T DS DS',
+  E |= T ~< DS -> E |= T ~< DS' -> DS = DS'.
+Proof. (* TODO *) Admitted.
 
 Lemma tp_unique : forall E t T T',
   E |= t ~: T -> E |= t ~: T' -> T = T'.
@@ -267,9 +276,25 @@ Proof.
   introv H. inversion H. subst. apply same_tp_any; assumption.
 Qed.
 
+Lemma tp_two_ways : forall L x G s Tc a args t T,
+  (G,s) |= ok -> G |== s ->
+  binds a (Tc, args) s ->
+  x `notin` L ->
+  ctx_bind (G, s) x Tc |= t ^ x ~: T ->
+  (G, s) |= t ^^ ref a ~: T.
+Proof. (* TODO *) Admitted.
+
+Lemma decl_two_ways : forall L x G s Tc a args d d',
+  (G,s) |= ok -> G |== s ->
+  binds a (Tc, args) s ->
+  x `notin` L ->
+  d ^d^ x = d' ->
+  d ^d^ ref a = d'.
+Proof. (* TODO *) Admitted.
+
 Lemma tp_env_extended_two_ways : forall L G s Tc t T a args,
   (G,s) |= ok -> G |== s ->
-  (G,[(a, (Tc,  args))] ++ s) |= ok -> G |== [(a, (Tc,  args))] ++ s ->
+  (G,[(a, (Tc,  args))] ++ s) |= ok -> G |== [(a, (Tc, args))] ++ s ->
   (forall x, x `notin` L -> ctx_bind (G, s) x Tc |= t ^ x ~: T) ->
   (G, [(a, (Tc, args))] ++ s) |= t ^^ ref a ~: T.
 Proof.
@@ -365,7 +390,57 @@ Proof. unfold preservation.
       apply preserved_same_tp with (s:=s) (t:=e2) (t':=e2'); assumption.
       apply preserved_wfe with (s:=s) (t:=e2) (t':=e2'); assumption.
       apply same_tp_any; apply sub_tp_refl; try assumption; apply preserved_wfe with (s:=s) (t:=e2) (t':=e2'); assumption.
-  Case "red_sel". (* TODO *) skip.
+  Case "red_sel".
+    introv Ht. inversion Ht. subst.
+    inversion Hok as [Henv Hbinds].
+    inversions Hc.
+    specialize (H7 a Tc ags H0).
+    inversions H7.
+    inversions H11. rename x into args.
+    inversions H7.
+    inversions H13.
+    inversions H11.
+    inversions H14. rename x into ds.
+    inversions H11.
+    inversions H15.
+    inversions H16. rename x into L.
+    inversions H15. rename x into L'.
+    inversion H5.
+    SCase "no upcast".
+      subst.
+      inversion H4. subst.
+      inversion H10.
+      SSCase "mem path".
+      subst.
+      assert (T0 = Tc) as Heq. apply tp_unique with (E:=(G,s)) (t:=ref a). assumption. eapply typing_ref. assumption. apply H0.
+      subst.
+      pick fresh x.
+      assert (x `notin` L) as FrL. auto.
+      assert (ds = DS) as Heq. apply expansion_unique with (E:=(G,s)) (T:=Tc); assumption.
+      subst.
+      specialize (H16 x FrL l D H24).
+      inversions H16.
+      inversions H22.
+      remember H15 as Hlabel. clear HeqHlabel.
+      apply H23 in H15.
+      inversion H15 as [V HV].
+      inversion HV as [Hdecl HV'].
+      inversion HV' as [va HV''].
+      inversion HV'' as [Hbinds_va HV'''].
+      inversion HV''' as [Hvalue_va HV''''].
+      inversion HV'''' as [V' HV'_].
+      inversion HV'_ as [HV'1 HV'2].
+      assert (lbl.binds l (va ^^ ref a) (args ^args^ ref a)) as Hbinds_va'. unfold "^^". unfold "^args^". apply lbl.binds_map_2. assumption.
+      assert (va ^^ ref a = v'') as Heq. eapply lbl.binds_unique. apply Hbinds_va'. assumption. apply lbl.uniq_map_2. assumption.
+      assert ((G,s) |= va ^^ ref a ~: V') as Htv''. eapply tp_two_ways with (L:=L); try assumption. apply H0. apply FrL. assumption.
+      rewrite Heq in Htv''.
+      exists V'. split. assumption.
+      assert (D ^d^ ref a = decl_tm V) as Hdecl'. eapply decl_two_ways with (L:=L). apply Hok. assumption. apply H0. apply FrL. assumption.
+      rewrite H17 in Hdecl'. inversion Hdecl'. subst. eapply env_weakening_notin_same_tp with (L:=L). apply FrL. apply HV'2.
+      SSCase "mem term".
+        (* similar *) skip.
+    SCase "upcast".
+      (* TODO *) skip.
   Case "red_sel_tgt".
     introv Ht. inversion Ht. subst.
     inversion H3. subst.
