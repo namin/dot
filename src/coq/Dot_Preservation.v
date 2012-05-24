@@ -41,6 +41,11 @@ Lemma env_weakening_notin_same_tp: forall L E S T T' x,
   E |= T ~=: T'.
 Proof. (* TODO *) Admitted.
 
+Lemma env_weakening_notin_sub_tp: forall L E S T T' x,
+  x `notin` L -> ctx_bind E x S |= T ~<: T' ->
+  E |= T ~<: T'.
+Proof. (* TODO *) Admitted.
+
 Lemma ok_env_plus: forall E s x S,
   (E,s) |= ok -> E |== s -> 
   ((x, S) :: E, s) |= ok.
@@ -353,6 +358,24 @@ Lemma nil_to_ctx_mem : forall G s t l d,
   (G,s) |= t ~mem~ l ~: d.
 Proof. (* TODO *) Admitted.
 
+Lemma value_to_ref_sub_tp : forall E v a Tv Ta,
+  value_to_ref v (ref a) -> E |= v ~: Tv -> E |= ref a ~: Ta ->
+  E |= Ta ~<: Tv.
+Proof. (* TODO *) Admitted.
+
+Lemma sub_tp_decl_tm : forall L x E S T DS DT l dS dT vT S' T',
+  x `notin` L ->
+  E |= S ~<: T ->
+  E |= S ~< DS ->
+  E |= T ~< DT ->
+  decls_binds l dS DS ->
+  decls_binds l dT DT ->
+  E |= vT ~: T ->
+  dT ^d^ vT = decl_tm T' ->
+  dS ^d^ x = decl_tm S' ->
+  ctx_bind E x S |= S' ~<: T'.
+Proof. (* TODO *) Admitted.
+
 Definition preservation := forall G s t T s' t',
   (G,s) |= ok ->
   G |== s ->
@@ -512,10 +535,13 @@ Proof. unfold preservation.
       assert (va = v'_) as Heq. eapply lbl.binds_unique. apply Hbinds_va. assumption. assumption.
       subst.
       assert ((G,s) |= v'_ ^^ ref a ~: V') as Htv'_. eapply tp_two_ways with (L:=L); try assumption. apply H0. apply FrL. assumption.
-      exists T'. split.
-      apply typing_wid with (T':=V'). assumption. (* TODO: show subtyping *) skip.
       assert (decl_tm T = decl_tm T') as Heq. eapply mem_unique. apply H10. apply nil_to_ctx_mem; assumption.
       inversion Heq. subst.
+      exists T'. split.
+      apply typing_wid with (T':=V'). assumption.
+      assert ((G,s) |= Tc ~<: T1) as Hsub. apply value_to_ref_sub_tp with (v:=wid v0 T1) (a:=a); try assumption. eapply typing_ref; try assumption. apply H0.
+      assert (ctx_bind (G,s) x Tc |= V ~<: T') as Hsubd. eapply sub_tp_decl_tm with (L:=L) (T:=T1) (DS:=ds) (DT:=DS) (l:=l); try assumption. apply Hdecls_binds. apply H26. apply H21. assumption. assumption.
+      apply env_weakening_notin_sub_tp with (L:=L) (S:=Tc) (x:=x); try assumption. apply sub_tp_transitive with (TMid:=V). inversion HV'2. assumption. assumption.
       apply same_tp_any; apply sub_tp_refl; try assumption; apply preserved_wfe with (s:=s) (t:=e2) (t':=e2'); assumption.
       SSCase "mem term".
       subst.
@@ -542,10 +568,13 @@ Proof. unfold preservation.
       assert (va = v'_) as Heq. eapply lbl.binds_unique. apply Hbinds_va. assumption. assumption.
       subst.
       assert ((G,s) |= v'_ ^^ ref a ~: V') as Htv'_. eapply tp_two_ways with (L:=L); try assumption. apply H0. apply FrL. assumption.
-      exists T'. split.
-      apply typing_wid with (T':=V'). assumption. (* TODO: show subtyping *) skip.
       assert (decl_tm T = decl_tm T') as Heq. eapply mem_unique. apply H10. apply nil_to_ctx_mem; assumption.
       inversion Heq. subst.
+      exists T'. split.
+      apply typing_wid with (T':=V'). assumption.
+      assert ((G,s) |= Tc ~<: T1) as Hsub. apply value_to_ref_sub_tp with (v:=wid v0 T1) (a:=a); try assumption. eapply typing_ref; try assumption. apply H0.
+      assert (ctx_bind (G,s) x Tc |= V ~<: T') as Hsubd. eapply sub_tp_decl_tm with (L:=L) (T:=T1) (DS:=ds) (DT:=DS) (l:=l); try assumption. apply Hdecls_binds. apply H21. apply H19. apply subst_noop_if_lc. inversion H22. subst. assumption. assumption.
+      apply env_weakening_notin_sub_tp with (L:=L) (S:=Tc) (x:=x); try assumption. apply sub_tp_transitive with (TMid:=V). inversion HV'2. assumption. assumption.
       apply same_tp_any; apply sub_tp_refl; try assumption; apply preserved_wfe with (s:=s) (t:=e2) (t':=e2'); assumption.
   Case "red_sel_tgt".
     introv Ht. inversion Ht. subst.
