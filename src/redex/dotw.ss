@@ -1252,3 +1252,20 @@
                             ((label-method l) y (as Top (fun (a (sel y (label-abstract-type A))) Top a)))))
                         (cast Top z))))
        v))))
+
+#;
+(let ((Tc (term (refinement Top z
+                            (: (label-abstract-type A) (refinement Top z (: (label-method m) Bottom Top)) Top)
+                            (: (label-abstract-type B) Top Top)
+                            (: (label-method m) (sel z (label-abstract-type A)) Top))))
+      (T  (term (refinement Top z
+                            (: (label-abstract-type A) (refinement Top z (: (label-method m) Bottom Top)) Top)
+                            (: (label-abstract-type B) Top Top)
+                            (: (label-method m) (refinement (sel z (label-abstract-type A)) z (: (label-abstract-type B) Top Top)) Top)))))
+  (preservation
+   (term
+    (valnew (v (,Tc ((label-method m) x (as Top x))))
+    (as Top
+        (sel (as ,T v)
+             (label-method m)
+             (as (refinement (sel (as ,T v) (label-abstract-type A)) z (: (label-abstract-type B) Top Top)) v)))))))
