@@ -570,6 +570,9 @@
   [(is_subtype ((T_a T_b) ...) env T (sel p_1 Lt)) #t
    (judgment-holds (path-red env p_1 p_2))
    (side-condition (term (is_subtype ((T_a T_b) ... (T (sel p_1 Lt))) env T (sel p_2 Lt))))]
+  [(is_subtype ((T_a T_b) ...) env (sel p_1 Lt) T) #t
+   (judgment-holds (path-red env p_1 p_2))
+   (side-condition (term (is_subtype ((T_a T_b) ... ((sel p_1 Lt) T)) env (sel p_2 Lt) T)))]
   [(is_subtype ((T_a T_b) ...) env S T) #f])
 
 (define-judgment-form dot

@@ -397,6 +397,11 @@ s |- (v : T).m(v') | \x'.t' up_method (([(v':S'')/x']t') : T')
  -------------------- :: path_red
  G, s |- T <: p1.L
 
+ G, s |- p1 path> p2
+ G, s |- p2.L <: T
+ -------------------- :: path_red_dual
+ G, s |- p1.L <: T
+
  defn
  G , s |- D <: D' :: ::decl_sub:: decl_sub_ {{com Declaration subsumption }} by
 

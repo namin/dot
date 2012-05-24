@@ -348,6 +348,11 @@ with sub_tp : env -> tp -> tp -> Prop :=
       path_red E p p' ->
       E |= T ~<: (tp_sel p' L) ->
       E |= T ~<: (tp_sel p L)
+  | sub_tp_path_red_dual : forall E T p p' L,
+      wfe_tp E (tp_sel p L) ->
+      path_red E p p' ->
+      E |= (tp_sel p' L) ~<: T ->
+      E |= (tp_sel p L) ~<: T
 where "E |= S ~<: T" := (sub_tp E S T)
 
 with sub_decl : env -> decl -> decl -> Prop :=
@@ -439,7 +444,7 @@ Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ :=
   (forall (e : env) (d : decl) (H : wf_decl e d), (P7_ e d H)) /\
   (forall (e : env) (t : tp) (H : wfe_tp e t), (P8_ e t H))); [tauto |
     apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_); try unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_, P7_, P8_ in *; try clear P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_; [  (* only try unfolding and clearing in case the PN_ aren't just identifiers *)
-      Case "same_tp_any" | Case "typing_var" | Case "typing_ref" | Case "typing_wid" | Case "typing_sel" | Case "typing_msel" | Case "typing_new" | Case "mem_path" | Case "mem_term" | Case "expands_rfn" | Case "expands_tsel" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "expands_bot" | Case "sub_tp_refl" | Case "sub_tp_rfn_r" | Case "sub_tp_rfn_l" | Case "sub_tp_tsel_r" | Case "sub_tp_tsel_l" | Case "sub_tp_and_r" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_tp_or_l" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_tp_path_red" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "wf_rfn" | Case "wf_tsel_1" | Case "wf_tsel_2" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" | Case "wfe_any" ];
+      Case "same_tp_any" | Case "typing_var" | Case "typing_ref" | Case "typing_wid" | Case "typing_sel" | Case "typing_msel" | Case "typing_new" | Case "mem_path" | Case "mem_term" | Case "expands_rfn" | Case "expands_tsel" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "expands_bot" | Case "sub_tp_refl" | Case "sub_tp_rfn_r" | Case "sub_tp_rfn_l" | Case "sub_tp_tsel_r" | Case "sub_tp_tsel_l" | Case "sub_tp_and_r" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_tp_or_l" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_tp_path_red" | Case "sub_tp_path_red_dual" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "wf_rfn" | Case "wf_tsel_1" | Case "wf_tsel_2" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" | Case "wfe_any" ];
       introv; eauto ].
 
 Section TestMutInd.

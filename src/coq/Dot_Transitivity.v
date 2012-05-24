@@ -105,14 +105,22 @@ Ltac crush_rfn_r := repeat (
         eapply sub_tp_rfn_l; eauto 3 using IHHSubL, sub_tp_rfn_r |
         inversions eq |
         crush_rfn_r |
-        eauto 3].
+        eauto 4].
 
 assert (E |= S' ~<: tp_sel t l) as Ht1; eauto 3.
 assert (E |= tp_sel t l ~<: U') as Ht2; eauto 3.
 skip. (* TODO *)
 
+assert (E |= S' ~<: tp_sel t l) as Ht1; eauto 3.
+assert (E |= tp_sel t l ~<: T) as Ht2; eauto 3.
+skip. (* TODO *)
+
 assert (E |= T ~<: tp_sel t l) as Ht1; eauto 3.
 assert (E |= tp_sel t l ~<: U') as Ht2; eauto 3.
+skip. (* TODO *)
+
+assert (E |= T ~<: tp_sel t l) as Ht1; eauto 3.
+assert (E |= tp_sel t l ~<: T0) as Ht2; eauto 3.
 skip. (* TODO *)
 
 Qed.
