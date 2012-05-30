@@ -126,6 +126,7 @@ terminals :: terminals_ ::=
   | notin              :: :: notin {{ tex \not\in }}
   | ==                 :: :: equiv {{ tex \equiv }}
   | downto             :: :: downto {{ tex \downarrow }}
+  | downto_p           :: :: downto_p {{ tex \downarrow_p }}
   | up_value           :: :: pwv {{ tex \uparrow_v }}
   | up_method          :: :: pwm {{ tex \uparrow_m }}
   | \                  :: :: lambda {{ tex \lambda }}
@@ -186,6 +187,20 @@ Job :: '' ::=
  v downto x
  -------------- :: wid
  v : T downto x
+
+ defn
+ p downto_p x :: ::totip:: totip_ {{ com Tip of Path }} by
+
+ ---------- :: var
+ x downto_p x
+
+ p downto_p x
+ ---------------- :: wid
+ p : T downto_p x
+
+ p downto_p x
+ --------------- :: sel
+ p.l downto_p x
 
  defn
 s |- v . l | v' up_value v'' :: ::up_value:: up_value_ {{ com Propagate Widening for Value Selections }} by
@@ -262,9 +277,9 @@ s |- (v : T).m(v') | \x'.t' up_method (([(v':S'')/x']t') : T')
  G, s |- v.l path_dual> x'
 
  x |-> Tc { </ defi // i /> } in s
- v downto x
+ p downto_p x
  ---------------------------------- :: wid
- G, s |- v : T path_dual> v
+ G, s |- p : T path_dual> p
 
  G, s |- p path_dual> p'
  ---------------------- :: rec

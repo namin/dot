@@ -37,6 +37,14 @@ Inductive value_to_ref : tm -> tm -> Prop :=
   | value_to_ref_wid : forall a v t, value_to_ref v (ref a) -> value_to_ref (wid v t) (ref a)
 .
 
+Inductive path_to_tip : tm -> tm -> Prop :=
+  | path_to_tip_ref : forall a, path_to_tip (ref a) (ref a)
+  | path_to_tip_bvar : forall i, path_to_tip (bvar i) (bvar i)
+  | path_to_tip_fvar : forall v, path_to_tip (fvar v) (fvar v)
+  | path_to_tip_wid : forall p t tip, path p -> path_to_tip p tip -> path_to_tip (wid p t) tip
+  | path_to_tip_sel : forall p l tip, path p -> value_label l -> path_to_tip p tip -> path_to_tip (sel p l) tip
+.
+
 Inductive path_red : env -> tm -> tm -> Prop :=
   | path_red_base : forall G s Tc ags v v' l a a',
      binds a (Tc, ags) s ->
@@ -64,7 +72,7 @@ Inductive path_red_dual : env -> tm -> tm -> Prop :=
      path_red_dual (G, s) (sel v l) (ref a')
   | path_red_dual_wid : forall E p T a,
      path p ->
-     value_to_ref (wid p T) (ref a) ->
+     path_to_tip (wid p T) (ref a) ->
      path_red_dual E (wid p T) p
   | path_red_dual_sel : forall E l p p',
      path p ->

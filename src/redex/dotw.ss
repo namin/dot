@@ -98,10 +98,11 @@
   [(to-location (as T v)) (to-location v)])
 
 (define-metafunction dot
-  to-tip : vx -> loc or x
+  to-tip : p -> loc or x
   [(to-tip loc) loc]
   [(to-tip x) x]
-  [(to-tip (as T vx)) (to-tip vx)])
+  [(to-tip (sel p l)) (to-tip p)]
+  [(to-tip (as T p)) (to-tip p)])
 
 (define-metafunction dot
   store-extend : store c -> store
