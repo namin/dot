@@ -98,6 +98,12 @@
   [(to-location (as T v)) (to-location v)])
 
 (define-metafunction dot
+  to-tip : vx -> loc or x
+  [(to-tip loc) loc]
+  [(to-tip x) x]
+  [(to-tip (as T vx)) (to-tip vx)])
+
+(define-metafunction dot
   store-extend : store c -> store
   [(store-extend (c_before ...) c_new)
    (c_before ... c_new)])
@@ -503,6 +509,20 @@
    (path-red env p_1 p_2)])
 
 (define-judgment-form dot
+  #:mode (path-red-dual I I O)
+  #:contract (path-red-dual env p p)
+  [(path-red-dual (Gamma store) (sel v_1 l) (location i_2))
+   (where (location i_1) (to-location v_1))
+   (where c (store-lookup store i_1))
+   (found c #t)
+   (where v_2 (value-label-lookup c l))
+   (where (location i_2) (to-location v_2))]
+  [(path-red-dual env (as T p_1) p_1)
+   (where (location i) (to-tip p_1))]
+  [(path-red-dual env (sel p_1 l) (sel p_2 l))
+   (path-red-dual env p_1 p_2)])
+
+(define-judgment-form dot
   #:mode (subdecl I I I)
   #:contract (subdecl env D D)
   [(subdecl env (: Lm_1 S_1 T_1) (: Lm_1 S_2 T_2))
@@ -571,7 +591,7 @@
    (judgment-holds (path-red env p_1 p_2))
    (side-condition (term (is_subtype ((T_a T_b) ... (T (sel p_1 Lt))) env T (sel p_2 Lt))))]
   [(is_subtype ((T_a T_b) ...) env (sel p_1 Lt) T) #t
-   (judgment-holds (path-red env p_1 p_2))
+   (judgment-holds (path-red-dual env p_1 p_2))
    (side-condition (term (is_subtype ((T_a T_b) ... ((sel p_1 Lt) T)) env (sel p_2 Lt) T)))]
   [(is_subtype ((T_a T_b) ...) env S T) #f])
 
@@ -1272,6 +1292,20 @@
         (sel (as ,T v)
              (label-method m)
              (as (refinement (sel (as ,T v) (label-abstract-type A)) z (: (label-abstract-type B) Top Top)) v)))))))
+
+#;
+(preservation
+ (term
+  (valnew (a ((refinement Top z
+                          (: (label-class C) Bottom (refinement Top z
+                                                                (: (label-class D) Bottom (sel z (label-abstract-type X)))
+                                                                (: (label-abstract-type X) Bottom Top))))))
+  (valnew (b ((refinement (sel a (label-class C)) z
+                          (: (label-abstract-type X) Bottom Bottom))))
+  (valnew (c ((sel a (label-class C))))
+  (valnew (d ((sel (as (sel a (label-class C)) b) (label-class D))))
+  (app (fun (x Bottom) Bottom (sel x (label-value foo)))
+       d)))))))
 
 #;
 (preservation

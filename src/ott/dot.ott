@@ -111,6 +111,7 @@ terminals :: terminals_ ::=
   | ->                 :: :: rightarrow {{ tex \rightarrow }}
   | -->                :: :: longrightarrow {{ tex \;\longrightarrow\; }}
   | path>              :: :: longrightarrow_path {{ tex \;\longrightarrow_p\; }}
+  | path_dual>         :: :: longrightarrow_path_dual {{ tex \;\longrightarrow_{p'}\; }}
   | =>                 :: :: Rightarrow {{ tex \Rightarrow }}
   | \/                 :: :: tand {{ tex \vee }}
   | /\                 :: :: tor {{ tex \wedge }}
@@ -249,6 +250,25 @@ s |- (v : T).m(v') | \x'.t' up_method (([(v':S'')/x']t') : T')
  G, s |- p path> p'
  ---------------------- :: rec
  G, s |- p.l path> p'.l
+
+ defn
+ G , s |- p path_dual> p' :: :: path_reduce_dual:: path_red_dual {{ com Path Reduction (Dual) }} by
+
+ x |-> Tc { </ defi // i /> } in s
+ defi is l=v'
+ v downto x
+ v' downto x'
+ ---------------------------------- :: base
+ G, s |- v.l path_dual> x'
+
+ x |-> Tc { </ defi // i /> } in s
+ v downto x
+ ---------------------------------- :: wid
+ G, s |- v : T path_dual> v
+
+ G, s |- p path_dual> p'
+ ---------------------- :: rec
+ G, s |- p.l path_dual> p'.l
 
  defn
  G , s |- T == T' :: ::tp_eq:: tp_eq_ {{ com Type Equality }} by
@@ -397,7 +417,7 @@ s |- (v : T).m(v') | \x'.t' up_method (([(v':S'')/x']t') : T')
  -------------------- :: path_red
  G, s |- T <: p1.L
 
- G, s |- p1 path> p2
+ G, s |- p1 path_dual> p2
  G, s |- p2.L <: T
  -------------------- :: path_red_dual
  G, s |- p1.L <: T

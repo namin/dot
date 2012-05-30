@@ -54,6 +54,24 @@ Inductive path_red : env -> tm -> tm -> Prop :=
      path_red E (sel p l) (sel p' l)
 .
 
+Inductive path_red_dual : env -> tm -> tm -> Prop :=
+  | path_red_dual_base : forall G s Tc ags v v' l a a',
+     binds a (Tc, ags) s ->
+     lbl.binds l v' ags ->
+     value_label l ->
+     value_to_ref v (ref a) ->
+     value_to_ref v' (ref a') ->
+     path_red_dual (G, s) (sel v l) (ref a')
+  | path_red_dual_wid : forall E p T a,
+     path p ->
+     value_to_ref (wid p T) (ref a) ->
+     path_red_dual E (wid p T) p
+  | path_red_dual_sel : forall E l p p',
+     path p ->
+     path_red_dual E p p' ->
+     path_red_dual E (sel p l) (sel p' l)
+.
+
 Inductive up_value : store -> tm -> label -> tm -> tm -> Prop :=
   | up_value_var : forall s a l v,
      value_label l ->
@@ -350,7 +368,7 @@ with sub_tp : env -> tp -> tp -> Prop :=
       E |= T ~<: (tp_sel p L)
   | sub_tp_path_red_dual : forall E T p p' L,
       wfe_tp E (tp_sel p L) ->
-      path_red E p p' ->
+      path_red_dual E p p' ->
       E |= (tp_sel p' L) ~<: T ->
       E |= (tp_sel p L) ~<: T
 where "E |= S ~<: T" := (sub_tp E S T)
