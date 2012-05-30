@@ -1320,3 +1320,22 @@
   (valnew (d ((sel (as (sel a (label-class C)) b) (label-class D))))
   (app (fun (x Bottom) Bottom (sel x (label-value foo)))
        d)))))))
+
+#;
+(let ((Tc (term (refinement Top z
+                            (: (label-abstract-type A) (refinement Top z (: (label-method m) Bottom Top)) Top)
+                            (: (label-abstract-type B) Top Top)
+                            (: (label-method m) (sel z (label-abstract-type A)) Top))))
+      (T  (term (refinement Top z
+                            (: (label-abstract-type A) (refinement Top z (: (label-method m) Bottom Top)) Top)
+                            (: (label-abstract-type B) Top Top)
+                            (: (label-method m) (refinement (sel z (label-abstract-type A)) z (: (label-abstract-type B) Top Top)) Top)))))
+  (preservation
+   (term
+    (valnew (v (,Tc ((label-method m) x (as Top x))))
+    (valnew (u ((refinement Top z (: (label-value v) ,Tc))
+                ((label-value v) (as ,Tc v))))
+    (as Top
+        (sel (as ,T (sel u (label-value v)))
+             (label-method m)
+             (as (refinement (sel (as ,T (sel u (label-value v))) (label-abstract-type A)) z (: (label-abstract-type B) Top Top)) v))))))))
