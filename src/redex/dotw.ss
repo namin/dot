@@ -867,6 +867,35 @@
             (single-step? e)))
       #t))
 
+(define (small-step-preservation s e)
+  (if (and (well-formed? e) (typecheck (term (() ,s)) e) (single-step? e))
+      (begin
+        (printf "preservation: trying ~a\n" e)
+        (let loop ((e e) (store (term ())) (t (typecheck (term (() ,s)) e)))
+          (or (and (value? e) t)
+              (match (steps-to store e)
+                [(list store_to e_to)
+                 (let ((t_new (typecheck (term (() ,store_to)) e_to)))
+                   (if (and t_new
+                            ;(judgment-holds (env-consistent (() ,store_to)))
+                            (judgment-holds (subtype (() ,store_to) ,t_new ,t)))
+                       (loop e_to store_to t_new)
+                       (begin
+                         (printf "\nstore: ~a\nterm:~a\n~a\nnot a subtype of\n~a\n" store_to e_to t_new t)
+                         #f)))]
+                [_ (error 'preservation "expect reducible typed (~a) term ~a\nstore:~a" t e store)]))))
+      #t))
+
+(define (reduce-valnews e)
+  (let loop ((e e) (store '()))
+    (match e
+      [(list-rest 'valnew _)
+       (match (steps-to store e)
+         [(list store_to e_to)
+          (loop e_to store_to)]
+         [_ (list store e)])]
+      [_ (list store e)])))
+
 (define (preservation e)
   (if (and (well-formed? e) (typecheck (term (() ())) e) (single-step? e))
       (begin
@@ -1309,7 +1338,7 @@
        d)))))))
 
 #;
-(preservation
+(match (reduce-valnews
  (term
   (valnew (a ((refinement Top z
                           (: (label-class C) Bottom (refinement Top z
@@ -1321,6 +1350,8 @@
   (valnew (d ((sel (as (sel a (label-class C)) b) (label-class D))))
   (app (fun (x Bottom) Bottom (sel x (label-value foo)))
        d)))))))
+  [(list store e)
+   (small-step-preservation store e)])
 
 #;
 (let ((Tc (term (refinement Top z
