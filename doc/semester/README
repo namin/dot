@@ -1,0 +1,6 @@
+In Spring 2012, I did a semester project on DOT. My goal was to prove
+DOT sound, but instead, I found lots of counterexamples to soundness,
+and explored patches to the calculus.
+
+This directory contains the results of my semester of exploration of
+DOT.
