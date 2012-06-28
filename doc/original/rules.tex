@@ -494,7 +494,7 @@ D ::= & \lindent\mbox{Declaration} \\
 
    \linesep
 
-    \begin{multicols}{2}[\judgement{Expansion}{\fbox{$\Gamma \ts T_c \expand_z \seq D$}}]  
+    \begin{multicols}{2}[\judgement{Expansion}{\fbox{$\Gamma \ts T \expand_z \seq D$}}]  
 
       \infrule[\textsc{rfn-$\expand$}]
       {\Gamma \ts T \expand_z {\seq D'}}
@@ -502,7 +502,7 @@ D ::= & \lindent\mbox{Declaration} \\
 
       \infrule[\textsc{$\tand$-$\expand$}]
       {\Gamma \ts T_1 \expand_z {\seq D_1} \spcomma T_2 \expand_z {\seq D_2}}
-      {\Gamma \ts T_1 \tand T_2 \expand_x {\seq D_1 \tand \seq D_2}}
+      {\Gamma \ts T_1 \tand T_2 \expand_z {\seq D_1 \tand \seq D_2}}
 
       \infax[\textsc{$\Top$-$\expand$}]
       {\Gamma \ts \Top \expand_z \{\}}
@@ -516,7 +516,7 @@ D ::= & \lindent\mbox{Declaration} \\
 
       \infrule[\textsc{$\tor$-$\expand$}]
       {\Gamma \ts T_1 \expand_z {\seq D_1} \spcomma T_2 \expand_z {\seq D_2}}
-      {\Gamma \ts T_1 \tor T_2 \expand_x {\seq D_1 \tor \seq D_2}}
+      {\Gamma \ts T_1 \tor T_2 \expand_z {\seq D_1 \tor \seq D_2}}
 
       \infax[\textsc{$\Bot$-$\expand$}]
       {\Gamma \ts \Bot \expand_z \seq{D_\Bot}}
@@ -539,7 +539,8 @@ D ::= & \lindent\mbox{Declaration} \\
       {\Gamma \ts T \sub T}
 
       \infrule[\textsc{$\sub$-rfn}]
-      {\Gamma \ts S \sub T \spcomma S \expand_z \seq{D'} \spcomma \seq{D' \sub D}}
+      {\Gamma \ts S \sub T \spcomma S \expand_z \seq{D'} \\
+       \Gamma \envplus{z: S} \ts \seq{D' \sub D}}
       {\Gamma \ts S \sub T \refine z {\seq D}}
 
       \infrule[\textsc{$\sub$-tsel}]
