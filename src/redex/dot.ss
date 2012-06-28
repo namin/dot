@@ -398,7 +398,7 @@
                                         (< (length (term (T_p ...))) max-iter))))
           any_bound)
    (expansion-iter (T_p ... (sel p Lt)) env z U_p ((DLt_u ...) (Dl_u ...)))]
-  [(expansion-iter (T_p ...) env z Bottom (() ()))]) ;; kludge
+  [(expansion-iter (T_p ...) env z Bottom (((: (label-abstract-type kludge) Top Bottom)) ()))]) ;; kludge
 
 (define-judgment-form dot
   #:mode (expansion I I I O)
@@ -1029,3 +1029,18 @@
                                        ((λ (x Top) x) (λ (a (sel y (label-abstract-type A))) a))))))
                 ((λ (x Top) x) z)))
    v))))
+
+#;
+(preservation
+ (term
+  (valnew (a ((refinement Top z
+                          (: (label-class C) Bottom (refinement Top z
+                                                                (: (label-class D) Bottom (sel z (label-abstract-type X)))
+                                                                (: (label-abstract-type X) Bottom Top))))))
+  (valnew (b ((refinement (sel a (label-class C)) z
+                          (: (label-abstract-type X) Bottom Bottom))))
+  (valnew (c ((sel a (label-class C))))
+  ((λ (ab (sel a (label-class C)))
+    (valnew (d ((sel ab (label-class D))))
+    ((λ (y Top) y) d)))
+   b))))))
