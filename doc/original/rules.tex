@@ -1,0 +1,701 @@
+\documentclass{llncs}
+%%
+%\setlength{\textheight}{23cm}
+\setlength{\textwidth}{13.5cm}
+\advance\evensidemargin by -.65cm
+\advance\oddsidemargin by -.65cm
+%\setlength{\hoffset}{-1cm}
+%\renewcommand{\baselinestretch}{0.95}
+
+%\setlength{\abovedisplayskip}{3pt plus 0pt minus 0pt}
+%\setlength{\abovedisplayskip}{3pt}
+%\setlength{\abovedisplayshortskip}{3pt}
+%\setlength{\belowdisplayskip}{3pt}
+%\setlength{\belowdisplayshortskip}{3pt}
+
+\usepackage{fleqn}
+\usepackage{listings}
+\usepackage{math}
+\usepackage{amsmath}
+\usepackage{latexsym}
+\usepackage{bcprules}
+\usepackage[scaled=0.848971]{luximono} % This is for 11 pt Default font
+\usepackage[T1]{fontenc}
+
+% Prooftree formatting
+\usepackage{prooftree}
+
+% support for generating PDF files
+%\newif\ifpdf
+%    \ifx\pdfoutput\undefined
+%    \pdffalse
+%\else
+%    \pdftrue
+%    \pdfoutput=1
+%\fi
+
+%versions
+% Use dependent function types
+\newif\ifdep\depfalse
+
+\lstset{
+  literate=
+  {=>}{$\Rightarrow\;$}{2}
+  {<:}{$<:\;$}{1}
+}
+
+\lstdefinelanguage{scala}{% 
+       morekeywords={% 
+                try, catch, throw, private, public, protected, import, package, implicit, final, package, trait, type, class, val, def, var, if, for, this, else, extends, with, while, new, abstract, object, case, match, sealed,override},
+         sensitive=t, % 
+   morecomment=[s]{/*}{*/},morecomment=[l]{\//},% 
+   mathescape,
+%   escapeinside={/*\%}{*/},%
+   rangeprefix= /*< ,rangesuffix= >*/,%
+   morestring=[d]{"}% 
+ }
+ 
+\lstset{breaklines=true,language=scala} 
+
+\def\c{\lstinline}  % shorter version so you can write \c|String[Foo]|
+                    % -- \def must be in same file as uses for this to
+                    % work...
+\newcommand{\lstref}[1]{Listing~\ref{#1}}
+\newcommand{\Lstref}[1]{Listing~\ref{#1}} % only capitalise at beginning of sentence?
+\newcommand{\secref}[1]{Section~\ref{#1}}
+\newcommand{\Secref}[1]{Section~\ref{#1}} % only capitalise at beginning of sentence?
+
+
+
+% \lstset{basicstyle=\footnotesize\ttfamily, breaklines=true, language=scala, tabsize=2, columns=fixed, mathescape=false,includerangemarker=false}
+% thank you, Burak 
+% (lstset tweaking stolen from
+% http://lampsvn.epfl.ch/svn-repos/scala/scala/branches/typestate/docs/tstate-report/datasway.tex)
+\lstset{
+    xleftmargin=2em,%
+    framesep=5pt,%
+    frame=none,%
+    captionpos=b,%
+    fontadjust=true,%
+    columns=[c]fixed,%
+    keepspaces=false,%
+    basewidth={0.56em, 0.52em},%
+    tabsize=2,%
+    basicstyle=\small\tt,% \small\tt
+    commentstyle=\textit,%
+    keywordstyle=\bfseries,%
+    escapechar=\%,%
+}
+
+%% set latex/pdflatex specific stuff
+%\ifpdf
+    \usepackage[pdftex,
+                hyperindex,
+                plainpages=false,
+                breaklinks,
+                colorlinks,
+                citecolor=black,
+                filecolor=black,
+                linkcolor=black,
+                pagecolor=black,
+                urlcolor=black]{hyperref}
+    \usepackage[pdftex]{graphicx}
+    \DeclareGraphicsExtensions{.jpg,.pdf}
+    \pdfcatalog {
+        /PageMode (/UseNone)
+    }
+    \usepackage{thumbpdf}
+    \usepackage[pdftex]{color}
+%\else
+%    \usepackage[ps2pdf]{hyperref}
+%    \usepackage{graphicx}
+%    \DeclareGraphicsExtensions{.eps,.jpg}
+%    \usepackage{color}
+%\fi
+
+%\setlength{\parindent}{0pt}
+%\setlength{\parskip}{5pt}
+
+% verbfilter stuff
+\newcommand{\prog}[1]{{\sl #1}}
+\newenvironment{program}[1][10.5]
+  {\fontsize{#1}{13.6}\tt\begin{tabbing}\hspace*{0.5\parindent}\=\+\kill}
+  {\end{tabbing}\noindent}
+\newcommand{\blockcomment}[1]{{\color{grayPoint3}#1}}
+\newcommand{\linecomment}{\color{grayPoint3}}
+\newcommand{\grey}{\color{grey}}
+
+%\newenvironment{program}{\ \ \ \ \begin{minipage}{\textwidth}\renewcommand{\baselinestretch}{1.0}\sl\begin{tabbing}}{\end{tabbing}\end{minipage}}
+\newcommand{\vem}{\bfseries}
+\newcommand{\quotedstring}[1]{{#1}}
+\newcommand{\typename}[1]{{#1}}
+\newcommand{\literal}[1]{{#1}}
+
+% comments and notes
+\newcommand{\comment}[1]{}
+%\newcommand{\note}[1]{{\bf $\clubsuit$ #1 $\spadesuit$}}
+
+% figures
+\newcommand{\figurebox}[1]
+        {\fbox{\begin{minipage}{\textwidth} #1 \medskip\end{minipage}}}
+\newcommand{\twofig}[3]
+        {\begin{figure*}[t]#3\ \hrulefill\ 
+        \caption{\label{#1}#2}\end{figure*}}
+\newcommand{\boxfig}[3]
+        {\begin{figure*}\figurebox{#3\caption{\label{#1}#2}}\end{figure*}}
+\newcommand{\figref}[1]
+        {Figure~\ref{#1}}
+
+% typing rules (not used here)
+\newcommand{\ttag}[1]{\mbox{\textsc{\small(#1)}}}
+\newcommand{\infer}[3]{\mbox{#1 }\ba{c} #2 \\ \hline #3 \ea}
+\newcommand{\irule}[2]{{\renewcommand{\arraystretch}{1.2}\ba{c} #1 
+                        \\ \hline #2 \ea}}
+\newlength{\trulemargin}
+\newlength{\trulewidth}
+\newlength{\srulewidth}
+\setlength{\trulemargin}{1.75cm}
+\setlength{\trulewidth}{83.7mm}
+\setlength{\srulewidth}{6.0cm}
+\newenvironment{trules}{$\vspace{0.5em}\ba{p{\trulemargin}@{~}p{\trulewidth}@{~}p{\trulemargin}}}{\ea$}
+\newenvironment{srules}{$\vspace{0.5em}\ba{p{\trulemargin}@{~}p{\srulewidth}}}{\ea$}
+\newcommand{\laxiom}[2]{\ttag{#1} & $ #2 \hfill\ }
+\newcommand{\raxiom}[2]{\hfill #2 $& \hfill \ttag{#1}}
+\newcommand{\caxiom}[2]{\ttag{#1} & $\hfill #2 \hfill $& \ }
+\newcommand{\lrule}[3]{\laxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\rrule}[3]{\raxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\crule}[3]{\caxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\lsrule}[3]{\lsaxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\rsrule}[3]{\rsaxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\nl}{\end{trules}\\[0.5em] \begin{trules}}
+\newcommand{\snl}{\end{srules}\\[0.5em] \begin{srules}}
+
+% commas and semicolons
+\newcommand{\comma}{,\,}
+\newcommand{\commadots}{\comma \ldots \comma}
+\newcommand{\semi}{;\mbox{;};}
+\newcommand{\semidots}{\semi \ldots \semi}
+
+% spacing
+\newcommand{\gap}{\quad\quad}
+\newcommand{\biggap}{\quad\quad\quad}
+\newcommand{\nextline}{\\ \\}
+\newcommand{\htabwidth}{0.5cm}
+\newcommand{\tabwidth}{1cm}
+\newcommand{\htab}{\hspace{\htabwidth}}
+\newcommand{\tab}{\hspace{\tabwidth}}
+\newcommand{\linesep}{\ \hrulefill \ \smallskip}
+
+% math stuff
+\newenvironment{myproof}{{\em Proof:}}{$\Box$}
+\newenvironment{proofsketch}{{\em Proof Sketch:}}{$\Box$}
+\newcommand{\Case}{{\em Case\ }}
+
+% make ; a delimiter in math mode
+% \mathcode`\;="8000 % Makes ; active in math mode
+% {\catcode`\;=\active \gdef;{\;}}
+% \mathchardef\semicolon="003B
+
+% reserved words
+\newcommand{\mathem}{\bf}
+
+% brackets
+\newcommand{\set}[1]{\{#1\}}
+\newcommand{\sbs}[1]{\lquote #1 \rquote}
+
+% arrays
+\newcommand{\ba}{\begin{array}}
+\newcommand{\ea}{\end{array}}
+\newcommand{\bda}{\[\ba}
+\newcommand{\eda}{\ea\]}
+\newcommand{\ei}{\end{array}}
+\newcommand{\bcases}{\left\{\begin{array}{ll}}
+\newcommand{\ecases}{\end{array}\right.}
+
+% \cal ids
+\renewcommand{\AA}{{\cal A}}
+\newcommand{\BB}{{\cal B}}
+\newcommand{\CC}{{\cal C}}
+\newcommand{\DD}{{\cal D}}
+\newcommand{\EE}{{\cal E}}
+\newcommand{\FF}{{\cal F}}
+\newcommand{\GG}{{\cal G}}
+\newcommand{\HH}{{\cal H}}
+\newcommand{\II}{{\cal I}}
+\newcommand{\JJ}{{\cal J}}
+\newcommand{\KK}{{\cal K}}
+\newcommand{\LL}{{\cal L}}
+\newcommand{\MM}{{\cal M}}
+\newcommand{\NN}{{\cal N}}
+\newcommand{\OO}{{\cal O}}
+\newcommand{\PP}{{\cal P}}
+\newcommand{\QQ}{{\cal Q}}
+\newcommand{\RR}{{\cal R}}
+\newcommand{\TT}{{\cal T}}
+\newcommand{\UU}{{\cal U}}
+\newcommand{\VV}{{\cal V}}
+\newcommand{\WW}{{\cal W}}
+\newcommand{\XX}{{\cal X}}
+\newcommand{\YY}{{\cal Y}}
+\newcommand{\ZZ}{{\cal Z}}
+
+% misc symbols
+\newcommand{\dhd}{\!\!\!\!\!\rightarrow}
+\newcommand{\Dhd}{\!\!\!\!\!\Rightarrow}
+\renewcommand{\ts}{\,\vdash\,}
+\newcommand{\la}{\langle}
+\newcommand{\ra}{\rangle}
+\newcommand{\eg}{{\em e.g.}}
+
+% misc identifiers
+\newcommand{\dom}{\mbox{\sl dom}}
+\newcommand{\fn}{\mbox{\sl fn}}
+\newcommand{\bn}{\mbox{\sl bn}}
+\newcommand{\sig}{\mbox{\sl sig}}
+\newcommand{\IF}{\mbox{\mathem if}}
+\newcommand{\OTHERWISE}{\mbox{\mathem otherwise}}
+\newcommand{\expand}{\prec}
+\newcommand{\weakexpand}{\prec^W}
+\newcommand{\spcomma}{~,~}
+
+%\newcommand{\inst}{\mbox{\mathem inst}}
+\newcommand{\trans}[1]{\la\!\la#1\ra\!\ra}
+\renewcommand{\remark}[1]{{\bf $\clubsuit$ #1 $\spadesuit$}}
+\newcommand{\todo}[1]{\remark{to do: #1}}
+%\newcommand{\J}{\justifies}
+%\newcommand{\U}{\using}
+
+% names
+\newcommand{\Scala}{\mbox{\textsc{Scala}}}
+\newcommand{\Java}{\mbox{\textsc{Java}}}
+
+%\renewcommand\textfraction{.05}
+%\renewcommand\floatpagefraction{.9}
+%\renewcommand\topfraction{.8}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   Language abstraction commands     %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Relations
+% Subtype 
+\newcommand{\sub}{<:}
+% Type assignment
+\newcommand{\typ}{:}
+% reduction
+\newcommand{\reduces}{\;\rightarrow\;}
+% well-formedness
+\newcommand{\wf}{\;\mbox{\textbf{wf}}}
+
+%% Operators
+% Type selection
+\newcommand{\tsel}{\#}
+% Function type
+\newcommand{\tfun}{\rightarrow}
+\newcommand{\dfun}[3]{(#1\!:\!#2) \Rightarrow #3}
+% Conjunction
+\newcommand{\tand}{\wedge}
+% Disjunction
+\newcommand{\tor}{\vee}
+% Singleton type suffix
+\newcommand{\sing}{.\textbf{type}}
+
+%% Syntax
+% Header for typing rules
+\newcommand{\judgement}[2]{{\bf #1} \hfill #2}
+% Refinement
+\newcommand{\refine}[2]{\left\{#1 \Rightarrow #2 \right\}}
+% Field definitions
+\newcommand{\ldefs}[1]{\left\{#1\right\}}
+% Member sequences
+\newcommand{\seq}[1]{\overline{#1}}
+% Lambda
+\newcommand{\dabs}[3]{(#1\!:\!#2)\Rightarrow #3}
+\newcommand{\abs}[3]{\lambda #1\!:\!#2.#3}
+% Application
+\newcommand{\app}[2]{#1\;#2}
+% Substitution
+\newcommand{\subst}[3]{[#1/#2]#3}
+% Object creation
+\newcommand{\new}[3]{\textbf{val }#1 = \textbf{new }#2 ;\; #3}
+%\renewcommand{\new}[3]{#1 \leftarrow #2 \,\textbf{in}\, #3}
+% Field declaration
+\newcommand{\Ldecl}[3]{#1 : #2..#3}%{#1 \operatorname{>:} #2 \operatorname{<:} #3}
+\newcommand{\ldecl}[2]{#1 : #2}
+% Top and Bottom
+\newcommand{\Top}{\top}%{\textbf{Top}}
+\newcommand{\Bot}{\bot}%\textbf{Bot}}
+% Environment extension
+%\newcommand{\envplus}[1]{\uplus \{ #1 \}}
+\newcommand{\envplus}[1]{, #1}
+% Reduction
+\newcommand{\reduction}[4]{#1 \operatorname{|} #2 \reduces #3 \operatorname{|} #4}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% BEGIN DOCUMENT %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+\thispagestyle{plain}
+\pagestyle{plain}
+\mainmatter
+
+\title{The original DOT Calculus}
+\author{Martin Odersky, Geoffrey Alan Washburn}
+\institute{EPFL}
+
+\maketitle
+\sloppy
+\newcommand{\lindent}{\hspace{-4mm}}
+
+\renewcommand{\abs}[3]{\ifdep \dabs #1 #2 #3 \else \lambda #1\!:\!#2.#3 \fi}
+
+%\fontfamily{timesroman}
+
+\begin{figure}
+\figurebox{
+%\renewcommand{\baselinestretch}{0.95}
+{\bf Syntax}\medskip
+    
+$\ba{l@{\hspace{2mm}}|@{\hspace{2mm}}l}
+\ba[t]{l@{\hspace{10mm}}l}
+x, y, z    & \lindent{\mbox{Variable}} \\
+l          & \lindent{\mbox{Value label}}\\[0.2em]
+v ::=      & \lindent{\mbox{Value}} \\
+\gap x     & \mbox{variable} \\
+\gap \abs x T t & \mbox{function} \\[0.2em]
+t ::=      & \lindent{\mbox{Term}} \\
+\gap v     & \mbox{value} \\
+\gap \app t t  & \mbox{application} \\
+\gap \new x c t & \mbox{new instance} \\
+\gap t.l  & \mbox{selection} \\[0.2em]
+p ::= & \lindent \mbox{Path} \\
+\gap x & \mbox{variable} \\
+\gap p.l & \mbox{selection} \\
+c ::= T_c \ldefs{\seq{l = v}} & \lindent{\mbox{Constructor}} \\[0.2em]
+\Gamma ::= \seq{x \typ T} & \lindent\mbox{Environment} \\
+s      ::= \seq{x \mapsto c} & \lindent\mbox{Store} \\
+\ea
+&
+\ba[t]{l@{\hspace{10mm}}l}
+L ::=      & \lindent{\mbox{Type label}} \\
+\gap L_c   & \mbox{class label} \\
+\gap L_a   & \mbox{abstract type label} \\[0.2em]
+S,T,U,V  ::= & \lindent\mbox{Type}\\
+\gap p.L & \mbox{type selection} \\
+\gap T \refine z {\seq D} & \mbox{refinement} \\
+\ifdep
+  \gap \dfun x T T & \mbox{dependent function type} \\
+\else
+  \gap T \tfun T & \mbox{function type} \\
+\fi
+\gap T \tand T & \mbox{intersection type} \\
+\gap T \tor T & \mbox{union type} \\
+\gap \Top  & \mbox{top type} \\
+\gap \Bot  & \mbox{bottom type} \\[0.2em]
+S_c, T_c ::= & \lindent \mbox{Concrete type} \\
+\multicolumn{2}{l}{\gap p.L_c ~|~ T_c \refine z {\seq D} ~|~ T_c \wedge T_c  ~|~ \Top} \\[0.2em]
+D ::= & \lindent\mbox{Declaration} \\
+\gap \Ldecl L S U & \mbox{type declaration} \\
+\gap \ldecl l T   & \mbox{value declaration}
+\ea
+\ea$
+\medskip
+
+\linesep
+
+\begin{multicols}{2}[\judgement{Reduction}{\fbox{$\reduction t s {t'} {s'}$}}]
+
+\infax[$\beta_v$]
+{\reduction {(\app{\abs x T t}){v}} s {\subst v x t} s}
+
+\infrule[\textsc{sel}]
+{x \mapsto T_c \ldefs{\seq{l = v}} \in s}
+{\reduction {x.l_i} s {v_i} s}
+
+\infax[\textsc{new}]
+{\reduction {\new x c t} s t {s \envplus{x \mapsto c}}}
+
+\infrule[\textsc{context}]
+{\reduction t s {t'} {s'}}
+{\reduction {e[t]} s {e[t']} s'}
+\end{multicols}
+
+\hfill {\bf where} evaluation context $\gap e ::= [\,] ~|~ \app e t ~|~ \app v e ~|~ e.l\hspace{2cm}$
+
+\linesep
+
+\begin{multicols}{2}[\judgement{Type Assignment}{\fbox{$\Gamma \ts t \typ T$}}]
+
+\infrule[\textsc{var}]
+{x \typ T \in \Gamma}
+{\Gamma \ts x \typ T}
+
+\ifdep
+  \infrule[\textsc{app-term}]
+  {x \not\in \fn(T) \\
+  \Gamma \ts t \typ \dfun x {T'} T \spcomma t' \typ T'}
+  {\Gamma \ts \app t {t'} \typ T}
+
+  \infrule[\textsc{app-path}]
+  {\Gamma \ts t \typ \dfun x {T'} T \spcomma p \typ T'}
+  {\Gamma \ts \app t p \typ \subst p x T}
+
+  \infrule[\textsc{abs}]
+  {\Gamma \envplus{x \typ S} \ts t: T \\
+   \Gamma \ts S \wf \spcomma \dfun x S T \sub T' \spcomma T' \wf}
+  {\Gamma \ts \abs x S t \typ T'}
+\else
+  \infrule[\textsc{app}]
+  {\Gamma \ts t \typ  S \tfun T \spcomma t' \typ T' \spcomma T' \sub S}
+  {\Gamma \ts \app t {t'} \typ T}
+
+  \infrule[\textsc{abs}]
+  {x \notin \fn(T) \andalso \Gamma \ts S \wf \\
+  \Gamma \envplus{x \typ S} \ts t: T}
+  {\Gamma \ts \abs x S t \typ S \tfun T}
+\fi
+
+\infrule[\textsc{sel}]
+{\Gamma \ts t \ni l \typ T'}
+{\Gamma \ts t.l \typ T'}
+
+\infrule[\textsc{new}]
+{x \notin \fn(T') \\
+\Gamma \ts T_c \wf \spcomma T_c \expand_x \seq{\Ldecl L S U},\seq{\ldecl l V} \\
+ \Gamma \envplus{x: T_c} \ts \seq{S \sub U} \spcomma \seq{v \typ V'}
+ \spcomma \seq{V' \sub V} \spcomma t \typ T'}
+{\Gamma \ts \new x {T_c \ldefs{\seq{l = v}}} t \typ T'}
+
+%\infrule[\textsc{sub}]
+%{\Gamma \ts t: T \spcomma T \sub T'}
+%{\Gamma \ts t: T'}
+
+\end{multicols}
+
+}
+
+\caption{The DOT Calculus : Syntax, Reduction, Type Assignment}\label{dot-one}
+\end{figure}
+
+\begin{figure}
+ \figurebox{
+
+    \begin{multicols}{2}[\judgement{Membership}{\fbox{$\Gamma \ts t \ni D$}}]
+
+      \infrule[\textsc{path-$\ni$}]
+      {\Gamma \ts p \typ T \spcomma T \expand_z \seq D}
+      {\Gamma \ts p \ni \subst p z {D_i}}
+
+      \infrule[\textsc{term-$\ni$}]
+      {z \not\in \fn(D_i) \andalso \Gamma \ts t \typ T \spcomma T \expand_z \seq D}
+      {\Gamma \ts t \ni D_i}
+   \end{multicols}
+
+   \linesep
+
+    \begin{multicols}{2}[\judgement{Expansion}{\fbox{$\Gamma \ts T_c \expand_z \seq D$}}]  
+
+      \infrule[\textsc{rfn-$\expand$}]
+      {\Gamma \ts T \expand_z {\seq D'}}
+      {\Gamma \ts T \refine z {\seq D} \expand_z \seq {D'} \tand \seq D}
+
+      \infrule[\textsc{$\tand$-$\expand$}]
+      {\Gamma \ts T_1 \expand_z {\seq D_1} \spcomma T_2 \expand_z {\seq D_2}}
+      {\Gamma \ts T_1 \tand T_2 \expand_x {\seq D_1 \tand \seq D_2}}
+
+      \infax[\textsc{$\Top$-$\expand$}]
+      {\Gamma \ts \Top \expand_z \{\}}
+
+      \infax[\textsc{$\tfun$-$\expand$}]
+      {\Gamma \ts S \tfun T  \expand_z \{\}}
+
+      \infrule[\textsc{tsel-$\expand$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma U \expand_z \seq D}
+      {\Gamma \ts p.L \expand_z \seq D}
+
+      \infrule[\textsc{$\tor$-$\expand$}]
+      {\Gamma \ts T_1 \expand_z {\seq D_1} \spcomma T_2 \expand_z {\seq D_2}}
+      {\Gamma \ts T_1 \tor T_2 \expand_x {\seq D_1 \tor \seq D_2}}
+
+      \infax[\textsc{$\Bot$-$\expand$}]
+      {\Gamma \ts \Bot \expand_z \seq{D_\Bot}}
+    \end{multicols}
+
+}
+\caption{The DOT Calculus : Membership and Expansion}\label{dot-two}
+\end{figure}
+
+\begin{figure}
+  \figurebox{
+
+    \begin{multicols}{2}[\judgement{Subtyping}{\fbox{$\Gamma \ts S \sub T$}}]
+
+%      \infrule[\textsc{trans}]
+%      {\Gamma \ts S \sub T \spcomma T \sub U}
+%      {\Gamma \ts S \sub U}
+
+      \infax[\textsc{refl}]
+      {\Gamma \ts T \sub T}
+
+      \infrule[\textsc{$\sub$-rfn}]
+      {\Gamma \ts S \sub T \spcomma S \expand_z \seq{D'} \spcomma \seq{D' \sub D}}
+      {\Gamma \ts S \sub T \refine z {\seq D}}
+
+      \infrule[\textsc{$\sub$-tsel}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma S' \sub S }
+      {\Gamma \ts S' \sub p.L}
+
+      \infrule[\textsc{$\sub$-$\tand$}]
+      {\Gamma \ts T \sub T_1 \spcomma T \sub T_2}
+      {\Gamma \ts T \sub T_1 \tand T_2}
+
+      \infrule[\textsc{$\sub$-$\tor$}]
+      {\Gamma \ts T \sub T_i}
+      {\Gamma \ts T \sub T_1 \tor T_2}
+      
+      \infax[\textsc{$\sub$-$\Top$}]
+      {\Gamma \ts T \sub \Top}
+      
+      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ifdep
+      \infrule[\textsc{$\sub$-$\Rightarrow$}]
+      {\Gamma \ts T \sub S \\ \Gamma \envplus {x: S} \ts S' \sub T'}
+      {\Gamma \ts \dfun x S {S'} \sub \dfun x T {T'}}
+\else
+      \infrule[\textsc{$\sub$-$\tfun$}]
+      {\Gamma \ts T \sub S \spcomma S' \sub T'}
+      {\Gamma \ts S \tfun S' \sub T \tfun T'}
+\fi
+      \infrule[\textsc{rfn-$\sub$}]
+      {\Gamma \ts T \sub T'}
+      {\Gamma \ts T \refine z {\seq D} \sub T'}
+
+      \infrule[\textsc{tsel-$\sub$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma U \sub U'}
+      {\Gamma \ts p.L \sub U'}
+
+      \infrule[\textsc{$\tand$-$\sub$}]
+      {\Gamma \ts T_i \sub T}
+      {\Gamma \ts T_1 \tand T_2 \sub T}
+
+      \infrule[\textsc{$\tor$-$\sub$}]
+      {\Gamma \ts T_1 \sub T \spcomma T_2 \sub T}
+      {\Gamma \ts T_1 \tor T_2 \sub T}
+
+      \infax[\textsc{$\Bot$-$\sub$}]
+      {\Gamma \ts \Bot \sub T}
+
+      \end{multicols}
+
+    \linesep
+
+    \begin{multicols}{2}[\judgement{Declaration subsumption}{\fbox{$\Gamma \ts D \sub D'$}}]
+
+    \infrule[\textsc{tdecl-$\sub$}]
+            {\Gamma \ts S' \sub S \spcomma T \sub T'}
+            {\Gamma \ts (\Ldecl L S T) \sub (\Ldecl L {S'} {T'})}
+
+    \infrule[\textsc{vdecl-$\sub$}]
+            {\Gamma \ts T \sub T'}
+            {\Gamma \ts (\ldecl l T) \sub (\ldecl l {T'})}
+
+    \end{multicols}
+  }
+\caption{The DOT Calculus : Subtyping and Declaration Subsumption}\label{dot-sub}
+\end{figure}
+
+\begin{figure}
+  \figurebox{
+       \begin{multicols}{2}[\judgement{Well-formed types}{\fbox{$\Gamma \ts T \wf$}}]
+
+      \infrule[\textsc{rfn-wf}]
+      {\Gamma \ts T \wf \\ 
+       \Gamma \envplus {z: T \refine z {\seq D}} \ts \seq {D \wf}}
+      {\Gamma \ts T \refine z {\seq D} \wf}
+
+      \infrule[\textsc{tsel-wf$_1$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \wf \spcomma U \wf}
+      {\Gamma \ts p.L \wf}
+
+      \infrule[\textsc{$\tand$-wf}]
+      {\Gamma \ts T \wf \spcomma T' \wf}
+      {\Gamma \ts T \tand T' \wf}
+
+      \infax[\textsc{$\Bot$-wf}]
+      {\Gamma \ts \Bot \wf}
+
+      %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ifdep
+      \infrule[\textsc{$\Rightarrow$-wf}]
+      {\Gamma \ts T \wf \\ \Gamma \envplus{x: T} \ts T' \wf}
+      {\Gamma \ts \dfun x T {T'} \wf}
+\else
+      \infrule[\textsc{$\tfun$-wf}]
+      {\Gamma \ts T \wf \spcomma T' \wf}
+      {\Gamma \ts T \tfun T' \wf}
+\fi
+      \infrule[\textsc{tsel-wf$_2$}]
+      {\Gamma \ts p \ni \Ldecl L \Bot U}
+      {\Gamma \ts p.L \wf}
+
+      \infrule[\textsc{$\tor$-wf}]
+      {\Gamma \ts T \wf \spcomma T' \wf}
+      {\Gamma \ts T \tor T' \wf}
+
+      \infax[\textsc{$\Top$-wf}]
+      {\Gamma \ts \Top \wf}
+      
+    \end{multicols}
+
+    \linesep
+
+    \begin{multicols}{2}[\judgement{Well-formed declarations}{\fbox{$\Gamma \ts D \wf$}}]
+      \infrule[\textsc{tdecl-wf}]
+      {\Gamma \ts S \wf \spcomma U \wf}
+      {\Gamma \ts \Ldecl L S U \wf}
+
+      \infrule[\textsc{vdecl-wf}]
+      {\Gamma \ts T \wf}
+      {\Gamma \ts \ldecl l T \wf}
+
+    \end{multicols}
+  }
+
+\caption{The DOT Calculus : Well-Formedness}\label{dot-wf}
+\end{figure}
+
+
+\begin{figure}
+\figurebox{
+\bda{lcl@{\gap}l}
+    
+      \dom(\seq D \tand \seq {D'}) &~=~& \dom(\seq{D}) \cup \dom(\seq{D'}) \\
+      \dom(\seq D \tor \seq {D'}) &=& \dom(\seq{D}) \cap \dom(\seq{D'}) \\[0.5em]
+      (D \tand D')(L) &=&
+        \Ldecl L {(S \tor S')} {(U \tand U')} & \mbox{if~} (\Ldecl L S U) \in \seq{D} \;\mbox{and}\; (\Ldecl L {S'} {U'}) \in \seq{D'} \\
+        &=& D(L) & \mbox{if~} L \notin \dom(\seq{D'}) \\
+        &=& D'(L) & \mbox{if~} L \notin \dom(\seq{D}) \\
+      (D \tand D')(l) &=&
+        \ldecl l {T \tand T'} & \mbox{if~} (\ldecl l T) \in \seq{D} \;\mbox{and}\; (\ldecl l {T'}) \in \seq{D'} \\
+        &=& D(l) & \mbox{if~} l \notin \dom(\seq{D'}) \\
+        &=& D'(l) & \mbox{if~} l \notin \dom(\seq{D}) \\[0.5em]
+      (D \tor D')(L) &=&
+        \Ldecl L {(S \tand S')} {(U \tor U')} & \mbox{if~} (\Ldecl L S U) \in \seq{D} \;\mbox{and}\; (\Ldecl L {S'} {U'}) \in \seq{D'} \\
+      (D \tor D')(l) &=&
+        \ldecl l {T \tor T'} & \mbox{if~} (\ldecl l T) \in \seq{D} \;\mbox{and}\; (\ldecl l {T'}) \in \seq{D'} 
+    \eda
+
+Sets of declarations form a lattice with the given meet $\wedge$ and
+join $\vee$, the empty set of declatations as the top element, and
+the bottom element $\seq{D_\Bot}$, Here $\seq{D_\Bot}$ is the set of
+declarations that contains for every term label $l$ the
+declaration $\ldecl l \Bot$ and for every type label $L$ the
+declaration $\Ldecl L \Top \Bot$. 
+}
+\caption{The DOT Calculus : Declaration Lattice}\label{dot-decl}
+\end{figure}
+
+\end{document}
