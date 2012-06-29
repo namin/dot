@@ -1,0 +1,76 @@
+\documentclass[preprint]{sigplanconf}
+
+% The following \documentclass options may be useful:
+%
+% 10pt          To set in 10-point type instead of 9-point.
+% 11pt          To set in 11-point type instead of 9-point.
+% authoryear    To obtain author/year citation style instead of numeric.
+
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{alltt}
+
+\lstdefinelanguage{Scala}%
+{morekeywords={abstract,%
+  case,catch,char,class,%
+  def,else,extends,final,for,%
+  if,import,implicit,%
+  match,module,%
+  new,null,%
+  object,override,%
+  package,private,protected,public,%
+  for,public,return,super,%
+  this,throw,trait,try,type,%
+  val,var,%
+  with,%
+  yield,%
+  lazy%
+  },%
+  sensitive,%
+  morecomment=[l]//,%
+  morecomment=[s]{/*}{*/},%
+  morestring=[b]",%
+  morestring=[b]',%
+  showstringspaces=false%
+}[keywords,comments,strings]%
+
+
+\lstset{language=Scala,
+  basicstyle=\scriptsize,
+  columns=fullflexible
+}
+
+\newcommand{\code}[1]{\lstinline[language=Scala,columns=fixed,basicstyle=\ttfamily\small]|#1|}
+
+\begin{document}
+
+\conferenceinfo{EDIC}{July 2012, EPFL.} 
+\copyrightyear{2012} 
+\copyrightdata{[to be supplied]} 
+
+\titlebanner{Dependent Object Types}                           % These are ignored unless
+\preprintfooter{Spring 2012 Semester Project -- Nada Amin}     % 'preprint' option specified.
+
+\title{Dependent Object Types}
+\subtitle{Spring 2012 Semester Project}
+
+\authorinfo{Nada Amin}
+           {EPFL}
+           {nada.amin@epfl.ch}
+
+\maketitle
+
+\begin{abstract}
+% TODO
+\end{abstract}
+
+
+\acks
+
+I thank Adriaan Moors and Martin Odersky for fruitful discussions and
+guidance.
+
+%\bibliographystyle{abbrvnat}
+%\bibliography{bib}
+
+\end{document}
