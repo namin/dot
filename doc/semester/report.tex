@@ -1,52 +1,30 @@
 \documentclass[preprint]{sigplanconf}
 
-% The following \documentclass options may be useful:
-%
-% 10pt          To set in 10-point type instead of 9-point.
-% 11pt          To set in 11-point type instead of 9-point.
-% authoryear    To obtain author/year citation style instead of numeric.
+\input{dot_macros}
 
-\usepackage{amsmath}
-\usepackage{listings}
-\usepackage{alltt}
-
-\lstdefinelanguage{Scala}%
-{morekeywords={abstract,%
-  case,catch,char,class,%
-  def,else,extends,final,for,%
-  if,import,implicit,%
-  match,module,%
-  new,null,%
-  object,override,%
-  package,private,protected,public,%
-  for,public,return,super,%
-  this,throw,trait,try,type,%
-  val,var,%
-  with,%
-  yield,%
-  lazy%
-  },%
-  sensitive,%
-  morecomment=[l]//,%
-  morecomment=[s]{/*}{*/},%
-  morestring=[b]",%
-  morestring=[b]',%
-  showstringspaces=false%
-}[keywords,comments,strings]%
-
-
-\lstset{language=Scala,
-  basicstyle=\scriptsize,
-  columns=fullflexible
-}
-
-\newcommand{\code}[1]{\lstinline[language=Scala,columns=fixed,basicstyle=\ttfamily\small]|#1|}
+    \usepackage[pdftex,
+                hyperindex,
+                plainpages=false,
+                breaklinks,
+                colorlinks,
+                citecolor=black,
+                filecolor=black,
+                linkcolor=black,
+                pagecolor=black,
+                urlcolor=black]{hyperref}
+    \usepackage[pdftex]{graphicx}
+    \DeclareGraphicsExtensions{.jpg,.pdf}
+    \pdfcatalog {
+        /PageMode (/UseNone)
+    }
+    \usepackage{thumbpdf}
+    \usepackage[pdftex]{color}
 
 \begin{document}
 
-\conferenceinfo{EDIC}{July 2012, EPFL.} 
-\copyrightyear{2012} 
-\copyrightdata{[to be supplied]} 
+\conferenceinfo{EDIC}{July 2012, EPFL.}
+\copyrightyear{2012}
+\copyrightdata{[to be supplied]}
 
 \titlebanner{Dependent Object Types}                           % These are ignored unless
 \preprintfooter{Spring 2012 Semester Project -- Nada Amin}     % 'preprint' option specified.
@@ -61,14 +39,30 @@
 \maketitle
 
 \begin{abstract}
-% TODO
+In my semester project, I have studied a new proposed type-theoretic
+foundation of Scala and languages like it: the Dependent Object Types
+calculus (DOT). DOT models Scala's path-dependent types and abstract
+type members, as well as its mixture of nominal and structural typing
+through the use of refinement types. My ultimate goal was to prove DOT
+sound, but instead, I found lots of counterexamples to soundness, and
+have explored patches to the calculus.
 \end{abstract}
+
+
+\section{Introduction}
+
+% TODO
+
+\section{Counterexamples}
+
+\section{Non-Expanding Types and Subtyping Transitivity}
+
 
 
 \acks
 
-I thank Adriaan Moors and Martin Odersky for fruitful discussions and
-guidance.
+I thank Adriaan Moors and Martin Odersky for sharing previous work,
+fruitful discussions and guidance.
 
 %\bibliographystyle{abbrvnat}
 %\bibliography{bib}

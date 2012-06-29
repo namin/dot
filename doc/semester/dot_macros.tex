@@ -1,0 +1,252 @@
+\usepackage{fleqn}
+\usepackage{listings}
+\usepackage{math}
+\usepackage{amsmath}
+\usepackage{latexsym}
+\usepackage{bcprules}
+\usepackage{luximono}
+\usepackage[T1]{fontenc}
+\usepackage{prooftree}
+\usepackage{listings}
+\usepackage{alltt}
+
+\lstdefinelanguage{Scala}%
+{morekeywords={abstract,%
+  case,catch,char,class,%
+  def,else,extends,final,for,%
+  if,import,implicit,%
+  match,module,%
+  new,null,%
+  object,override,%
+  package,private,protected,public,%
+  for,public,return,super,%
+  this,throw,trait,try,type,%
+  val,var,%
+  with,%
+  yield,%
+  lazy%
+  },%
+  sensitive,%
+  morecomment=[l]//,%
+  morecomment=[s]{/*}{*/},%
+  morestring=[b]",%
+  morestring=[b]',%
+  showstringspaces=false%
+}[keywords,comments,strings]%
+
+
+\lstset{language=Scala,
+  basicstyle=\scriptsize,
+  columns=fullflexible
+}
+
+\newcommand{\code}[1]{\lstinline[language=Scala,columns=fixed,basicstyle=\ttfamily\small]|#1|}
+
+% Use dependent function types
+\newif\ifdep\depfalse
+
+%\newenvironment{program}{\ \ \ \ \begin{minipage}{\textwidth}\renewcommand{\baselinestretch}{1.0}\sl\begin{tabbing}}{\end{tabbing}\end{minipage}}
+\newcommand{\vem}{\bfseries}
+\newcommand{\quotedstring}[1]{{#1}}
+\newcommand{\typename}[1]{{#1}}
+\newcommand{\literal}[1]{{#1}}
+
+% comments and notes
+\newcommand{\comment}[1]{}
+%\newcommand{\note}[1]{{\bf $\clubsuit$ #1 $\spadesuit$}}
+
+% figures
+\newcommand{\figurebox}[1]
+        {\fbox{\begin{minipage}{\textwidth} #1 \medskip\end{minipage}}}
+\newcommand{\twofig}[3]
+        {\begin{figure*}[t]#3\ \hrulefill\
+        \caption{\label{#1}#2}\end{figure*}}
+\newcommand{\boxfig}[3]
+        {\begin{figure*}\figurebox{#3\caption{\label{#1}#2}}\end{figure*}}
+\newcommand{\figref}[1]
+        {Figure~\ref{#1}}
+
+% typing rules (not used here)
+\newcommand{\ttag}[1]{\mbox{\textsc{\small(#1)}}}
+\newcommand{\infer}[3]{\mbox{#1 }\ba{c} #2 \\ \hline #3 \ea}
+\newcommand{\irule}[2]{{\renewcommand{\arraystretch}{1.2}\ba{c} #1
+                        \\ \hline #2 \ea}}
+\newlength{\trulemargin}
+\newlength{\trulewidth}
+\newlength{\srulewidth}
+\setlength{\trulemargin}{1.75cm}
+\setlength{\trulewidth}{83.7mm}
+\setlength{\srulewidth}{6.0cm}
+\newenvironment{trules}{$\vspace{0.5em}\ba{p{\trulemargin}@{~}p{\trulewidth}@{~}p{\trulemargin}}}{\ea$}
+\newenvironment{srules}{$\vspace{0.5em}\ba{p{\trulemargin}@{~}p{\srulewidth}}}{\ea$}
+\newcommand{\laxiom}[2]{\ttag{#1} & $ #2 \hfill\ }
+\newcommand{\raxiom}[2]{\hfill #2 $& \hfill \ttag{#1}}
+\newcommand{\caxiom}[2]{\ttag{#1} & $\hfill #2 \hfill $& \ }
+\newcommand{\lrule}[3]{\laxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\rrule}[3]{\raxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\crule}[3]{\caxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\lsrule}[3]{\lsaxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\rsrule}[3]{\rsaxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\nl}{\end{trules}\\[0.5em] \begin{trules}}
+\newcommand{\snl}{\end{srules}\\[0.5em] \begin{srules}}
+
+% commas and semicolons
+\newcommand{\comma}{,\,}
+\newcommand{\commadots}{\comma \ldots \comma}
+\newcommand{\semi}{;\mbox{;};}
+\newcommand{\semidots}{\semi \ldots \semi}
+
+% spacing
+\newcommand{\gap}{\quad\quad}
+\newcommand{\biggap}{\quad\quad\quad}
+\newcommand{\nextline}{\\ \\}
+\newcommand{\htabwidth}{0.5cm}
+\newcommand{\tabwidth}{1cm}
+\newcommand{\htab}{\hspace{\htabwidth}}
+\newcommand{\tab}{\hspace{\tabwidth}}
+\newcommand{\linesep}{\ \hrulefill \ \smallskip}
+
+% math stuff
+\newenvironment{myproof}{{\em Proof:}}{$\Box$}
+\newenvironment{proofsketch}{{\em Proof Sketch:}}{$\Box$}
+\newcommand{\Case}{{\em Case\ }}
+
+% make ; a delimiter in math mode
+% \mathcode`\;="8000 % Makes ; active in math mode
+% {\catcode`\;=\active \gdef;{\;}}
+% \mathchardef\semicolon="003B
+
+% reserved words
+\newcommand{\mathem}{\bf}
+
+% brackets
+\newcommand{\set}[1]{\{#1\}}
+\newcommand{\sbs}[1]{\lquote #1 \rquote}
+
+% arrays
+\newcommand{\ba}{\begin{array}}
+\newcommand{\ea}{\end{array}}
+\newcommand{\bda}{\[\ba}
+\newcommand{\eda}{\ea\]}
+\newcommand{\ei}{\end{array}}
+\newcommand{\bcases}{\left\{\begin{array}{ll}}
+\newcommand{\ecases}{\end{array}\right.}
+
+% \cal ids
+\renewcommand{\AA}{{\cal A}}
+\newcommand{\BB}{{\cal B}}
+\newcommand{\CC}{{\cal C}}
+\newcommand{\DD}{{\cal D}}
+\newcommand{\EE}{{\cal E}}
+\newcommand{\FF}{{\cal F}}
+\newcommand{\GG}{{\cal G}}
+\newcommand{\HH}{{\cal H}}
+\newcommand{\II}{{\cal I}}
+\newcommand{\JJ}{{\cal J}}
+\newcommand{\KK}{{\cal K}}
+\newcommand{\LL}{{\cal L}}
+\newcommand{\MM}{{\cal M}}
+\newcommand{\NN}{{\cal N}}
+\newcommand{\OO}{{\cal O}}
+\newcommand{\PP}{{\cal P}}
+\newcommand{\QQ}{{\cal Q}}
+\newcommand{\RR}{{\cal R}}
+\newcommand{\TT}{{\cal T}}
+\newcommand{\UU}{{\cal U}}
+\newcommand{\VV}{{\cal V}}
+\newcommand{\WW}{{\cal W}}
+\newcommand{\XX}{{\cal X}}
+\newcommand{\YY}{{\cal Y}}
+\newcommand{\ZZ}{{\cal Z}}
+
+% misc symbols
+\newcommand{\dhd}{\!\!\!\!\!\rightarrow}
+\newcommand{\Dhd}{\!\!\!\!\!\Rightarrow}
+\newcommand{\ts}{\,\vdash\,}
+\newcommand{\la}{\langle}
+\newcommand{\ra}{\rangle}
+\newcommand{\eg}{{\em e.g.}}
+
+% misc identifiers
+\newcommand{\dom}{\mbox{\sl dom}}
+\newcommand{\fn}{\mbox{\sl fn}}
+\newcommand{\bn}{\mbox{\sl bn}}
+\newcommand{\sig}{\mbox{\sl sig}}
+\newcommand{\IF}{\mbox{\mathem if}}
+\newcommand{\OTHERWISE}{\mbox{\mathem otherwise}}
+\newcommand{\expand}{\prec}
+\newcommand{\weakexpand}{\prec^W}
+\newcommand{\spcomma}{~,~}
+
+%\newcommand{\inst}{\mbox{\mathem inst}}
+\newcommand{\trans}[1]{\la\!\la#1\ra\!\ra}
+\newcommand{\remark}[1]{{\bf $\clubsuit$ #1 $\spadesuit$}}
+\newcommand{\todo}[1]{\remark{to do: #1}}
+%\newcommand{\J}{\justifies}
+%\newcommand{\U}{\using}
+
+% names
+\newcommand{\Scala}{\mbox{\textsc{Scala}}}
+\newcommand{\Java}{\mbox{\textsc{Java}}}
+
+%\renewcommand\textfraction{.05}
+%\renewcommand\floatpagefraction{.9}
+%\renewcommand\topfraction{.8}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   Language abstraction commands     %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Relations
+% Subtype
+\newcommand{\sub}{<:}
+% Type assignment
+\newcommand{\typ}{:}
+% reduction
+\newcommand{\reduces}{\;\rightarrow\;}
+% well-formedness
+\newcommand{\wf}{\;\mbox{\textbf{wf}}}
+
+%% Operators
+% Type selection
+\newcommand{\tsel}{\#}
+% Function type
+\newcommand{\tfun}{\rightarrow}
+\newcommand{\dfun}[3]{(#1\!:\!#2) \Rightarrow #3}
+% Conjunction
+\newcommand{\tand}{\wedge}
+% Disjunction
+\newcommand{\tor}{\vee}
+% Singleton type suffix
+\newcommand{\sing}{.\textbf{type}}
+
+%% Syntax
+% Header for typing rules
+\newcommand{\judgement}[2]{{\bf #1} \hfill #2}
+% Refinement
+\newcommand{\refine}[2]{\left\{#1 \Rightarrow #2 \right\}}
+% Field definitions
+\newcommand{\ldefs}[1]{\left\{#1\right\}}
+% Member sequences
+\newcommand{\seq}[1]{\overline{#1}}
+% Lambda
+\newcommand{\dabs}[3]{(#1\!:\!#2)\Rightarrow #3}
+\newcommand{\abs}[3]{\lambda #1\!:\!#2.#3}
+% Application
+\newcommand{\app}[2]{#1\;#2}
+% Substitution
+\newcommand{\subst}[3]{[#1/#2]#3}
+% Object creation
+\newcommand{\new}[3]{\textbf{val }#1 = \textbf{new }#2 ;\; #3}
+%\renewcommand{\new}[3]{#1 \leftarrow #2 \,\textbf{in}\, #3}
+% Field declaration
+\newcommand{\Ldecl}[3]{#1 : #2..#3}%{#1 \operatorname{>:} #2 \operatorname{<:} #3}
+\newcommand{\ldecl}[2]{#1 : #2}
+% Top and Bottom
+\newcommand{\Top}{\top}%{\textbf{Top}}
+\newcommand{\Bot}{\bot}%\textbf{Bot}}
+% Environment extension
+%\newcommand{\envplus}[1]{\uplus \{ #1 \}}
+\newcommand{\envplus}[1]{, #1}
+% Reduction
+\newcommand{\reduction}[4]{#1 \operatorname{|} #2 \reduces #3 \operatorname{|} #4}
