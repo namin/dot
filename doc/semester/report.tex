@@ -57,7 +57,7 @@ have explored patches to the calculus.
 
 \subsection{Subtyping Transitivity and Preservation}\label{subpres}
 
-Some subtyping transitivity is essential for soundness. Indeed, I show
+Some subtyping transitivity is essential for soundness. Indeed, we show
 how to construct a counterexample to preservation from any
 counterexample to subtyping transitivity where the three involved
 types $S, T, U$ are expressible within a realizable universe, though
@@ -140,7 +140,7 @@ The original DOT calculus has both object and function types. It
 doesn't have built-in methods, but they can be expressed as functional
 labels. On the other hand, Scala doesn't have a built-in function
 type. Instead, it has both methods and fields, and encodes functions
-as objects with an apply method. Here, I show that the DOT model as
+as objects with an apply method. Here, we show that the DOT model as
 originally designed is problematic.
 
 A concrete object can be a subtype of a function type without a
@@ -256,6 +256,30 @@ $a.i.l$ reduces to $b.l$. $b.l$ has type $b.X$, so we need $b.X <:
 a.i.X$. This cannot be established with the current rules: it is not
 true in general, but true here because $a.i$ reduces to $b$. Hence,
 the need for acknowledging path equality.
+
+\section{Patches}
+
+We have explored several patches to the calculus to deal with the
+counterexamples presented above.
+
+\subsection{Well-Formed and Expanding Types}\label{wfe}
+
+We introduce a new judgement form for whether a type is well-formed
+and expanding: $\Gamma \ts T \wfe$ if and only if $\Gamma \ts T \wf$
+and $\exists \seq D$ such that $\Gamma \ts T \expand_z \seq D$. Then,
+we replace all other uses of the $\wf$ judgment, including those
+within the $\wf$ judgment inference rules, with uses of the $\wfe$
+judgment.
+
+We limit subtyping to $\wfe$ types. In fact, we make subtyping regular
+with respect to $\wfe$: i.e., if $\Gamma \ts S <: T$, then $\Gamma \ts
+S \wfe$ and $\Gamma \ts T \wfe$. Assuming a few lemmas, we are able to
+formally prove that this modified subtyping judgment is
+transitive. The most notable lemma we assume is the ``Galois
+connection'' between subtyping and expansion: if $\Gamma \ts S \sub T
+\spcomma S \expand_z \seq D_S \spcomma T \expand_z\seq D_T$, then
+$\Gamma \envplus{z: S} \ts \seq{D_s \sub D_T}$.
+
 
 \acks
 
