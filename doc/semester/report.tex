@@ -1,4 +1,4 @@
-\documentclass[preprint]{sigplanconf}
+\documentclass[preprint,9pt]{sigplanconf}
 
 \input{dot_macros}
 
@@ -55,9 +55,42 @@ have explored patches to the calculus.
 
 \section{Counterexamples}
 
-\section{Non-Expanding Types and Subtyping Transitivity}
+\subsection{Subtyping Transitivity and Preservation}
 
+Some subtyping transitivity is essential for soundness. Indeed, I show
+how to construct a counterexample to preservation from any
+counterexample to subtyping transitivity where the three involved
+types $S, T, U$ are expressible within a universe $u$ but not
+necessarily realizable:
 
+\begin{align*}
+\mlnew u \ldots {
+\ \mlapp{\abs x \Top x}{
+\ \ \mlapp{\abs f {S \tfun U} f}{
+\ \ \ \mlapp{\abs f {S \tfun T} f}{
+\ \ \ \ \mlapp{\abs f {S \tfun S} f}{
+\ \ \  \ \ \abs x S x}}}}}
+\end{align*}
+
+The idea is to start with a function from $S \tfun S$ and cast it
+successively to $S \tfun T$ then $S \tfun U$. To typecheck the
+expression initially, we need to check $S \sub T$ and $T \sub
+U$. After some reduction steps, the first few casts vanish, and the
+reduced expression casts directly from $S \tfun S$ to $S \tfun U$, so
+we need to check $S \sub U$. Thus, we need subtyping transitivity: $S
+\sub T$ and $T \sub U$ implies $S \sub U$.
+
+\subsection{Non-Expanding Types and Subtyping Transitivity}
+
+The well-formedness rule $\textsc{tsel-wf$_2$}$ allow a type selection
+$p.L$ to refer back to itself in its upper bound. This is useful for
+expressing recursive class types and F-bounded abstract types.
+
+Consider the simplest possible type that refers to itself: $T = \Top
+\refine z {\Ldecl L \Bot z.L}$. This type is well-formed but
+non-expanding.
+
+Non-expanding types are problematic for subtyping transitivity.
 
 \acks
 
