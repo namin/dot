@@ -1,4 +1,4 @@
-\documentclass[preprint,9pt]{sigplanconf}
+\documentclass[preprint]{sigplanconf}
 
 \input{dot_macros}
 
@@ -201,17 +201,31 @@ self-reference ($z.L_a$).
 Expansion is not preserved by narrowing.
 
 \begin{align*}
-&\mlnew {x_0} {\Top \mlrefine z { \Ldecl {A_1} \Bot {\Top \mlrefine z {&&
-\Ldecl {A_2} \Bot \Top&&\\
-&&&\Ldecl {A_3} \Bot \Top&&\\
-&&&\Ldecl {C_2} \Bot {z.A_2}&}}}\ldefs{}&&}{
-\mlnew {x_1} {\Top \refine z {\Ldecl {C_1} \Bot {\Top \refine z {\Ldecl {A_1} \Bot {x_0.A_1}}}}\ldefs{}&&&&&}}{
-\mlnew {x_2} {{x_1.C_1} \refine z {\Ldecl {A_1} \Bot {{x_0.A_1} \refine z {\Ldecl {A_2} \Bot {z.A_3}}}}\ldefs{}&&&&&}}{
-\mlnew {x_3} {{x_1.C_1} \refine z {\Ldecl {A_1} \Bot {{x_0.A_1} \refine z {\Ldecl {A_3} \Bot {z.A_2}}}}\ldefs{}&&&&&}}{
-\app {(\abs x {x_1.C_1} {(\abs {z_0} {x.A_1 \tand x_3.A_1} {\new z {z_0.C_2} {\app {(\abs x \Top x)} z}})})} x_2}
+&\mlnew {x_0} {\Top \mlrefine z { \Ldecl {A_1} \Bot {\Top \mlrefine z {\\
+&\gap\Ldecl {A_2} \Bot \Top\\
+&\gap\Ldecl {A_3} \Bot \Top\\
+&\gap\Ldecl {C_2} \Bot {z.A_2}}}}\ldefs{}}{
+\mlnew {x_1} {\Top \refine z {\Ldecl {C_1} \Bot {\Top \refine z {\Ldecl {A_1} \Bot {x_0.A_1}}}}\ldefs{}}}{
+\mlnew {x_2} {{x_1.C_1} \refine z {\Ldecl {A_1} \Bot {{x_0.A_1} \refine z {\Ldecl {A_2} \Bot {z.A_3}}}}\ldefs{}}}{
+\mlnew {x_3} {{x_1.C_1} \refine z {\Ldecl {A_1} \Bot {{x_0.A_1} \refine z {\Ldecl {A_3} \Bot {z.A_2}}}}\ldefs{}}}{
+\mlapp {\abs x {x_1.C_1} {(\abs {z_0} {x.A_1 \tand x_3.A_1} {\new z {z_0.C_2} {\app {(\abs x \Top x)} z}})}} {\ x_2}}
 \end{align*}
 
 \subsubsection{Well-Formedness Lost}\label{narrowing_wf}
+
+Even well-formedness is not preserved by narrowing. The trick is that
+if the lower bound of a type selection is not $\Bot$, then the upper
+bound needs to be checked for well-formedness. Here, we create two
+type selections that are mutually recursive in their upper bounds
+after narrowing.
+
+\begin{align*}
+&\mlnew v {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B {z.A} {z.A}}}} \ldefs{}}{
+\mlapp {\abs x {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B \Bot \Top}}}} {\\&\gap
+\mlnew z {\Top \refine z {\ldecl l {\Bot \tfun \Top}}\mlldefs{\\&\gap\gap l = \abs y {x.L \tand {\Top \refine z {\Ldecl A {z.B} {z.B}, \Ldecl B \Bot \Top}}} {\\&\gap\gap\gap\abs a {y.A} {\app {(\abs x \Top x)} a}}}}{
+\ \app {(\abs x \Top x)} z
+}}}{\ v}}
+\end{align*}
 
 \subsection{Path Equality}\label{patheq}
 
