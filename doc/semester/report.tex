@@ -198,6 +198,19 @@ self-reference ($z.L_a$).
 
 \subsubsection{Expansion Lost}\label{narrowing_exp}
 
+Expansion is not preserved by narrowing.
+
+\begin{align*}
+&\mlnew {x_0} {\Top \mlrefine z { \Ldecl {A_1} \Bot {\Top \mlrefine z {&&
+\Ldecl {A_2} \Bot \Top&&\\
+&&&\Ldecl {A_3} \Bot \Top&&\\
+&&&\Ldecl {C_2} \Bot {z.A_2}&}}}\ldefs{}&&}{
+\mlnew {x_1} {\Top \refine z {\Ldecl {C_1} \Bot {\Top \refine z {\Ldecl {A_1} \Bot {x_0.A_1}}}}\ldefs{}&&&&&}}{
+\mlnew {x_2} {{x_1.C_1} \refine z {\Ldecl {A_1} \Bot {{x_0.A_1} \refine z {\Ldecl {A_2} \Bot {z.A_3}}}}\ldefs{}&&&&&}}{
+\mlnew {x_3} {{x_1.C_1} \refine z {\Ldecl {A_1} \Bot {{x_0.A_1} \refine z {\Ldecl {A_3} \Bot {z.A_2}}}}\ldefs{}&&&&&}}{
+\app {(\abs x {x_1.C_1} {(\abs {z_0} {x.A_1 \tand x_3.A_1} {\new z {z_0.C_2} {\app {(\abs x \Top x)} z}})})} x_2}
+\end{align*}
+
 \subsubsection{Well-Formedness Lost}\label{narrowing_wf}
 
 \subsection{Path Equality}\label{patheq}
