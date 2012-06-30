@@ -1,5 +1,10 @@
 *.vo
 *.glob
 .depend
+*.aux
+*.log
+*.out
+*.cmi
+*.cmx
 *~
 *#
