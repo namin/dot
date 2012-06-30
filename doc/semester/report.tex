@@ -280,6 +280,27 @@ connection'' between subtyping and expansion: if $\Gamma \ts S \sub T
 \spcomma S \expand_z \seq D_S \spcomma T \expand_z\seq D_T$, then
 $\Gamma \envplus{z: S} \ts \seq{D_s \sub D_T}$.
 
+\subsection{Functions as Sugar}\label{funsug}
+
+We adopt Scala's model of treating functions as syntactic sugar for an
+object with a special method. In order to do so, we introduce a new
+kind of label for methods with one parameter: $m : S \tfun U$.
+
+A difference in expressivity between this model and the original one
+is that we now have to explicitly provide a return type of the method,
+while the return type was inferred for functions. In practice, this is
+cumbersome but not fundamentally limiting.
+
+\subsection{Explicit Widening}\label{widening}
+
+In the original DOT calculus, the \textsc{app} and \textsc{new} typing
+rules have implicit relaxations. For instance, in \textsc{app}, the
+argument type may be a subtypine of the declared parameter type. In
+order to deal with all the soundness problems due to narrowing, we
+make widening an explicit operation and changes those rules to be
+strict by replacing those relaxed subtyping judgments with equality
+judgments. Two types $S$ and $T$ are judged to be equal if $S <: T$
+and $T <: S$.
 
 \acks
 
