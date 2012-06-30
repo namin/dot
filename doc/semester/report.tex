@@ -55,13 +55,13 @@ have explored patches to the calculus.
 
 \section{Counterexamples}
 
-\subsection{Subtyping Transitivity and Preservation}
+\subsection{Subtyping Transitivity and Preservation}\label{subpres}
 
 Some subtyping transitivity is essential for soundness. Indeed, I show
 how to construct a counterexample to preservation from any
 counterexample to subtyping transitivity where the three involved
-types $S, T, U$ are expressible within a universe $u$ but not
-necessarily realizable:
+types $S, T, U$ are expressible within a realizable universe, though
+the types themselves don't need to be realizable:
 
 \begin{align*}
 \mlnew u \ldots {
@@ -86,11 +86,51 @@ The well-formedness rule $\textsc{tsel-wf$_2$}$ allow a type selection
 $p.L$ to refer back to itself in its upper bound. This is useful for
 expressing recursive class types and F-bounded abstract types.
 
-Consider the simplest possible type that refers to itself: $T = \Top
-\refine z {\Ldecl L \Bot z.L}$. This type is well-formed but
-non-expanding.
+Consider the simplest possible type that refers to itself: $p \typ T =
+\Top \refine z {\Ldecl L \Bot z.L}$. Now, $p.L$ is well-formed but
+non-expanding. Indeed, the only expansion rule that applies to $p.L$
+is $\textsc{tsel-$\expand$}$, but it requires expanding the upper
+bound... $p.L$! Thus, there is no finite derivation for the expansion
+of $p.L$.
 
-Non-expanding types are problematic for subtyping transitivity.
+Non-expanding types are problematic for subtyping
+transitivity. Consider: $p.L \sub \Top$ by \textsc{$\sub$-$\Top$} and
+$\Top \sub \Top \refine z {}$ by \textsc{$\sub$-rfn}. By transitivity
+on $\Top$, we expect $p.L \sub \Top \refine z {}$, but we cannot infer
+this from the rules. The only rules that apply are \textsc{$\sub$-rfn}
+and \textsc{tsel-$\sub$}. \textsc{$\sub$-rfn} gets stuck expanding
+$p.L$. \textsc{tsel-$\sub$} gets stuck because the conclusion is also
+a premise as $p \ni \Ldecl L \Bot p.L$.
+
+For this counterexample, it seems enough to just add transitivity on
+$\Top$ as a built-in rule. But this doesn't solve the general issue
+that non-expanding types don't play well with subtyping. The problem
+is deep, as it's possible to construct a realizable universe with
+three non-trivial types that fail subtyping transitivity.
+
+Consider an environment where $u$ is bound to:
+\begin{align*}
+\Top & \mlrefine u {\\
+&\ \Ldecl {\mathit{Bad}} {\Bot} {u.\mathit{Bad}}\\
+&\ \Ldecl {\mathit{Good}} {\Top \refine z {\Ldecl L \Bot \Top}} {\Top \refine z {\Ldecl L \Bot \Top}}\\
+&\ \Ldecl {\mathit{Lower}} {u.\mathit{Bad} \tand u.\mathit{Good}} {u.\mathit{Good}}\\
+&\ \Ldecl {\mathit{Upper}} {u.\mathit{Good}} {u.\mathit{Bad} \tor u.\mathit{Good}}\\
+&\ \Ldecl X {u.\mathit{Lower}} {u.\mathit{Upper}}\\
+}&
+\end{align*}
+Note that each lower bound is a subtype of its upper bound, so $u$ is
+realizable. Hence, if we find a counterexample to subtyping
+transitivity with types expressible within $u$, we can apply the trick
+from section~\ref{subpres} to create a counterexample to preservation.
+
+Indeed, here is such a counterexample to subtyping transitivity:
+\begin{align*}
+S &= u.\mathit{Bad} \tand u.\mathit{Good}\\
+T &= u.\mathit{Lower}\\
+U &= u.X \refine z {\Ldecl L \Bot \Top}
+\end{align*}
+We have $S <: T$ and $T <: U$, but we cannot derive $S <: U$ because
+$S$ doesn't expand.
 
 \acks
 
