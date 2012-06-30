@@ -51,7 +51,47 @@ have explored patches to the calculus.
 
 \section{Introduction}
 
-% TODO
+\subsection{Program Examples}
+
+\begin{align*}
+&\mlnew {\mi{root}} {\Top \mlrefine r {\\
+&\ \Ldecl {\mi{Unit}} \Bot \Top\\
+&\ \ldecl {\mi{unit}} {\Top \tfun {.\mi{Unit}}}\\
+&\ \Ldecl {\mi{Boolean}} \Bot {\Top \mlrefine z {\\
+&\ \gap \ldecl {\mi{ifNat}} {(r.\mi{Unit} \tfun r.\mi{Nat}) \tfun (r.\mi{Unit} \tfun r.\mi{Nat}) \tfun r.\mi{Nat}}\\
+&\gap}}\\
+&\ \ldecl {\mi{false}} {{r.\mi{Unit}} \tfun {r.\mi{Boolean}}}\\
+&\ \ldecl {\mi{true}} {{r.\mi{Unit}} \tfun {r.\mi{Boolean}}}\\
+&\ \Ldecl {\mi{Nat}} \Bot {\Top \mlrefine z {\\
+&\ \gap \ldecl {\mi{isZero}} {r.\mi{Unit} \tfun r.\mi{Boolean}}\\
+&\ \gap \ldecl {\mi{pred}} {r.\mi{Unit} \tfun r.\mi{Nat}}\\
+&\ \gap \ldecl {\mi{succ}} {r.\mi{Unit} \tfun r.\mi{Nat}}\\
+&\gap}}\\
+&\ \ldecl {\mi{zero}} {{r.\mi{Unit}} \tfun {r.\mi{Nat}}}\\
+&\ \ldecl {\mi{successor}} {{r.\mi{Nat}} \tfun {r.\mi{Nat}}}\\
+&\ \ldecl {\mi{error}} {{r.\mi{Unit}} \tfun \Bot}\\
+&}\mlldefs{\\\displaybreak[3]
+&\ \mi{unit}  = \abs x \Top {\new u {\mi{root}.\mi{Unit}} u}\\
+%
+&\ \mi{false} = \abs u {\mi{root}.\mi{Unit}} {\\
+&\ \gap \mlnew {\mi{ff}} {\mi{root}.\mi{Boolean} \mlldefs{\\
+&\ \gap\gap {\mi{ifNat}} = \abs t {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}} {\abs e {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}}\\&\gap\gap\gap\app e {\mi{root}.\mi{unit}}}\\
+&\ \gap}}{
+\ \gap \mi{ff}}
+&}\\
+%
+&\ \mi{true} = \abs u {\mi{root}.\mi{Unit}} {\\
+&\ \gap \mlnew {\mi{t}} {\mi{root}.\mi{Boolean} \mlldefs{\\
+&\ \gap\gap {\mi{ifNat}} = \abs t {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}} {\abs e {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}}\\&\gap\gap\gap\app t {\mi{root}.\mi{unit}}}\\
+&\ \gap}}{
+\ \gap \mi{tt}}
+&}\\
+%
+&}}{
+foo\\
+&foo
+}
+\end{align*}
 
 \section{Counterexamples}
 
