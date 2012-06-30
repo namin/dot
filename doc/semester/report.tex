@@ -189,7 +189,7 @@ Now, consider the term
 }
 \end{align*}
 
-The term type-checks because the $t=(\app {(\abs y {\Top \tfun Y}
+The term type-checks because the term $t=(\app {(\abs y {\Top \tfun Y}
   {\app y u})} {(\abs d \Top {(\app {(\abs x X x)} u)})})$ has type
 $Y$, so we can apply $\textsc{term-$\ni$}$ for $l$. However, the term
 $t$ eventually steps to $(\app {(\abs x X x)} u)$ which has type $X$,
@@ -198,7 +198,14 @@ self-reference ($z.L_a$).
 
 \subsubsection{Expansion Lost}\label{narrowing_exp}
 
-Expansion is not preserved by narrowing.
+Expansion is not preserved by narrowing. Here, we create two type
+selections that are mutually recursive in their upper bounds after
+narrowing: $z_0.C2$ initially expands, but after narrowing, $z_0.C_2$
+expands to what $z_0.A_2$ expands to, which expands to what $z_0.A_1$
+expands to, which expands to what $z_0.A_2$ expands to, and thus we
+have an infinite expansion. Thus, the last new expression initially
+type-checks, but after narrowing, it doesn't because the precise
+expansion needed by $\textsc{new}$ cannot be inferred.
 
 \begin{align*}
 &\mlnew {x_0} {\Top \mlrefine z { \Ldecl {A_1} \Bot {\Top \mlrefine z {\\
@@ -217,7 +224,9 @@ Even well-formedness is not preserved by narrowing. The trick is that
 if the lower bound of a type selection is not $\Bot$, then the upper
 bound needs to be checked for well-formedness. Here, we create two
 type selections that are mutually recursive in their upper bounds
-after narrowing.
+after narrowing. $y.A$ is initially well-formed, but after narrowing,
+it isn't because we run into an infinite derivation trying to prove
+the well-formedness of its upper bound.
 
 \begin{align*}
 &\mlnew v {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B {z.A} {z.A}}}} \ldefs{}}{
