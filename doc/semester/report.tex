@@ -229,6 +229,25 @@ after narrowing.
 
 \subsection{Path Equality}\label{patheq}
 
+We need to be able to relate path-dependent types after reduction. The
+original DOT calculus doesn't have any rules for dealing with
+path-equality. Here is an example which motivates the need for
+path-equality provisions.
+
+\begin{align*}
+&\mlnew b {\Top \mlrefine z {&&\Ldecl X \Top \Top&\\
+&&&\ \ldecl l {z.X}&}\ldefs{l = b}}{
+\mlnew a {\Top \mlrefine z {\ldecl i {\Top \mlrefine z {&&&\\
+&&&\Ldecl X \Bot \Top\\
+&&&\ldecl l {z.X}}}&}\ldefs{i = b}}}{
+\app {(\abs x \Top x)} {(\app {(\abs x {a.i.X} x)} {a.i.l})}}
+\end{align*}
+
+$a.i.l$ reduces to $b.l$. $b.l$ has type $b.X$, so we need $b.X <:
+a.i.X$. This cannot be established with the current rules: it is not
+true in general, but true here because $a.i$ reduces to $b$. Hence,
+the need for acknowledging path equality.
+
 \acks
 
 I thank Adriaan Moors and Martin Odersky for sharing previous work,
