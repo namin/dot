@@ -295,12 +295,148 @@ cumbersome but not fundamentally limiting.
 
 In the original DOT calculus, the \textsc{app} and \textsc{new} typing
 rules have implicit relaxations. For instance, in \textsc{app}, the
-argument type may be a subtypine of the declared parameter type. In
+argument type may be a subtype of the declared parameter type. In
 order to deal with all the soundness problems due to narrowing, we
-make widening an explicit operation and changes those rules to be
+make widening an explicit operation and change those rules to be
 strict by replacing those relaxed subtyping judgments with equality
 judgments. Two types $S$ and $T$ are judged to be equal if $S <: T$
 and $T <: S$.
+
+Syntactically, we add a widening term: $\wid t T$, and extend values
+with a case for widening: $\wid v T$. The typing rule for widening,
+\textsc{wid}, is the only one admitting a subtyping relaxation:
+$\Gamma \ts (\wid t T) \typ T$ if $\Gamma \ts t : T'$ and $\Gamma \ts T'
+\sub T$.
+
+The reduction rules become more complicated because the type
+information in the widening needs to be propagated correctly. We will
+motivate this informally with examples.
+
+\begin{align*}
+&\mlnew v {\Top \refine z {\Ldecl {L_a} \Bot \Top, \ldecl l {\Top \refine z {\Ldecl {L_a} \Bot \Top}}}\\
+&\gap\gap\ldefs{l = \wid v {\Top \refine z {\Ldecl {L_a} \Bot \Top}}}}{
+\app {(\abs x \Top x)} {(\wid v {\Top \refine z {\ldecl l \Top}}).l}
+}
+\end{align*}
+
+The term $(\wid v {\Top \refine z {\ldecl l \Top}}).l$ first widens
+$v$ so that the label has type $\Top$ instead of $\Top \refine z
+{\Ldecl {L_a} \Bot \Top}$.
+
+How should reduction proceed? We cannot just strip the widening and
+then reduce, because then the strict function application would not
+accept the reduced term. In short, we need to do some type
+manipulations during reduction, by using the membership and expansion
+judgments. This is a bit unfortunate, because it means that reduction
+now needs to know about typing.
+
+Next, we look at path equality provisions. These are even more
+essential now in the presence of explicit widening. Consider this
+example:
+
+\begin{align*}
+&\mlnew b {\Top \refine z {\Ldecl X \Top \Top, \ldecl l {z.X}} \ldefs{l = \wid b {b.X}}}{
+\mlnew a {\Top \refine z {\ldecl i {\Top \refine z {\Ldecl X \Bot \Top, \ldecl l {z.X}}}}\\
+&\gap\gap\ldefs{i = \wid b {\Top \refine z {\Ldecl X \Bot \Top, \ldecl l {z.X}}}}}}{
+\wid {a.i.l} \Top
+}
+\end{align*}
+
+$a.i.l$ reduces to $\wid b {\Top \refine z {\Ldecl X \Bot \Top, \ldecl
+    l {z.X}}}$. Now, how can we continue? $b.l$ reduces to $b : b.X$
+which has bounds $\Top..\Top$, but $(\wid b {\Top \refine z {\Ldecl X
+    \Bot Top, \ldecl l {z.X}}}).l$ has bounds $\Bot..\Top$, so without
+some provision for path equality, we cannot widen $b.l$ to $(\wid b
+{\Top \refine z {\Ldecl X \Bot \Top, \ldecl l {z.X}}}).l$.
+
+\subsection{Path Equality Provisions}
+
+We add the path equality provisions to the subtyping rules.
+
+Let's first ignore the extension of the calculus requiring explicit
+widenings introduced in~\ref{widening}. Then, we need to add one
+intuitive rule to the subtyping judgment: $\textsc{$\sub$-path}$. If
+$p$ (path-)reduces to $q$, and $T \sub q.L$, then $T \sub p.L$. Path
+reduction is a simplified form of reduction involving only
+paths. However, this means that the subtyping judgment, and
+indirectly, all the typing-related judgments, now need to carry the
+store in addition to the context so that path reductions can be
+calculated.
+
+Now, let's see how path equality provisions and explicit widening can
+fit together.
+
+First, path reduction is not isomorphic to reduction anymore, since we
+actually want to actually skip over widenings, as motivated by the
+last example in~\ref{widening}.
+
+In addition, we now also need a dual rule, $\textsc{path-$\sub$}$: if
+$p$ (path-dually)-reduces to $q$, and $q.L \sub T$ then $p.L \sub
+T$. This is because when we have a widening on an object on which a
+method is called, we have to upcast the argument to the parameter type
+expected by the original method. Here is a motivating example.
+
+Let $T_c$ be a shorthand for the type:
+\begin{align*}
+\Top &\mlrefine z {\\
+&\ \Ldecl A {\Top \refine z {\mdecl m \Bot \Top}} \Top\\
+&\ \Ldecl B \Top \Top\\
+&\ \mdecl m {z.A} \Top\\
+}&
+\end{align*}
+
+Let $T$ be a shorthand for the type:
+\begin{align*}
+\Top &\mlrefine z {\\
+&\ \Ldecl A {\Top \refine z {\mdecl m \Bot \Top}} \Top\\
+&\ \Ldecl B \Top \Top\\
+&\ \mdecl m {\Top \refine z {\Ldecl B \Top \Top}} \Top\\
+}&
+\end{align*}
+
+Now, consider the term:
+\begin{align*}
+&\mlnew v {Tc \ldefs{m(x)=\wid x \Top}}{
+(\wid v T).m(\wid v {(\wid v {A \refine z {\Ldecl B \Top \Top}})})
+}
+\end{align*}
+
+When we evaluate the method invocation, we need to cast $\wid v {(\wid
+  v {A \refine z {\Ldecl B \Top \Top}})}$ to $v.A$, and for this, we
+need the newly introduced $\textsc{path-$\sub$}$ rule.
+
+Note that the path dual reduction can be a bit stricter with casts
+than the path reduction. In any case, introducing this
+$\textsc{path-$\sub$}$ rule into the subtyping judgment is
+problematic: it is now possible to say $p.L \sub T$, even though $T$
+can do more than what $p.L$ is defined to do. Here is an example,
+where we construct an object, with $T = \Bot$. (The convolution in the
+example is due to the requirement that concrete types be only
+mentioned once.)
+
+\begin{align*}
+&\mlnew a {\Top \refine z {\Ldecl C \Bot {\Top \refine z {\Ldecl D \Bot {z.X}, \Ldecl X \Bot \Top}}}}{
+\mlnew b {{a.C} \refine z {\Ldecl X \Bot \Bot}}}{
+\mlnew c {a.C}}{
+\mlnew d {(\wid b {a.C}).D}}{
+\app {(\abs x \Bot {x.\mathit{foo}})} d
+}
+\end{align*}
+
+Notice that $d$ has type $\Bot$ if you ginore the cast on $b$. This
+example doesn't typecheck initially because $\textsc{path-$\sub$}$
+only applies when objects are in the store, so the application is not
+well-typed. But if we start preservation in a store which has $a$,
+$b$, $c$ and $d$ then the application type-checks, because, through
+$\textsc{path-$\sub$}$, we can find that the type of $d$ is a subtype
+of $\Bot$. Now, of course, when we get to $d.\mathit{foo}$, reduction
+fails.
+
+So the preservation theorem as defined on a small-step semantics
+(where we start with an arbitrary well-formed environment) fails when
+we add the $\textsc{path-$\sub$}$ rule.
+
+\section{Conclucion and Future Work}
 
 \acks
 

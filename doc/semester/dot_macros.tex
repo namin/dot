@@ -225,6 +225,8 @@
 %% Syntax
 % Header for typing rules
 \newcommand{\judgement}[2]{{\bf #1} \hfill #2}
+% Wideneing
+\newcommand{\wid}[2]{#1 : #2}
 % Refinement
 \newcommand{\refine}[2]{\left\{#1 \Rightarrow #2 \right\}}
 \newcommand{\mlrefine}[2]{\{#1 \Rightarrow #2 \}}
@@ -248,6 +250,7 @@
 % Field declaration
 \newcommand{\Ldecl}[3]{#1 : #2..#3}%{#1 \operatorname{>:} #2 \operatorname{<:} #3}
 \newcommand{\ldecl}[2]{#1 : #2}
+\newcommand{\mdecl}[3]{#1 : #2 \tfun #3}%{#1 \operatorname{>:} #2 \operatorname{<:} #3}
 % Top and Bottom
 \newcommand{\Top}{\top}%{\textbf{Top}}
 \newcommand{\Bot}{\bot}%\textbf{Bot}}
