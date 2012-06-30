@@ -64,7 +64,7 @@ types $S, T, U$ are expressible within a realizable universe, though
 the types themselves don't need to be realizable:
 
 \begin{align*}
-\mlnew u \ldots {
+&\mlnew u \ldots {
 \ \mlapp{\abs x \Top x}{
 \ \ \mlapp{\abs f {S \tfun U} f}{
 \ \ \ \mlapp{\abs f {S \tfun T} f}{
@@ -80,7 +80,7 @@ reduced expression casts directly from $S \tfun S$ to $S \tfun U$, so
 we need to check $S \sub U$. Thus, we need subtyping transitivity: $S
 \sub T$ and $T \sub U$ implies $S \sub U$.
 
-\subsection{Non-Expanding Types and Subtyping Transitivity}
+\subsection{Non-Expanding Types and Subtyping Transitivity}\label{nonexp}
 
 The well-formedness rule $\textsc{tsel-wf$_2$}$ allow a type selection
 $p.L$ to refer back to itself in its upper bound. This is useful for
@@ -131,6 +131,33 @@ U &= u.X \refine z {\Ldecl L \Bot \Top}
 \end{align*}
 We have $S <: T$ and $T <: U$, but we cannot derive $S <: U$ because
 $S$ doesn't expand.
+
+\subsection{Narrowing}\label{narrowing}
+
+\subsubsection{Functions as Objects}\label{fun}
+
+The original DOT calculus has both object and function types. It
+doesn't have built-in methods, but they can be expressed as functional
+labels. On the other hand, Scala doesn't have a built-in function
+type. Instead, it has both methods and fields, and encodes functions
+as objects with an apply method. Here, I show that the DOT model as
+originally designed is problematic.
+
+A concrete object can be a subtype of a function type without a
+function ever being defined. Consider:
+\begin{align*}
+&\mlnew u {\Top \refine z {\Ldecl C {\Top \tfun \Top} {\Top \tfun \Top}} \ldefs{}} {
+\mlnew f {u.C \ldefs{}} {
+\ldots
+}}
+\end{align*}
+
+Now, $f$ is a subtype of $\Top \tfun \Top$, but $\app f {(\abs x \Top
+  x)}$ is stuck (and, rightfully, doesn't typecheck). But we can use
+narrowing to create a counterexample to preservation: $\app {(\abs g
+  {\Top \tfun \Top} {g (\abs x \Top x)})} f$.
+
+
 
 \acks
 
