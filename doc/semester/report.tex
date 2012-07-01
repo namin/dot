@@ -73,11 +73,11 @@ $T \tand T'$, type unions $T \tor T'$, a top type $\Top$, a bottom
 type $\Bot$.
 
 The DOT calculus is expressed using a small-step operational
-semantics. The typing judgement directly or indirectly uses the
-following other judgements: membership, expansion, well-formedness and
+semantics. The typing judgment directly or indirectly uses the
+following other judgments: membership, expansion, well-formedness and
 subtyping. Expansion ``flattens'' all the declarations of a type, and
 membership selects a particular flattened declaration by
-label. Expansion is precise. The \textsc{new} typing judgement relies
+label. Expansion is precise. The \textsc{new} typing judgment relies
 on the preciseness of expansion to check that all bounds of types
 declared within the type of the constructor are consistent (i.e. that
 the lower bound is a subtype of the upper bound), and that all values
@@ -267,7 +267,7 @@ is a path, and one for an arbitrary term $t$. For paths, we can
 substitute the self-references in the declarations, but we cannot do
 so for arbitrary terms as the resulting types wouldn't be well-formed
 syntactically. Hence, the $\textsc{term-$\ni$}$ has the restriction
-that self-ocurrences are not allowed. Here is a counterexample related
+that self-occurrences are not allowed. Here is a counterexample related
 to this restriction.
 
 Let $X$ be a shorthand for the type:
@@ -318,7 +318,7 @@ expansion needed by $\textsc{new}$ cannot be inferred.
 \mlnew {x_1} {\Top \refine z {\Ldecl {C_1} \Bot {\Top \refine z {\Ldecl {A_1} \Bot {x_0.A_1}}}}\ldefs{}}}{
 \mlnew {x_2} {{x_1.C_1} \refine z {\Ldecl {A_1} \Bot {{x_0.A_1} \refine z {\Ldecl {A_2} \Bot {z.A_3}}}}\ldefs{}}}{
 \mlnew {x_3} {{x_1.C_1} \refine z {\Ldecl {A_1} \Bot {{x_0.A_1} \refine z {\Ldecl {A_3} \Bot {z.A_2}}}}\ldefs{}}}{
-\mlapp {\abs x {x_1.C_1} {(\abs {z_0} {x.A_1 \tand x_3.A_1} {\new z {z_0.C_2} {\app {(\abs x \Top x)} z}})}} {\ x_2}}
+\mlapp {\abs x {x_1.C_1} {(\abs {z_0} {x.A_1 \tand x_3.A_1} {\\&\gap\gap\gap\new z {z_0.C_2} {\app {(\abs x \Top x)} z}})}} {\ x_2}}
 \end{align*}
 
 \subsubsection{Well-Formedness Lost}\label{narrowing_wf}
@@ -367,7 +367,7 @@ counterexamples presented above.
 
 \subsection{Well-Formed and Expanding Types}\label{wfe}
 
-We introduce a new judgement form for whether a type is well-formed
+We introduce a new judgment form for whether a type is well-formed
 and expanding: $\Gamma \ts T \wfe$ if and only if $\Gamma \ts T \wf$
 and $\exists \seq D$ such that $\Gamma \ts T \expand_z \seq D$. Then,
 we replace all other uses of the $\wf$ judgment, including those
@@ -539,7 +539,7 @@ So the preservation theorem as defined on a small-step semantics
 (where we start with an arbitrary well-formed environment) fails when
 we add the $\textsc{path-$\sub$}$ rule.
 
-\section{Conclucion and Future Work}\label{conclusion}
+\section{Conclusion and Future Work}\label{conclusion}
 This semester's work was instructive in pointing out the problematic
 aspects of the original DOT calculus, and exploring some possible
 fixes. However, I haven't been able to reach a revised calculus
