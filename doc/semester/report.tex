@@ -51,10 +51,43 @@ have explored patches to the calculus.
 
 \section{Introduction}
 
+We briefly summarize the salient features of the original DOT
+calculus. The reader is encouraged to consult the appendices for the
+full description. We will often refer to the rules of the calculus
+in the remainder of this report.
+
+The terms in DOT consists of variables $x$, $y$, $z$, lambda
+abstractions $\abs x T t$, function application $\app t t'$, field
+selections $t.l$ and object creation expressions $\new x c t$, where
+$c$ is a constructor $T_c \ldefs{\seq{l = v}}$.
+
+The types in DOT consists of type selections $p.L$, refinement types
+$T \refine z {\seq{D}}$, function types $T \tfun T'$, type intersections
+$T \tand T'$, type unions $T \tor T'$, a top type $\Top$, a bottom
+type $\Bot$.
+
+The DOT calculus is expressed using a small-step operational
+semantics. The typing judgement directly or indirectly uses the
+following other judgements: membership, expansion, well-formedness and
+subtyping. Expansion ``flattens'' all the declarations of a type, and
+membership selects a particular flattened declaration by
+label. Expansion is precise. The \textsc{new} typing judgement relies
+on the preciseness of expansion to check that all bounds of types
+declared within the type of the constructor are consistent (i.e. that
+the lower bound is a subtype of the upper bound), and that all values
+declared within the type of the constructor are initialized.
+
 \subsection{Program Examples}
 
+\subsubsection{Basics: Booleans, Error, \ldots}
+This program defines a $\mi{root}$ object with basic types
+($\mi{Unit}$, $\mi{Boolean}$, $\mi{Nat}$) and values ($\mi{true}$,
+$\mi{false}$, $\mi{error}$, $\mi{zero}$). For brevity, I've omitted
+the code related to natural numbers. During the object creation, the
+value labels such as $\mi{false}$ are all initialized.
+
 \begin{align*}
-&\mlnew {\mi{root}} {\Top \mlrefine r {\\
+&\mlnew {\mi{root}} {\Top \mlrefine r {\\\displaybreak[3]
 &\ \Ldecl {\mi{Unit}} \Bot \Top\\
 &\ \ldecl {\mi{unit}} {\Top \tfun {r.\mi{Unit}}}\\
 &\ \Ldecl {\mi{Boolean}} \Bot {\Top \mlrefine z {\\
@@ -62,13 +95,13 @@ have explored patches to the calculus.
 &\gap}}\\
 &\ \ldecl {\mi{false}} {{r.\mi{Unit}} \tfun {r.\mi{Boolean}}}\\
 &\ \ldecl {\mi{true}} {{r.\mi{Unit}} \tfun {r.\mi{Boolean}}}\\
-&\ \ldots\\
+&\ \ldots\\\displaybreak[3]
 &\ \ldecl {\mi{error}} {{r.\mi{Unit}} \tfun \Bot}\\
 &}\mlldefs{\\\displaybreak[3]
 &\ \mi{unit}  = \abs x \Top {\new u {\mi{root}.\mi{Unit}} u}\\
 %
 &\ \mi{false} = \abs u {\mi{root}.\mi{Unit}} {\\
-&\ \gap \mlnew {\mi{ff}} {\mi{root}.\mi{Boolean} \mlldefs{\\
+&\ \gap \mlnew {\mi{ff}} {\mi{root}.\mi{Boolean} \mlldefs{\\\displaybreak[3]
 &\ \gap\gap {\mi{ifNat}} = \abs t {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}} {\\&\gap\gap\gap\abs e {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}}\\&\gap\gap\gap\app e {\mi{root}.\mi{unit}}}\\
 &\ \gap}}{
 \ \gap \mi{ff}}
@@ -77,16 +110,25 @@ have explored patches to the calculus.
 &\ \mi{true} = \ldots\\
 %
 &\ \mi{error} = \abs u {\mi{root}.\mi{Unit}} {\app {\mi{root}.\mi{error}} u}\\
+&\ \ldots\\
 &}}{
 \ldots
 }
 \end{align*}
 
+\subsubsection{Polymorphic Lists}
+Polymorphic lists can be expressed using an abstract type member for
+the element type ($\mi{Elem}$). We can instantiate a refinement of the
+list package to manipulate lists with a particular element type. We
+can choose to make the lists invariant or covariant in the element
+type by fixing the lower bound of the declaration to the upper bound
+or to $\Bot$, respectively.
+
 \begin{align*}
-&\mlnew {\mi{genLists}} {\Top \mlrefine g {\Ldecl {\mi{ListPackage}} \Bot {\Top \mlrefine p {\\
+&\mlnew {\mi{genLists}} {\Top \mlrefine g {\Ldecl {\mi{ListPackage}} \Bot {\Top \mlrefine p {\\\displaybreak[3]
 &\ \Ldecl {\mi{Elem}} \Bot \Top\\
 &\ \Ldecl {\mi{ListOfElement}} {g.\mi{List} \refine z {\Ldecl {\mi{Elem}} {p.\mi{Elem}} {p.\mi{Elem}}}} {\\&\gap\gap\gap\gap g.\mi{List} \refine z {\Ldecl {\mi{Elem}} {p.\mi{Elem}} {p.\mi{Elem}}}}\\
-&\ \Ldecl {\mi{List}} \Bot {\Top \mlrefine z {\\
+&\ \Ldecl {\mi{List}} \Bot {\Top \mlrefine z {\\\displaybreak[3]
 &\ \gap \ldecl {\mi{isEmpty}} {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Boolean}}\\
 &\ \gap \ldecl {\mi{head}} {\mi{root}.\mi{Unit} \tfun g.\mi{Elem}}\\
 &\ \gap \ldecl {\mi{tail}} {\mi{root}.\mi{Unit} \tfun g.\mi{ListOfElem}}\\
@@ -94,7 +136,7 @@ have explored patches to the calculus.
 &\ \ldecl {\mi{nil}} {\mi{root}.\mi{Unit} \tfun g.\mi{ListOfElem}}\\
 &\ \ldecl {\mi{cons}} {g.\mi{Elem} \tfun g.\mi{ListOfElem}}\\
 &}}}}{
-\mlnew {\mi{natLists}} {{\mi{genLists}.\mi{ListPacakge}} \mlrefine p { \Ldecl {\mi{Elem}} {\mi{Nat}} {\mi{Nat}} }\mlldefs{\\
+\mlnew {\mi{natLists}} {{\mi{genLists}.\mi{ListPackage}} \mlrefine p { \Ldecl {\mi{Elem}} {\mi{Nat}} {\mi{Nat}} }\mlldefs{\\\displaybreak[3]
 &\ {\mi{nil}} = \ldots\\
 &\ {\mi{cons}} = \ldots\\
 &}}}{
