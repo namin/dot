@@ -133,8 +133,8 @@ Polymorphic lists can be expressed using an abstract type member for
 the element type ($\mi{Elem}$). We can instantiate a refinement of the
 list package to manipulate lists with a particular element type. We
 can choose to make the lists invariant or covariant in the element
-type by fixing the lower bound of the declaration to the upper bound
-or to $\Bot$, respectively.
+type by fixing the lower bound of the $\mi{Elem}$ re-declaration to
+the upper bound or to $\Bot$, respectively.
 
 \begin{align*}
 &\mlnew {\mi{genLists}} {\Top \mlrefine g {\Ldecl {\mi{ListPackage}} \Bot {\Top \mlrefine p {\\\displaybreak[3]
