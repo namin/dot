@@ -56,6 +56,12 @@ calculus. The reader is encouraged to consult the appendices for the
 full description. We will often refer to the rules of the calculus
 in the remainder of this report.
 
+DOT models Scala's path-dependent types and abstract type members, as
+well as its mixture of nominal and structural typing through the use
+of refinement types. It makes no attempt to model inheritance or
+mixing composition. The calculus does not model what's currently in
+Scala: it is more normative than descriptive.
+
 The terms in DOT consists of variables $x$, $y$, $z$, lambda
 abstractions $\abs x T t$, function application $\app t t'$, field
 selections $t.l$ and object creation expressions $\new x c t$, where
@@ -76,6 +82,12 @@ on the preciseness of expansion to check that all bounds of types
 declared within the type of the constructor are consistent (i.e. that
 the lower bound is a subtype of the upper bound), and that all values
 declared within the type of the constructor are initialized.
+
+In the rest of this introduction, we present some program examples. We
+summarize our findings of counterexamples to soundness in
+section~\ref{counterexs}. We explore some patches to the calculus in
+section~\ref{patches}. We discuss opportunities for future work and
+conclude in section~\ref{conclusion}.
 
 \subsection{Program Examples}
 
@@ -144,7 +156,7 @@ or to $\Bot$, respectively.
 }
 \end{align*}
 
-\section{Counterexamples}
+\section{Counterexamples}\label{counterexs}
 
 \subsection{Subtyping Transitivity and Preservation}\label{subpres}
 
@@ -348,7 +360,7 @@ a.i.X$. This cannot be established with the current rules: it is not
 true in general, but true here because $a.i$ reduces to $b$. Hence,
 the need for acknowledging path equality.
 
-\section{Patches}
+\section{Patches}\label{patches}
 
 We have explored several patches to the calculus to deal with the
 counterexamples presented above.
@@ -458,8 +470,8 @@ Now, let's see how path equality provisions and explicit widening can
 fit together.
 
 First, path reduction is not isomorphic to reduction anymore, since we
-actually want to actually skip over widenings, as motivated by the
-last example in~\ref{widening}.
+want to actually skip over widenings, as motivated by the last example
+in~\ref{widening}.
 
 In addition, we now also need a dual rule, $\textsc{path-$\sub$}$: if
 $p$ (path-dually)-reduces to $q$, and $q.L \sub T$ then $p.L \sub
@@ -514,7 +526,7 @@ mentioned once.)
 }
 \end{align*}
 
-Notice that $d$ has type $\Bot$ if you ginore the cast on $b$. This
+Notice that $d$ has type $\Bot$ if you ignore the cast on $b$. This
 example doesn't typecheck initially because $\textsc{path-$\sub$}$
 only applies when objects are in the store, so the application is not
 well-typed. But if we start preservation in a store which has $a$,
@@ -527,7 +539,15 @@ So the preservation theorem as defined on a small-step semantics
 (where we start with an arbitrary well-formed environment) fails when
 we add the $\textsc{path-$\sub$}$ rule.
 
-\section{Conclucion and Future Work}
+\section{Conclucion and Future Work}\label{conclusion}
+This semester's work was instructive in pointing out the problematic
+aspects of the original DOT calculus, and exploring some possible
+fixes. However, I haven't been able to reach a revised calculus
+without soundness hole. Furthermore, I believe that the revised
+calculus with all the patches is not as elegant as the original
+calculus. Going forward, I want to take a broader view by by studying
+and incorporating ideas from other calculi which models dependent
+types, and path-dependent types in particular.
 
 \acks
 
