@@ -56,40 +56,49 @@ have explored patches to the calculus.
 \begin{align*}
 &\mlnew {\mi{root}} {\Top \mlrefine r {\\
 &\ \Ldecl {\mi{Unit}} \Bot \Top\\
-&\ \ldecl {\mi{unit}} {\Top \tfun {.\mi{Unit}}}\\
+&\ \ldecl {\mi{unit}} {\Top \tfun {r.\mi{Unit}}}\\
 &\ \Ldecl {\mi{Boolean}} \Bot {\Top \mlrefine z {\\
 &\ \gap \ldecl {\mi{ifNat}} {(r.\mi{Unit} \tfun r.\mi{Nat}) \tfun (r.\mi{Unit} \tfun r.\mi{Nat}) \tfun r.\mi{Nat}}\\
 &\gap}}\\
 &\ \ldecl {\mi{false}} {{r.\mi{Unit}} \tfun {r.\mi{Boolean}}}\\
 &\ \ldecl {\mi{true}} {{r.\mi{Unit}} \tfun {r.\mi{Boolean}}}\\
-&\ \Ldecl {\mi{Nat}} \Bot {\Top \mlrefine z {\\
-&\ \gap \ldecl {\mi{isZero}} {r.\mi{Unit} \tfun r.\mi{Boolean}}\\
-&\ \gap \ldecl {\mi{pred}} {r.\mi{Unit} \tfun r.\mi{Nat}}\\
-&\ \gap \ldecl {\mi{succ}} {r.\mi{Unit} \tfun r.\mi{Nat}}\\
-&\gap}}\\
-&\ \ldecl {\mi{zero}} {{r.\mi{Unit}} \tfun {r.\mi{Nat}}}\\
-&\ \ldecl {\mi{successor}} {{r.\mi{Nat}} \tfun {r.\mi{Nat}}}\\
+&\ \ldots\\
 &\ \ldecl {\mi{error}} {{r.\mi{Unit}} \tfun \Bot}\\
 &}\mlldefs{\\\displaybreak[3]
 &\ \mi{unit}  = \abs x \Top {\new u {\mi{root}.\mi{Unit}} u}\\
 %
 &\ \mi{false} = \abs u {\mi{root}.\mi{Unit}} {\\
 &\ \gap \mlnew {\mi{ff}} {\mi{root}.\mi{Boolean} \mlldefs{\\
-&\ \gap\gap {\mi{ifNat}} = \abs t {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}} {\abs e {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}}\\&\gap\gap\gap\app e {\mi{root}.\mi{unit}}}\\
+&\ \gap\gap {\mi{ifNat}} = \abs t {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}} {\\&\gap\gap\gap\abs e {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}}\\&\gap\gap\gap\app e {\mi{root}.\mi{unit}}}\\
 &\ \gap}}{
 \ \gap \mi{ff}}
 &}\\
 %
-&\ \mi{true} = \abs u {\mi{root}.\mi{Unit}} {\\
-&\ \gap \mlnew {\mi{t}} {\mi{root}.\mi{Boolean} \mlldefs{\\
-&\ \gap\gap {\mi{ifNat}} = \abs t {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}} {\abs e {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}}\\&\gap\gap\gap\app t {\mi{root}.\mi{unit}}}\\
-&\ \gap}}{
-\ \gap \mi{tt}}
-&}\\
+&\ \mi{true} = \ldots\\
 %
+&\ \mi{error} = \abs u {\mi{root}.\mi{Unit}} {\app {\mi{root}.\mi{error}} u}\\
 &}}{
-foo\\
-&foo
+\ldots
+}
+\end{align*}
+
+\begin{align*}
+&\mlnew {\mi{genLists}} {\Top \mlrefine g {\Ldecl {\mi{ListPackage}} \Bot {\Top \mlrefine p {\\
+&\ \Ldecl {\mi{Elem}} \Bot \Top\\
+&\ \Ldecl {\mi{ListOfElement}} {g.\mi{List} \refine z {\Ldecl {\mi{Elem}} {p.\mi{Elem}} {p.\mi{Elem}}}} {\\&\gap\gap\gap\gap g.\mi{List} \refine z {\Ldecl {\mi{Elem}} {p.\mi{Elem}} {p.\mi{Elem}}}}\\
+&\ \Ldecl {\mi{List}} \Bot {\Top \mlrefine z {\\
+&\ \gap \ldecl {\mi{isEmpty}} {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Boolean}}\\
+&\ \gap \ldecl {\mi{head}} {\mi{root}.\mi{Unit} \tfun g.\mi{Elem}}\\
+&\ \gap \ldecl {\mi{tail}} {\mi{root}.\mi{Unit} \tfun g.\mi{ListOfElem}}\\
+&\gap}}\\
+&\ \ldecl {\mi{nil}} {\mi{root}.\mi{Unit} \tfun g.\mi{ListOfElem}}\\
+&\ \ldecl {\mi{cons}} {g.\mi{Elem} \tfun g.\mi{ListOfElem}}\\
+&}}}}{
+\mlnew {\mi{natLists}} {{\mi{genLists}.\mi{ListPacakge}} \mlrefine p { \Ldecl {\mi{Elem}} {\mi{Nat}} {\mi{Nat}} }\mlldefs{\\
+&\ {\mi{nil}} = \ldots\\
+&\ {\mi{cons}} = \ldots\\
+&}}}{
+\ldots
 }
 \end{align*}
 
