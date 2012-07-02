@@ -3,37 +3,218 @@
 \input{dot_macros}
 
 %\usepackage{beamerthemesplit}
+\usecolortheme{seagull}
+\useinnertheme{circles}
+\useoutertheme{infolines}
 
 \title{DOT: Dependent Object Types}
-\subtitle{Semester Project}
+\subtitle{Semester Project, Spring 2012}
 \author{Nada Amin}
-\institute{Ecole Polytechnique F\'ed\'erale de Lausanne}
-\date{\today}
+\institute{EPFL}
+\date{}
 
 \begin{document}
 
 \frame{\titlepage}
 
-\section*{Outline}
+\section{Introduction}
+
+\subsection{What is DOT?}
+
 \begin{frame}
-\frametitle{Table of Contents}
-\tableofcontents[currentsection]
+\frametitle{DOT: Dependent Object Types}
+\begin{itemize}
+\item type-theoretic foundation of Scala and languages like it
+\item models:
+\begin{itemize}
+\item path-dependent types
+\item abstract type members
+\item mixture of nominal and structural typing via refinement types
+\end{itemize}
+\item does not model:
+\begin{itemize}
+\item inheritance and mixin composition
+\item what's currently in Scala
+\end{itemize}
+\end{itemize}
 \end{frame}
 
-\section{Introduction}
-\subsection{Foo}
+\begin{frame}
+\frametitle{DOT Syntax}
+\begin{columns}
+\begin{column}[t]{5cm}
+\begin{block}{term $t$}
+\begin{itemize}
+\item variable\\$x$
+\item lambda abstraction\\$\abs x T t$
+\item function application\\$\app t {t'}$
+\item field selection\\$t.l$
+\item object creation expression\\$\new x {T_c \ldefs{\seq{l = v}}} t$
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}[t]{5cm}
+\begin{block}{type $T$}
+\begin{itemize}
+\item selection\\$p.L$
+\item refinement\\$T \refine z {\seq{D}}$
+\item function\\$T \tfun T'$
+\item intersection\\$T \tand T'$
+\item union\\$T \tor T'$
+\item $\Top$, $\Bot$
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}
+\frametitle{DOT Judgments}
+\begin{columns}
+\begin{column}[t]{5cm}
+\begin{block}{Typing Judgments}
+\begin{itemize}
+\item type assignment\\$\Gamma \ts t \typ T$
+\item subtyping\\$\Gamma \ts S \sub T$
+\item well-formedness\\$\Gamma \ts T \wf$
+\item membership\\$\Gamma \ts t \ni D$
+\item expansion\\$\Gamma \ts T \expand_z \seq{D}$
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}[t]{5cm}
+\begin{block}{Small-Step Operational Semantics}
+\begin{itemize}
+\item reduction\\$\reduction t s {t'} {s'}$
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+\subsection{DOT Program Example}
+
+\begin{frame}
+\frametitle{Basics}
+\framesubtitle{Booleans, Error, \ldots}
+\begin{align*}
+&\mlnew {\mi{root}} {\Top \mlrefine r {\\
+&\ \Ldecl {\mi{Unit}} \Bot \Top\\
+&\ \ldecl {\mi{unit}} {\Top \tfun {r.\mi{Unit}}}\\
+&\ \Ldecl {\mi{Boolean}} \Bot {\Top \mlrefine z {\\
+&\ \gap \ldecl {\mi{ifNat}} {(r.\mi{Unit} \tfun r.\mi{Nat}) \tfun (r.\mi{Unit} \tfun r.\mi{Nat}) \tfun r.\mi{Nat}}\\
+&\gap}}\\
+&\ \ldecl {\mi{false}} {{r.\mi{Unit}} \tfun {r.\mi{Boolean}}}\\
+&\ \ldecl {\mi{true}} {{r.\mi{Unit}} \tfun {r.\mi{Boolean}}}\\
+&\ \ldecl {\mi{error}} {{r.\mi{Unit}} \tfun \Bot}\\
+&\ \ldots\\
+&}{\ldefs{\ldots \seq{(l = v)} \ldots }}}{ \ldots }
+\end{align*}
+\end{frame}
+
+\begin{frame}
+\frametitle{Basics (Continued)}
+\framesubtitle{Booleans, Error, \ldots}
+\begin{align*}
+&\mlldefs{\\
+&\ \mi{unit}  = \abs x \Top {\new u {\mi{root}.\mi{Unit}} u}\\
+&\ \mi{false} = \abs u {\mi{root}.\mi{Unit}} {\\
+&\ \gap \mlnew {\mi{ff}} {\mi{root}.\mi{Boolean} \mlldefs{\\
+&\ \gap\gap {\mi{ifNat}} = \abs t {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}} {\\&\gap\gap\gap\abs e {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}}\\&\gap\gap\gap\app e {\mi{root}.\mi{unit}}}\\
+&\ \gap}}{
+\ \gap \mi{ff}}
+&}\\
+&\ \mi{error} = \abs u {\mi{root}.\mi{Unit}} {\app {\mi{root}.\mi{error}} u}\\
+&\ \ldots\\
+&}
+\end{align*}
+\end{frame}
+
+\subsection{Contributions}
+\begin{frame}
+\frametitle{Outline}
+\tableofcontents
+\end{frame}
+
+\section{Counterexamples}
+
+\subsection{Subtyping Transitivity}
 
   \begin{frame}
-    \frametitle{This is the first slide}
-    %Content goes here
+    \frametitle{No Subtyping Transitivity to No Preservation}
+\begin{columns}
+\begin{column}[t]{6cm}
+\begin{enumerate}
+\item Start with 3 types $S$, $T$, $U$ st $S \sub T$ and $T \sub U$ but $S \not\sub U$.
+\item Create function of type $S \tfun S$.
+\item Cast it to $S \tfun T$.
+\item Cast it to $S \tfun U$.
+\item After some reduction step, the first cast vanishes and we need to cast directly from $S \tfun S$ to $S \tfun U$.
+\end{enumerate}
+Note: The 3 types don't need to be realizable but must be expressible within a realizable universe.
+\end{column}
+\begin{column}[t]{4cm}
+\begin{block}{Code Recipe}
+\begin{align*}
+&\mlnew u \ldots {
+\ \mlapp{\abs x \Top x}{
+\ \ \mlapp{\abs f {S \tfun U} f}{
+\ \ \ \mlapp{\abs f {S \tfun T} f}{
+\ \ \ \ \mlapp{\abs f {S \tfun S} f}{
+\ \ \  \ \ \abs x S x}}}}}
+\end{align*}
+\end{block}
+\end{column}
+\end{columns}
   \end{frame}
 
-\subsection{Bar}
+  \begin{frame}
+    \frametitle{Non-Expanding Types and Subtyping Transitivity}
+\begin{align*}
+\Top & \mlrefine u {\\
+&\ \Ldecl {\mathit{Bad}} {\Bot} {u.\mathit{Bad}}\\
+&\ \Ldecl {\mathit{Good}} {\Top \refine z {\Ldecl L \Bot \Top}} {\Top \refine z {\Ldecl L \Bot \Top}}\\
+&\ \Ldecl {\mathit{Lower}} {u.\mathit{Bad} \tand u.\mathit{Good}} {u.\mathit{Good}}\\
+&\ \Ldecl {\mathit{Upper}} {u.\mathit{Good}} {u.\mathit{Bad} \tor u.\mathit{Good}}\\
+&\ \Ldecl X {u.\mathit{Lower}} {u.\mathit{Upper}}\\
+}&
+\end{align*}
+
+\begin{align*}
+S &= u.\mathit{Bad} \tand u.\mathit{Good}\\
+T &= u.\mathit{Lower}\\
+U &= u.X \refine z {\Ldecl L \Bot \Top}
+\end{align*}
+  \end{frame}
+
+\subsection{Narrowing}
 
   \begin{frame}
-    \frametitle{This is the second slide}
-    \framesubtitle{A bit more information about this}
-    %More content goes here
+    \frametitle{Functions as Objects}
+\begin{align*}
+&\mlnew u {\Top \refine z {\Ldecl C {\Top \tfun \Top} {\Top \tfun \Top}} \ldefs{}} {
+\mlnew f {u.C \ldefs{}} {
+\ldots
+}}
+\end{align*}
+  \end{frame}
+
+\subsection{Path Equality}
+
+  \begin{frame}
+    \frametitle{Path Equality}
+  \end{frame}
+
+\section{Patches}
+
+  \begin{frame}
+    \frametitle{Patches}
+  \end{frame}
+
+\section{Conclusion}
+
+  \begin{frame}
+    \frametitle{Conclusion}
   \end{frame}
 
 \end{document}
