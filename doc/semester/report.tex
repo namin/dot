@@ -258,7 +258,7 @@ function ever being defined. Consider:
 Now, $f$ is a subtype of $\Top \tfun \Top$, but $\app f {(\abs x \Top
   x)}$ is stuck (and, rightfully, doesn't typecheck). But we can use
 narrowing to create a counterexample to preservation: $\app {(\abs g
-  {\Top \tfun \Top} {g (\abs x \Top x)})} f$.
+  {\Top \tfun \Top} {\app g (\abs x \Top x)})} f$.
 
 \subsubsection{\texorpdfstring{\textsc{term-$\ni$}}{Term-Mem} Restriction}\label{term_mem}
 
@@ -324,12 +324,12 @@ expansion needed by $\textsc{new}$ cannot be inferred.
 \subsubsection{Well-Formedness Lost}\label{narrowing_wf}
 
 Even well-formedness is not preserved by narrowing. The trick is that
-if the lower bound of a type selection is not $\Bot$, then the upper
-bound needs to be checked for well-formedness. Here, we create two
-type selections that are mutually recursive in their upper bounds
+if the lower bound of a type selection is not $\Bot$, then the
+bounds needs to be checked for well-formedness. Here, we create two
+type selections that are mutually recursive in their bounds
 after narrowing. $y.A$ is initially well-formed, but after narrowing,
 it isn't because we run into an infinite derivation trying to prove
-the well-formedness of its upper bound.
+the well-formedness of its bounds.
 
 \begin{align*}
 &\mlnew v {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B {z.A} {z.A}}}} \ldefs{}}{
