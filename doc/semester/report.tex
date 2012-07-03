@@ -408,7 +408,7 @@ and $T <: S$.
 Syntactically, we add a widening term: $\wid t T$, and extend values
 with a case for widening: $\wid v T$. The typing rule for widening,
 \textsc{wid}, is the only one admitting a subtyping relaxation:
-$\Gamma \ts (\wid t T) \typ T$ if $\Gamma \ts t : T'$ and $\Gamma \ts T'
+$\Gamma \ts (\wid t T) \typ T$ if $\Gamma \ts t \typ T'$ and $\Gamma \ts T'
 \sub T$.
 
 The reduction rules become more complicated because the type
