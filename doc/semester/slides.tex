@@ -201,6 +201,7 @@ U &= u.X \refine z {\Ldecl L \Bot \Top}
 
 \begin{frame}
 \frametitle{Functions as Objects}
+\center{// $f$ is an undefined function!}
 \begin{align*}
 &\mlnew u {\Top \refine z {\Ldecl C {\Top \tfun \Top} {\Top \tfun \Top}} \ldefs{}} {
 \mlnew f {u.C \ldefs{}} {
@@ -216,6 +217,7 @@ U &= u.X \refine z {\Ldecl L \Bot \Top}
 
 \begin{frame}
 \frametitle{(Expansion and) Well-Formedness Lost}
+\center{// $y.A$ is not well-formed after $v$ is substituted for $x$.}
 \begin{align*}
 &\mlnew v {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B {z.A} {z.A}}}} \ldefs{}}{
 \mlapp {\abs x {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B \Bot \Top}}}} {\\&\gap
@@ -241,14 +243,91 @@ U &= u.X \refine z {\Ldecl L \Bot \Top}
 
 \section{Patches}
 
-  \begin{frame}
-    \frametitle{Patches}
-  \end{frame}
+\begin{frame}
+\frametitle{Non-Expanding Types and Subtyping Transitivity}
+\begin{enumerate}
+\item Introduce a new judgment form for whether a type is well-formed and expanding.
+\begin{block}{$\Gamma \ts T \wfe$}
+  \infrule
+  {\Gamma \ts T \wf \spcomma T \expand_z \seq{D}}
+  {\Gamma \ts T \wfe}
+\end{block}
+\item Replace other uses of $\wf$ with $\wfe$.
+\item Make subtyping regular with respect to $\wfe$.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}
+\frametitle{Functions as Sugar}
+\framesubtitle{like in Scala}
+\begin{enumerate}
+\item Introduce a new kind of label for methods with one parameter: $m : S \tfun U$.
+\item Return types are now explicit.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}
+\frametitle{Explicit Widening}
+\begin{enumerate}
+\item Add widening terms $\wid t T$.
+\item Add widening values $\wid v T$.
+\item Replace relaxed subtyping in \textsc{app} and \textsc{new} with
+  ``equality''.
+\item Add the only typing rule with relaxed subtyping.
+\begin{block}{\textsc{wid}}
+  \infrule
+  {\Gamma \ts t \typ T' \spcomma T' \sub T}
+  {\Gamma \ts (\wid t T) \typ T}
+\end{block}
+\item Reduction becomes complicated and dependent on typing judgments
+  because type widenings need to be propagated outwards.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}
+\frametitle{Path Equality}
+\begin{enumerate}
+\item Add store to context of typing judgments.
+\item Add path-equality provisions in subtyping.
+\begin{block}{\textsc{$\sub$-path}}
+  \infrule
+  {\Gamma, s \ts p \reduces q \spcomma T \sub q.L}
+  {\Gamma, s \ts T \sub p.L}
+\end{block}
+\begin{block}{\textsc{path-$\sub$}}
+  \infrule
+  {\Gamma, s \ts p \reduces q \spcomma q.L \sub T}
+  {\Gamma, s \ts p.L \sub T}
+\end{block}
+\item Path reduction not quite like reduction, since it roughly skips
+  over widenings.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}
+\frametitle{The Final Blow}
+\framesubtitle{by the much needed $\textsc{path-$\sub$}$}
+\center{//$d$ has type $\Bot$ if ignoring the cast on $b$}
+\begin{align*}
+&\mlnew a {\Top \refine z {\Ldecl C \Bot {\Top \refine z {\Ldecl D \Bot {z.X}, \Ldecl X \Bot \Top}}}}{
+\mlnew b {{a.C} \refine z {\Ldecl X \Bot \Bot}}}{
+\mlnew c {a.C}}{
+\mlnew d {(\wid b {a.C}).D}}{
+\app {(\abs x \Bot {x.\mathit{foo}})} d
+}
+\end{align*}
+\end{frame}
 
 \section{Conclusion}
-
-  \begin{frame}
-    \frametitle{Conclusion}
-  \end{frame}
+\begin{frame}
+\frametitle{Conclusion}
+\begin{enumerate}
+\item No soundness proof but lots of soundness holes.
+\item Patches to calculus affect its elegance.
+\item Going forward by getting broader perspective with PL summer
+  school and candidacy exam on dependent object types.
+\item Will keep DOT in mind, and come back to it with fresh and broader perspective.
+\end{enumerate}
+\end{frame}
 
 \end{document}
