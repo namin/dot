@@ -499,14 +499,14 @@ Let $T$ be a shorthand for the type:
 
 Now, consider the term:
 \begin{align*}
-&\mlnew v {Tc \ldefs{m(x)=\wid x \Top}}{
-(\wid v T).m(\wid v {(\wid v {A \refine z {\Ldecl B \Top \Top}})})
+&\mlnew v {T_c \ldefs{m(x)=\wid x \Top}}{
+(\wid v T).m(\wid v {((\wid v T).{A \refine z {\Ldecl B \Top \Top}})})
 }
 \end{align*}
 
-When we evaluate the method invocation, we need to cast $\wid v {(\wid
-  v {A \refine z {\Ldecl B \Top \Top}})}$ to $v.A$, and for this, we
-need the newly introduced $\textsc{path-$\sub$}$ rule.
+When we evaluate the method invocation, we need to cast $\wid v
+{((\wid v T).{A \refine z {\Ldecl B \Top \Top}})}$ to $v.A$, and for
+this, we need the newly introduced $\textsc{path-$\sub$}$ rule.
 
 Note that the path dual reduction can be a bit stricter with casts
 than the path reduction. In any case, introducing this
