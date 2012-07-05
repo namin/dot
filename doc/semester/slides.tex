@@ -188,6 +188,11 @@ U &= u.X \refine z {\Ldecl L \Bot \Top}
 \end{align*}
 \end{column}
 \begin{column}[m]{5cm}
+\begin{block}{\textsc{tsel-$\expand$}}
+  \infrule
+  {\Gamma \ts p \ni \Ldecl L S U \spcomma U \expand_z \seq D}
+  {\Gamma \ts p.L \expand_z \seq D}
+\end{block}
 \begin{block}{\textsc{$\sub$-rfn}}
   \infrule
    {\Gamma \ts S \sub T \spcomma S \expand_z \seq{D'} \\
