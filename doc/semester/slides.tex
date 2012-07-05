@@ -233,6 +233,38 @@ U &= u.X \refine z {\Ldecl L \Bot \Top}
 \end{align*}
 \end{frame}
 
+\begin{frame}
+\frametitle{\textsc{term-$\ni$} Restriction}
+\begin{columns}
+\begin{column}[m]{5cm}
+\begin{align*}
+&X = \Top \mlrefine z {
+\Ldecl {L_a} \Top \Top,
+\ldecl l {z.L_a}
+}\\
+&Y = \Top \mlrefine z {
+\ldecl l \Top
+}\\
+&\mlnew u {X \ldefs{ l = u }}{
+\mlapp {\abs y {\Top \tfun Y} {\app y u}} {\ (\abs d \Top {\app {(\abs x X x)} u})}.l
+}
+\end{align*}
+\end{column}
+\begin{column}[m]{5cm}
+\begin{block}{\textsc{path-$\ni$}}
+  \infrule
+  {\Gamma \ts p \typ T \spcomma T \expand_z \seq D}
+  {\Gamma \ts p \ni \subst p z {D_i}}
+\end{block}
+\begin{block}{\textsc{term-$\ni$}}
+  \infrule
+  {z \not\in \fn(D_i)\\ \andalso \Gamma \ts t \typ T \spcomma T \expand_z \seq D}
+  {\Gamma \ts t \ni D_i}
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
 \subsection{Path Equality}
 \begin{frame}
 \frametitle{Path Equality}
