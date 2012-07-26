@@ -53,11 +53,9 @@ Lemma ev_to_value : forall s s' t v,
   s |~ t ~>~ v ~| s' -> value v.
 Proof.
   introv H. induction H; try assumption.
-    Case "ev_wid".
-      apply value_wid. assumption.
     Case "ev_sel".
-      inversion H4; subst; try (apply value_wid);
-        apply wf_store_lbl_binds_value with (s:=sf) (l:=l) (a:=a) (Tc:=Tc) (ags:=ags);
+      inversion H2; subst.
+        apply wf_store_lbl_binds_value with (s:=sf) (l:=lv a0) (a:=a) (Tc:=Tc) (ags:=ags);
         try apply (proj2 (ev_wf_store H));
         assumption.
 Qed.

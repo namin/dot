@@ -14,8 +14,6 @@ Reserved Notation "s |~ a ~>~ b ~| s'" (at level 60).
 
 (* ********************************************************************** *)
 (** * #<a name="typing"></a># Typing *)
-(* Type Equivalence *)
-Reserved Notation "E |= T ~=: T'" (at level 69).
 (* Type Assigment *)
 Reserved Notation "E |= t ~: T" (at level 69).
 (* Membership *)
@@ -31,78 +29,7 @@ Reserved Notation "E |= t ~<: T" (at level 69).
 (* Well-formed declarations *)
 (* E |= D ~wf *)
 
-
-Inductive value_to_ref : tm -> tm -> Prop :=
-  | value_to_ref_ref : forall a, value_to_ref (ref a) (ref a)
-  | value_to_ref_wid : forall a v t, value_to_ref v (ref a) -> value_to_ref (wid v t) (ref a)
-.
-
-Inductive path_to_tip : tm -> tm -> Prop :=
-  | path_to_tip_ref : forall a, path_to_tip (ref a) (ref a)
-  | path_to_tip_bvar : forall i, path_to_tip (bvar i) (bvar i)
-  | path_to_tip_fvar : forall v, path_to_tip (fvar v) (fvar v)
-  | path_to_tip_wid : forall p t tip, path p -> path_to_tip p tip -> path_to_tip (wid p t) tip
-  | path_to_tip_sel : forall p l tip, path p -> value_label l -> path_to_tip p tip -> path_to_tip (sel p l) tip
-.
-
-Inductive path_red : env -> tm -> tm -> Prop :=
-  | path_red_base : forall G s Tc ags v v' l a a',
-     binds a (Tc, ags) s ->
-     lbl.binds l v' ags ->
-     value_label l ->
-     value_to_ref v (ref a) ->
-     value_to_ref v' (ref a') ->
-     path_red (G, s) (sel v l) (ref a')
-  | path_red_wid : forall E p T,
-     path p ->
-     path_red E (wid p T) p
-  | path_red_sel : forall E l p p',
-     path p ->
-     path_red E p p' ->
-     path_red E (sel p l) (sel p' l)
-.
-
-Inductive path_red_dual : env -> tm -> tm -> Prop :=
-  | path_red_dual_base : forall G s Tc ags v v' l a a',
-     binds a (Tc, ags) s ->
-     lbl.binds l v' ags ->
-     value_label l ->
-     value_to_ref v (ref a) ->
-     value_to_ref v' (ref a') ->
-     path_red_dual (G, s) (sel v l) (ref a')
-  | path_red_dual_wid : forall E p T a,
-     path p ->
-     path_to_tip (wid p T) (ref a) ->
-     path_red_dual E (wid p T) p
-  | path_red_dual_sel : forall E l p p',
-     path p ->
-     path_red_dual E p p' ->
-     path_red_dual E (sel p l) (sel p' l)
-.
-
-Inductive up_value : store -> tm -> label -> tm -> tm -> Prop :=
-  | up_value_var : forall s a l v,
-     value_label l ->
-     up_value s (ref a) l v v
-  | up_value_wid : forall s v T l v' T',
-     value_label l ->
-     value v ->
-     (nil, s) |= (wid v T) ~mem~ l ~: (decl_tm T') ->
-     up_value s (wid v T) l v' (wid v' T')
-
-with up_method : store -> tm -> label -> tm -> tm -> tm -> Prop :=
-  | up_method_var : forall s a m v t,
-     method_label m ->
-     up_method s (ref a) m v t (t ^^ v)
-  | up_method_wid : forall s v T m v' t' a S' T' S'' T'',
-     method_label m ->
-     value v ->
-     (nil, s) |= (wid v T) ~mem~ m ~: (decl_mt S' T') ->
-     value_to_ref v (ref a) ->
-     (nil, s) |= (ref a) ~mem~ m ~: (decl_mt S'' T'') ->
-     up_method s (wid v T) m v' t' (wid (t' ^^ (wid v' S'')) T')
-
-with red : store -> tm -> store -> tm -> Prop :=
+Inductive red : store -> tm -> store -> tm -> Prop :=
 (*| red_beta : forall s T t v,
      wf_store s ->
      lc_tm (lam T t) ->
@@ -116,16 +43,13 @@ with red : store -> tm -> store -> tm -> Prop :=
      value v ->
      s |~        e ~~> e'        ~| s' ->
      s |~  app v e ~~> app v e'  ~| s'*)
-  | red_msel : forall s a Tc ags l t v v' t',
+  | red_msel : forall s a Tc ags l t v,
      wf_store s ->
      binds a (Tc, ags) s ->
      lbl.binds l t ags ->
      method_label l ->
-     value v' ->
      value v ->
-     value_to_ref v (ref a) ->
-     up_method s v l v' t t' ->
-     s |~ (msel v l v') ~~> t' ~| s
+     s |~ (msel (ref a) l v) ~~> (t ^^ v) ~| s
   | red_msel_tgt1 : forall s s' l e1 e2 e1',
      s |~             e1 ~~> e1'             ~| s' ->
      s |~ (msel e1 l e2) ~~> (msel e1' l e2) ~| s'
@@ -133,21 +57,14 @@ with red : store -> tm -> store -> tm -> Prop :=
     value v1 ->
      s |~             e2 ~~> e2'             ~| s' ->
      s |~ (msel v1 l e2) ~~> (msel v1 l e2') ~| s'
-  | red_sel : forall s a Tc ags l v v' v'',
+  | red_sel :forall s a Tc ags l v,
      wf_store s -> 
      binds a (Tc, ags) s ->
-     lbl.binds l v' ags ->
-     value_label l ->
-     value v ->
-     value_to_ref v (ref a) ->
-     up_value s v l v' v'' ->
-     s |~ (sel v l) ~~> v'' ~| s
+     lbl.binds l v ags -> 
+     s |~ (sel (ref a) l) ~~> v ~| s
   | red_sel_tgt : forall s s' l e e',
      s |~         e ~~> e'         ~| s' ->
      s |~ (sel e l) ~~> (sel e' l) ~| s'
-  | red_wid_tgt : forall s s' e e' t,
-     s |~         e ~~> e'         ~| s' ->
-     s |~ (wid e t) ~~> (wid e' t) ~| s'
   | red_new : forall s Tc a ags t,
      wf_store s -> 
      lc_tm (new Tc ags t) ->
@@ -155,40 +72,33 @@ with red : store -> tm -> store -> tm -> Prop :=
      (forall l v, lbl.binds l v (ags ^args^ ref a) -> (value_label l /\ value v) \/ (method_label l)) ->
      a `notin` dom s ->
      s |~   (new Tc ags t) ~~> t ^^ (ref a)   ~| ((a ~ ((Tc, ags ^args^ (ref a)))) ++ s)
-where "s |~ a ~~> b  ~| s'" := (red s a s' b)
+where "s |~ a ~~> b  ~| s'" := (red s a s' b).
 
-with ev : store -> tm -> store -> tm -> Prop :=
+Inductive ev : store -> tm -> store -> tm -> Prop :=
   | ev_value : forall s v,
      wf_store s ->
      value v ->
      s |~ v ~>~ v ~| s
-  | ev_wid : forall s s' e t v,
-     s |~ e ~>~ v ~| s' ->
-     s |~ (wid e t) ~>~ (wid v t) ~| s'
 (*| ev_beta : forall si s1 s2 sf t1 t2 t11 v2 vf T,
      si |~ t1 ~>~ (lam T t11) ~| s1 ->
      lc_tm (lam T t11) ->
      s1 |~ t2 ~>~ v2 ~| s2 ->
      s2 |~ (t11 ^^ v2) ~>~ vf ~| sf ->
      si |~ (app t1 t2) ~>~ vf ~| sf*)
-  | ev_msel : forall si s1 s2 sf va a Tc ags l t tl t' v' v tl',
-     si |~ t ~>~ va ~| s1 ->
-     value_to_ref va (ref a) ->
+  | ev_msel : forall si s1 s2 sf a Tc ags l t tl t' v' v,
+     si |~ t ~>~ (ref a) ~| s1 ->
      s1 |~ t' ~>~ v' ~| s2 ->
      binds a (Tc, ags) sf ->
      lbl.binds l tl ags ->
+     s2 |~ (tl ^^ v') ~>~ v ~| sf ->
      method_label l ->
-     up_method s2 va l v' tl tl' ->
-     s2 |~ tl' ~>~ v ~| sf ->
      si |~ (msel t l t') ~>~ v ~| sf
-  | ev_sel : forall si sf va a Tc ags t l v v',
-     si |~ t ~>~ va ~| sf ->
-     value_to_ref va (ref a) ->
+  | ev_sel : forall si sf a Tc ags t l v,
+     si |~ t ~>~ (ref a) ~| sf ->
      binds a (Tc, ags) sf ->
      lbl.binds l v ags ->
      value_label l ->
-     up_value sf va l v v' ->
-     si |~ (sel t l) ~>~ v' ~| sf
+     si |~ (sel t l) ~>~ v ~| sf
   | ev_new : forall si sf a Tc ags t vf,
      lc_tm (new Tc ags t) ->
      concrete Tc ->
@@ -196,16 +106,9 @@ with ev : store -> tm -> store -> tm -> Prop :=
      a `notin` dom si ->
      ((a ~ ((Tc, ags ^args^ (ref a)))) ++ si) |~ t ~>~ vf ~| sf ->
      si |~ (new Tc ags t) ~>~ vf ~| sf
-where "s |~ a ~>~ b  ~| s'" := (ev s a s' b)
+where "s |~ a ~>~ b  ~| s'" := (ev s a s' b).
 
-with same_tp : env -> tp -> tp -> Prop :=
-  | same_tp_any : forall E T T',
-      E |= T ~<: T' ->
-      E |= T' ~<: T ->
-      E |= T ~=: T'
-where "E |= T ~=: T'" := (same_tp E T T')
-
-with typing : env -> tm -> tp -> Prop :=
+Inductive typing : env -> tm -> tp -> Prop :=
   | typing_var : forall G P x T,
       wf_env (G, P) ->
       lc_tp T ->
@@ -215,10 +118,6 @@ with typing : env -> tm -> tp -> Prop :=
       wf_env (G, P) ->
       binds a (T, args) P ->
       (G, P) |= (ref a) ~: T
-  | typing_wid : forall E t T T',
-      E |= t ~: T' ->
-      E |= T' ~<: T ->
-      E |= (wid t T) ~: T
   | typing_sel : forall E t l T',
       value_label l ->
       E |= t ~mem~ l ~: (decl_tm T') ->
@@ -228,7 +127,7 @@ with typing : env -> tm -> tp -> Prop :=
       method_label l ->
       E |= t ~mem~ l ~: (decl_mt S T) ->
       E |= t' ~: T' ->
-      E |= T' ~=: S ->
+      E |= T' ~<: S ->
       wfe_tp E T ->
       E |= (msel t l t') ~: T
 (* | typing_app : forall E t t' S T T',
@@ -251,9 +150,9 @@ with typing : env -> tm -> tp -> Prop :=
           (forall S U, d ^d^ x = decl_tp S U -> (ctx_bind E x Tc) |= S ~<: U) /\
           (forall S U, d ^d^ x = decl_mt S U -> (exists v,
             lbl.binds l v args /\ (forall y, y \notin L' ->
-              (exists U', (ctx_bind (ctx_bind E x Tc) y S) |= ((v ^ x) ^ y) ~: U' /\ (ctx_bind (ctx_bind E x Tc) y S) |= U' ~=: U)))) /\
+              (exists U', (ctx_bind (ctx_bind E x Tc) y S) |= ((v ^ x) ^ y) ~: U' /\ (ctx_bind (ctx_bind E x Tc) y S) |= U' ~<: U)))) /\
           (forall V, d ^d^ x = decl_tm V -> (exists v,
-            lbl.binds l v args /\ syn_value (v ^ x) /\ (exists V', (ctx_bind E x Tc) |= (v ^ x) ~: V' /\ (ctx_bind E x Tc) |= V' ~=: V))))) ->
+            lbl.binds l v args /\ syn_value (v ^ x) /\ (exists V', (ctx_bind E x Tc) |= (v ^ x) ~: V' /\ (ctx_bind E x Tc) |= V' ~<: V))))) ->
       (forall x, x \notin L -> (ctx_bind E x Tc) |= t ^ x ~: T') ->
       E |= (new Tc args t) ~: T'
 where "E |= t ~: T" := (typing E t T)
@@ -369,16 +268,6 @@ with sub_tp : env -> tp -> tp -> Prop :=
   | sub_tp_bot : forall E T,
       wf_env E -> wfe_tp E T ->
       E |= tp_bot ~<: T
-  | sub_tp_path_red : forall E T p p' L,
-      wfe_tp E (tp_sel p L) ->
-      path_red E p p' ->
-      E |= T ~<: (tp_sel p' L) ->
-      E |= T ~<: (tp_sel p L)
-  | sub_tp_path_red_dual : forall E T p p' L,
-      wfe_tp E (tp_sel p L) ->
-      path_red_dual E p p' ->
-      E |= (tp_sel p' L) ~<: T ->
-      E |= (tp_sel p L) ~<: T
 where "E |= S ~<: T" := (sub_tp E S T)
 
 with sub_decl : env -> decl -> decl -> Prop :=
@@ -445,8 +334,7 @@ with wfe_tp : env -> tp -> Prop :=
 (* ********************************************************************** *)
 (** * #<a name="auto"></a># Automation *)
 
-Scheme same_tp_indm        := Induction for same_tp Sort Prop
-  with typing_indm         := Induction for typing Sort Prop
+Scheme typing_indm         := Induction for typing Sort Prop
   with mem_indm            := Induction for mem Sort Prop
   with expands_indm        := Induction for expands Sort Prop
   with sub_tp_indm         := Induction for sub_tp Sort Prop
@@ -456,12 +344,11 @@ Scheme same_tp_indm        := Induction for same_tp Sort Prop
   with wfe_tp_indm         := Induction for wfe_tp Sort Prop
 .
 
-Combined Scheme typing_mutind from same_tp_indm, typing_indm, mem_indm, expands_indm, sub_tp_indm, sub_decl_indm, wf_tp_indm, wf_decl_indm, wfe_tp_indm.
+Combined Scheme typing_mutind from typing_indm, mem_indm, expands_indm, sub_tp_indm, sub_decl_indm, wf_tp_indm, wf_decl_indm, wfe_tp_indm.
 
 Require Import LibTactics_sf.
-Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ :=
-  cut ((forall E T T' (H: E |= T ~=: T'), (P0_ E T T' H)) /\
-  (forall E t T (H: E |= t ~: T), (P1_ E t T H)) /\
+Ltac mutind_typing P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ :=
+  cut ((forall E t T (H: E |= t ~: T), (P1_ E t T H)) /\
   (forall E t l d (H: E |= t ~mem~ l ~: d), (P2_ E t l d H)) /\
   (forall E T DS (H: E |= T ~< DS), (P3_ E T DS H)) /\
   (forall E T T' (H: E |= T ~<: T'), (P4_  E T T' H))  /\
@@ -469,13 +356,12 @@ Ltac mutind_typing P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ :=
   (forall (e : env) (t : tp) (H : wf_tp e t), (P6_ e t H)) /\
   (forall (e : env) (d : decl) (H : wf_decl e d), (P7_ e d H)) /\
   (forall (e : env) (t : tp) (H : wfe_tp e t), (P8_ e t H))); [tauto |
-    apply (typing_mutind P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_); try unfold P0_, P1_, P2_, P3_, P4_, P5_, P6_, P7_, P8_ in *; try clear P0_ P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_; [  (* only try unfolding and clearing in case the PN_ aren't just identifiers *)
-      Case "same_tp_any" | Case "typing_var" | Case "typing_ref" | Case "typing_wid" | Case "typing_sel" | Case "typing_msel" | Case "typing_new" | Case "mem_path" | Case "mem_term" | Case "expands_rfn" | Case "expands_tsel" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "expands_bot" | Case "sub_tp_refl" | Case "sub_tp_rfn_r" | Case "sub_tp_rfn_l" | Case "sub_tp_tsel_r" | Case "sub_tp_tsel_l" | Case "sub_tp_and_r" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_tp_or_l" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_tp_path_red" | Case "sub_tp_path_red_dual" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "wf_rfn" | Case "wf_tsel_1" | Case "wf_tsel_2" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" | Case "wfe_any" ];
+    apply (typing_mutind P1_ P2_ P3_ P4_ P5_ P6_ P7_); try unfold P1_, P2_, P3_, P4_, P5_, P6_, P7_, P8_ in *; try clear P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_; [  (* only try unfolding and clearing in case the PN_ aren't just identifiers *)
+      Case "typing_var" | Case "typing_ref" | Case "typing_sel" | Case "typing_msel" | Case "typing_new" | Case "mem_path" | Case "mem_term" | Case "expands_rfn" | Case "expands_tsel" | Case "expands_and" | Case "expands_or" | Case "expands_top" | Case "expands_bot" | Case "sub_tp_refl" | Case "sub_tp_rfn_r" | Case "sub_tp_rfn_l" | Case "sub_tp_tsel_r" | Case "sub_tp_tsel_l" | Case "sub_tp_and_r" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_tp_or_l" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "wf_rfn" | Case "wf_tsel_1" | Case "wf_tsel_2" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" | Case "wfe_any" ];
       introv; eauto ].
 
 Section TestMutInd.
 (* mostly reusable boilerplate for the mutual induction: *)
-  Let Psame (E: env) (T: tp) (T': tp) (H: E |=  T ~=: T') := True.
   Let Ptyp (E: env) (t: tm) (T: tp) (H: E |=  t ~: T) := True.
   Let Pmem (E: env) (t: tm) (l: label) (d: decl) (H: E |= t ~mem~ l ~: d) := True.
   Let Pexp (E: env) (T: tp) (DS : decls) (H: E |= T ~< DS) := True.
@@ -485,5 +371,5 @@ Section TestMutInd.
   Let Pwfd (E: env) (d: decl) (H: wf_decl E d) := True.
   Let Pwfe (E: env) (t: tp) (H: wfe_tp E t) := True.
 Lemma EnsureMutindTypingTacticIsUpToDate : True.
-Proof. mutind_typing Psame Ptyp Pmem Pexp Psub Psbd Pwft Pwfd Pwfe; intros; auto. Qed.
+Proof. mutind_typing Ptyp Pmem Pexp Psub Psbd Pwft Pwfd Pwfe; intros; auto. Qed.
 End TestMutInd.

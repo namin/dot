@@ -21,8 +21,8 @@ Definition typing_store G s :=
     /\ (forall l v, lbl.binds l v args -> (value_label l \/ method_label l) /\ (exists d, decls_binds l d ds))
     /\ (exists L L', (forall x, x \notin L -> (forall l d, decls_binds l d ds ->
        (type_label l -> (exists S U, d ^d^ x = decl_tp S U /\ (ctx_bind (G,s) x Tc) |= S ~<: U)) /\
-       (method_label l -> (exists S U, d ^d^ x = decl_mt S U /\ (exists v, lbl.binds l v args /\ (forall y, y \notin L' -> (exists U', (ctx_bind (ctx_bind (G,s) x Tc) y S) |= ((v ^ x) ^ y) ~: U' /\ (ctx_bind (ctx_bind (G,s) x Tc) y S) |= U' ~=: U))))) /\
-       (value_label l -> (exists V, d ^d^ x = decl_tm V /\ (exists v, lbl.binds l v args /\ syn_value(v ^ x) /\ (exists V', (ctx_bind (G,s) x Tc) |= (v ^ x) ~: V' /\ (ctx_bind (G,s) x Tc) |= V' ~=: V)))))))).
+       (method_label l -> (exists S U, d ^d^ x = decl_mt S U /\ (exists v, lbl.binds l v args /\ (forall y, y \notin L' -> (exists U', (ctx_bind (ctx_bind (G,s) x Tc) y S) |= ((v ^ x) ^ y) ~: U' /\ (ctx_bind (ctx_bind (G,s) x Tc) y S) |= U' ~<: U))))) /\
+       (value_label l -> (exists V, d ^d^ x = decl_tm V /\ (exists v, lbl.binds l v args /\ syn_value(v ^ x) /\ (exists V', (ctx_bind (G,s) x Tc) |= (v ^ x) ~: V' /\ (ctx_bind (G,s) x Tc) |= V' ~<: V)))))))).
 
 Notation "G |== s" := (typing_store G s) (at level 68).
 
@@ -34,11 +34,6 @@ Notation "G_s |= 'ok'" := (ok_env G_s) (at level 69).
 Lemma env_weakening_notin_wfe_tp: forall L E S T x t,
   x `notin` L -> ctx_bind E x S |= t ^ x ~: T -> wfe_tp (ctx_bind E x S) T ->
   wfe_tp E T.
-Proof. (* TODO *) Admitted.
-
-Lemma env_weakening_notin_same_tp: forall L E S T T' x,
-  x `notin` L -> ctx_bind E x S |= T ~=: T' ->
-  E |= T ~=: T'.
 Proof. (* TODO *) Admitted.
 
 Lemma env_weakening_notin_sub_tp: forall L E S T T' x,
@@ -87,7 +82,7 @@ Combined Scheme tp_mem_mutind from tp_mem_typing_indm, tp_mem_mem_indm.
 Ltac mutind_tp_mem Ptyp Pmem :=
   cut ((forall E t T (H: E |= t ~: T), (Ptyp E t T H)) /\
     (forall E t l d (H: E |= t ~mem~ l ~: d), (Pmem E t l d H))); [try tauto; Case "IH" |
-      apply (tp_mem_mutind Ptyp Pmem); try unfold Ptyp, Pmem in *; try clear Ptyp Pmem; [Case "typing_var" | Case "typing_ref" | Case "typing_wid" | Case "typing_sel" | Case "typing_msel" | Case "typing_new" | Case "mem_path" | Case "mem_term"]; introv; eauto ].
+      apply (tp_mem_mutind Ptyp Pmem); try unfold Ptyp, Pmem in *; try clear Ptyp Pmem; [Case "typing_var" | Case "typing_ref" | Case "typing_sel" | Case "typing_msel" | Case "typing_new" | Case "mem_path" | Case "mem_term"]; introv; eauto ].
 
 Lemma expansion_unique : forall E T DS DS',
   E |= T ~< DS -> E |= T ~< DS' -> DS = DS'.
@@ -110,8 +105,6 @@ Proof.
     assert (uniq P). apply wf_env_store_uniq with (E:=(G,P)) (G:=G). assumption. reflexivity.
     assert ((T, args) = (T', args0)) as Heq. apply binds_unique with (x:=a) (E:=P); assumption.
     inversion Heq. subst. reflexivity.
-  Case "typing_wid".
-    introv HT' IH Hsub Hwid. inversion Hwid. reflexivity.
   Case "typing_sel".
     introv Hlv Hmem IHmem Hwfe. intros T''. introv Hsel. inversion Hsel. subst.
     assert (decl_tm T' = decl_tm T'') as Heq. apply IHmem. assumption.
@@ -145,8 +138,6 @@ Proof.
   Case "ref".
     inversion Hes as [Hwf_store Hcond].
     apply (proj1 (Hcond a T args H0)).
-  Case "wid".
-    auto.
   Case "sel".
     assumption.
   Case "msel".
@@ -194,8 +185,6 @@ Proof.
     assumption.
   Case "red_sel_tgt".
     inversion Ht. inversion H3; subst; apply IHHr with (T:=T0); assumption.
-  Case "red_wid_tgt".
-    inversion Ht. subst. apply IHHr with (T:=T'); assumption.
   Case "red_new".
     (* TODO *) skip.
 Qed.
@@ -244,46 +233,6 @@ Lemma preserved_mem : forall G s t s' t' e l d,
   (G,s) |= e ~mem~ l ~: d ->
   (G,s') |= e ~mem~ l ~: d.
 Proof. (* TODO *) Admitted.
-
-Lemma preserved_same_tp : forall G s t s' t' T T',
-  (G,s) |= ok ->
-  G |== s ->
-  s |~ t ~~> t' ~| s' ->
-  (G,s) |= T' ~=: T ->
-  (G,s') |= T' ~=: T.
-Proof.
-  introv Hok Hc Hr Hs. inversion Hs. subst.
-  apply same_tp_any; apply preserved_subtype with (s:=s) (t:=t) (t':=t'); assumption.
-Qed.
-
-Lemma membership_value_same_tp : forall E t1 T1 t1' T1' l T,
-  E |= t1 ~: T1 ->
-  E |= t1' ~: T1' ->
-  E |= T1' ~=: T1 ->
-  E |= t1 ~mem~ l ~: decl_tm T ->
-  exists T', E |= t1' ~mem~ l ~: decl_tm T' /\ E |= T' ~=: T.
-Proof. (* TODO *) Admitted.
-
-Lemma membership_method_same_tp : forall E t1 T1 t1' T1' l S T,
-  E |= t1 ~: T1 ->
-  E |= t1' ~: T1' ->
-  E |= T1' ~=: T1 ->
-  E |= t1 ~mem~ l ~: decl_mt S T ->
-  exists S' T', E |= t1' ~mem~ l ~: decl_mt S' T' /\ E |= S ~=: S' /\ E |= T' ~=: T.
-Proof. (* TODO *) Admitted.
-
-Lemma same_tp_transitive : forall TMid E T T',
-  E |= T ~=: TMid -> E |= TMid ~=: T' -> E |= T ~=: T'.
-Proof.
-  introv HT HT'. inversion HT. inversion HT'. subst.
-  apply same_tp_any; apply sub_tp_transitive with (TMid:=TMid); assumption.
-Qed.
-
-Lemma same_tp_reflexive : forall E T T',
-  E |= T ~=: T' -> E |= T' ~=: T.
-Proof.
-  introv H. inversion H. subst. apply same_tp_any; assumption.
-Qed.
 
 Lemma tp_two_ways : forall L x G s Tc a args t T,
   (G,s) |= ok -> G |== s ->
@@ -344,8 +293,6 @@ Proof.
     skip.
   Case "msel".
     skip.
-  Case "wid".
-    skip.
 Qed.
 
 Lemma binds_exists_before_open : forall l v args a,
@@ -356,11 +303,6 @@ Proof. (* TODO *) Admitted.
 Lemma nil_to_ctx_mem : forall G s t l d,
   (G,s) |= ok -> G |== s -> (nil,s) |= t ~mem~ l ~: d ->
   (G,s) |= t ~mem~ l ~: d.
-Proof. (* TODO *) Admitted.
-
-Lemma value_to_ref_sub_tp : forall E v a Tv Ta,
-  value_to_ref v (ref a) -> E |= v ~: Tv -> E |= ref a ~: Ta ->
-  E |= Ta ~<: Tv.
 Proof. (* TODO *) Admitted.
 
 Lemma sub_tp_decl_tm : forall L x E S T DS DT l dS dT vT S' T',
@@ -374,6 +316,53 @@ Lemma sub_tp_decl_tm : forall L x E S T DS DT l dS dT vT S' T',
   dT ^d^ vT = decl_tm T' ->
   dS ^d^ x = decl_tm S' ->
   ctx_bind E x S |= S' ~<: T'.
+Proof. (* TODO *) Admitted.
+
+(*
+
+Lemma preserved_same_tp : forall G s t s' t' T T',
+  (G,s) |= ok ->
+  G |== s ->
+  s |~ t ~~> t' ~| s' ->
+  (G,s) |= T' ~=: T ->
+  (G,s') |= T' ~=: T.
+Proof.
+  introv Hok Hc Hr Hs. inversion Hs. subst.
+  apply same_tp_any; apply preserved_subtype with (s:=s) (t:=t) (t':=t'); assumption.
+Qed.
+
+Lemma membership_value_same_tp : forall E t1 T1 t1' T1' l T,
+  E |= t1 ~: T1 ->
+  E |= t1' ~: T1' ->
+  E |= T1' ~=: T1 ->
+  E |= t1 ~mem~ l ~: decl_tm T ->
+  exists T', E |= t1' ~mem~ l ~: decl_tm T' /\ E |= T' ~=: T.
+Proof. (* TODO *) Admitted.
+
+Lemma membership_method_same_tp : forall E t1 T1 t1' T1' l S T,
+  E |= t1 ~: T1 ->
+  E |= t1' ~: T1' ->
+  E |= T1' ~=: T1 ->
+  E |= t1 ~mem~ l ~: decl_mt S T ->
+  exists S' T', E |= t1' ~mem~ l ~: decl_mt S' T' /\ E |= S ~=: S' /\ E |= T' ~=: T.
+Proof. (* TODO *) Admitted.
+
+Lemma same_tp_transitive : forall TMid E T T',
+  E |= T ~=: TMid -> E |= TMid ~=: T' -> E |= T ~=: T'.
+Proof.
+  introv HT HT'. inversion HT. inversion HT'. subst.
+  apply same_tp_any; apply sub_tp_transitive with (TMid:=TMid); assumption.
+Qed.
+
+Lemma same_tp_reflexive : forall E T T',
+  E |= T ~=: T' -> E |= T' ~=: T.
+Proof.
+  introv H. inversion H. subst. apply same_tp_any; assumption.
+Qed.
+
+Lemma value_to_ref_sub_tp : forall E v a Tv Ta,
+  E |= v ~: Tv -> E |= ref a ~: Ta ->
+  E |= Ta ~<: Tv.
 Proof. (* TODO *) Admitted.
 
 Definition preservation := forall G s t T s' t',
@@ -623,3 +612,5 @@ Proof. unfold preservation.
     assert (wfe_tp (G,s) T) as Hwfe. apply tp_regular with (t:=new Tc ags t); assumption.
     apply same_tp_any; apply sub_tp_refl; try assumption; apply preserved_wfe with (s:=s) (t:=new Tc ags t) (t':=t ^^ ref a); assumption.
 Qed.
+
+*)

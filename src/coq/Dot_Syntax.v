@@ -24,7 +24,6 @@ with tm : Set :=                              (* Term *)                 (* t *)
   | new  : tp -> list (label * tm) -> tm -> tm  (* new instance *)         (* val x = new c; t *)
   | sel  : tm -> label -> tm                    (* selection *)            (* t.l *)
   | msel : tm -> label -> tm -> tm              (* method invocation *)    (* t m t *)
-  | wid  : tm -> tp -> tm                       (* widening *)             (* t : T *)
 
 with decl : Set :=                            (* Declaration *)          (* D *)
   | decl_tp : tp -> tp -> decl                  (* type declaration *)     (* L : S .. U *)
@@ -36,7 +35,6 @@ Inductive path : tm -> Prop :=
   | path_bvar : forall a, path (bvar a)
   | path_fvar : forall a, path (fvar a)
   | path_ref  : forall a, path (ref a)
-  | path_wid  : forall p T, path p -> path (wid p T)
   | path_sel  : forall p l, path p -> value_label l -> path (sel p l)
 .
 

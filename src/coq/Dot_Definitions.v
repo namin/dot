@@ -107,7 +107,6 @@ Fixpoint open_rec_tm (k : nat) (u : tm) (e : tm) {struct e} : tm :=
     | new T args b => new (open_rec_tp k u T) (List.map (fun a => match a with (l, a) => (l, open_rec_tm (k+(match l with | lm _ => 2 | _ => 1 end)) u a) end) args) (open_rec_tm (k+1) u b)
     | sel e1 l => sel (open_rec_tm k u e1) l
     | msel e1 m e2 => msel (open_rec_tm k u e1) m (open_rec_tm k u e2)
-    | wid e1 T => wid (open_rec_tm k u e1) (open_rec_tp k u T)
   end
 with open_rec_tp (k : nat) (u : tm) (t : tp) {struct t} : tp :=
   match t with
@@ -212,10 +211,6 @@ with lc_tm : tm -> Prop :=
       lc_tm a ->
       lc_tm b ->
       lc_tm (msel a m b)
-  | lc_wid : forall a t,
-      lc_tm a ->
-      lc_tp t ->
-      lc_tm (wid a t)
 
 with lc_decls_lst : decls_lst -> Prop :=
   | lc_decl_nil :
@@ -236,15 +231,11 @@ with lc_args : args -> Prop :=
 Inductive value : tm -> Prop := 
   | value_ref : forall l,
       value (ref l)
-  | value_wid : forall v t,
-      value v ->
-      value (wid v t)
 .
 
 Inductive syn_value : tm -> Prop :=
   | syn_value_value : forall v, value v -> syn_value v
   | syn_value_fvar  : forall v, syn_value (fvar v)
-  | syn_value_wid   : forall v t, syn_value v -> syn_value (wid v t)
 .
 
 (* Open up decl with tm if it's a path, otherwise ensure decl is locally closed. *)
@@ -321,10 +312,6 @@ with vars_ok_tm : env -> tm -> Prop :=
       vars_ok_tm E a ->
       vars_ok_tm E b ->
       vars_ok_tm E (msel a m b)
-  | vars_ok_wid : forall E a t,
-      vars_ok_tm E a ->
-      vars_ok_tp E t ->
-      vars_ok_tm E (wid a t)
 
 with vars_ok_decls_lst : env -> decls_lst -> Prop :=
   | vars_ok_decl_nil : forall E,
@@ -363,7 +350,6 @@ Fixpoint fv_tm (e : tm) {struct e} : vars :=
     | new T args b => (fv_tp T) \u  (fold_left (fun (ats: vars) (l_a :  label * tm) => match l_a with (l, t) => ats \u (fv_tm t) end) args {})
     | sel e1 l => fv_tm e1
     | msel e1 m e2 => (fv_tm e1) \u (fv_tm e2)
-    | wid a t => (fv_tm a) \u (fv_tp t)
   end
 
 with fv_tp (t : tp) {struct t} : vars :=
@@ -399,7 +385,6 @@ Fixpoint subst_tm (z : atom) (u : tm) (e : tm) {struct e} : tm :=
     | new T args b => new (subst_tp z u T) (lbl.map (subst_tm z u) args) (subst_tm z u b)
     | sel e1 l => sel (subst_tm z u e1) l
     | msel e1 m e2 => msel (subst_tm z u e1) m (subst_tm z u e2)
-    | wid a t => wid (subst_tm z u a) (subst_tp z u t)
   end
 
 with subst_tp (z : atom) (u : tm) (t : tp) {struct t} : tp :=
