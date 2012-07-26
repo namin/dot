@@ -1,0 +1,8 @@
+%
+% Frame for paste-in figures or tables
+\def\mpicplace#1#2{%#1 = width   #2 = height
+\vbox{\@tempdima=#2\advance\@tempdima by-2\fboxrule
+\hrule\@height \fboxrule\@width #1
+\hbox to #1{\vrule\@width \fboxrule\@height\@tempdima\hfil
+\vrule\@width \fboxrule\@height\@tempdima}\hrule\@height
+\fboxrule\@width #1}}
