@@ -20,6 +20,7 @@ FILES = \
         Dot_Examples \
         Dot_Transitivity \
         Dot_Preservation \
+	Dot_Safety
 
 VFILES   = $(foreach i, $(FILES), $(i).v)
 VOFILES  = $(foreach i, $(FILES), $(i).vo)
