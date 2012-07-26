@@ -314,6 +314,8 @@
 \newcommand{\abs}[3]{\lambda #1\!:\!#2.#3}
 % Application
 \newcommand{\app}[2]{#1\;#2}
+% Method Application
+\newcommand{\mapp}[3]{#1.#2(#3)}
 % Substitution
 \newcommand{\subst}[3]{[#1/#2]#3}
 % Object creation
@@ -322,6 +324,7 @@
 % Field declaration
 \newcommand{\Ldecl}[3]{#1 : #2..#3}%{#1 \operatorname{>:} #2 \operatorname{<:} #3}
 \newcommand{\ldecl}[2]{#1 : #2}
+\newcommand{\mdecl}[3]{#1 : #2 \tfun #3}
 % Top and Bottom
 \newcommand{\Top}{\top}%{\textbf{Top}}
 \newcommand{\Bot}{\bot}%\textbf{Bot}}
@@ -340,8 +343,8 @@
 \pagestyle{plain}
 \mainmatter
 
-\title{The original DOT Calculus}
-\author{Martin Odersky, Geoffrey Alan Washburn}
+\title{The DOT Calculus}
+\author{Nada Amin, Martin Odersky, Adriaan Moors}
 \institute{EPFL}
 
 \maketitle
@@ -357,22 +360,22 @@
 %\renewcommand{\baselinestretch}{0.95}
 {\bf Syntax}\medskip
     
-$\ba{l@{\hspace{2mm}}|@{\hspace{2mm}}l}
+$\ba{l@{\hspace{0.2mm}}|@{\hspace{0.2mm}}l}
 \ba[t]{l@{\hspace{10mm}}l}
 x, y, z    & \lindent{\mbox{Variable}} \\
-l          & \lindent{\mbox{Value label}}\\[0.2em]
+l          & \lindent{\mbox{Value label}}\\
+m          & \lindent{\mbox{Method label}}\\[0.2em]
 v ::=      & \lindent{\mbox{Value}} \\
-\gap x     & \mbox{variable} \\
-\gap \abs x T t & \mbox{function} \\[0.2em]
+\gap x     & \mbox{variable} \\[0.2em]
 t ::=      & \lindent{\mbox{Term}} \\
 \gap v     & \mbox{value} \\
-\gap \app t t  & \mbox{application} \\
 \gap \new x c t & \mbox{new instance} \\
-\gap t.l  & \mbox{selection} \\[0.2em]
+\gap t.l  & \mbox{field selection} \\
+\gap \mapp t m t  & \mbox{method invocation} \\[0.2em]
 p ::= & \lindent \mbox{Path} \\
 \gap x & \mbox{variable} \\
 \gap p.l & \mbox{selection} \\
-c ::= T_c \ldefs{\seq{l = v}} & \lindent{\mbox{Constructor}} \\[0.2em]
+c ::= T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}} & \lindent{\mbox{Constructor}} \\[0.2em]
 \Gamma ::= \seq{x \typ T} & \lindent\mbox{Environment} \\
 s      ::= \seq{x \mapsto c} & \lindent\mbox{Store} \\
 \ea
@@ -381,14 +384,9 @@ s      ::= \seq{x \mapsto c} & \lindent\mbox{Store} \\
 L ::=      & \lindent{\mbox{Type label}} \\
 \gap L_c   & \mbox{class label} \\
 \gap L_a   & \mbox{abstract type label} \\[0.2em]
-S,T,U,V  ::= & \lindent\mbox{Type}\\
+S,T,U,V,W ::= & \lindent\mbox{Type}\\
 \gap p.L & \mbox{type selection} \\
 \gap T \refine z {\seq D} & \mbox{refinement} \\
-\ifdep
-  \gap \dfun x T T & \mbox{dependent function type} \\
-\else
-  \gap T \tfun T & \mbox{function type} \\
-\fi
 \gap T \tand T & \mbox{intersection type} \\
 \gap T \tor T & \mbox{union type} \\
 \gap \Top  & \mbox{top type} \\
@@ -397,7 +395,8 @@ S_c, T_c ::= & \lindent \mbox{Concrete type} \\
 \multicolumn{2}{l}{\gap p.L_c ~|~ T_c \refine z {\seq D} ~|~ T_c \wedge T_c  ~|~ \Top} \\[0.2em]
 D ::= & \lindent\mbox{Declaration} \\
 \gap \Ldecl L S U & \mbox{type declaration} \\
-\gap \ldecl l T   & \mbox{value declaration}
+\gap \ldecl l T   & \mbox{value declaration} \\
+\gap \mdecl m S U & \mbox{method declaration}
 \ea
 \ea$
 \medskip
@@ -406,12 +405,13 @@ D ::= & \lindent\mbox{Declaration} \\
 
 \begin{multicols}{2}[\judgement{Reduction}{\fbox{$\reduction t s {t'} {s'}$}}]
 
-\infax[$\beta_v$]
-{\reduction {(\app{\abs x T t}){v}} s {\subst v x t} s}
+\infrule[\textsc{msel}]
+{y \mapsto T_c \ldefs{\seq{l = v'}\;\seq{m(x)=t}} \in s}
+{\reduction {\mapp y {m_i} v} s {\subst v {x_i} {t_i}} s}
 
 \infrule[\textsc{sel}]
-{x \mapsto T_c \ldefs{\seq{l = v}} \in s}
-{\reduction {x.l_i} s {v_i} s}
+{y \mapsto T_c \ldefs{\seq{l = v}\;\seq{m(x)=t}} \in s}
+{\reduction {y.l_i} s {v_i} s}
 
 \infax[\textsc{new}]
 {\reduction {\new x c t} s t {s \envplus{x \mapsto c}}}
@@ -421,7 +421,7 @@ D ::= & \lindent\mbox{Declaration} \\
 {\reduction {e[t]} s {e[t']} s'}
 \end{multicols}
 
-\hfill {\bf where} evaluation context $\gap e ::= [\,] ~|~ \app e t ~|~ \app v e ~|~ e.l\hspace{2cm}$
+\hfill {\bf where} evaluation context $\gap e ::= [\,] ~|~ \mapp e m t ~|~ \mapp v m e ~|~ e.l\hspace{2cm}$
 
 \linesep
 
@@ -431,41 +431,26 @@ D ::= & \lindent\mbox{Declaration} \\
 {x \typ T \in \Gamma}
 {\Gamma \ts x \typ T}
 
-\ifdep
-  \infrule[\textsc{app-term}]
-  {x \not\in \fn(T) \\
-  \Gamma \ts t \typ \dfun x {T'} T \spcomma t' \typ T'}
-  {\Gamma \ts \app t {t'} \typ T}
-
-  \infrule[\textsc{app-path}]
-  {\Gamma \ts t \typ \dfun x {T'} T \spcomma p \typ T'}
-  {\Gamma \ts \app t p \typ \subst p x T}
-
-  \infrule[\textsc{abs}]
-  {\Gamma \envplus{x \typ S} \ts t: T \\
-   \Gamma \ts S \wf \spcomma \dfun x S T \sub T' \spcomma T' \wf}
-  {\Gamma \ts \abs x S t \typ T'}
-\else
-  \infrule[\textsc{app}]
-  {\Gamma \ts t \typ  S \tfun T \spcomma t' \typ T' \spcomma T' \sub S}
-  {\Gamma \ts \app t {t'} \typ T}
-
-  \infrule[\textsc{abs}]
-  {x \notin \fn(T) \andalso \Gamma \ts S \wf \\
-  \Gamma \envplus{x \typ S} \ts t: T}
-  {\Gamma \ts \abs x S t \typ S \tfun T}
-\fi
+\infrule[\textsc{msel}]
+{\Gamma \ts t \ni m \typ {S \tfun T} \\
+ \Gamma \ts t' \typ T' \spcomma T' \sub S}
+{\Gamma \ts \mapp t m {t'} \typ T}
 
 \infrule[\textsc{sel}]
 {\Gamma \ts t \ni l \typ T'}
 {\Gamma \ts t.l \typ T'}
 
 \infrule[\textsc{new}]
-{x \notin \fn(T') \\
-\Gamma \ts T_c \wf \spcomma T_c \expand_x \seq{\Ldecl L S U},\seq{\ldecl l V} \\
- \Gamma \envplus{x: T_c} \ts \seq{S \sub U} \spcomma \seq{v \typ V'}
- \spcomma \seq{V' \sub V} \spcomma t \typ T'}
-{\Gamma \ts \new x {T_c \ldefs{\seq{l = v}}} t \typ T'}
+{
+c = {T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}}\\
+y \notin \fn(T') \\
+\Gamma \ts T_c \wf \\
+\Gamma \ts T_c \expand_y \seq{\Ldecl L S U},\seq{\ldecl l V},\seq{\mdecl m T W} \\
+\Gamma \envplus{y: T_c} \ts \seq{S \sub U}\\
+\Gamma \envplus{y: T_c} \ts \seq{v \typ V'} \spcomma \seq{V' \sub V}\\
+\seq{\Gamma \envplus{y: T_c} \envplus{x_i: T_i} \ts t_i \typ W_i}\\
+\Gamma \envplus{y: T_c} \ts  {t'} \typ T'}
+{\Gamma \ts \new y c {t'} \typ T'}
 
 %\infrule[\textsc{sub}]
 %{\Gamma \ts t: T \spcomma T \sub T'}
@@ -662,6 +647,10 @@ D ::= & \lindent\mbox{Declaration} \\
       {\Gamma \ts T \wf}
       {\Gamma \ts \ldecl l T \wf}
 
+      \infrule[\textsc{mdecl-wf}]
+      {\Gamma \ts S \wf \spcomma U \wf}
+      {\Gamma \ts \mdecl m S U \wf}
+
     \end{multicols}
   }
 
@@ -679,22 +668,29 @@ D ::= & \lindent\mbox{Declaration} \\
         \Ldecl L {(S \tor S')} {(U \tand U')} & \mbox{if~} (\Ldecl L S U) \in \seq{D} \;\mbox{and}\; (\Ldecl L {S'} {U'}) \in \seq{D'} \\
         &=& D(L) & \mbox{if~} L \notin \dom(\seq{D'}) \\
         &=& D'(L) & \mbox{if~} L \notin \dom(\seq{D}) \\
+      (D \tand D')(m) &=&
+        \mdecl m {(S \tor S')} {(U \tand U')} & \mbox{if~} (\mdecl m S U) \in \seq{D} \;\mbox{and}\; (\mdecl m {S'} {U'}) \in \seq{D'} \\
+        &=& D(m) & \mbox{if~} m \notin \dom(\seq{D'}) \\
+        &=& D'(m) & \mbox{if~} m \notin \dom(\seq{D}) \\
       (D \tand D')(l) &=&
         \ldecl l {T \tand T'} & \mbox{if~} (\ldecl l T) \in \seq{D} \;\mbox{and}\; (\ldecl l {T'}) \in \seq{D'} \\
         &=& D(l) & \mbox{if~} l \notin \dom(\seq{D'}) \\
         &=& D'(l) & \mbox{if~} l \notin \dom(\seq{D}) \\[0.5em]
       (D \tor D')(L) &=&
         \Ldecl L {(S \tand S')} {(U \tor U')} & \mbox{if~} (\Ldecl L S U) \in \seq{D} \;\mbox{and}\; (\Ldecl L {S'} {U'}) \in \seq{D'} \\
+      (D \tor D')(m) &=&
+        \mdecl m {(S \tand S')} {(U \tor U')} & \mbox{if~} (\mdecl m S U) \in \seq{D} \;\mbox{and}\; (\mdecl m {S'} {U'}) \in \seq{D'} \\
       (D \tor D')(l) &=&
         \ldecl l {T \tor T'} & \mbox{if~} (\ldecl l T) \in \seq{D} \;\mbox{and}\; (\ldecl l {T'}) \in \seq{D'} 
     \eda
 
 Sets of declarations form a lattice with the given meet $\wedge$ and
-join $\vee$, the empty set of declatations as the top element, and
-the bottom element $\seq{D_\Bot}$, Here $\seq{D_\Bot}$ is the set of
-declarations that contains for every term label $l$ the
-declaration $\ldecl l \Bot$ and for every type label $L$ the
-declaration $\Ldecl L \Top \Bot$. 
+join $\vee$, the empty set of declatations as the top element, and the
+bottom element $\seq{D_\Bot}$, Here $\seq{D_\Bot}$ is the set of
+declarations that contains for every term label $l$ the declaration
+$\ldecl l \Bot$, for every type label $L$ the declaration $\Ldecl L
+\Top \Bot$ and for every method label $m$ the declaration $\mdecl m
+\Top \Bot$.
 }
 \caption{The DOT Calculus : Declaration Lattice}\label{dot-decl}
 \end{figure}
