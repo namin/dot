@@ -587,6 +587,10 @@ y \notin \fn(T') \\
             {\Gamma \ts T \sub T'}
             {\Gamma \ts (\ldecl l T) \sub (\ldecl l {T'})}
 
+    \infrule[\textsc{mdecl-$\sub$}]
+            {\Gamma \ts S' \sub S \spcomma T \sub T'}
+            {\Gamma \ts (\mdecl m S T) \sub (\mdecl m {S'} {T'})}
+
     \end{multicols}
   }
 \caption{The DOT Calculus : Subtyping and Declaration Subsumption}\label{dot-sub}
