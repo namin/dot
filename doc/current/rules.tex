@@ -448,7 +448,7 @@ y \notin \fn(T') \\
 \Gamma \ts T_c \expand_y \seq{\Ldecl L S U},\seq{\ldecl l V},\seq{\mdecl m T W} \\
 \Gamma \envplus{y: T_c} \ts \seq{S \sub U}\\
 \Gamma \envplus{y: T_c} \ts \seq{v \typ V'} \spcomma \seq{V' \sub V}\\
-\seq{\Gamma \envplus{y: T_c} \envplus{x_i: T_i} \ts t_i \typ W_i}\\
+\seq{\Gamma \envplus{y: T_c} \envplus{x_i: T_i} \ts t_i \typ {W_i}' \spcomma {W_i}' \sub {W_i}}\\
 \Gamma \envplus{y: T_c} \ts  {t'} \typ T'}
 {\Gamma \ts \new y c {t'} \typ T'}
 
@@ -491,9 +491,6 @@ y \notin \fn(T') \\
 
       \infax[\textsc{$\Top$-$\expand$}]
       {\Gamma \ts \Top \expand_z \{\}}
-
-      \infax[\textsc{$\tfun$-$\expand$}]
-      {\Gamma \ts S \tfun T  \expand_z \{\}}
 
       \infrule[\textsc{tsel-$\expand$}]
       {\Gamma \ts p \ni \Ldecl L S U \spcomma U \expand_z \seq D}
@@ -540,20 +537,14 @@ y \notin \fn(T') \\
       {\Gamma \ts T \sub T_i}
       {\Gamma \ts T \sub T_1 \tor T_2}
       
-      \infax[\textsc{$\sub$-$\Top$}]
-      {\Gamma \ts T \sub \Top}
-      
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\ifdep
-      \infrule[\textsc{$\sub$-$\Rightarrow$}]
-      {\Gamma \ts T \sub S \\ \Gamma \envplus {x: S} \ts S' \sub T'}
-      {\Gamma \ts \dfun x S {S'} \sub \dfun x T {T'}}
-\else
-      \infrule[\textsc{$\sub$-$\tfun$}]
-      {\Gamma \ts T \sub S \spcomma S' \sub T'}
-      {\Gamma \ts S \tfun S' \sub T \tfun T'}
-\fi
+      \infax[\textsc{$\sub$-$\Top$}]
+      {\Gamma \ts T \sub \Top}
+
+      \infax[\textsc{$\Bot$-$\sub$}]
+      {\Gamma \ts \Bot \sub T}
+
       \infrule[\textsc{rfn-$\sub$}]
       {\Gamma \ts T \sub T'}
       {\Gamma \ts T \refine z {\seq D} \sub T'}
@@ -569,9 +560,6 @@ y \notin \fn(T') \\
       \infrule[\textsc{$\tor$-$\sub$}]
       {\Gamma \ts T_1 \sub T \spcomma T_2 \sub T}
       {\Gamma \ts T_1 \tor T_2 \sub T}
-
-      \infax[\textsc{$\Bot$-$\sub$}]
-      {\Gamma \ts \Bot \sub T}
 
       \end{multicols}
 
@@ -613,20 +601,14 @@ y \notin \fn(T') \\
       {\Gamma \ts T \wf \spcomma T' \wf}
       {\Gamma \ts T \tand T' \wf}
 
+      %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      \infax[\textsc{$\Top$-wf}]
+      {\Gamma \ts \Top \wf}
+
       \infax[\textsc{$\Bot$-wf}]
       {\Gamma \ts \Bot \wf}
 
-      %%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\ifdep
-      \infrule[\textsc{$\Rightarrow$-wf}]
-      {\Gamma \ts T \wf \\ \Gamma \envplus{x: T} \ts T' \wf}
-      {\Gamma \ts \dfun x T {T'} \wf}
-\else
-      \infrule[\textsc{$\tfun$-wf}]
-      {\Gamma \ts T \wf \spcomma T' \wf}
-      {\Gamma \ts T \tfun T' \wf}
-\fi
       \infrule[\textsc{tsel-wf$_2$}]
       {\Gamma \ts p \ni \Ldecl L \Bot U}
       {\Gamma \ts p.L \wf}
@@ -635,9 +617,6 @@ y \notin \fn(T') \\
       {\Gamma \ts T \wf \spcomma T' \wf}
       {\Gamma \ts T \tor T' \wf}
 
-      \infax[\textsc{$\Top$-wf}]
-      {\Gamma \ts \Top \wf}
-      
     \end{multicols}
 
     \linesep
