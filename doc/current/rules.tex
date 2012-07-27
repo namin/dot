@@ -448,6 +448,7 @@ y \notin \fn(T') \\
 \Gamma \ts T_c \expand_y \seq{\Ldecl L S U},\seq{\ldecl l V},\seq{\mdecl m T W} \\
 \Gamma \envplus{y: T_c} \ts \seq{S \sub U}\\
 \Gamma \envplus{y: T_c} \ts \seq{v \typ V'} \spcomma \seq{V' \sub V}\\
+\Gamma \envplus{y: T_c} \ts \seq{{T_i} \expand_z D_i}\\
 \seq{\Gamma \envplus{y: T_c} \envplus{x_i: T_i} \ts t_i \typ {W_i}' \spcomma {W_i}' \sub {W_i}}\\
 \Gamma \envplus{y: T_c} \ts  {t'} \typ T'}
 {\Gamma \ts \new y c {t'} \typ T'}
