@@ -10,27 +10,33 @@ Require Import Coq.Classes.Equivalence.
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Logic.Decidable.
 
-
-Inductive in_rel_v (s: store) (ls: list label) : tm -> Prop :=
-| in_rel_v_ref : forall a Tc ags,
-  binds a (Tc, ags) s ->
-  (forall l, In l ls -> exists t, lbl.binds l t ags) ->
-  in_rel_v s ls (ref a)
-.
-
 Inductive red_star : store -> tm -> store -> tm -> Prop :=
-| red_star_step  : forall s t s' t', red s t s' t' -> red_star s t s' t'
-| red_star_refl  : forall s t, red_star s t s t
-| red_star_trans : forall s1 t1 s2 t2 s3 t3,
-  red_star s1 t1 s2 t2 ->
-  red_star s2 t2 s3 t3 ->
-  red_star s1 t1 s3 t3
+| red_star_none : forall s t, red_star s t s t
+| red_star_plus : forall s t s' t' s'' t'',
+  red s t s' t' -> red_star s' t' s'' t'' ->
+  red_star s t s'' t''
 .
+
+Theorem red_star_trans : forall s1 t1 s2 t2 s3 t3,
+  red_star s1 t1 s2 t2 -> red_star s2 t2 s3 t3 ->
+  red_star s1 t1 s3 t3.
+Proof.
+  intros s1 t1 s2 t2 s3 t3 H12 H23. gen H23.
+  induction H12; intros.
+  Case "none".
+    assumption.
+  Case "plus".
+    apply IHred_star in H23.
+    apply red_star_plus with (s':=s') (t':=t'); assumption.
+Qed.
 
 Definition irred (s: store) (t: tm) := ~ (exists s' t', red s t s' t').
 
-Inductive in_rel_t (s: store) (ls: list label) : tm -> Prop :=
-| in_rel_t_any : forall t,
-  (forall s' t', red_star s t s' t' /\ irred s' t' -> in_rel_v s' ls t') ->
-  in_rel_t s ls t
-.
+Definition can_step (s: store) (t: tm) := (exists s' t', red s t s' t').
+
+Definition type_safety := forall t T t' s',
+  (nil,nil) |= t ~: T -> red_star nil t s' t' ->
+  value t' \/ can_step s' t'.
+
+
+
