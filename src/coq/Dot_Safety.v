@@ -38,11 +38,39 @@ Definition type_safety := forall t T t' s',
   (nil,nil) |= t ~: T -> red_star nil t s' t' ->
   value t' \/ can_step s' t'.
 
-Fixpoint rel_x (k: nat) (s: store) (a: loc) (T: tp) (DR: decls): Prop :=
-  match k with
+Fixpoint rel_v (n: nat) (s: store) (t: tm) (T: tp): Prop :=
+  match n, t with
+    | O, ref a => a `in` dom s
+    | S j, ref a => forall Tc ags DT,
+      binds a (Tc, ags) s ->
+      lbl.uniq ags ->
+      rel_x j s a T DT ->
+      (forall l d, decls_binds l d DT ->
+        (method_label l -> exists S U t,
+          d = decl_mt S U /\ lbl.binds l t ags /\
+          (forall y,
+            rel_v j s y S -> rel_e j s (t ^^y) U)) /\
+        (value_label l -> exists V v,
+          d = decl_tm V /\ lbl.binds l v ags /\
+          rel_v j s v V))
+    | _, _ => False
+  end
+
+with rel_e (n: nat) (s: store) (t: tm) (T: tp): Prop :=
+  match n with
+    | O => True
+    | S j =>
+      forall s' t',
+        red_star s t s' t' ->
+        irred s' t' ->
+        rel_v j s' t' T
+  end
+
+with rel_x (n: nat) (s: store) (a: loc) (TR: tp) (DR: decls): Prop :=
+  match n with
     | O => DR = decls_fin nil
     | S j =>
-      match T with
+      match TR with
         | tp_rfn T DS => forall DSP,
           rel_x j s a T DSP ->
           and_decls DSP ((decls_fin DS) ^ds^ (ref a)) DR
@@ -54,10 +82,10 @@ Fixpoint rel_x (k: nat) (s: store) (a: loc) (T: tp) (DR: decls): Prop :=
           rel_x j s a' Tp Dp ->
           decls_binds L (decl_tp S U) Dp ->
           rel_x j s a (U ^tp^ (ref a')) DU ->
-          DR = DU ^ds^ (ref a)
+          DR = (DU ^ds^ (ref a))
         | tp_and T1 T2 => forall DS1 DS2,
           rel_x j s a T1 DS1 ->
-          rel_x j s a T2 DS2 ->
+          rel_x j  s a T2 DS2 ->
           and_decls DS1 DS2 DR
         | tp_or T1 T2 => forall DS1 DS2,
           rel_x j s a T1 DS1 ->
@@ -66,39 +94,76 @@ Fixpoint rel_x (k: nat) (s: store) (a: loc) (T: tp) (DR: decls): Prop :=
         | tp_top => DR = decls_fin nil
         | tp_bot => bot_decls DR
       end
-  end
+  end.
 
-with rel_v (k: nat) (s: store) (ta: tm) (T: tp): Prop :=
-  match k with
-    | O => True
-    | S j => forall a DT Tc ags DTc,
-      ta = ref a ->
-      binds a (Tc, ags) s ->
-      lbl.uniq ags ->
-      rel_x j s a T DT ->
-      (nil,s) |= Tc ~< DTc ->
-      (forall l v, lbl.binds l v ags ->
-        (value_label l \/ method_label l) /\
-        (exists d, decls_binds l d DTc)) /\
-      (forall l d', decls_binds l d' DT ->
-        exists d, decls_binds l d (DTc ^ds^ (ref a)) /\
-          (forall S U, d = decl_tp S U -> True) /\ (* ??? *)
-          (forall S U, d = decl_mt S U -> exists t,
-            lbl.binds l t ags /\ method_label l /\
-            (forall y,
-              rel_v j s y S -> rel_e j s (t ^^ y) U)) /\
-          (forall V, d = decl_tm V -> exists v,
-            lbl.binds l v ags /\ value_label l /\
-            rel_v j s v V))
-  end
+Inductive rel_x_cases : nat -> store -> loc -> tp -> decls -> Prop :=
+| rel_x_0 : forall s a T,
+  rel_x_cases 0 s a T (decls_fin nil)
+| rel_x_rfn : forall k s a T DR DS DSP,
+  rel_x k s a T DSP ->
+  and_decls DSP ((decls_fin DS) ^ds^ (ref a)) DR ->
+  rel_x_cases (k+1) s a (tp_rfn T DS) DR
+| rel_x_tsel : forall k s a p L a' Tp Dp S U DU,
+  path p ->
+  type_label L ->
+  red_star s (ref a) s (ref a') ->
+  rel_v k s a' Tp ->
+  rel_x k s a' Tp Dp ->
+  decls_binds L (decl_tp S U) Dp ->
+  rel_x k s a (U ^tp^ (ref a')) DU ->
+  rel_x_cases (k+1) s a (tp_sel p L) (DU ^ds^ (ref a))
+| rel_x_and : forall k s a DR T1 T2 DS1 DS2,
+  rel_x k s a T1 DS1 ->
+  rel_x k s a T2 DS2 ->
+  and_decls DS1 DS2 DR ->
+  rel_x_cases (k+1) s a (tp_and T1 T2) DR
+| rel_x_or : forall k s a DR T1 T2 DS1 DS2,
+  rel_x k s a T1 DS1 ->
+  rel_x k s a T2 DS2 ->
+  or_decls DS1 DS2 DR ->
+  rel_x_cases (k+1) s a (tp_or T1 T2) DR
+| tp_top : forall k s a,
+  rel_x_cases (k+1) s a tp_top (decls_fin nil)
+| tp_bot : forall k s a DR,
+  bot_decls DR ->
+  rel_x_cases (k+1) s a tp_bot DR
 
-with rel_e (k: nat) (s: store) (t: tm) (T: tp): Prop :=
-  match k with
-    | O => True
-    | S j =>
-      forall s' t',
-        red_star s t s' t' ->
-        irred s' t' ->
-        rel_v j s' t' T
-  end
+with rel_v_cases : nat -> store -> tm -> tp -> Prop :=
+| rel_v_0 : forall s a T,
+  a `in` dom s ->
+  rel_v_cases 0 s (ref a) T
+| rel_v_loc : forall k s a T DT Tc ags,
+  binds a (Tc, ags) s ->
+  lbl.uniq ags ->
+  rel_x k s a T DT ->
+  (forall l d, decls_binds l d DT ->
+    (method_label l -> exists S U t,
+      d = decl_mt S U /\ lbl.binds l t ags /\
+      (forall y,
+        rel_v k s y S -> rel_e k s (t ^^y) U)) /\
+    (value_label l -> exists V v,
+      d = decl_tm V /\ lbl.binds l v ags /\
+      rel_v k s v V)) ->
+  rel_v_cases (k+1) s (ref a) T
+
+with rel_e_cases : nat -> store -> tm -> tp -> Prop :=
+| rel_e_0 : forall s t T,
+  rel_e_cases 0 s t T
+| rel_e_k : forall k s t T s' t',
+  red_star s t s' t' ->
+  irred s' t' ->
+  rel_v k s' t' T ->
+  rel_e_cases (k+1) s t T
 .
+
+Lemma rel_v_def:
+  forall k s t T,
+    rel_v k s t T <-> rel_v_cases k s t T.
+Proof.
+(* TODO *) Admitted.
+
+Lemma rval_decr:
+  forall k1 k2 s t T,
+    rel_v k1 s t T -> k2 <= k1 -> rel_v k2 s t T.
+Proof.
+(* TODO *) Admitted.
