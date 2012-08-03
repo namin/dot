@@ -1,0 +1,82 @@
+%-----------------------------------------------------------------------------
+%
+%               Template for sigplanconf LaTeX Class
+%
+% Name:         sigplanconf-template.tex
+%
+% Purpose:      A template for sigplanconf.cls, which is a LaTeX 2e class
+%               file for SIGPLAN conference proceedings.
+%
+% Guide:        Refer to "Author's Guide to the ACM SIGPLAN Class,"
+%               sigplanconf-guide.pdf
+%
+% Author:       Paul C. Anagnostopoulos
+%               Windfall Software
+%               978 371-2316
+%               paul@windfall.com
+%
+% Created:      15 February 2005
+%
+%-----------------------------------------------------------------------------
+
+
+\documentclass[9pt]{sigplanconf}
+
+% The following \documentclass options may be useful:
+%
+% 10pt          To set in 10-point type instead of 9-point.
+% 11pt          To set in 11-point type instead of 9-point.
+% authoryear    To obtain author/year citation style instead of numeric.
+
+\usepackage{amsmath}
+
+\begin{document}
+
+\conferenceinfo{FOOL '12}{October 22, 2012, Tucson, AZ, USA.} 
+\copyrightyear{2012} 
+\copyrightdata{[to be supplied]} 
+
+\title{Dependent Object Types}
+\subtitle{A foundations for Scala's type system} % TODO: ask
+
+\authorinfo{Nada Amin \and Adriaan Moors \and Martin Odersky}
+           {EPFL}
+           {first.last@epfl.ch}
+
+\maketitle
+
+\begin{abstract}
+We propose a new type-theoretic foundation of Scala and languages like
+it: the Dependent Object Types calculus (DOT). DOT models Scala's
+path-dependent types and abstract type members, as well as its mixture
+of nominal and structural typing through the use of reﬁnement
+types. It makes no attempt to model inheritance or mixing
+composition. The calculus does not model what's currently in Scala: it
+is more normative than descriptive.
+
+We show that DOT and its patched-up variants are not syntactically
+sound, by exhibiting counterexamples to preservation. Nevertheless, we
+prove type-safety of the calculus via step-indexed logical relations.
+\end{abstract}
+
+\category{D.3.3}{Language Constructs and Features}{Abstract data types, Classes and objects, polymorphism}
+\category{D.3.1}{Formal Deﬁnitions and Theory}{Syntax, Semantics}
+\category{F.3.1}{Specifying and Verifying and Reasoning about Programs}{}
+\category{F.3.3}{Studies of Program Constructs}{Object-oriented constructs, type structure}
+\category{F.3.2}{Semantics or Programming Languages}{Operational semantics}
+
+\terms
+Languages, Theory, Verification
+
+\keywords
+calculus, objects, dependent types, step-indexed logical relations
+
+%\section{Introduction}
+%\appendix
+%\section{Appendix Title}
+%\acks
+
+\bibliographystyle{abbrvnat}
+\bibliography{dot}
+
+\end{document}
