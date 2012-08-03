@@ -54,8 +54,8 @@ Inductive rel_g (P: env -> tm -> tp -> Prop) : ctx -> store -> tm -> store -> tm
 .
 
 Program Fixpoint rel_comp (rt: rel_comp_type) (k: nat) (E: env) (t: tm) (T: tp) {measure k}: Prop :=
-  match rt, t with
-    | _, ref a =>
+  match rt, t, k with
+    | _, ref a, _ =>
       wfe_tp E T ->
       forall G s,
         (G,s) = E ->
@@ -73,7 +73,8 @@ Program Fixpoint rel_comp (rt: rel_comp_type) (k: nat) (E: env) (t: tm) (T: tp) 
             (forall V, d ^d^ (ref a) = decl_tm V ->
               exists v, lbl.binds l v ags /\
                 rel_comp rel_comp_v j E v V)))
-    | rel_e, _ =>
+    | rel_e, _, O => True
+    | rel_e, _, _ =>
       forall G s t' s' t'' s'' i j,
         (G,s) = E ->
         0 < k ->
@@ -88,6 +89,36 @@ Program Fixpoint rel_comp (rt: rel_comp_type) (k: nat) (E: env) (t: tm) (T: tp) 
 
 Next Obligation of rel_comp_func.
 omega.
+Defined.
+
+Next Obligation of rel_comp_func.
+split.
+intros. unfold not. intros. inversion H. inversion H1. inversion H3.
+intros. unfold not. intros. inversion H. inversion H0.
+Defined.
+
+Next Obligation of rel_comp_func.
+split.
+intros. unfold not. intros. inversion H. inversion H1. inversion H3.
+intros. unfold not. intros. inversion H. inversion H0.
+Defined.
+
+Next Obligation of rel_comp_func.
+split.
+intros. unfold not. intros. inversion H. inversion H1. inversion H3.
+intros. unfold not. intros. inversion H. inversion H0.
+Defined.
+
+Next Obligation of rel_comp_func.
+split.
+intros. unfold not. intros. inversion H. inversion H1. inversion H3.
+intros. unfold not. intros. inversion H. inversion H0.
+Defined.
+
+Next Obligation of rel_comp_func.
+split.
+intros. unfold not. intros. inversion H. inversion H1. inversion H3.
+intros. unfold not. intros. inversion H. inversion H0.
 Defined.
 
 Inductive rel_v: nat -> env -> tm -> tp -> Prop :=
@@ -114,15 +145,16 @@ Inductive rel_v: nat -> env -> tm -> tp -> Prop :=
 
 Inductive rel_e: nat -> env -> tm -> tp -> Prop :=
 | rel_e_v : forall k E t T, rel_v k E t T -> rel_e k E t T
+| rel_e_0 : forall E t T, rel_e 0 E t T
 | rel_e_e : forall k E t T G s t' s' t'' s'' i j,
   (G,s) = E ->
   0 < k ->
   i < k ->
   j <= k ->
-  rel_g (fun E t T => rel_comp rel_comp_v i E t T) G s t s' t' ->
+  rel_g (fun E t T => rel_v i E t T) G s t s' t' ->
   red_n j s' t' s'' t'' ->
   irred s'' t'' ->
-  rel_comp rel_comp_v (k-j-1) (G,s'') t'' T ->
+  rel_v (k-j-1) (G,s'') t'' T ->
   rel_e k E t T
 .
 
@@ -142,9 +174,20 @@ Theorem rel_fund: forall E t T,
 Proof.
   unfold rel_safe.
   intros E t T H k. induction H.
-  skip.
-  skip.
-  skip.
-  skip.
-  skip.
+  Case "var".
+    destruct k.
+    apply rel_e_0.
+
+    skip.
+  Case "ref".
+   apply rel_e_v. apply rel_v_ref with (G:=G) (s:=P).
+   skip.
+   reflexivity.
+   skip.
+  Case "sel".
+   skip.
+  Case "msel".
+   skip.
+  Case "new".
+   skip.
 Qed.
