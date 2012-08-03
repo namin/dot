@@ -10,160 +10,141 @@ Require Import Coq.Classes.Equivalence.
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Logic.Decidable.
 
-Inductive red_star : store -> tm -> store -> tm -> Prop :=
-| red_star_none : forall s t, red_star s t s t
-| red_star_plus : forall s t s' t' s'' t'',
-  red s t s' t' -> red_star s' t' s'' t'' ->
-  red_star s t s'' t''
+Inductive red_n : nat -> store -> tm -> store -> tm -> Prop :=
+| red_n_zero : forall s t, red_n O s t s t
+| red_n_plus : forall k s t s' t' s'' t'',
+  red s t s' t' -> red_n k s' t' s'' t'' ->
+  red_n (S k) s t s'' t''
 .
 
-Theorem red_star_trans : forall s1 t1 s2 t2 s3 t3,
-  red_star s1 t1 s2 t2 -> red_star s2 t2 s3 t3 ->
-  red_star s1 t1 s3 t3.
+Theorem red_n_trans : forall i j s1 t1 s2 t2 s3 t3,
+  red_n i s1 t1 s2 t2 -> red_n j s2 t2 s3 t3 ->
+  red_n (i+j) s1 t1 s3 t3.
 Proof.
-  intros s1 t1 s2 t2 s3 t3 H12 H23. gen H23.
+  intros i j s1 t1 s2 t2 s3 t3 H12 H23. gen H23.
   induction H12; intros.
-  Case "none".
+  Case "zero".
     assumption.
   Case "plus".
-    apply IHred_star in H23.
-    apply red_star_plus with (s':=s') (t':=t'); assumption.
+    apply IHred_n in H23.
+    apply red_n_plus with (s':=s') (t':=t'); assumption.
 Qed.
 
 Definition irred (s: store) (t: tm) := ~ (exists s' t', red s t s' t').
 
 Definition can_step (s: store) (t: tm) := (exists s' t', red s t s' t').
 
-Definition type_safety := forall t T t' s',
-  (nil,nil) |= t ~: T -> red_star nil t s' t' ->
+Definition type_safety := forall k t T t' s',
+  (nil,nil) |= t ~: T -> red_n k nil t s' t' ->
   value t' \/ can_step s' t'.
 
-Fixpoint rel_v (n: nat) (s: store) (t: tm) (T: tp): Prop :=
-  match n, t with
-    | O, ref a => a `in` dom s
-    | S j, ref a => forall Tc ags DT,
-      binds a (Tc, ags) s ->
-      lbl.uniq ags ->
-      rel_x j s a T DT ->
-      (forall l d, decls_binds l d DT ->
-        (method_label l -> exists S U t,
-          d = decl_mt S U /\ lbl.binds l t ags /\
-          (forall y,
-            rel_v j s y S -> rel_e j s (t ^^y) U)) /\
-        (value_label l -> exists V v,
-          d = decl_tm V /\ lbl.binds l v ags /\
-          rel_v j s v V))
-    | _, _ => False
-  end
-
-with rel_e (n: nat) (s: store) (t: tm) (T: tp): Prop :=
-  match n with
-    | O => True
-    | S j =>
-      forall s' t',
-        red_star s t s' t' ->
-        irred s' t' ->
-        rel_v j s' t' T
-  end
-
-with rel_x (n: nat) (s: store) (a: loc) (TR: tp) (DR: decls): Prop :=
-  match n with
-    | O => DR = decls_fin nil
-    | S j =>
-      match TR with
-        | tp_rfn T DS => forall DSP,
-          rel_x j s a T DSP ->
-          and_decls DSP ((decls_fin DS) ^ds^ (ref a)) DR
-        | tp_sel p L => forall a' Tp Dp S U DU,
-          path p ->
-          type_label L ->
-          red_star s (ref a) s (ref a') ->
-          rel_v j s a' Tp ->
-          rel_x j s a' Tp Dp ->
-          decls_binds L (decl_tp S U) Dp ->
-          rel_x j s a (U ^tp^ (ref a')) DU ->
-          DR = (DU ^ds^ (ref a))
-        | tp_and T1 T2 => forall DS1 DS2,
-          rel_x j s a T1 DS1 ->
-          rel_x j  s a T2 DS2 ->
-          and_decls DS1 DS2 DR
-        | tp_or T1 T2 => forall DS1 DS2,
-          rel_x j s a T1 DS1 ->
-          rel_x j s a T2 DS2 ->
-          or_decls DS1 DS2 DR
-        | tp_top => DR = decls_fin nil
-        | tp_bot => bot_decls DR
-      end
-  end.
-
-Inductive rel_x_cases : nat -> store -> loc -> tp -> decls -> Prop :=
-| rel_x_0 : forall s a T,
-  rel_x_cases 0 s a T (decls_fin nil)
-| rel_x_rfn : forall k s a T DR DS DSP,
-  rel_x k s a T DSP ->
-  and_decls DSP ((decls_fin DS) ^ds^ (ref a)) DR ->
-  rel_x_cases (k+1) s a (tp_rfn T DS) DR
-| rel_x_tsel : forall k s a p L a' Tp Dp S U DU,
-  path p ->
-  type_label L ->
-  red_star s (ref a) s (ref a') ->
-  rel_v k s a' Tp ->
-  rel_x k s a' Tp Dp ->
-  decls_binds L (decl_tp S U) Dp ->
-  rel_x k s a (U ^tp^ (ref a')) DU ->
-  rel_x_cases (k+1) s a (tp_sel p L) (DU ^ds^ (ref a))
-| rel_x_and : forall k s a DR T1 T2 DS1 DS2,
-  rel_x k s a T1 DS1 ->
-  rel_x k s a T2 DS2 ->
-  and_decls DS1 DS2 DR ->
-  rel_x_cases (k+1) s a (tp_and T1 T2) DR
-| rel_x_or : forall k s a DR T1 T2 DS1 DS2,
-  rel_x k s a T1 DS1 ->
-  rel_x k s a T2 DS2 ->
-  or_decls DS1 DS2 DR ->
-  rel_x_cases (k+1) s a (tp_or T1 T2) DR
-| tp_top : forall k s a,
-  rel_x_cases (k+1) s a tp_top (decls_fin nil)
-| tp_bot : forall k s a DR,
-  bot_decls DR ->
-  rel_x_cases (k+1) s a tp_bot DR
-
-with rel_v_cases : nat -> store -> tm -> tp -> Prop :=
-| rel_v_0 : forall s a T,
-  a `in` dom s ->
-  rel_v_cases 0 s (ref a) T
-| rel_v_loc : forall k s a T DT Tc ags,
-  binds a (Tc, ags) s ->
-  lbl.uniq ags ->
-  rel_x k s a T DT ->
-  (forall l d, decls_binds l d DT ->
-    (method_label l -> exists S U t,
-      d = decl_mt S U /\ lbl.binds l t ags /\
-      (forall y,
-        rel_v k s y S -> rel_e k s (t ^^y) U)) /\
-    (value_label l -> exists V v,
-      d = decl_tm V /\ lbl.binds l v ags /\
-      rel_v k s v V)) ->
-  rel_v_cases (k+1) s (ref a) T
-
-with rel_e_cases : nat -> store -> tm -> tp -> Prop :=
-| rel_e_0 : forall s t T,
-  rel_e_cases 0 s t T
-| rel_e_k : forall k s t T s' t',
-  red_star s t s' t' ->
-  irred s' t' ->
-  rel_v k s' t' T ->
-  rel_e_cases (k+1) s t T
+Inductive rel_comp_type: Type :=
+| rel_comp_v
+| rel_comp_e
 .
 
-Lemma rel_v_def:
-  forall k s t T,
-    rel_v k s t T <-> rel_v_cases k s t T.
-Proof.
-(* TODO *) Admitted.
+Inductive rel_g (P: env -> tm -> tp -> Prop) : ctx -> store -> tm -> store -> tm -> Prop :=
+| rel_g_nil: forall s t, rel_g P nil s t s t
+| rel_g_cons: forall x T G s t s' t' a Tc ags s'',
+  a `notin` dom s ->
+  s'' = (a ~ (Tc, ags)) ++ s ->
+  P (G,s'') (ref a) T ->
+  rel_g P G s'' (subst_tm x t (ref a)) s' t' ->
+  rel_g P ((x ~ T) ++ G) s t s' t'
+.
 
-Lemma rval_decr:
-  forall k1 k2 s t T,
-    rel_v k1 s t T -> k2 <= k1 -> rel_v k2 s t T.
+Program Fixpoint rel_comp (rt: rel_comp_type) (k: nat) (E: env) (t: tm) (T: tp) {measure k}: Prop :=
+  match rt, t with
+    | _, ref a =>
+      wfe_tp E T ->
+      forall G s,
+        (G,s) = E ->
+        a `in` dom s /\
+        (forall j Tc ags Ds L,
+          j < k ->
+          binds a (Tc, ags) s ->
+          lbl.uniq ags ->
+          E |= T ~< Ds ->
+          (forall l d, decls_binds l d Ds ->
+            (forall S U, d ^d^ (ref a) = decl_mt S U ->
+              exists m, lbl.binds l m ags /\
+                (forall y, y `notin` L -> rel_comp rel_comp_e j (ctx_bind E y S) (m ^ y) U))
+            /\
+            (forall V, d ^d^ (ref a) = decl_tm V ->
+              exists v, lbl.binds l v ags /\
+                rel_comp rel_comp_v j E v V)))
+    | rel_e, _ =>
+      forall G s t' s' t'' s'' i j,
+        (G,s) = E ->
+        0 < k ->
+        i < k ->
+        j <= k ->
+        rel_g (fun E t T => rel_comp rel_comp_v i E t T) G s t s' t' ->
+        red_n j s' t' s'' t'' ->
+        irred s'' t'' ->
+        rel_comp rel_comp_v (k-j-1) (G,s'') t'' T
+  end
+.
+
+Next Obligation of rel_comp_func.
+omega.
+Defined.
+
+Inductive rel_v: nat -> env -> tm -> tp -> Prop :=
+| rel_v_ref : forall a k E T,
+  wfe_tp E T ->
+  forall G s,
+    (G,s) = E ->
+    a `in` dom s /\
+    (forall j Tc ags Ds L,
+      j < k ->
+      binds a (Tc, ags) s ->
+      lbl.uniq ags ->
+      E |= T ~< Ds ->
+      (forall l d, decls_binds l d Ds ->
+        (forall S U, d ^d^ (ref a) = decl_mt S U ->
+          exists m, lbl.binds l m ags /\
+            (forall y, y `notin` L -> rel_comp rel_comp_e j (ctx_bind E y S) (m ^ y) U))
+        /\
+        (forall V, d ^d^ (ref a) = decl_tm V ->
+          exists v, lbl.binds l v ags /\
+            rel_comp rel_comp_v j E v V))) ->
+    rel_v k E (ref a) T
+.
+
+Inductive rel_e: nat -> env -> tm -> tp -> Prop :=
+| rel_e_v : forall k E t T, rel_v k E t T -> rel_e k E t T
+| rel_e_e : forall k E t T G s t' s' t'' s'' i j,
+  (G,s) = E ->
+  0 < k ->
+  i < k ->
+  j <= k ->
+  rel_g (fun E t T => rel_comp rel_comp_v i E t T) G s t s' t' ->
+  red_n j s' t' s'' t'' ->
+  irred s'' t'' ->
+  rel_comp rel_comp_v (k-j-1) (G,s'') t'' T ->
+  rel_e k E t T
+.
+
+Definition rel_safe (E: env) (t: tm) (T: tp): Prop :=
+  forall k, rel_e k E t T.
+
+Theorem rel_e_comp : forall k E t T,
+  rel_comp rel_comp_e k E t T <-> rel_e k E t T.
+Proof. Admitted.
+
+Theorem rel_v_comp : forall k E t T,
+  rel_comp rel_comp_v k E t T <-> rel_v k E t T.
+Proof. Admitted.
+
+Theorem rel_fund: forall E t T,
+  E |= t ~: T -> rel_safe E t T.
 Proof.
-(* TODO *) Admitted.
+  unfold rel_safe.
+  intros E t T H k. induction H.
+  skip.
+  skip.
+  skip.
+  skip.
+  skip.
+Qed.
