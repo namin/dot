@@ -286,6 +286,7 @@
 \newcommand{\reduces}{\;\rightarrow\;}
 % well-formedness
 \newcommand{\wf}{\;\mbox{\textbf{wf}}}
+\newcommand{\wfe}{\;\mbox{\textbf{wfe}}}
 
 %% Operators
 % Type selection
@@ -448,7 +449,7 @@ y \notin \fn(T') \\
 \Gamma \ts T_c \expand_y \seq{\Ldecl L S U},\seq{\ldecl l V},\seq{\mdecl m T W} \\
 \Gamma \envplus{y: T_c} \ts \seq{S \sub U}\\
 \Gamma \envplus{y: T_c} \ts \seq{v \typ V'} \spcomma \seq{V' \sub V}\\
-\Gamma \envplus{y: T_c} \ts \seq{{T_i} \expand_z \seq{D_i}}\\
+\Gamma \envplus{y: T_c} \ts \seq{{T_i} \wfe}\\
 \seq{\Gamma \envplus{y: T_c} \envplus{x_i: T_i} \ts t_i \typ {W_i}' \spcomma {W_i}' \sub {W_i}}\\
 \Gamma \envplus{y: T_c} \ts  {t'} \typ T'}
 {\Gamma \ts \new y c {t'} \typ T'}
@@ -518,11 +519,13 @@ y \notin \fn(T') \\
 %      {\Gamma \ts S \sub T \spcomma T \sub U}
 %      {\Gamma \ts S \sub U}
 
-      \infax[\textsc{refl}]
+      \infrule[\textsc{refl}]
+      {\Gamma \ts T \wfe}
       {\Gamma \ts T \sub T}
 
       \infrule[\textsc{$\sub$-rfn}]
-      {\Gamma \ts S \sub T \spcomma S \expand_z \seq{D'} \\
+      {\Gamma \ts {T \refine z {\seq D}} \wfe
+       \spcomma S \sub T \spcomma S \expand_z \seq{D'} \\
        \Gamma \envplus{z: S} \ts \seq{D' \sub D}}
       {\Gamma \ts S \sub T \refine z {\seq D}}
 
@@ -534,33 +537,44 @@ y \notin \fn(T') \\
       {\Gamma \ts T \sub T_1 \spcomma T \sub T_2}
       {\Gamma \ts T \sub T_1 \tand T_2}
 
-      \infrule[\textsc{$\sub$-$\tor$}]
-      {\Gamma \ts T \sub T_i}
+      \infrule[\textsc{$\sub$-$\tor_1$}]
+      {\Gamma \ts T_2 \wfe \spcomma T \sub T_1}
+      {\Gamma \ts T \sub T_1 \tor T_2}
+
+      \infrule[\textsc{$\sub$-$\tor_2$}]
+      {\Gamma \ts T_1 \wfe \spcomma T \sub T_2}
       {\Gamma \ts T \sub T_1 \tor T_2}
       
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-      \infax[\textsc{$\sub$-$\Top$}]
+      \infrule[\textsc{$\sub$-$\Top$}]
+      {\Gamma \ts T \wfe}
       {\Gamma \ts T \sub \Top}
 
-      \infax[\textsc{$\Bot$-$\sub$}]
+      \infrule[\textsc{$\Bot$-$\sub$}]
+      {\Gamma \ts T \wfe}
       {\Gamma \ts \Bot \sub T}
 
       \infrule[\textsc{rfn-$\sub$}]
-      {\Gamma \ts T \sub T'}
+      {\Gamma \ts {T \refine z {\seq D}} \wfe
+       \spcomma T \sub T'}
       {\Gamma \ts T \refine z {\seq D} \sub T'}
 
       \infrule[\textsc{tsel-$\sub$}]
       {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma U \sub U'}
       {\Gamma \ts p.L \sub U'}
 
-      \infrule[\textsc{$\tand$-$\sub$}]
-      {\Gamma \ts T_i \sub T}
-      {\Gamma \ts T_1 \tand T_2 \sub T}
-
       \infrule[\textsc{$\tor$-$\sub$}]
       {\Gamma \ts T_1 \sub T \spcomma T_2 \sub T}
       {\Gamma \ts T_1 \tor T_2 \sub T}
+
+      \infrule[\textsc{$\tand_1$-$\sub$}]
+      {\Gamma \ts T_2 \wfe \spcomma T_1 \sub T}
+      {\Gamma \ts T_1 \tand T_2 \sub T}
+
+      \infrule[\textsc{$\tand_2$-$\sub$}]
+      {\Gamma \ts T_1 \wfe \spcomma T_2 \sub T}
+      {\Gamma \ts T_1 \tand T_2 \sub T}
 
       \end{multicols}
 
@@ -635,6 +649,14 @@ y \notin \fn(T') \\
       {\Gamma \ts S \wf \spcomma U \wf}
       {\Gamma \ts \mdecl m S U \wf}
 
+    \end{multicols}
+
+    \linesep
+
+    \begin{multicols}{2}[\judgement{Well-formed and expanding types}{\fbox{$\Gamma \ts T \wfe$}}]
+      \infrule[\textsc{wfe}]
+      {\Gamma \ts T \wf \spcomma T \expand_z \seq{D}}
+      {\Gamma \ts T \wfe}
     \end{multicols}
   }
 
