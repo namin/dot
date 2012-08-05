@@ -1008,7 +1008,7 @@ method. We will freely use the following sugar in the remaining of
 this paper. Note that the variable $z$ must be fresh.
 \begin{align*}
 \arrow S T &\iff {\Top \refine z {\mdecl {\mi{apply}} S T}}\\
-\fun x S T t &\iff \new z {\arrow S T} \ldefs{\mi{apply}(x) = t}\\
+\fun x S T t &\iff \new z {{\arrow S T}\ldefs{\mi{apply}(x) = t}} z\\
 \app f x &\iff \mapp f {\mi{apply}} x\\
 \cast T t&\iff \app {\fun x T T x} t
 \end{align*}
