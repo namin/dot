@@ -387,7 +387,7 @@
 We propose a new type-theoretic foundation of Scala and languages like
 it: the Dependent Object Types calculus (DOT). DOT models Scala's
 path-dependent types and abstract type members, as well as its mixture
-of nominal and structural typing through the use of reﬁnement
+of nominal and structural typing through the use of refinement
 types. It makes no attempt to model inheritance or mixing
 composition. The calculus does not model what's currently in Scala: it
 is more normative than descriptive.
@@ -398,7 +398,7 @@ prove type-safety of the calculus via step-indexed logical relations.
 \end{abstract}
 
 \category{D.3.3}{Language Constructs and Features}{Abstract data types, Classes and objects, polymorphism}
-\category{D.3.1}{Formal Deﬁnitions and Theory}{Syntax, Semantics}
+\category{D.3.1}{Formal Definitions and Theory}{Syntax, Semantics}
 \category{F.3.1}{Specifying and Verifying and Reasoning about Programs}{}
 \category{F.3.3}{Studies of Program Constructs}{Object-oriented constructs, type structure}
 \category{F.3.2}{Semantics or Programming Languages}{Operational semantics}
@@ -629,7 +629,7 @@ Two subclasses of terms are values $v$, which consist of just
 variables, and paths $v$ which consist of just variables and field
 selections.
 
-The types in DOT are denoted by letters $S$, $T$, $U$, or $V$. They consist of the following:
+The types in DOT are denoted by letters $S$, $T$, $U$, $V$, or $W$. They consist of the following:
 \begin{itemize}
 \item[-] Type selections $p.L$, which denote the type member $L$ of path $p$.
 \item[-] Refinement types $T \refine z {\seq D}$, which refine a type $T$ by a set of declarations $D$.
@@ -644,7 +644,7 @@ A subset of types $T_c$ are called {\em concrete types}. These are type selectio
 $p.L_c$ of class labels,
 the top type $\Top$, intersections of concrete types, and refinements $T_c \refine z {\seq D}$ of concrete types. Only concrete types are allowed in constructors $c$.
 
-There are only three forms of declarations in DOT, which are both part
+There are only three forms of declarations in DOT, which are all part
 of refinement types.  A value declaration $\ldecl l T$ introduces a
 field with type $T$.  A method declaration $\mdecl m S U$ introduces a
 method with parameter of type $S$ and result of type $U$. A type
@@ -698,7 +698,7 @@ declarations are defined in ~\figref{dot-decls}.
 Reduction rules $\reduction t s {t'} {s'}$ in DOT rewrite pairs of
 terms $t$ and stores $s$, where stores map variables to constructors.
 There are three main reduction rules: Rule (\textsc{msel}) rewrites a
-method invocation $y {m_i} v$ by retrieving the corresponding method
+method invocation $\mapp y {m_i} v$ by retrieving the corresponding method
 definition from the store, and performing a substitution of the
 argument for the parameter in the body. Rule (\textsc{sel}) rewrites a
 field selection $x.l$ by retrieving the corresponding value from the
@@ -717,7 +717,7 @@ Rules (\textsc{sel}) and (\textsc{msel}) type field selections and
 method invocations by means of an auxiliary membership relation $\ni$,
 which determines whether a given term contains a given declaration as
 one of its members. The membership relation is defined in
-\figref{dot-two} and is further explained below.
+\figref{dot-two} and is further explained in section~\ref{mem}.
 
 The last rule, (\textsc{new}), assigns types to object creation
 expressions. It is the most complex of DOT's typing rules.  To
@@ -783,29 +783,25 @@ by preconditions in rules (\textsc{msel}) and (\textsc{new}).
 
 } % END dot-two
 
-\subsection{Membership}
+\subsection{Membership}\label{mem}
 
-\figref{dot-two} presents typing rules for membership and
-expansion.  The membership judgement $\Gamma \ts t \ni D$ states that
-in environment $\Gamma$ a term $t$ has a declaration $D$ as a member.
-There are different rules for paths and general terms.  Rule
-(\textsc{path-$\ni$}) applies to paths $p$ that have a refinement type
-$T \refine z {\seq D}$ as their type. Members of $p$ are then all
-definitions $D$ in the refinement, where any use of the self reference
-$z$ is replaced by the path $p$ itself.  Rule (\textsc{and-$\ni$})
-allows to merge two member definitions (of the same label) by
-conjoining them with $\tand$. Rule (\textsc{term-$\ni$}) establishes
-the members of general terms $t$ of type $T$ by introducing a dummy
-variable $z$ of type $T$ and then using the rules for path membership
-on $z$. It must hold that $z$ itself does not form part of the
-resulting member $D$.
+\figref{dot-two} presents typing rules for membership and expansion.
+The membership judgement $\Gamma \ts t \ni D$ states that in
+environment $\Gamma$ a term $t$ has a declaration $D$ as a member. The
+membership rules rely on expansion. There are two rules, one for paths
+(\textsc{path-$\ni$}) and one for general terms
+(\textsc{term-$\ni$}). For general terms, the ``self''-reference of
+the type must not occur in the resulting declaration $D$, since, to
+guarantee syntactic validity, we can only substitute a path for the
+``self''-reference.
 
 \subsection{Expansion}
       
 The expansion relation $\expand$ is needed to typecheck the complete
 set of declarations carried by a concrete type that is used in a
-\textbf{new}-expression. Expansion is also used in subtyping
-refinements on the right (see \figref{dot-sub}).
+\textbf{new}-expression. Expansion is also used by the membership
+rules and in subtyping refinements on the right (see
+\figref{dot-sub}).
 
 Rule (\textsc{rfn-$\expand$}) states that a refinement type $T
 \expand_z {\seq D}$ expands to the conjunction of the expansion $D'$
@@ -909,7 +905,7 @@ declarations (recall \figref{dot-decls}).
 
 \figref{dot-sub} defines the subtyping judgement $\Gamma \ts S
 \sub T$ which states that in environment $\Gamma$ type $S$ is a
-subtype of type $T$. Subtyping is regular with respect to $\wfe$: if
+subtype of type $T$. Subtyping is regular wrt $\wfe$: if
 type $S$ is a subtype of type $T$, then $S$ and $T$ are well-formed
 and expanding. Though this regularity limits our calculus to
 $\wfe$-types, this limitation allows us to show that subtyping is
@@ -1114,7 +1110,7 @@ progress~\cite{soundness,tapl}. Unfortunately, for the calculus as
 presented, and any of its variants that we devised, preservation
 doesn't hold. In this section, we review some of the most salient
 counterexamples to preservation that we found. These counterexamples
-have been checked with PLT Redex.
+have been checked with PLT Redex~\cite{plt_redex}.
 
 \subsection{\texorpdfstring{\textsc{term-$\ni$}}{Term-Mem} Restriction}\label{term_mem}
 
@@ -1144,14 +1140,14 @@ Let $Y$ be a shorthand for the type:
 Now, consider the term
 \begin{align*}
 &\mlnew u {X \ldefs{ l = u }}{
-\app {(\abs y {\Top \tfun Y} {\app y u})} {(\abs d \Top {\app {(\abs x X x)} u})}.l
+\app {(\abs y {\Top \tfun Y} {\app y u})} {(\abs d \Top {\cast X u})}.l
 }
 \end{align*}
 
 The term type-checks because the term $t=\app {(\abs y {\Top \tfun Y}
-  {\app y u})} {(\abs d \Top {\app {(\abs x X x)} u)}}$ has type
+  {\app y u})} {(\abs d \Top {\cast X u})}$ has type
 $Y$, so we can apply $\textsc{term-$\ni$}$ for $l$. However, the term
-$t$ eventually steps to $\app {(\abs x X x)} u$ which has type $X$,
+$t$ eventually steps to ${\cast X u}$ which has type $X$,
 so we cannot apply $\textsc{term-$\ni$}$ for $l$ because of the
 self-reference ($z.L_a$).
 
@@ -1220,6 +1216,8 @@ the need for acknowledging path equality for preservation to hold.
 We prove type-safety of the DOT calculus via step-indexed logical
 relations~\cite{ahmed04,ahmed06,step_indexed_obj}.
 
+% TODO: section
+
 \section{Discussion}\label{discussion}
 
 \subsection{Variants of the DOT Calculus}\label{dot-variants}
@@ -1231,7 +1229,7 @@ fundamentally relies on types having an expansion. However, this was
 not our original motivation for limiting the calculus to $\wfe$-types.
 
 
-Originally, subtyping was not regular with respect to $\wfe$. Roughly,
+Originally, subtyping was not regular wrt $\wfe$. Roughly,
 all the $\wfe$ preconditions in subtyping were dropped. In this
 broader calculus, subtyping transivitiy doesn't hold, because of the
 rule (\textsc{$\sub$-rfn}) which requires expansion of the left type.
@@ -1277,8 +1275,7 @@ successively to $S \tfun T$ then $S \tfun U$. To typecheck the
 expression initially, we need to check $S \sub T$ and $T \sub
 U$. After some reduction steps, the first few casts vanish, and the
 reduced expression casts directly from $S \tfun S$ to $S \tfun U$, so
-we need to check $S \sub U$. Thus, we need subtyping transitivity: $S
-\sub T$ and $T \sub U$ implies $S \sub U$.
+we need to check $S \sub U$.
 
 \subsubsection{Why not include the lambda-calculus instead of methods?}
 
@@ -1297,8 +1294,8 @@ function ever being defined. Consider:
 }}
 \end{align*}
 
-Now, $f$ is a subtype of $\Top \tfun \Top$, but $\app f {(\abs x \Top
-  x)}$ is stuck (and, rightfully, doesn't typecheck). But we can use
+Now, $f$ was a subtype of $\Top \tfun \Top$, but $\app f {(\abs x \Top
+  x)}$ was stuck (and, rightfully, didn't typecheck). But we could use
 narrowing to create a counterexample to type safety: $\app {(\abs g
   {\Top \tfun \Top} {\app g (\abs x \Top x)})} f$.
 
@@ -1308,7 +1305,7 @@ Scala, functions are then just sugar for objects with a special
 method.
 
 An alternative design would have been to change the expansion of the
-function type to have a special marker value label.
+function type to have a declaration for a special marker value label.
 
 \subsubsection{Why not patch the DOT calculus for preservation to hold?}
 
@@ -1339,16 +1336,19 @@ with a disturbing counterexample to type safety.
 }
 \end{align*}
 
-Notice that $d$ has type $\Bot$ if you ignore the cast on $b$. This
-example doesn't typecheck initially because the path-equality
-provisions only applies when objects are in the store, so the
-application is not well-typed. But if we start preservation in a store
-which has $a$, $b$, $c$ and $d$ then the application type-checks,
-because, through one of the path-equality provision, we can find that
-the type of $d$ is a subtype of $\Bot$. Now, of course, when we get to
-$d.\mathit{foo}$, reduction fails.
+Notice that $d$ has type $\Bot$ if the cast on $b$ is ignored. This
+example didn't typecheck initially because the path-equality
+provisions only applied when objects are in the store, so the
+application was not well-typed. But if we started preservation in a store
+which has $a$, $b$, $c$ and $d$ then the application type-checked,
+because, through one of the path-equality provision, we could find that
+the type of $d$ was a subtype of $\Bot$. Now, of course, when we got to
+$d.\mathit{foo}$, reduction failed.
+
+% TODO: more discussion subsections?
 
 \section{Conclusion}\label{conclusion}
+% TODO: section
 
 %\appendix
 %\section{Appendix Title}
