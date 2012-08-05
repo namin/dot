@@ -363,6 +363,7 @@
 \newcommand{\arrow}[2]{#1\rightarrow_s#2}
 \newcommand{\fun}[4]{\textbf{fun } (#1:#2)\;#3\;#4}
 \newcommand{\app}[2]{(\textbf{app }#1\;#2)}
+\newcommand{\mlapp}[2]{(\textbf{app }#1\;\\&#2)}
 \newcommand{\cast}[2]{(\textbf{cast }#1\;#2)}
 
 \newcommand{\lindent}{\hspace{-4mm}}
@@ -1106,7 +1107,118 @@ the upper bound or to $\Bot$, respectively.
 
 \section{Counterexamples to Preservation}\label{dot-preservation}
 
+We prove that the DOT calculus is type-safe using logical relations in
+section~\ref{dot-type-safety}. However, we first tried to prove the
+calculus type-safe using the standard theorems of preservation and
+progress. Unfortunately, for the calculus as presented, and any of its
+variants that we devised, preservation doesn't hold. In this section,
+we review some of the most salient counterexamples to preservation
+that we found. These counterexamples have been checked with PLT Redex.
+
+\subsection{\texorpdfstring{\textsc{term-$\ni$}}{Term-Mem} Restriction}\label{term_mem}
+
+There are two membership ($t \ni D$) rules: one for when the term $t$
+is a path, and one for an arbitrary term $t$. For paths, we can
+substitute the self-references in the declarations, but we cannot do
+so for arbitrary terms as the resulting types wouldn't be well-formed
+syntactically. Hence, the $\textsc{term-$\ni$}$ has the restriction
+that self-occurrences are not allowed. Here is a counterexample related
+to this restriction.
+
+Let $X$ be a shorthand for the type:
+\begin{align*}
+\Top & \mlrefine z {\\
+&\ \Ldecl {L_a} \Top \Top\\
+&\ \ldecl l {z.L_a}\\
+}&
+\end{align*}
+
+Let $Y$ be a shorthand for the type:
+\begin{align*}
+\Top & \mlrefine z {\\
+&\ \ldecl l \Top\\
+}&
+\end{align*}
+
+Now, consider the term
+\begin{align*}
+&\mlnew u {X \ldefs{ l = u }}{
+(\app {(\abs y {\Top \tfun Y} {\app y u})} {(\abs d \Top {(\app {(\abs x X x)} u)})}).l
+}
+\end{align*}
+
+The term type-checks because the term $t=(\app {(\abs y {\Top \tfun Y}
+  {\app y u})} {(\abs d \Top {(\app {(\abs x X x)} u)})})$ has type
+$Y$, so we can apply $\textsc{term-$\ni$}$ for $l$. However, the term
+$t$ eventually steps to $(\app {(\abs x X x)} u)$ which has type $X$,
+so we cannot apply $\textsc{term-$\ni$}$ for $l$ because of the
+self-reference ($z.L_a$).
+
+\subsection{Expansion Lost}\label{narrowing_exp}
+
+Expansion is not preserved by narrowing. Here, we create two type
+selections that are mutually recursive in their upper bounds after
+narrowing: $z_0.C_2$ initially expands, but after narrowing, $z_0.C_2$
+expands to what $z_0.A_2$ expands to, which expands to what $z_0.A_1$
+expands to, which expands to what $z_0.A_2$ expands to, and thus we
+have an infinite expansion. Thus, the last new expression initially
+type-checks, but after narrowing, it doesn't because the precise
+expansion needed by $\textsc{new}$ cannot be inferred.
+
+\begin{align*}
+&\mlnew {x_0} {\Top \mlrefine z { \Ldecl {A_1} \Bot {\Top \mlrefine z {\\
+&\gap\Ldecl {A_2} \Bot \Top\\
+&\gap\Ldecl {A_3} \Bot \Top\\
+&\gap\Ldecl {C_2} \Bot {z.A_2}}}}\ldefs{}}{
+\mlnew {x_1} {\Top \refine z {\Ldecl {C_1} \Bot {\Top \refine z {\Ldecl {A_1} \Bot {x_0.A_1}}}}\ldefs{}}}{
+\mlnew {x_2} {{x_1.C_1} \refine z {\Ldecl {A_1} \Bot {{x_0.A_1} \refine z {\Ldecl {A_2} \Bot {z.A_3}}}}\ldefs{}}}{
+\mlnew {x_3} {{x_1.C_1} \refine z {\Ldecl {A_1} \Bot {{x_0.A_1} \refine z {\Ldecl {A_3} \Bot {z.A_2}}}}\ldefs{}}}{
+\mlapp {\abs x {x_1.C_1} {(\abs {z_0} {x.A_1 \tand x_3.A_1} {\\&\gap\gap\gap\new z {z_0.C_2} {\app {(\abs x \Top x)} z}})}} {\ x_2}}
+\end{align*}
+
+\subsection{Well-Formedness Lost}\label{narrowing_wf}
+
+Even well-formedness is not preserved by narrowing. The trick is that
+if the lower bound of a type selection is not $\Bot$, then the
+bounds needs to be checked for well-formedness. Here, we create two
+type selections that are mutually recursive in their bounds
+after narrowing. $y.A$ is initially well-formed, but after narrowing,
+it isn't because we run into an infinite derivation trying to prove
+the well-formedness of its bounds.
+
+\begin{align*}
+&\mlnew v {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B {z.A} {z.A}}}} \ldefs{}}{
+\mlapp {\abs x {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B \Bot \Top}}}} {\\&\gap
+\mlnew z {\Top \refine z {\ldecl l {\Bot \tfun \Top}}\mlldefs{\\&\gap\gap l = \abs y {x.L \tand {\Top \refine z {\Ldecl A {z.B} {z.B}, \Ldecl B \Bot \Top}}} {\\&\gap\gap\gap\abs a {y.A} {\app {(\abs x \Top x)} a}}}}{
+\ \app {(\abs x \Top x)} z
+}}}{\ v}}
+\end{align*}
+
+\subsection{Path Equality}\label{patheq}
+
+We need to be able to relate path-dependent types after reduction. The
+original DOT calculus doesn't have any rules for dealing with
+path-equality. Here is an example which motivates the need for
+path-equality provisions.
+
+\begin{align*}
+&\mlnew b {\Top \mlrefine z {&&\Ldecl X \Top \Top&\\
+&&&\ \ldecl l {z.X}&}\ldefs{l = b}}{
+\mlnew a {\Top \mlrefine z {\ldecl i {\Top \mlrefine z {&&&\\
+&&&\Ldecl X \Bot \Top\\
+&&&\ldecl l {z.X}}}&}\ldefs{i = b}}}{
+\app {(\abs x \Top x)} {(\app {(\abs x {a.i.X} x)} {a.i.l})}}
+\end{align*}
+
+$a.i.l$ reduces to $b.l$. $b.l$ has type $b.X$, so we need $b.X <:
+a.i.X$. This cannot be established with the current rules: it is not
+true in general, but true here because $a.i$ reduces to $b$. Hence,
+the need for acknowledging path equality.
+
+
 \section{Type Safety via Logical Relations}\label{dot-type-safety}
+
+\section{Discussion}\label{discussion}
 
 \section{Conclusion}\label{conclusion}
 
