@@ -1196,10 +1196,8 @@ the well-formedness of its bounds.
 
 \subsection{Path Equality}\label{patheq}
 
-We need to be able to relate path-dependent types after reduction. The
-original DOT calculus doesn't have any rules for dealing with
-path-equality. Here is an example which motivates the need for
-path-equality provisions.
+For preservation, we need to be able to relate path-dependent types
+after reduction. Here is a motivating example:
 
 \begin{align*}
 &\mlnew b {\Top \mlrefine z {&&\Ldecl X \Top \Top&\\
@@ -1213,8 +1211,7 @@ path-equality provisions.
 $a.i.l$ reduces to $b.l$. $b.l$ has type $b.X$, so we need $b.X <:
 a.i.X$. This cannot be established with the current rules: it is not
 true in general, but true here because $a.i$ reduces to $b$. Hence,
-the need for acknowledging path equality.
-
+the need for acknowledging path equality for preservation to hold.
 
 \section{Type Safety via Logical Relations}\label{dot-type-safety}
 
