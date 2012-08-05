@@ -164,9 +164,9 @@
         {\fbox{\begin{minipage}{\textwidth} #1 \medskip\end{minipage}}}
 %        {\fbox{\begin{minipage}{\textwidth}\begin{center} #1 \end{center}\medskip\end{minipage}}}
 \newcommand{\boxfig}[3]
-        {\begin{figure*}\figurebox{#3\caption{\label{#1}#2}}\end{figure*}}
+        {\begin{figure*}\figurebox{#3\caption{\label{fig:#1}#2}}\end{figure*}}
 \newcommand{\figref}[1]
-        {Figure~\ref{#1}}
+        {Figure~\ref{fig:#1}}
 
 % typing rules (not used here)
 \newcommand{\ttag}[1]{\mbox{\textsc{\small(#1)}}}
@@ -476,7 +476,7 @@ to prove type safety wrt reduction.
 
 \section{The DOT Calculus}
 
-\boxfig{fig:dot-one}{The DOT Calculus : Syntax, Reduction, Type Assignment}{
+\boxfig{dot-one}{The DOT Calculus : Syntax, Reduction, Type Assignment}{
 {\bf Syntax}\medskip
 \begin{center}    
 $\ba{l@{\hspace{0.2mm}}|@{\hspace{0.2mm}}l}
@@ -577,7 +577,7 @@ y \notin \fn(T') \\
 } % END dot-one
 
 The DOT calculus is a simple system of dependent
-object-types. \figref{fig:dot-one} gives its syntax, reduction rules,
+object-types. \figref{dot-one} gives its syntax, reduction rules,
 and type assignment rules.
 
 \subsection*{Notation} We use standard notational conventions for
@@ -644,7 +644,7 @@ bound type $S$ and an upper bound type $U$. There are no type aliases,
 but a type alias can be simulated by a type declaration $\Ldecl L T T$
 where the lower bound and the upper bound are the same type $T$.
 
-\boxfig{fig:dot-decls}{The DOT Calculus : Declaration Lattice}{
+\boxfig{dot-decls}{The DOT Calculus : Declaration Lattice}{
 
 \bda{lcl@{\gap}l}
     
@@ -682,7 +682,7 @@ $\ldecl l \Bot$, for every type label $L$ the declaration $\Ldecl L
 Every field or type label can be declared only once in a set of
 declarations $\seq D$. A set of declarations can hence be seen as a map from
 labels to their declarations.  Meets $\wedge$ and joins $\vee$ on sets of
-declarations are defined in ~\figref{fig:dot-decls}.
+declarations are defined in ~\figref{dot-decls}.
 
 \subsection*{Reduction rules}
 
@@ -701,23 +701,23 @@ can be situated.
 
 \subsection*{Type assignment rules}
 
-The last part of \figref{fig:dot-one} presents rules for type
+The last part of \figref{dot-one} presents rules for type
 assignment.  
 
 Rules (\textsc{sel}) and (\textsc{msel}) type field selections and
 method invocations by means of an auxiliary membership relation $\ni$,
 which determines whether a given term contains a given declaration as
 one of its members. The membership relation is defined in
-\figref{fig:dot-two} and is further explained below.
+\figref{dot-two} and is further explained below.
 
 The last rule, (\textsc{new}), assigns types to object creation
 expressions. It is the most complex of DOT's typing rules.  To
 type-check an object creation $\new y {T_c \ldefs {\seq{l =
       v}\;\seq{m(x) = t}}} t'$, one verifies first that the type $T_c$
-is well-formed (see \figref{fig:dot-wf} for a definition of
+is well-formed (see \figref{dot-wf} for a definition of
 well-formedness).  One then determines the set of all declarations
 that this type carries, using the expansion relation $\expand$ defined
-in \figref{fig:dot-two}.  Every type declaration $\Ldecl L S U$ in
+in \figref{dot-two}.  Every type declaration $\Ldecl L S U$ in
 this set must be realizable, i.e.\ its lower bound $S$ must be a
 subtype of its upper bound $U$.  Every field declaration $\ldecl l V$
 in this set must have a corresponding initializing value of $v$ of
@@ -726,14 +726,14 @@ by the binding $y: T_c$. In particular this allows field values that
 recurse on ``self'' by referring to the bound variable $x$. Similarly,
 every method declaration $\mdecl m T W$ must have a corresponding
 initializing method definition $m(x) = t$. The parameter type $T$ must
-be $\wfe$ (well-formed and expanding; see \figref{fig:dot-wf}), and
+be $\wfe$ (well-formed and expanding; see \figref{dot-wf}), and
 the body $t$ must type check to $W$ in an environment extended by the
 bindings $y : T_c$ and $x : T$.
 
 Instead of adding a separate subsumption rule, subtyping is expressed
 by preconditions in rules (\textsc{msel}) and (\textsc{new}).
 
-\boxfig{fig:dot-two}{The DOT Calculus : Membership and Expansion}{
+\boxfig{dot-two}{The DOT Calculus : Membership and Expansion}{
     \begin{multicols}{2}[\judgement{Membership}{\fbox{$\Gamma \ts t \ni D$}}]
 
       \infrule[\textsc{path-$\ni$}]
@@ -772,7 +772,43 @@ by preconditions in rules (\textsc{msel}) and (\textsc{new}).
       {\Gamma \ts \Bot \expand_z \seq{D_\Bot}}
     \end{multicols}
 
-}
+} % END dot-two
+
+\subsection*{Membership}
+
+\figref{dot-two} presents typing rules for membership and
+expansion.  The membership judgement $\Gamma \ts t \ni D$ states that
+in environment $\Gamma$ a term $t$ has a declaration $D$ as a member.
+There are different rules for paths and general terms.  Rule
+(\textsc{path-$\ni$}) applies to paths $p$ that have a refinement type
+$T \refine z {\seq D}$ as their type. Members of $p$ are then all
+definitions $D$ in the refinement, where any use of the self reference
+$z$ is replaced by the path $p$ itself.  Rule (\textsc{and-$\ni$})
+allows to merge two member definitions (of the same label) by
+conjoining them with $\tand$. Rule (\textsc{term-$\ni$}) establishes
+the members of general terms $t$ of type $T$ by introducing a dummy
+variable $z$ of type $T$ and then using the rules for path membership
+on $z$. It must hold that $z$ itself does not form part of the
+resulting member $D$.
+
+\subsection*{Expansion}
+      
+The expansion relation $\expand$ is needed to typecheck the complete
+set of declarations carried by a concrete type that is used in a
+\textbf{new}-expression.  Since this is the only place where expansion
+is needed, it is sufficient to define it on concrete types only. The
+bottom part of Figure~\ref{dot-two} gives the typing rules for
+expansion.
+
+Rule (\textsc{rfn-$\expand$}) states that a refinement type $T_c
+\expand_z {\seq D}$ expands to the conjunction of the expansion $D'$
+of $T_c$ and the newly added declarations $D$. Rule
+(\textsc{tsel-$\expand$}) states that a type selection $p.L$ carries
+the same declarations as the upper bound $U$ of $L$ in $T$.  Rule
+($\tand$-$\expand$) states that expansion distributes through meets.
+Rule (\textsc{$\top$-$\expand$}) states that the top type $\top$
+expands to the empty set.
+
 
 \boxfig{dot-sub}{The DOT Calculus : Subtyping and Declaration Subsumption}{
 
@@ -860,7 +896,7 @@ by preconditions in rules (\textsc{msel}) and (\textsc{new}).
     \end{multicols}
 }
 
-\boxfig{fig:dot-wf}{The DOT Calculus : Well-Formedness}{
+\boxfig{dot-wf}{The DOT Calculus : Well-Formedness}{
 
        \begin{multicols}{2}[\judgement{Well-formed types}{\fbox{$\Gamma \ts T \wf$}}]
 
