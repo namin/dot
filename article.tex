@@ -795,20 +795,20 @@ resulting member $D$.
       
 The expansion relation $\expand$ is needed to typecheck the complete
 set of declarations carried by a concrete type that is used in a
-\textbf{new}-expression.  Since this is the only place where expansion
-is needed, it is sufficient to define it on concrete types only. The
-bottom part of Figure~\ref{dot-two} gives the typing rules for
-expansion.
+\textbf{new}-expression. Expansion is also used in subtyping
+refinements on the right (see \figref{dot-sub}).
 
-Rule (\textsc{rfn-$\expand$}) states that a refinement type $T_c
+Rule (\textsc{rfn-$\expand$}) states that a refinement type $T
 \expand_z {\seq D}$ expands to the conjunction of the expansion $D'$
-of $T_c$ and the newly added declarations $D$. Rule
+of $T$ and the newly added declarations $D$. Rule
 (\textsc{tsel-$\expand$}) states that a type selection $p.L$ carries
-the same declarations as the upper bound $U$ of $L$ in $T$.  Rule
-($\tand$-$\expand$) states that expansion distributes through meets.
-Rule (\textsc{$\top$-$\expand$}) states that the top type $\top$
-expands to the empty set.
-
+the same declarations as the upper bound $U$ of $L$ in $T$.  Rules
+($\tand$-$\expand$) and ($\tor$-$\expand$) states that expansion
+distributes through meets and joins.  Rule (\textsc{$\top$-$\expand$})
+states that the top type $\top$ expands to the empty set. Rule
+(\textsc{$\bot$-$\expand$}) states that the bottom type $\bot$ expands
+to the bottom element $\seq{D_\Bot}$ of the lattice of sets of
+declarations (recall \figref{dot-decls}).
 
 \boxfig{dot-sub}{The DOT Calculus : Subtyping and Declaration Subsumption}{
 
