@@ -1188,10 +1188,10 @@ the well-formedness of its bounds.
 
 \begin{align*}
 &\mlnew v {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B {z.A} {z.A}}}} \ldefs{}}{
-\mlapp {\abs x {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B \Bot \Top}}}} {\\&\gap
-\mlnew z {\Top \refine z {\ldecl l {\Bot \tfun \Top}}\mlldefs{\\&\gap\gap l = \abs y {x.L \tand {\Top \refine z {\Ldecl A {z.B} {z.B}, \Ldecl B \Bot \Top}}} {\\&\gap\gap\gap\abs a {y.A} {\app {(\abs x \Top x)} a}}}}{
-\ \app {(\abs x \Top x)} z
-}}}{\ v}}
+\mlapp {(\abs x {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B \Bot \Top}}}} {\\&\gap
+\mlnew z {\Top \refine z {\mdecl l {x.L \tand {\Top \refine z {\Ldecl A {z.B} {z.B}, \Ldecl B \Bot \Top}}} \Top}\mlldefs{\\&\gap\gap l(y) = \fun a {y.A} \Top a}}{
+\gap \cast {\top} z
+}})}{\ v}}
 \end{align*}
 
 \subsection{Path Equality}\label{patheq}
