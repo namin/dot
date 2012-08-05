@@ -1307,6 +1307,44 @@ method.
 An alternative design would have been to change the expansion of the
 function type to have a special marker value label.
 
+\subsubsection{Why not patch the DOT calculus for preservation to hold?}
+
+We tried! However, the resulting calculi were not elegant, and
+furthermore, we still found issues with preservation. Below, we give a
+brief summary of one failed attempt to patch the calculus for
+preservation to hold.
+
+Because many of the counterexamples to preservation are related to
+narrowing, we tried to make widening an explicit operation and change
+rules with implicit relaxations (\textsc{msel} and \textsc{new}) to be
+strict. From a typing perspective, the change was straightforward, but
+reduction became more complicated and dependent on typing because the
+type information in widenings needed to be propagated correctly.
+
+We added path equality provisions in the subtyping rules, in the same
+spirit as the Tribe calculus.
+
+Unfortunately, these two patches interacted badly, and we were left
+with a disturbing counterexample to type safety.
+
+\begin{align*}
+&\mlnew a {\Top \refine z {\Ldecl C \Bot {\Top \refine z {\Ldecl D \Bot {z.X}, \Ldecl X \Bot \Top}}}}{
+\mlnew b {{a.C} \refine z {\Ldecl X \Bot \Bot}}}{
+\mlnew c {a.C}}{
+\mlnew d {{\cast {a.C} b}.D}}{
+\app {(\abs x \Bot {x.\mathit{foo}})} d
+}
+\end{align*}
+
+Notice that $d$ has type $\Bot$ if you ignore the cast on $b$. This
+example doesn't typecheck initially because the path-equality
+provisions only applies when objects are in the store, so the
+application is not well-typed. But if we start preservation in a store
+which has $a$, $b$, $c$ and $d$ then the application type-checks,
+because, through one of the path-equality provision, we can find that
+the type of $d$ is a subtype of $\Bot$. Now, of course, when we get to
+$d.\mathit{foo}$, reduction fails.
+
 \section{Conclusion}\label{conclusion}
 
 %\appendix
