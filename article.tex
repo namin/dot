@@ -1089,16 +1089,16 @@ the upper bound or to $\Bot$, respectively.
 &\ \Ldecl {\mi{Elem}} \Bot \Top\\
 &\ \Ldecl {\mi{ListOfElement}} {g.\mi{List} \refine z {\Ldecl {\mi{Elem}} {p.\mi{Elem}} {p.\mi{Elem}}}} {\\&\gap\gap\gap\gap g.\mi{List} \refine z {\Ldecl {\mi{Elem}} {p.\mi{Elem}} {p.\mi{Elem}}}}\\
 &\ \Ldecl {\mi{List}} \Bot {\Top \mlrefine z {\\\displaybreak[3]
-&\ \gap \ldecl {\mi{isEmpty}} {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Boolean}}\\
-&\ \gap \ldecl {\mi{head}} {\mi{root}.\mi{Unit} \tfun g.\mi{Elem}}\\
-&\ \gap \ldecl {\mi{tail}} {\mi{root}.\mi{Unit} \tfun g.\mi{ListOfElem}}\\
+&\ \gap \mdecl {\mi{isEmpty}} {\mi{root}.\mi{Unit}} {\mi{root}.\mi{Boolean}}\\
+&\ \gap \mdecl {\mi{head}} {\mi{root}.\mi{Unit}} {g.\mi{Elem}}\\
+&\ \gap \mdecl {\mi{tail}} {\mi{root}.\mi{Unit}} {g.\mi{ListOfElem}}\\
 &\gap}}\\
-&\ \ldecl {\mi{nil}} {\mi{root}.\mi{Unit} \tfun g.\mi{ListOfElem}}\\
-&\ \ldecl {\mi{cons}} {g.\mi{Elem} \tfun g.\mi{ListOfElem}}\\
+&\ \mdecl {\mi{nil}} {\mi{root}.\mi{Unit}} {g.\mi{ListOfElem}}\\
+&\ \mdecl {\mi{cons}} {g.\mi{Elem}} {g.\mi{ListOfElem}}\\
 &}}}}{
 \mlnew {\mi{natLists}} {{\mi{genLists}.\mi{ListPackage}} \mlrefine p { \Ldecl {\mi{Elem}} {\mi{Nat}} {\mi{Nat}} }\mlldefs{\\\displaybreak[3]
-&\ {\mi{nil}} = \ldots\\
-&\ {\mi{cons}} = \ldots\\
+&\ {\mi{nil}}(u) = \ldots\\
+&\ {\mi{cons}}(u) = \ldots\\
 &}}}{
 \ldots
 }
