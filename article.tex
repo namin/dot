@@ -909,18 +909,20 @@ transitive, as discussed in section~\ref{dot-preservation}.
 \subsection*{Declaration Subsumption}
 
 The declaration subsumption judgement $\Gamma \ts D \sub D'$ in
-\figref{dot-sub} states that in environment $\Gamma$ the
-declaration $D$ subsumes the declaration $D'$. There are two rules,
-one for type declarations and one for value declarations.  Rule
+\figref{dot-sub} states that in environment $\Gamma$ the declaration
+$D$ subsumes the declaration $D'$. There are three rules, one for each
+kind (type, value, method) of declarations.  Rule
 (\textsc{tdecl-$\sub$}) states that a type declaration $\Ldecl L S U$
 subsumes another type declaration $\Ldecl L {S'} {U'}$ if $S'$ is a
 subtype of $S$ and $U$ is a subtype of $U'$. In other words, the set
 of types between $S$ and $U$ is contained in the set of types between
 $S'$ and $U'$.  Rule (\textsc{vdecl-$\sub$}) states that a value
 declaration $\ldecl l T$ subsumes another value declaration $\ldecl l
-T'$ if $T$ is a subtype of $T'$.
+T'$ if $T$ is a subtype of $T'$. Rule (\textsc{mdecl-$\sub$}) is
+similar to (\textsc{tdecl-$\sub$}), as the parameter type varies
+contravariantly and the return type covariantly.
 
-Declaration subsumption is extended a binary relation between
+Declaration subsumption is extended to a binary relation between
 sequences of declarations as follows: $\seq{D} <: \seq{D'}$ iff
 $\forall D'_i \exists D_j. D_j \sub D'_i$.
 
