@@ -11,7 +11,7 @@
   (vx v x)
   (e vx (valnew (x c) e) (sel e l) (sel e m e))
   (p x loc (sel p l))
-  (c (Tc (l vx) ... (m (x T) e) ...))
+  (c (Tc (l vx) ... (m x e) ...))
   (Gamma ([x T] ...))
   (store (c ...))
   (env (Gamma store))
@@ -41,16 +41,16 @@
 (define-metafunction dot
   subst : any x any -> any
   ;; 1. x_1 bound
-  [(subst (m_1 (x_1 T_1) any_1) x_1 any_2)
-   (m_1 (x_1 (subst T_1 x_1 any_2)) any_1)]
+  [(subst (m_1 x_1 any_1) x_1 any_2)
+   (m_1 x_1 any_1)]
   [(subst (valnew (x_1 c_1) any_1) x_1 any_2)
    (valnew (x_1 c_1) any_1)]
   [(subst (refinement T_1 x_1 D_1 ...) x_1 any_2)
    (refinement (subst T_1 x_1 any_2) x_1 D_1 ...)]
   
   ;; 2. do capture avoiding substitution by generating a fresh name
-  [(subst (m_1 (x_1 T_1) any_1) x_2 any_2)
-   (m_1 (x_3 (subst T_1 x_2 any_2))
+  [(subst (m_1 x_1 any_1) x_2 any_2)
+   (m_1 x_3
         (subst (subst-var any_1 x_1 x_3) x_2 any_2))
    (where x_3 ,(variable-not-in (term (x_2 any_1 any_2))
                                 (term x_1)))]
@@ -90,12 +90,12 @@
   [(subst-var x_1 x_1 x_2) x_2]
   [(subst-var any_1 x_1 x_2) any_1])
 
-;(term (subst (valnew (u ((refinement Top self (: (label-method f) Top Top)) [(label-method f) (x Top) x])) u) x y))
-;(term (subst (valnew (u ((refinement Top self (: (label-method f) Top Top)) [(label-method f) (y Top) x])) u) x y))
-;(term (subst (valnew (u ((refinement Top self (: (label-method f) Top Top)) [(label-method f) (z Top) x])) u) x y))
+;(term (subst (valnew (u ((refinement Top self (: (label-method f) Top Top)) [(label-method f) x x])) u) x y))
+;(term (subst (valnew (u ((refinement Top self (: (label-method f) Top Top)) [(label-method f) y x])) u) x y))
+;(term (subst (valnew (u ((refinement Top self (: (label-method f) Top Top)) [(label-method f) z x])) u) x y))
 ;(term (subst (valnew (u (Top)) x) x y))
 ;(term (subst (valnew (u (Top)) x) x u))
-;(term (subst (valnew (u ((refinement Top self (: (label-method l) Top Top)) [(label-method l) (y Top) u])) (sel u (label-method l) u)) l x))
+;(term (subst (valnew (u ((refinement Top self (: (label-method l) Top Top)) [(label-method l) y u])) (sel u (label-method l) u)) l x))
 
 (define-metafunction dot
   store-extend : store c -> store
@@ -116,16 +116,16 @@
 
 (define-metafunction dot
   value-label-lookup : c l -> vx or #f
-  [(value-label-lookup (Tc (l_req vx_req) (l_after vx_after) ... (m_ignore (x_ignore T_ignore) e_ignore) ...) l_req) vx_req]
-  [(value-label-lookup (Tc (l_first vx_first) (l_after vx_after) ... (m_ignore (x_ignore T_ignore) e_ignore) ...) l_req)
+  [(value-label-lookup (Tc (l_req vx_req) (l_after vx_after) ... (m_ignore x_ignore e_ignore) ...) l_req) vx_req]
+  [(value-label-lookup (Tc (l_first vx_first) (l_after vx_after) ... (m_ignore x_ignore e_ignore) ...) l_req)
    (value-label-lookup (Tc (l_after vx_after) ...) l_req)]
-  [(value-label-lookup (Tc (m_ignore (x_ignore T_ignore) e_ignore) ...) l_req) #f])
+  [(value-label-lookup (Tc (m_ignore x_ignore e_ignore) ...) l_req) #f])
 
 (define-metafunction dot
-  method-label-lookup : c m -> ((x T) e) or #f
-  [(method-label-lookup (Tc (l_ignore vx_ignore) ... (m_req (x_req T_req) e_req) (m_after (x_after T_after) e_after) ...) m_req) ((x_req T_req) e_req)]
-  [(method-label-lookup (Tc (l_ignore vx_ignore) ... (m_first (x_first T_first) e_first) (m_after (x_after T_after) e_after) ...) m_req)
-   (method-label-lookup (Tc (m_after (x_after T_after) e_after) ...) m_req)]
+  method-label-lookup : c m -> (x e) or #f
+  [(method-label-lookup (Tc (l_ignore vx_ignore) ... (m_req x_req e_req) (m_after x_after e_after) ...) m_req) (x_req e_req)]
+  [(method-label-lookup (Tc (l_ignore vx_ignore) ... (m_first x_first e_first) (m_after x_after e_after) ...) m_req)
+   (method-label-lookup (Tc (m_after x_after e_after) ...) m_req)]
   [(method-label-lookup (Tc (l_ignore vx_ignore) ...) m_req) #f])
 
 (define-judgment-form dot
@@ -142,7 +142,7 @@
    (found c #t)
    (where any_lookup (method-label-lookup c m))
    (found any_lookup #t)
-   (where ((x T) e) any_lookup)]
+   (where (x e) any_lookup)]
   [(red store (in-hole ec (valnew (x c) e)) (in-hole ec (subst e x loc_new)) (store-extend store (subst c x loc_new)))
    (where loc_new (store-fresh-location store))] ;; (New)
   [(red store (in-hole ec (sel (location i) l)) (in-hole ec v) store) ;; (Sel)
@@ -171,7 +171,7 @@
    (judgment-holds (found c_1 #t))
    (where any_lookup (method-label-lookup c_1 m_i))
    (judgment-holds (found any_lookup #t))
-   (where ((x T) e_11) any_lookup)
+   (where (x e_11) any_lookup)
    (where (v_2 store_2) (ev store_1 e_i2))
    (where (v_f store_f) (ev store_2 (subst e_11 x v_2)))]
   [(ev store_i (valnew (x_i c_i) e_i)) (v_f store_f)
@@ -205,7 +205,7 @@
 (define-metafunction dot
   fn : any x -> bool
   ;; x_1 bound
-  [(fn (m_1 (x_1 T_1) any_1) x_1) (fn T_1 x_1)]
+  [(fn (m_1 x_1 any_1) x_1) #f]
   [(fn (valnew (x_1 c_1) any_1) x_1) #f]
   [(fn (refinement T_1 x_1 D_1 ...) x_1) (fn T_1 x_1)]
 
@@ -304,8 +304,8 @@
   sorted-assigns : ((l vx) ...) -> ((l vx) ...)
   [(sorted-assigns ((l_1 vx_1) ...)) ,(sort-assigns (term ((l_1 vx_1) ...)))])
 (define-metafunction dot
-  sorted-method-assigns : ((m (x T) e) ...) -> ((m (x T) e) ...)
-  [(sorted-method-assigns ((m_1 (x_1 T_1) e_1) ...)) ,(sort-assigns (term ((m_1 (x_1 T_1) e_1) ...)))])
+  sorted-method-assigns : ((m x e) ...) -> ((m x e) ...)
+  [(sorted-method-assigns ((m_1 x_1 e_1) ...)) ,(sort-assigns (term ((m_1 x_1 e_1) ...)))])
 
 (define-metafunction dot
   decl-intersection : (D ...) (D ...) -> (D ...)
@@ -536,19 +536,18 @@
   [(typeof (Gamma store) x T)
    (where T (gamma-lookup Gamma x))
    (found T #t)]
-  [(typeof (Gamma store) (valnew (x (Tc (l vx) ... (m (x_m V_m) e_m) ...)) e) T)
+  [(typeof (Gamma store) (valnew (x (Tc (l vx) ... (m x_m e_m) ...)) e) T)
    (wfe-type (Gamma store) Tc)
    (expansion (Gamma store) x Tc (((: Lt S U) ...) (Dl ...) (Dm ...)))
    (where ((l_s vx_s) ...) (sorted-assigns ((l vx) ...)))
    (where ((: l_s V_d) ...) (sorted-decls (Dl ...)))
-   (where ((m_s (y_ms V_ms) e_ms) ...) (sorted-method-assigns ((m (x_m V_m) e_m) ...)))
+   (where ((m_s y_ms e_ms) ...) (sorted-method-assigns ((m x_m e_m) ...)))
    (where ((: m_s V_md W_md) ...) (sorted-decls (Dm ...)))
    (where Gamma_Tc (gamma-extend Gamma x Tc))
-   (wfe-type (Gamma_Tc store) V_ms) ...
+   (wfe-type (Gamma_Tc store) V_md) ...
    (subtype (Gamma_Tc store) S U) ...
    (typeof (Gamma_Tc store) vx_s V_s) ...
    (subtype (Gamma_Tc store) V_s V_d) ...
-   (subtype (Gamma_Tc store) V_md V_ms) ...
    (typeof ((gamma-extend Gamma_Tc y_ms V_md) store) e_ms W_ms) ...
    (subtype ((gamma-extend Gamma_Tc y_ms V_md) store) W_ms W_md) ...
    (typeof (Gamma_Tc store) e T)
@@ -577,21 +576,21 @@
 
 ;(typecheck (term (() ())) (term (valnew (u (Top)) u)))
 ;(typecheck (term (() ())) (term (valnew (o (Top)) (valnew (o (Top)) o))))
-;(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-method f) Top Top)) [(label-method f) (x Top) x])) u)))
-;(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-method f) Top Top)) [(label-method f) (x Top) x])) (sel u (label-method f) u))))
-;(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-method l) Top Top)) [(label-method l) (x Top) u])) (sel u (label-method l) u))))
+;(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-method f) Top Top)) [(label-method f) x x])) u)))
+;(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-method f) Top Top)) [(label-method f) x x])) (sel u (label-method f) u))))
+;(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-method l) Top Top)) [(label-method l) x u])) (sel u (label-method l) u))))
 ;(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) u)))
 ;(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-class l) Top Top))))
 ;                                        (valnew (w ((refinement Top w (: (label-method f) (sel u (label-class l)) Top))
-;                                                    [(label-method f) (x (sel u (label-class l))) x]))
+;                                                    [(label-method f) x x]))
 ;                                                (sel w (label-method f) u)))))
 ;(typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (label-class l) Top Top) (: (label-method f) (sel u (label-class l)) Top))
-;                                            [(label-method f) (x (sel u (label-class l))) x]))
+;                                            [(label-method f) x x]))
 ;                                        (sel u (label-method f) u))))
 ;(typecheck (term (() ())) (term (valnew (u ((refinement Top u
 ;                                                        (: (label-abstract-type l) Top Top)
 ;                                                        (: (label-method f) (sel u (label-abstract-type l)) (refinement Top z (: (label-abstract-type l) Top Top))))
-;                                            [(label-method f) (x (sel u (label-abstract-type l))) u]))
+;                                            [(label-method f) x u]))
 ;                                        (sel u (label-method f) u))))
 
 (define-metafunction dot
@@ -604,7 +603,7 @@
   fun- : x (DLt ...) (x S) T e -> e
   [(fun- x_f (DLt ...) (x S) T e) (valnew
                          (x_f ((arrow- x_f (DLt ...) S T)
-                               [(label-method apply) (x S) e]))
+                               [(label-method apply) x e]))
                          x_f)])
 
 (define-metafunction dot
@@ -657,44 +656,44 @@
                         (: (label-method true) Top (arrow (sel rootThis (label-class UnitClass)) (sel rootThis (label-class BooleanClass))))
                         (: (label-method zero) Top (arrow (sel rootThis (label-class UnitClass)) (sel rootThis (label-class NatClass))))
                         (: (label-method successor) Top (arrow (sel rootThis (label-class NatClass)) (sel rootThis (label-class NatClass)))))
-                       [(label-method unit) (dummy Top) (fun (x Top) (sel root (label-class UnitClass)) (valnew (u ((refinement (sel root (label-class UnitClass)) this))) u))]
-                       [(label-method false) (dummy Top)
+                       [(label-method unit) dummy (fun (x Top) (sel root (label-class UnitClass)) (valnew (u ((refinement (sel root (label-class UnitClass)) this))) u))]
+                       [(label-method false) dummy
                         (fun (u (sel root (label-class UnitClass))) (sel root (label-class BooleanClass))
                           (valnew (ff ((refinement (sel root (label-class BooleanClass)) this)
-                                       [(label-method ifNat) (dummy Top)
+                                       [(label-method ifNat) dummy
                                                             (fun (t (arrow (sel root (label-class UnitClass)) (sel root (label-class NatClass))))
                                                                  (arrow (arrow (sel root (label-class UnitClass)) (sel root (label-class NatClass))) (sel root (label-class NatClass)))
                                                               (fun (e (arrow (sel root (label-class UnitClass)) (sel root (label-class NatClass))))
                                                                    (sel root (label-class NatClass))
                                                                 (app e (app (sel root (label-method unit) dummy) (sel root (label-method unit) dummy)))))]))
                                   ff))]
-                       [(label-method true) (dummy Top)
+                       [(label-method true) dummy
                         (fun (u (sel root (label-class UnitClass))) (sel root (label-class BooleanClass))
                           (valnew (tt ((refinement (sel root (label-class BooleanClass)) this)
-                                       [(label-method ifNat) (dummy Top)
+                                       [(label-method ifNat) dummy
                                                             (fun (t (arrow (sel root (label-class UnitClass)) (sel root (label-class NatClass))))
                                                                  (arrow (arrow (sel root (label-class UnitClass)) (sel root (label-class NatClass))) (sel root (label-class NatClass)))
                                                               (fun (e (arrow (sel root (label-class UnitClass)) (sel root (label-class NatClass))))
                                                                    (sel root (label-class NatClass))
                                                                 (app t (app (sel root (label-method unit) dummy) (sel root (label-method unit) dummy)))))]))
                                   tt))]
-                       [(label-method zero) (dummy Top)
+                       [(label-method zero) dummy
                         (fun (u (sel root (label-class UnitClass))) (sel root (label-class NatClass))
                           (valnew (zz ((refinement (sel root (label-class NatClass)) this)
-                                       [(label-method isZero) (dummy Top) (fun (u (sel root (label-class UnitClass))) (sel root (label-class BooleanClass))
+                                       [(label-method isZero) dummy (fun (u (sel root (label-class UnitClass))) (sel root (label-class BooleanClass))
                                                                               (app (sel root (label-method true) dummy) (app (sel root (label-method unit) dummy) (sel root (label-method unit) dummy))))]
-                                       [(label-method succ) (dummy Top) (fun (u (sel root (label-class UnitClass))) (sel root (label-class NatClass))
+                                       [(label-method succ) dummy (fun (u (sel root (label-class UnitClass))) (sel root (label-class NatClass))
                                                                             (app (sel root (label-method successor) dummy) zz))]
-                                       [(label-method pred) (dummy Top) (fun (u (sel root (label-class UnitClass))) (sel root (label-class NatClass)) zz)]))
+                                       [(label-method pred) dummy (fun (u (sel root (label-class UnitClass))) (sel root (label-class NatClass)) zz)]))
                                   zz))]
-                       [(label-method successor) (dummy Top)
+                       [(label-method successor) dummy
                         (fun (n (sel root (label-class NatClass))) (sel root (label-class NatClass))
                           (valnew (ss ((refinement (sel root (label-class NatClass)) this)
-                                       [(label-method isZero) (dummy Top) (fun (u (sel root (label-class UnitClass))) (sel root (label-class BooleanClass)) 
+                                       [(label-method isZero) dummy (fun (u (sel root (label-class UnitClass))) (sel root (label-class BooleanClass)) 
                                                                               (app (sel root (label-method false) dummy) (app (sel root (label-method unit) dummy) (sel root (label-method unit) dummy))))]
-                                       [(label-method succ) (dummy Top) (fun (u (sel root (label-class UnitClass))) (sel root (label-class NatClass))
+                                       [(label-method succ) dummy (fun (u (sel root (label-class UnitClass))) (sel root (label-class NatClass))
                                                                             (app (sel root (label-method successor) dummy) ss))]
-                                       [(label-method pred) (dummy Top) (fun (u (sel root (label-class UnitClass))) (sel root (label-class NatClass)) n)]))
+                                       [(label-method pred) dummy (fun (u (sel root (label-class UnitClass))) (sel root (label-class NatClass)) n)]))
                                   ss))]))
                 (app (fun (x Top) Top x)
                  (app (fun (unit (sel root (label-class UnitClass))) (sel root (label-class BooleanClass))
@@ -777,19 +776,19 @@
 
 ;(preservation (term (valnew (u (Top)) u)))
 ;(preservation (term (app (fun (x Top) Top x) (fun (x Top) Top x))))
-;(preservation (term (valnew (u ((refinement Top u (: (label-method l) Top Top)) [(label-method l) (x Top) u])) (sel u (label-method l) u))))
+;(preservation (term (valnew (u ((refinement Top u (: (label-method l) Top Top)) [(label-method l) x u])) (sel u (label-method l) u))))
 ;(preservation (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) (app (fun (x (sel u (label-class l))) Top u) u))))
 ;(preservation (dotExample))
 
 ;(big-step-preservation (term (valnew (u (Top)) u)))
 ;(big-step-preservation (term (app (fun (x Top) Top x) (fun (x Top) Top x))))
-;(big-step-preservation (term (valnew (u ((refinement Top u (: (label-method l) Top Top)) [(label-method l) (x Top) u])) (sel u (label-method l) u))))
+;(big-step-preservation (term (valnew (u ((refinement Top u (: (label-method l) Top Top)) [(label-method l) x u])) (sel u (label-method l) u))))
 ;(big-step-preservation (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) (app (fun (x (sel u (label-class l))) Top u) u))))
 ;(big-step-preservation (dotExample))
 
 ;(type-safety (term (valnew (u (Top)) u)))
 ;(type-safety (term (app (fun (x Top) Top x) (fun (x Top) Top x))))
-;(type-safety (term (valnew (u ((refinement Top u (: (label-method l) Top Top)) [(label-method l) (x Top) u])) (sel u (label-method l) u))))
+;(type-safety (term (valnew (u ((refinement Top u (: (label-method l) Top Top)) [(label-method l) x u])) (sel u (label-method l) u))))
 ;(type-safety (term (valnew (u ((refinement Top u (: (label-class l) Top Top)))) (app (fun (x (sel u (label-class l))) Top u) u))))
 ;(type-safety (dotExample))
 
@@ -870,7 +869,7 @@
                               (: (label-class Bar) Bottom (refinement Top self (: (label-class T) Bottom Top)))
                               (: (label-class Foo) Bottom (refinement (sel self (label-class Bar)) z (: (label-class T) Bottom (sel self (label-class Foo)))))
                               (: (label-method foo) Top (arrow Top (sel self (label-class Foo)))))
-              ((label-method foo) (dummy Top) (fun (x Top) (sel u (label-class Foo)) (valnew (foo ((sel u (label-class Foo)))) foo)))))
+              ((label-method foo) dummy (fun (x Top) (sel u (label-class Foo)) (valnew (foo ((sel u (label-class Foo)))) foo)))))
               (as Top (sel u (label-method foo) (as Top u))))))
 
 #;
@@ -878,7 +877,7 @@
                               (: (label-class Bar) Bottom (refinement Top self (: (label-class T) Bottom Top) (: (label-method some) Top (sel self (label-class T)))))
                               (: (label-class Foo) Bottom (refinement (sel self (label-class Bar)) z (: (label-class T) (sel self (label-class Foo)) Top)))
                               (: (label-method foo) Top (arrow Top (sel self (label-class Foo)))))
-              ((label-method foo) (dummy Top) (fun (x Top) (sel u (label-class Foo)) (valnew (foo ((sel u (label-class Foo)) ((label-method some) (dummy Top) (as (sel foo (label-class T)) foo)))) foo)))))
+              ((label-method foo) dummy (fun (x Top) (sel u (label-class Foo)) (valnew (foo ((sel u (label-class Foo)) ((label-method some) dummy (as (sel foo (label-class T)) foo)))) foo)))))
               (cast Top (sel u (label-method foo) (as Top u))))))
 
 #;
@@ -907,7 +906,7 @@
   (type-safety
    (term
     (valnew
-     (u (,typeX ((label-method l) (dummy Top) (as (sel u (label-abstract-type A)) u))))
+     (u (,typeX ((label-method l) dummy (as (sel u (label-abstract-type A)) u))))
      (sel (app (fun (y (arrow Top ,typeY)) ,typeY (app y (as Top u))) (as (arrow Top ,typeY) (fun (d Top) ,typeX (cast ,typeX u)))) (label-method l) (as Top u))))))
 
 #;
@@ -919,7 +918,7 @@
   (big-step-preservation
    (term
     (valnew
-     (u (,typeX ((label-method l) (dummy Top) (as (sel u (label-abstract-type A)) u)))) (cast Top
+     (u (,typeX ((label-method l) dummy (as (sel u (label-abstract-type A)) u)))) (cast Top
       (app (fun (y (arrow- f ((: (label-abstract-type Y) ,typeX ,typeY)) Top (sel f (label-abstract-type Y)))) 
                 (arrow Top Top)
                 (fun (d Top) Top (sel (cast (sel y (label-abstract-type Y)) (app y (as Top u))) (label-method l) (as Top u))))
@@ -927,21 +926,19 @@
                (fun- f ((: (label-abstract-type Y) ,typeX ,typeX)) (d Top) (sel f (label-abstract-type Y)) (as (sel f (label-abstract-type Y)) u)))))))))
 
 #;
-(preservation
+(type-safety
  (term
   (valnew
    (b ((refinement Top z
                    (: (label-abstract-type X) Top Top)
                    (: (label-value l) (sel z (label-abstract-type X))))
-       ((label-value l) (as (sel b (label-abstract-type X)) b))))
+       ((label-value l) b)))
    (valnew
     (a ((refinement Top z
                     (: (label-value i) (refinement Top z
                                                    (: (label-abstract-type X) Bottom Top)
                                                    (: (label-value l) (sel z (label-abstract-type X))))))
-        ((label-value i) (as (refinement Top z
-                                         (: (label-abstract-type X) Bottom Top)
-                                         (: (label-value l) (sel z (label-abstract-type X)))) b))))
+        ((label-value i) b)))
     (cast Top
      (cast (sel (sel a (label-value i)) (label-abstract-type X))
       (sel (sel a (label-value i)) (label-value l))))))))
@@ -953,15 +950,13 @@
    (b ((refinement Top z
                    (: (label-abstract-type X) Top Top)
                    (: (label-value l) (sel z (label-abstract-type X))))
-       ((label-value l) (as (sel b (label-abstract-type X)) b))))
+       ((label-value l) b)))
    (valnew
     (a ((refinement Top z
                     (: (label-value i) (refinement Top z
                                                    (: (label-abstract-type X) Bottom Top)
                                                    (: (label-value l) (sel z (label-abstract-type X))))))
-        ((label-value i) (as (refinement Top z
-                                         (: (label-abstract-type X) Bottom Top)
-                                         (: (label-value l) (sel z (label-abstract-type X)))) b))))
+        ((label-value i) b)))
     (cast Top
      (app (fun (x (sel (sel a (label-value i)) (label-abstract-type X)))
                (arrow Top Top)
@@ -1039,9 +1034,7 @@
                                               (sel x (label-abstract-type L))
                                               (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top)))
                                              Top))
-                        ((label-method l) (y (intersection
-                                              (sel x (label-abstract-type L))
-                                              (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top))))
+                        ((label-method l) y
                                           (as Top (fun (a (sel y (label-abstract-type A))) Top a)))))
                     (cast Top z)))
        (as (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top)))) v)))))
@@ -1077,9 +1070,7 @@
                                               (sel x (label-abstract-type L))
                                               (refinement Top z (: (label-abstract-type A) (sel z (label-abstract-type B)) Top) (: (label-abstract-type B) Bottom Top)))
                                              Top))
-                        ((label-method l) (y (intersection
-                                              (sel x (label-abstract-type L))
-                                              (refinement Top z (: (label-abstract-type A) (sel z (label-abstract-type B)) Top) (: (label-abstract-type B) Bottom Top))))
+                        ((label-method l) y
                                           (as Top (fun (a (sel y (label-abstract-type A))) Top a)))))
                     (cast Top z)))
        (as (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top)))) v)))))
@@ -1096,7 +1087,7 @@
 (preservation
  (term
   (valnew (v ((refinement Top z (: (label-method m) Top Top))
-              ((label-method m) (x Top) x)))
+              ((label-method m) x x)))
   (app (fun (x Top) Top x)
        (sel (as (refinement Top z (: (label-method m) (refinement Top z (: (label-method m) Top Top)) Top)) v)
             (label-method m)
@@ -1108,7 +1099,7 @@
   (valnew (v ((refinement Top z
                           (: (label-abstract-type A) Top Top)
                           (: (label-method m) (refinement Top z (: (label-abstract-type A) Top Top)) (refinement Top z (: (label-abstract-type A) Top Top))))
-             ((label-method m) (x (refinement Top z (: (label-abstract-type A) Top Top))) x)))
+             ((label-method m) x x)))
   (app (fun (x Top) Top x)
        (sel (as (refinement Top z (: (label-method m) (refinement Top z (: (label-abstract-type A) Top Top)) Top)) v)
             (label-method m)
@@ -1121,7 +1112,7 @@
                           (: (label-abstract-type A) Top Top)
                           (: (label-abstract-type B) Bottom Top)
                           (: (label-method m) (refinement Top z (: (label-abstract-type A) Top Top)) (refinement Top z (: (label-abstract-type A) Top Top))))
-             ((label-method m) (x (refinement Top z (: (label-abstract-type A) Top Top))) x)))
+             ((label-method m) x x)))
   (app (fun (x Top) Top x)
        (sel (as (refinement Top z (: (label-method m) (refinement Top z (: (label-abstract-type A) Top Top) (: (label-abstract-type B) Bottom Top)) Top)) v)
             (label-method m)
@@ -1138,10 +1129,7 @@
                                                   (sel x (label-abstract-type L))
                                                   (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top)))
                                                  Top))
-                            ((label-method l) (y (intersection
-                                                  (sel x (label-abstract-type L))
-                                                  (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top))))
-                                              (as Top (fun (a (sel y (label-abstract-type A))) Top a)))))
+                            ((label-method l) y (as Top (fun (a (sel y (label-abstract-type A))) Top a)))))
                         (cast Top z))))
        v))))
 
@@ -1156,7 +1144,7 @@
                             (: (label-method m) (refinement (sel z (label-abstract-type A)) z (: (label-abstract-type B) Top Top)) Top)))))
   (preservation
    (term
-    (valnew (v (,Tc ((label-method m) (x (sel z (label-abstract-type A))) (as Top x))))
+    (valnew (v (,Tc ((label-method m) x (as Top x))))
     (as Top
         (sel (as ,T v)
              (label-method m)
@@ -1205,7 +1193,7 @@
                             (: (label-method m) (refinement (sel z (label-abstract-type A)) z (: (label-abstract-type B) Top Top)) Top)))))
   (preservation
    (term
-    (valnew (v (,Tc ((label-method m) (x Top) x)))
+    (valnew (v (,Tc ((label-method m) x x)))
     (valnew (u ((refinement Top z (: (label-value v) ,Tc))
                 ((label-value v) v)))
     (as Top
