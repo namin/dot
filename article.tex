@@ -464,7 +464,7 @@ This is problematic because glbs and lubs play a central role in
 Scala's type inference. The absence of universal glbs and lubs makes
 type inference more brittle and more unpredictable.
 
-\subsection*{Why No Inheritance?}
+\subsection{Why No Inheritance?}
 
 In the calculus we made the deliberate choice not to model any form of
 inheritance. This is, first and foremost, to keep the calculus simple.
@@ -589,7 +589,7 @@ The DOT calculus is a simple system of dependent
 object-types. \figref{dot-one} gives its syntax, reduction rules,
 and type assignment rules.
 
-\subsection*{Notation} We use standard notational conventions for
+\subsection{Notation} We use standard notational conventions for
 sets. The notation $\seq{X}$ denotes a set of elements $X$. Given a
 such a set $\seq X$ in a typing rule, $X_i$ denotes an arbitrary
 element of $X$. 
@@ -600,7 +600,7 @@ abbreviation for preconditions in typing judgements. Given an
 environment $\Gamma$ and some predicates $P$ and $Q$, the condition $\Gamma \ts P \spcomma Q$
 is a shorthand for the two conditions $\Gamma \ts P$ and $\Gamma \ts Q$.
 
-\subsection*{Syntax}
+\subsection{Syntax}
 
 There are four alphabets: Variable names $x$, $y$, $z$ are freely
 alpha-renamable. They occur as parameters of lambda abstractions, as
@@ -693,7 +693,7 @@ declarations $\seq D$. A set of declarations can hence be seen as a map from
 labels to their declarations.  Meets $\wedge$ and joins $\vee$ on sets of
 declarations are defined in ~\figref{dot-decls}.
 
-\subsection*{Reduction rules}
+\subsection{Reduction rules}
 
 Reduction rules $\reduction t s {t'} {s'}$ in DOT rewrite pairs of
 terms $t$ and stores $s$, where stores map variables to constructors.
@@ -708,7 +708,7 @@ and continuing with term $t$.  These reduction rules can be applied
 anywhere in a term where the hole $[\,]$ of an evaluation context $e$
 can be situated.
 
-\subsection*{Type assignment rules}
+\subsection{Type assignment rules}
 
 The last part of \figref{dot-one} presents rules for type
 assignment.  
@@ -783,7 +783,7 @@ by preconditions in rules (\textsc{msel}) and (\textsc{new}).
 
 } % END dot-two
 
-\subsection*{Membership}
+\subsection{Membership}
 
 \figref{dot-two} presents typing rules for membership and
 expansion.  The membership judgement $\Gamma \ts t \ni D$ states that
@@ -800,7 +800,7 @@ variable $z$ of type $T$ and then using the rules for path membership
 on $z$. It must hold that $z$ itself does not form part of the
 resulting member $D$.
 
-\subsection*{Expansion}
+\subsection{Expansion}
       
 The expansion relation $\expand$ is needed to typecheck the complete
 set of declarations carried by a concrete type that is used in a
@@ -905,7 +905,7 @@ declarations (recall \figref{dot-decls}).
     \end{multicols}
 } % END dot-sub
 
-\subsection*{Subtyping}
+\subsection{Subtyping}
 
 \figref{dot-sub} defines the subtyping judgement $\Gamma \ts S
 \sub T$ which states that in environment $\Gamma$ type $S$ is a
@@ -915,7 +915,7 @@ and expanding. Though this regularity limits our calculus to
 $\wfe$-types, this limitation allows us to show that subtyping is
 transitive, as discussed in section~\ref{dot-preservation}.
 
-\subsection*{Declaration Subsumption}
+\subsection{Declaration Subsumption}
 
 The declaration subsumption judgement $\Gamma \ts D \sub D'$ in
 \figref{dot-sub} states that in environment $\Gamma$ the declaration
@@ -996,7 +996,7 @@ $\forall D'_i \exists D_j. D_j \sub D'_i$.
     \end{multicols}
 } % END dot-wf
 
-\subsection*{Well-formedness}
+\subsection{Well-formedness}
 
 The well-formedness judgement $\Gamma \ts T \wf$ in \figref{dot-wf}
 states that in environment $\Gamma$ the type $T$ is
