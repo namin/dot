@@ -463,15 +463,16 @@ Secondly, there are many different approaches to inheritance and
 mixin composition, so that it looks advantageous not to tie the basic
 calculus to a specific one. Finally, it seems that the modelization of
 inheritance lends itself to a different approach than the basic
-calculus. For the latter, we need to prove the standard theorems of
-preservation and progress to establish soundness of the type system.
+calculus. For the latter, we need to prove type safety of the calculus.
 One might try to do this also for a calculus with inheritance, but our
 experience suggests that this complicates the proofs considerably.  An
 alternative approach to inheritance that might work better is to model
 it as a form of code-reuse. Starting with an enriched type system with
 inheritance, and a translation to the basic calculus, one needs to
-show type preservation wrt the translation. This might be easier than
-to prove type preservation wrt reduction.
+show type safety wrt the translation. This might be easier than
+to prove type safety wrt reduction.
+
+% TODO: ask: does this last point still makes sense wrt to type safety via logical relations instead of via the standard theorems of preservation and progress?
 
 \section{The DOT Calculus}
 
