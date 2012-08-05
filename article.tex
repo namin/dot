@@ -1219,6 +1219,64 @@ the need for acknowledging path equality for preservation to hold.
 
 \section{Discussion}\label{discussion}
 
+\subsection{Variants of the DOT Calculus}\label{dot-variants}
+
+\subsubsection{Why limit the calculus to $\wfe$-types?}
+
+Currently, the proof of type-safety via logical relations
+fundamentally relies on types having an expansion. However, this was
+not our original motivation for limiting the calculus to $\wfe$-types.
+
+
+Originally, subtyping was not regular with respect to $\wfe$. Roughly,
+all the $\wfe$ preconditions in subtyping were dropped. In this
+broader calculus, subtyping transivitiy doesn't hold, because of the
+rule (\textsc{$\sub$-rfn}) which requires expansion of the left type.
+
+The problem is deep, as attested by this elaborate counterexample
+that is not so easily patched, and directly leads to a counterexample
+to preservation.
+
+Consider an environment where $u$ is bound to:
+\begin{align*}
+\Top & \mlrefine u {\\
+&\ \Ldecl {\mathit{Bad}} {\Bot} {u.\mathit{Bad}}\\
+&\ \Ldecl {\mathit{Good}} {\Top \refine z {\Ldecl L \Bot \Top}} {\Top \refine z {\Ldecl L \Bot \Top}}\\
+&\ \Ldecl {\mathit{Lower}} {u.\mathit{Bad} \tand u.\mathit{Good}} {u.\mathit{Good}}\\
+&\ \Ldecl {\mathit{Upper}} {u.\mathit{Good}} {u.\mathit{Bad} \tor u.\mathit{Good}}\\
+&\ \Ldecl X {u.\mathit{Lower}} {u.\mathit{Upper}}\\
+}&
+\end{align*}
+
+Now, consider the types $S$, $T$, $U$ defined in terms of $u$:
+\begin{align*}
+S &= u.\mathit{Bad} \tand u.\mathit{Good}\\
+T &= u.\mathit{Lower}\\
+U &= u.X \refine z {\Ldecl L \Bot \Top}
+\end{align*}
+We have $S \sub T$ and $T \sub U$, but we cannot derive $S \sub U$ because
+$S$ doesn't expand.
+
+Note that $u$ is realizable, since each lower bound is a subtype of
+its upper bound. So it is straightforward to turn this counterexample
+to subtyping transivity into a counterexample to preservation:
+\begin{align*}
+&\mlnew u \ldots {
+\ \mlapp{\abs x \Top x}{
+\ \ \mlapp{\abs f {S \tfun U} f}{
+\ \ \ \mlapp{\abs f {S \tfun T} f}{
+\ \ \ \ \mlapp{\abs f {S \tfun S} f}{
+\ \ \  \ \ \abs x S x}}}}}
+\end{align*}
+
+The idea is to start with a function from $S \tfun S$ and cast it
+successively to $S \tfun T$ then $S \tfun U$. To typecheck the
+expression initially, we need to check $S \sub T$ and $T \sub
+U$. After some reduction steps, the first few casts vanish, and the
+reduced expression casts directly from $S \tfun S$ to $S \tfun U$, so
+we need to check $S \sub U$. Thus, we need subtyping transitivity: $S
+\sub T$ and $T \sub U$ implies $S \sub U$.
+
 \section{Conclusion}\label{conclusion}
 
 %\appendix
