@@ -154,6 +154,7 @@
 \newcommand{\quotedstring}[1]{{#1}}
 \newcommand{\typename}[1]{{#1}}
 \newcommand{\literal}[1]{{#1}}
+\newcommand{\mi}[1]{\mathit{#1}}
 
 % comments and notes
 \newcommand{\comment}[1]{}
@@ -328,8 +329,10 @@
 \newcommand{\judgement}[2]{{\bf #1} \hfill #2}
 % Refinement
 \newcommand{\refine}[2]{\left\{#1 \Rightarrow #2 \right\}}
+\newcommand{\mlrefine}[2]{\{#1 \Rightarrow #2 \}}
 % Field definitions
 \newcommand{\ldefs}[1]{\left\{#1\right\}}
+\newcommand{\mlldefs}[1]{\{#1\}}
 % Member sequences
 \newcommand{\seq}[1]{\overline{#1}}
 % Lambda
@@ -343,6 +346,7 @@
 \newcommand{\subst}[3]{[#1/#2]#3}
 % Object creation
 \newcommand{\new}[3]{\textbf{val }#1 = \textbf{new }#2 ;\; #3}
+\newcommand{\mlnew}[3]{\textbf{val }#1 = \textbf{new }#2 ;\;\\&#3}
 %\renewcommand{\new}[3]{#1 \leftarrow #2 \,\textbf{in}\, #3}
 % Field declaration
 \newcommand{\Ldecl}[3]{#1 : #2..#3}%{#1 \operatorname{>:} #2 \operatorname{<:} #3}
@@ -1016,6 +1020,73 @@ constituent types are well-formed.
 Well-formedness extends straightforwardly to declarations with the
 judgement $\Gamma \ts D \wf$. All declarations are well-formed if
 their constituent types are well-formed.
+
+\section{Examples}\label{dot-examples}
+
+\subsection{Sugar: Functions}
+
+\subsection{Basics: Booleans, Error, \ldots}
+This program defines a $\mi{root}$ object with basic types
+($\mi{Unit}$, $\mi{Boolean}$, $\mi{Nat}$) and values ($\mi{true}$,
+$\mi{false}$, $\mi{error}$, $\mi{zero}$). For brevity, I've omitted
+the code related to natural numbers. During the object creation, the
+value labels such as $\mi{false}$ are all initialized.
+\begin{align*}
+&\mlnew {\mi{root}} {\Top \mlrefine r {\\\displaybreak[3]
+&\ \Ldecl {\mi{Unit}} \Bot \Top\\
+&\ \ldecl {\mi{unit}} {\Top \tfun {r.\mi{Unit}}}\\
+&\ \Ldecl {\mi{Boolean}} \Bot {\Top \mlrefine z {\\
+&\ \gap \ldecl {\mi{ifNat}} {(r.\mi{Unit} \tfun r.\mi{Nat}) \tfun (r.\mi{Unit} \tfun r.\mi{Nat}) \tfun r.\mi{Nat}}\\
+&\gap}}\\
+&\ \ldecl {\mi{false}} {{r.\mi{Unit}} \tfun {r.\mi{Boolean}}}\\
+&\ \ldecl {\mi{true}} {{r.\mi{Unit}} \tfun {r.\mi{Boolean}}}\\
+&\ \ldots\\\displaybreak[3]
+&\ \ldecl {\mi{error}} {{r.\mi{Unit}} \tfun \Bot}\\
+&}\mlldefs{\\\displaybreak[3]
+&\ \mi{unit}  = \abs x \Top {\new u {\mi{root}.\mi{Unit}} u}\\
+%
+&\ \mi{false} = \abs u {\mi{root}.\mi{Unit}} {\\
+&\ \gap \mlnew {\mi{ff}} {\mi{root}.\mi{Boolean} \mlldefs{\\\displaybreak[3]
+&\ \gap\gap {\mi{ifNat}} = \abs t {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}} {\\&\gap\gap\gap\abs e {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}}\\&\gap\gap\gap\app e {\mi{root}.\mi{unit}}}\\
+&\ \gap}}{
+\ \gap \mi{ff}}
+&}\\
+%
+&\ \mi{true} = \ldots\\
+%
+&\ \mi{error} = \abs u {\mi{root}.\mi{Unit}} {\app {\mi{root}.\mi{error}} u}\\
+&\ \ldots\\
+&}}{
+\ldots
+}
+\end{align*}
+
+\subsection{Polymorphic Lists}
+Polymorphic lists can be expressed using an abstract type member for
+the element type ($\mi{Elem}$). We can instantiate a refinement of the
+list package to manipulate lists with a particular element type. We
+can choose to make the lists invariant or covariant in the element
+type by fixing the lower bound of the $\mi{Elem}$ re-declaration to
+the upper bound or to $\Bot$, respectively.
+\begin{align*}
+&\mlnew {\mi{genLists}} {\Top \mlrefine g {\Ldecl {\mi{ListPackage}} \Bot {\Top \mlrefine p {\\\displaybreak[3]
+&\ \Ldecl {\mi{Elem}} \Bot \Top\\
+&\ \Ldecl {\mi{ListOfElement}} {g.\mi{List} \refine z {\Ldecl {\mi{Elem}} {p.\mi{Elem}} {p.\mi{Elem}}}} {\\&\gap\gap\gap\gap g.\mi{List} \refine z {\Ldecl {\mi{Elem}} {p.\mi{Elem}} {p.\mi{Elem}}}}\\
+&\ \Ldecl {\mi{List}} \Bot {\Top \mlrefine z {\\\displaybreak[3]
+&\ \gap \ldecl {\mi{isEmpty}} {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Boolean}}\\
+&\ \gap \ldecl {\mi{head}} {\mi{root}.\mi{Unit} \tfun g.\mi{Elem}}\\
+&\ \gap \ldecl {\mi{tail}} {\mi{root}.\mi{Unit} \tfun g.\mi{ListOfElem}}\\
+&\gap}}\\
+&\ \ldecl {\mi{nil}} {\mi{root}.\mi{Unit} \tfun g.\mi{ListOfElem}}\\
+&\ \ldecl {\mi{cons}} {g.\mi{Elem} \tfun g.\mi{ListOfElem}}\\
+&}}}}{
+\mlnew {\mi{natLists}} {{\mi{genLists}.\mi{ListPackage}} \mlrefine p { \Ldecl {\mi{Elem}} {\mi{Nat}} {\mi{Nat}} }\mlldefs{\\\displaybreak[3]
+&\ {\mi{nil}} = \ldots\\
+&\ {\mi{cons}} = \ldots\\
+&}}}{
+\ldots
+}
+\end{align*}
 
 \section{Counterexamples to Preservation}\label{dot-preservation}
 
