@@ -937,7 +937,7 @@ $\forall D'_i \exists D_j. D_j \sub D'_i$.
 
       \infrule[\textsc{tsel-wf$_1$}]
       {\Gamma \ts p \ni \Ldecl L S U \spcomma S \wf \spcomma U \wf}
-      {\Gamma \ts p.L \wf}
+      {\Gamma \ts p.L \wf \spcomma p.U \wf}
 
       \infrule[\textsc{$\tand$-wf}]
       {\Gamma \ts T \wf \spcomma T' \wf}
@@ -985,7 +985,37 @@ $\forall D'_i \exists D_j. D_j \sub D'_i$.
       {\Gamma \ts T \wf \spcomma T \expand_z \seq{D}}
       {\Gamma \ts T \wfe}
     \end{multicols}
-}
+} % END dot-wf
+
+\subsection*{Well-formedness}
+
+The well-formedness judgement $\Gamma \ts T \wf$ in \figref{dot-wf}
+states that in environment $\Gamma$ the type $T$ is
+well-formed.
+
+A refinement type $T \refine z {\seq D}$ is
+well-formed if the parent type $T$ is well-formed and every
+declaration in $\seq D$ is well-formed in an environment augmented by
+the binding of the self-reference $z$ to the refinement type itself
+(\textsc{rfn-wf}).
+
+A type selection $p.L$ is well-formed if $L$ is a member of $p$, and
+the lower bound of $L$ is also well-formed (\textsc{tsel-wf$_1$} and
+\textsc{tsel-wf$_2$}). The latter condition has the effect that the
+lower bound of a type $p.L$ may not refer directly or indirectly to a
+type containing $p.L$ itself --- if it would, the well-formedness
+judgement of $p.L$ would not have a finite proof. No such restriction
+exists for the upper bound of $L$ if the lower bound is $\bot$
+(\textsc{tsel-wf$_2$}). The upper bound may in fact refer back to the
+type. Hence, recursive class types and F-bounded abstract types are
+both expressible.
+
+The other forms of types in DOT are all well-formed if their
+constituent types are well-formed.
+
+Well-formedness extends straightforwardly to declarations with the
+judgement $\Gamma \ts D \wf$. All declarations are well-formed if
+their constituent types are well-formed.
 
 \section{Counterexamples to Preservation}\label{dot-preservation}
 
