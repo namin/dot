@@ -338,8 +338,6 @@
 % Lambda
 \newcommand{\dabs}[3]{(#1\!:\!#2)\Rightarrow #3}
 \newcommand{\abs}[3]{\lambda #1\!:\!#2.#3}
-% Application
-\newcommand{\app}[2]{#1\;#2}
 % Method Application
 \newcommand{\mapp}[3]{#1.#2(#3)}
 % Substitution
@@ -360,6 +358,12 @@
 \newcommand{\envplus}[1]{, #1}
 % Reduction
 \newcommand{\reduction}[4]{#1 \operatorname{|} #2 \reduces #3 \operatorname{|} #4}
+
+% Sugar
+\newcommand{\arrow}[2]{\textbf{arrow }#1\ #2}
+\newcommand{\fun}[4]{\textbf{fun } (#1:#2)\;#3\;#4}
+\newcommand{\app}[2]{(\textbf{app }#1\;#2)}
+\newcommand{\cast}[2]{(\textbf{cast }#1\;#2)}
 
 \newcommand{\lindent}{\hspace{-4mm}}
 
@@ -1024,6 +1028,16 @@ their constituent types are well-formed.
 \section{Examples}\label{dot-examples}
 
 \subsection{Sugar: Functions}
+Like in Scala, we can encode functions as objects with a special
+method. We will freely use the following sugar in the remaining of
+this paper. Note that the variable $z$ must be fresh.
+
+\begin{align*}
+\arrow S T &\iff {\Top \refine z {\mdecl {\mi{apply}} S T}}\\
+\fun x S T t &\iff \new z {\arrow S T} \ldefs{\mi{apply}(x) = t}\\
+\app f x &\iff \mapp f {\mi{apply}} x\\
+\cast T t&\iff \app {\fun x T T x} t
+\end{align*}
 
 \subsection{Basics: Booleans, Error, \ldots}
 This program defines a $\mi{root}$ object with basic types
