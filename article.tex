@@ -415,7 +415,7 @@ This paper presents a proposal for a new type-theoretic foundation of
 Scala and languages like it. The properties we are interested in
 modelling are Scala's path-dependent types and abstract type members,
 as well as its mixture of nominal and structural typing through the
-use of refinement types. Compared to previous approaches (nuObj, FS),
+use of refinement types. Compared to previous approaches~\cite{nuObj,FS},
 we make no attempt to model inheritance or mixin composition. Indeed
 we will argue that such concepts are better modelled in a different
 setting.
@@ -1110,10 +1110,11 @@ the upper bound or to $\Bot$, respectively.
 We prove that the DOT calculus is type-safe using logical relations in
 section~\ref{dot-type-safety}. However, we first tried to prove the
 calculus type-safe using the standard theorems of preservation and
-progress. Unfortunately, for the calculus as presented, and any of its
-variants that we devised, preservation doesn't hold. In this section,
-we review some of the most salient counterexamples to preservation
-that we found. These counterexamples have been checked with PLT Redex.
+progress~\cite{soundness,tapl}. Unfortunately, for the calculus as
+presented, and any of its variants that we devised, preservation
+doesn't hold. In this section, we review some of the most salient
+counterexamples to preservation that we found. These counterexamples
+have been checked with PLT Redex.
 
 \subsection{\texorpdfstring{\textsc{term-$\ni$}}{Term-Mem} Restriction}\label{term_mem}
 
@@ -1216,6 +1217,8 @@ true in general, but true here because $a.i$ reduces to $b$. Hence,
 the need for acknowledging path equality for preservation to hold.
 
 \section{Type Safety via Logical Relations}\label{dot-type-safety}
+We prove type-safety of the DOT calculus via step-indexed logical
+relations~\cite{ahmed04,ahmed06,step_indexed_obj}.
 
 \section{Discussion}\label{discussion}
 
@@ -1322,7 +1325,7 @@ reduction became more complicated and dependent on typing because the
 type information in widenings needed to be propagated correctly.
 
 We added path equality provisions in the subtyping rules, in the same
-spirit as the Tribe calculus.
+spirit as the Tribe calculus~\cite{tribe}.
 
 Unfortunately, these two patches interacted badly, and we were left
 with a disturbing counterexample to type safety.
