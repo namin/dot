@@ -360,7 +360,7 @@
 \newcommand{\reduction}[4]{#1 \operatorname{|} #2 \reduces #3 \operatorname{|} #4}
 
 % Sugar
-\newcommand{\arrow}[2]{\textbf{arrow }#1\ #2}
+\newcommand{\arrow}[2]{#1\rightarrow_s#2}
 \newcommand{\fun}[4]{\textbf{fun } (#1:#2)\;#3\;#4}
 \newcommand{\app}[2]{(\textbf{app }#1\;#2)}
 \newcommand{\cast}[2]{(\textbf{cast }#1\;#2)}
@@ -1031,7 +1031,6 @@ their constituent types are well-formed.
 Like in Scala, we can encode functions as objects with a special
 method. We will freely use the following sugar in the remaining of
 this paper. Note that the variable $z$ must be fresh.
-
 \begin{align*}
 \arrow S T &\iff {\Top \refine z {\mdecl {\mi{apply}} S T}}\\
 \fun x S T t &\iff \new z {\arrow S T} \ldefs{\mi{apply}(x) = t}\\
@@ -1039,37 +1038,40 @@ this paper. Note that the variable $z$ must be fresh.
 \cast T t&\iff \app {\fun x T T x} t
 \end{align*}
 
+In the remaining examples, for brevity, we will also use $\abs x S t$
+for $\fun x S \_ t$ where the return type can be somewhat inferred
+from the context.
+
 \subsection{Basics: Booleans, Error, \ldots}
 This program defines a $\mi{root}$ object with basic types
-($\mi{Unit}$, $\mi{Boolean}$, $\mi{Nat}$) and values ($\mi{true}$,
-$\mi{false}$, $\mi{error}$, $\mi{zero}$). For brevity, I've omitted
+($\mi{Unit}$, $\mi{Boolean}$, $\mi{Nat}$) and methods ($\mi{true}$,
+$\mi{false}$, $\mi{error}$, $\mi{zero}$). For brevity, we've omitted
 the code related to natural numbers. During the object creation, the
-value labels such as $\mi{false}$ are all initialized.
+method labels such as $\mi{false}$ are all initialized.
 \begin{align*}
 &\mlnew {\mi{root}} {\Top \mlrefine r {\\\displaybreak[3]
-&\ \Ldecl {\mi{Unit}} \Bot \Top\\
-&\ \ldecl {\mi{unit}} {\Top \tfun {r.\mi{Unit}}}\\
-&\ \Ldecl {\mi{Boolean}} \Bot {\Top \mlrefine z {\\
-&\ \gap \ldecl {\mi{ifNat}} {(r.\mi{Unit} \tfun r.\mi{Nat}) \tfun (r.\mi{Unit} \tfun r.\mi{Nat}) \tfun r.\mi{Nat}}\\
-&\gap}}\\
-&\ \ldecl {\mi{false}} {{r.\mi{Unit}} \tfun {r.\mi{Boolean}}}\\
-&\ \ldecl {\mi{true}} {{r.\mi{Unit}} \tfun {r.\mi{Boolean}}}\\
-&\ \ldots\\\displaybreak[3]
-&\ \ldecl {\mi{error}} {{r.\mi{Unit}} \tfun \Bot}\\
+&\ \Ldecl {\mi{Unit}} \Bot \Top\\\displaybreak[3]
+&\ \mdecl {\mi{unit}} \Top {r.\mi{Unit}}\\\displaybreak[3]
+&\ \Ldecl {\mi{Boolean}} \Bot {\Top \mlrefine z {\\\displaybreak[3]
+&\ \gap \ldecl {\mi{ifNat}} \arrow {(\arrow {r.\mi{Unit}} {r.\mi{Nat}})} {\arrow {(\arrow {r.\mi{Unit}} {r.\mi{Nat}})} {r.\mi{Nat}}}\\\displaybreak[3]
+&\gap}}\\\displaybreak[3]
+&\ \mdecl {\mi{false}} {r.\mi{Unit}} {r.\mi{Boolean}}\\\displaybreak[3]
+&\ \mdecl {\mi{true}} {r.\mi{Unit}} {r.\mi{Boolean}}\\\displaybreak[3]
+&\ \mdecl {\mi{error}} {r.\mi{Unit}} \Bot\\\displaybreak[3]
+& \ \ldots\\\displaybreak[3]
 &}\mlldefs{\\\displaybreak[3]
-&\ \mi{unit}  = \abs x \Top {\new u {\mi{root}.\mi{Unit}} u}\\
+&\ \mi{unit}(x) = {\new u {\mi{root}.\mi{Unit}} u}\\\displaybreak[3]
 %
-&\ \mi{false} = \abs u {\mi{root}.\mi{Unit}} {\\
+&\ \mi{false}(u) =\\\displaybreak[3]
 &\ \gap \mlnew {\mi{ff}} {\mi{root}.\mi{Boolean} \mlldefs{\\\displaybreak[3]
-&\ \gap\gap {\mi{ifNat}} = \abs t {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}} {\\&\gap\gap\gap\abs e {\mi{root}.\mi{Unit} \tfun \mi{root}.\mi{Nat}}\\&\gap\gap\gap\app e {\mi{root}.\mi{unit}}}\\
+&\ \gap\gap {\mi{ifNat}} = \abs t {\arrow {\mi{root}.\mi{Unit}} {\mi{root}.\mi{Nat}}} {\\&\gap\gap\gap\abs e {\arrow {\mi{root}.\mi{Unit}} {\mi{root}.\mi{Nat}}}\\&\gap\gap\gap\app e {\mi{root}.\mi{unit}}}\\\displaybreak[3]
 &\ \gap}}{
-\ \gap \mi{ff}}
-&}\\
+\ \gap \mi{ff}}\\\displaybreak[3]
 %
-&\ \mi{true} = \ldots\\
+&\ \mi{true}(u) = \ldots\\\displaybreak[3]
 %
-&\ \mi{error} = \abs u {\mi{root}.\mi{Unit}} {\app {\mi{root}.\mi{error}} u}\\
-&\ \ldots\\
+&\ \mi{error}(u) = {\app {\mi{root}.\mi{error}} u}\\\displaybreak[3]
+&\ \ldots\\\displaybreak[3]
 &}}{
 \ldots
 }
