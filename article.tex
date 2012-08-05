@@ -1189,7 +1189,9 @@ the well-formedness of its bounds.
 \begin{align*}
 &\mlnew v {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B {z.A} {z.A}}}} \ldefs{}}{
 \mlapp {(\abs x {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B \Bot \Top}}}} {\\&\gap
-\mlnew z {\Top \refine z {\mdecl l {x.L \tand {\Top \refine z {\Ldecl A {z.B} {z.B}, \Ldecl B \Bot \Top}}} \Top}\mlldefs{\\&\gap\gap l(y) = \fun a {y.A} \Top a}}{
+\mlnew z {\Top \mlrefine z {\\&\gap\gap\gap
+\mdecl l {x.L \tand {\Top \refine z {\Ldecl A {z.B} {z.B}, \Ldecl B \Bot \Top}}} \Top}\mlldefs{\\&\gap\gap\gap
+l(y) = \fun a {y.A} \Top a}}{
 \gap \cast {\top} z
 }})}{\ v}}
 \end{align*}
