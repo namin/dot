@@ -150,6 +150,7 @@ Inductive typing : env -> tm -> tp -> Prop :=
           (forall S U, d ^d^ x = decl_tp S U -> (ctx_bind E x Tc) |= S ~<: U) /\
           (forall S U, d ^d^ x = decl_mt S U -> (exists t,
             lbl.binds l t args /\ method_label l /\ (forall y, y \notin L' ->
+              wfe_tp E S /\
               (exists U', (ctx_bind (ctx_bind E x Tc) y S) |= ((t ^ x) ^ y) ~: U' /\ (ctx_bind (ctx_bind E x Tc) y S) |= U' ~<: U)))) /\
           (forall V, d ^d^ x = decl_tm V -> (exists v,
             lbl.binds l v args /\ value_label l /\ syn_value (v ^ x) /\ (exists V', (ctx_bind E x Tc) |= (v ^ x) ~: V' /\ (ctx_bind E x Tc) |= V' ~<: V))))) ->
@@ -282,20 +283,20 @@ with sub_decl : env -> decl -> decl -> Prop :=
 with wf_tp : env -> tp -> Prop :=
   | wf_rfn : forall L E T DS,
       decls_ok (decls_fin DS) ->
-      wfe_tp E T ->
+      wf_tp E T ->
       (forall z, z \notin L ->
         forall l d, decls_binds l d (decls_fin DS) -> (wf_decl (ctx_bind E z (tp_rfn T DS)) (d ^d^ z))) ->
       wf_tp E (tp_rfn T DS)
 (*| wf_fun : forall E T1 T2,
-      wfe_tp E T1 ->
-      wfe_tp E T2 ->
+      wf_tp E T1 ->
+      wf_tp E T2 ->
       wf_tp E (tp_fun T1 T2)*)
   | wf_tsel_1 : forall E p L S U,
       path p ->
       type_label L ->
       E |= p ~mem~ L ~: (decl_tp S U) ->
-      wfe_tp E S ->
-      wfe_tp E U ->
+      wf_tp E S ->
+      wf_tp E U ->
       wf_tp E (tp_sel p L)
   | wf_tsel_2 : forall E p L U,
       path p ->
@@ -303,12 +304,12 @@ with wf_tp : env -> tp -> Prop :=
       E |= p ~mem~ L ~: (decl_tp tp_bot U) ->
       wf_tp E (tp_sel p L)
   | wf_and : forall E T1 T2,
-      wfe_tp E T1 ->
-      wfe_tp E T2 ->
+      wf_tp E T1 ->
+      wf_tp E T2 ->
       wf_tp E (tp_and T1 T2)
   | wf_or : forall E T1 T2,
-      wfe_tp E T1 ->
-      wfe_tp E T2 ->
+      wf_tp E T1 ->
+      wf_tp E T2 ->
       wf_tp E (tp_or T1 T2)
   | wf_bot : forall E,
       wf_tp E tp_bot
@@ -317,11 +318,11 @@ with wf_tp : env -> tp -> Prop :=
 
 with wf_decl : env -> decl -> Prop :=
   | wf_decl_tp : forall E S U,
-      wfe_tp E S ->
-      wfe_tp E U ->
+      wf_tp E S ->
+      wf_tp E U ->
       wf_decl E (decl_tp S U)
   | wf_decl_tm : forall E T,
-      wfe_tp E T ->
+      wf_tp E T ->
       wf_decl E (decl_tm T)
 
 with wfe_tp : env -> tp -> Prop :=

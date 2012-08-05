@@ -198,7 +198,19 @@ Hint Extern 2 (wfe_tp ?E (tp_or ?T1 ?T2)) => wfe_by_combine_decls E T1 T2 or_dec
 
 Hint Constructors wf_tp expands.
 
+Hint Extern 1 (wf_tp ?E ?T) =>
+  match goal with
+  | IH: wfe_tp ?E ?T |- _ => inversion IH; subst; assumption
+  | IH: _ /\ wfe_tp ?E ?T /\ _ |- _ =>
+    let Hwfe := fresh "Hwfe" in (assert (wfe_tp E T) as Hwfe);
+      try apply (proj1 (proj2 IH)); inversion Hwfe; assumption
+  | IH: _ /\ _ /\ wfe_tp ?E ?T |- _ =>
+    let Hwfe := fresh "Hwfe" in (assert (wfe_tp E T) as Hwfe);
+      try apply (proj2 (proj2 IH)); inversion Hwfe; assumption
+  end.
+
   introv H. induction H; splits; eauto 3.
+
 Qed.
 
 (* *********************************************************************** *)
