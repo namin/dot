@@ -81,9 +81,9 @@
  
 \lstset{breaklines=true,language=scala} 
 
-\def\c{\lstinline}  % shorter version so you can write \c|String[Foo]|
-                    % -- \def must be in same file as uses for this to
-                    % work...
+\def\code{\lstinline}  % shorter version so you can write \code|String[Foo]|
+                       % -- \def must be in same file as uses for this to
+                       % work...
 \newcommand{\lstref}[1]{Listing~\ref{#1}}
 \newcommand{\Lstref}[1]{Listing~\ref{#1}} % only capitalise at beginning of sentence?
 \newcommand{\secref}[1]{Section~\ref{#1}}
@@ -401,9 +401,81 @@ Languages, Theory, Verification
 calculus, objects, dependent types, step-indexed logical relations
 
 \section{Introduction}
-% TODO
+
+This paper presents a proposal for a new type-theoretic foundation of
+Scala and languages like it. The properties we are interested in
+modelling are Scala's path-dependent types and abstract type members,
+as well as its mixture of nominal and structural typing through the
+use of refinement types. Compared to previous approaches (nuObj, FS),
+we make no attempt to model inheritance or mixin composition. Indeed
+we will argue that such concepts are better modelled in a different
+setting.
+
+The calculus does not precisely describe what's currently in Scala. It
+is more normative than descriptive. The main point of deviation
+concerns the difference between Scala's compound type formation using
+{\bf with} and classical type intersection, as it is modelled in the
+calculus. Scala, and the previous calculi attempting to model it
+conflates the concepts of compound types (which inherit the members of
+several parent types) and mixin composition (which build classes from
+other classes and traits). At first glance, this offers an economy of
+concepts. However, it is problematic because mixin composition and
+intersection types have quite different properties. In the case of
+several inherited members with the same name, mixin composition has to
+pick one which overrides the others. It uses for that the concept of
+linearization of a trait hierarchy. Typically, given two independent
+traits $T_1$ and $T_2$ with a common method $m$, the mixin composition
+\code@$T_1$ with $T_2$@ would pick the $m$ in $T_2$, whereas the member in
+$T_1$ would be available via a super-call. All this makes sense from
+an implementation standpoint. From a typing standpoint it is more
+awkward, because it breaks commutativity and with it several
+monotonicity properties.
+
+In the present calculus, we replace Scala's compound types by
+classical intersection types, which are commutative. We also
+complement this by classical union types. Intersections and unions
+form a lattice wrt subtyping. This addresses another problematic
+feature of Scala: In Scala's current type system, least upper bounds
+and greatest lower bounds do not always exist. Here is an example:
+Given two traits
+\begin{lstlisting}
+  trait A { type T <: A }
+  trait B { type T <: B }
+\end{lstlisting}
+The greatest lower bound of \code@A@ and \code@B@ is approximated by the
+infinite sequence
+\begin{lstlisting}
+  A with B { type T <: A with B { type T <: A with B {
+    type T < ...
+  }}}
+\end{lstlisting}
+The limit of this sequence does not exist as a type in Scala.
+
+This is problematic because glbs and lubs play a central role in
+Scala's type inference. The absence of universal glbs and lubs makes
+type inference more brittle and more unpredictable.
+
+\subsection*{Why No Inheritance?}
+
+In the calculus we made the deliberate choice not to model any form of
+inheritance. This is, first and foremost, to keep the calculus simple.
+Secondly, there are many different approaches to inheritance and
+mixin composition, so that it looks advantageous not to tie the basic
+calculus to a specific one. Finally, it seems that the modelization of
+inheritance lends itself to a different approach than the basic
+calculus. For the latter, we need to prove the standard theorems of
+preservation and progress to establish soundness of the type system.
+One might try to do this also for a calculus with inheritance, but our
+experience suggests that this complicates the proofs considerably.  An
+alternative approach to inheritance that might work better is to model
+it as a form of code-reuse. Starting with an enriched type system with
+inheritance, and a translation to the basic calculus, one needs to
+show type preservation wrt the translation. This might be easier than
+to prove type preservation wrt reduction.
 
 \section{The DOT Calculus}
+
+%%% BEGIN RULES %%%
 
 \boxfig{fig:dot-one}{The DOT Calculus : Syntax, Reduction, Type Assignment}{
 {\bf Syntax}\medskip
@@ -727,6 +799,8 @@ $\ldecl l \Bot$, for every type label $L$ the declaration $\Ldecl L
 \Top \Bot$ and for every method label $m$ the declaration $\mdecl m
 \Top \Bot$.
 }
+
+%%% END RULES %%%
 
 %\appendix
 %\section{Appendix Title}
