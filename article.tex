@@ -1292,7 +1292,7 @@ from the store for each missig variable.
 
 \subsubsection{$\Gamma \ds t : T$}
 
-$\Gamma \ds t : T$ is simplfy defined as $t \in \rele k \Gamma - T,
+$\Gamma \ds t : T$ is simply defined as $t \in \rele k \Gamma - T,
 \forall k$.
 
 \subsection{Proof of the Fundamental Theorem}
@@ -1370,7 +1370,7 @@ By the above and operational semantics, $\reductionl {t_1'.m_i(v_2)}
 By the substitution lemma, ${\subst {v_2} {x_i} {t_i}} \in \rele
 {k-\max(j_1,j_2)-1} {\Gamma_{12}} {s_{12}} {T}$. Supposing,
 $\reductionl {\subst {v_2} {x_i} {t_i}} {s_{12}} {t'} {s'} {j_3}$,
-with $j_1 + j_2 + j_3 + 1 = j$, this completes the case, eventually by
+with $j_1 + j_2 + j_3 + 1 = j$, this completes the case, by
 monotonicity of $\mathcal{V}$.
 
 \ \\
@@ -1388,7 +1388,7 @@ where $s_b = s \envplus{y \mapsto c}$. So $\reductionl {t_b} {s_b} {t'}
 {s'} {j-1}$.
 
 By induction hypotheses, $y \in \relv k {\Gamma_b} {s_b} {T_c}$ and $t_b \in
-\rele e k {\Gamma_b} {s_b}$.
+\rele k {\Gamma_b} {s_b} {T}$.
 
 Result follows by monotonicity of $\mathcal{V}$.
 
