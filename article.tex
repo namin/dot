@@ -1362,7 +1362,7 @@ Because $t_2$ reduces to a value $t_2'$ starting in store $s$, it
 should also reduce to a value $v_2$ in the same number of steps
 starting in store $s_1$, since $s_1$ includes $s$. So let $\reductionl
 {t_2} {s_1} {v_2} {s_{12}} {j_2}$ with $v_2 \in \relv {k-j_2-1}
-{\Gamma_{12}} s_{12}$.
+{\Gamma_{12}} {s_{12}} {T_2}$.
 
 By the above and operational semantics, $\reductionl {t_1'.m_i(v_2)}
 {s_{12}} {\subst {v_2} {x_i} {t_i}} {s_{12}} 1$.
