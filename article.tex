@@ -1356,7 +1356,22 @@ By operational semantics, $\reductionl {t_1'.m_i(t_2')} {s_2} {\subst
 {\subst {t_2'} x_i t_i} {s_2} {t'} {s'} {j_3}$, with $j_1 + j_2 + j_3 +
 1 = j$ implies what remains to be shown.
 
-\Case \textsc{new}: \todo{case}.
+\Case \textsc{new}: $\Gamma \ts \new y c {t'} : T$ knowing ...
+
+Need to show $\new y c {t'} \in \rele k \Gamma - T$. Suppose $k > 0$
+and $s \in \rels k \Gamma -$. Suppose, for some $j \leq k$,
+$\reductionl {\new y c {t'}} s {t''} {s''} j \andl \irred {t''} {s''} \andl
+\Gamma'' \in \relg \Gamma k {s''} \Gamma$. Remains to show ${t''} \in
+\relv {k-j-1} {\Gamma''} {s''} T$.
+
+By operational semantics, $\reductionl {\new y c {t'}} s {t'} s' 1$
+where $s' = s \envplus{y \mapsto c}$. So $\reductionl {t'} {s'} {t''}
+{s''} {j-1}$.
+
+By induction hypotheses, $y \in \relv k {\Gamma'} {s'} {T_c}$ and $t' \in
+\rele e k {\Gamma'} {s'}$.
+
+Result follows by monotonicity of $\mathcal{V}$.
 
 \end{myproof}
 
