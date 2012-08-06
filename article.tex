@@ -1399,20 +1399,27 @@ Result follows by monotonicity of $\mathcal{V}$.
 The substitution lemma states that if (1) $v_2 \in \relv {k_2}
 {\Gamma_{12}} {s_{12}} {T_2}$ and (2) $t \in \rele {k_1} {\Gamma_1
   \envplus{{x_i} : S}} {s_1} T$ and (3) $\Gamma \ts {T_2} \sub S$ with
-$\Gamma$ included in $\Gamma_1$ and $\Gamma_{12}$ included in
-$\Gamma_1$ and $s_{12}$ included in $s_1$, then $\subst {v_2} {x_i}
-{t_i} \in \rele {\min(k_1,k_2)} {\Gamma_{12}} {s_{12}} T$.
+(4) $x_i \not\in \fn(T)$ and $\Gamma$ included in $\Gamma_1$ and
+$\Gamma_{12}$ included in $\Gamma_1$ and $s_{12}$ included in $s_1$,
+then $\subst {v_2} {x_i} {t_i} \in \rele {\min(k_1,k_2)} {\Gamma_{12}}
+{s_{12}} T$.
 
 \begin{proofsketch}
-By (1) and (3), it should hold that (4) $v_2 \in \relv {k_2}
-{\Gamma_{12}} {s_{12}} {S}$. Since (2) holds, it should also hold that
-${t_i} \in \rele {\min(k_1,k_2)} {\Gamma_{12} \envplus{{x_i} : S}}
-{s_{12}} T$ by monotonicity of the logical relation on all
+By (1) and (3), it should hold that (5) $v_2 \in \relv {k_2}
+{\Gamma_{12}} {s_{12}} {S}$.  Since (2) holds, it should also hold
+that ${t_i} \in \rele {\min(k_1,k_2)} {\Gamma_{12} \envplus{{x_i} :
+    S}} {s_{12}} T$ by monotonicity of the logical relation on all
 subscripts. Then, we can instantiate $x_i$ in the complete store to
-map to what $v_2$ maps to. This should be fine by (4) and
+map to what $v_2$ maps to. This should be fine by (5) and
 monotonicity. Thus, ${t_i} \in \rele {\min(k_1,k_2)} {\Gamma_{12}
   \envplus{{x_i} : S}} {s_{12} \envplus{{x_i} \mapsto s_{12}(v)}}
-T$. This implies what needs to be shown.
+T$. Thanks to (4), we don't actually need $x_i$ to be held abstract in
+the environment, because it won't occur in $T$ or its expansion, so
+we can use the actual type constructor of $v_2$, say $T_{v_2}$, instead
+of $S$ for $x_i$: ${t_i} \in \rele {\min(k_1,k_2)} {\Gamma_{12}
+  \envplus{{x_i} : {T_{v_2}}}} {s_{12} \envplus{{x_i} \mapsto
+      s_{12}(v)}} T$. This implies what needs to be shown.
+
 \end{proofsketch}
 
 \section{Discussion}\label{discussion}
