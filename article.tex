@@ -1312,17 +1312,18 @@ Need to show $x \in \rele k \Gamma - T$. Suppose $k > 0$ and $s \in
 T$. This follows from the definition of $\mathcal{G}$.
 
 \Case \textsc{sel}: $\Gamma \ts t_1.l_i : T$ knowing $\Gamma \ts t_1 :
-T_1$, $\Gamma \ts T_1 \expand_z \seq{D}$, $l_i : V_i \in \seq{D}$ and
-knowing either that $t_1 = p_1 \andl T = \subst p z {V_i}$ or that $z
-\not\in \fn(V_i) \andl T = V_i$.
+T_1$, $\Gamma \ts T_1 \expand_z \seq{D}$, $\ldecl {l_i} {V_i} \in
+\seq{D}$ and knowing either that $t_1 = p_1 \andl T = \subst p z
+    {V_i}$ or that $z \not\in \fn(V_i) \andl T = V_i$.
 
 Need to show $t_1.l_i \in \rele k \Gamma - T$. Suppose $k > 0$ and $s
-\in \rels k \Gamma -$. Suppose $\reductionl {t_1.l_i} s {t'} {s'}
-\andl \irred {t'} {s'} \andl \Gamma' \in \relg \Gamma k {s'}
-\Gamma$. Remains to show ${t'} \in \relv {k-j-1} {\Gamma'} {s'} T$.
+\in \rels k \Gamma -$. Suppose, for some $j \leq k$, $\reductionl
+    {t_1.l_i} s {t'} {s'} j \andl \irred {t'} {s'} \andl \Gamma' \in
+    \relg \Gamma k {s'} \Gamma$. Remains to show ${t'} \in \relv
+          {k-j-1} {\Gamma'} {s'} T$.
 
-By operational semantics, $\reductionl {t_1} s {t_1'} {s'} {j-1}$ and
-$\irred {t_1'} {s'}$. By induction hypothesis, ${t_1'} \in \relv
+By operational semantics and induction hypothesis, $\reductionl {t_1}
+s {t_1'} {s'} {j-1}$ and $\irred {t_1'} {s'}$ and ${t_1'} \in \relv
 {k-j+1-1} {\Gamma'} {s'} {T_1}$.
 
 By operational semantics, $\reductionl {t_1'.l_i} {s'} {t'} {s'}
@@ -1330,7 +1331,30 @@ By operational semantics, $\reductionl {t_1'.l_i} {s'} {t'} {s'}
 conclude $t' \in \relv {k-j-1} {\Gamma'} {s'} T$ from the clause for
 value labels.
 
-\Case \textsc{msel}: \todo{case}.
+\Case \textsc{msel}: $\Gamma \ts t_1.m_i(t_2) : T$ knowing $\Gamma \ts
+t_1 : T_1$, $\Gamma \ts t_2 : T_2$, $\Gamma \ts T_1 \expand_z
+\seq{D}$, $\mdecl {m_i} {S_i} {U_i} \in \seq{D}$ and knowing either
+that $t_1 = p_1 \andl S = \subst p z {S_i} \andl T = \subst p z {U_i}$
+or that $z \not\in \fn(S_i) \andl z \not\in \fn(U_i) \andl S = S_i \andl
+T = U_i$.
+
+Need to show $t_1.m_i(t_2) \in \rele k \Gamma - T$. Suppose $k > 0$
+and $s \in \rels k \Gamma -$. Suppose, for some $j \leq k$,
+$\reductionl {t_1.m_i(t_2)} s {t'} {s'} j \andl \irred {t'} {s'} \andl
+\Gamma' \in \relg \Gamma k {s'} \Gamma$. Remains to show ${t'} \in
+\relv {k-j-1} {\Gamma'} {s'} T$.
+
+By operational semantics and induction hypotheses, $\reductionl {t_1}
+s {t_1'} {s_1} {j_1}$ and $\irred {t_1'} {s_1}$ and $\reductionl {t_2}
+{s_1} {t_2'} {s_2} {j_2}$ and $\irred {t_2'} {s_2}$ and ${t_1'} \in \relv
+{k-j_1-1} {\Gamma_1} {s_1} {T_1}$ and ${t_2'} \in \relv {k-j_1-j_2-1}
+{\Gamma_2} {s_2} {T_2}$.
+
+By operational semantics, $\reductionl {t_1'.m_i(t_2')} {s_2} {\subst
+  {t_2'} x_i t_i} {s_2} 1$. By substitution lemma, ${\subst {t_2'} x_i
+  t_i} \in \rele {k-j_1-j_2-1} {\Gamma_2} {s_2} T$. So, $\reductionl
+{\subst {t_2'} x_i t_i} {s_2} {t'} {s'} {j_3}$, with $j_1 + j_2 + j_3 +
+1 = j$ implies what remains to be shown.
 
 \Case \textsc{new}: \todo{case}.
 
