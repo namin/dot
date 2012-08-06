@@ -1536,7 +1536,7 @@ Notice that $d$ has type $\Bot$ if the cast on $b$ is ignored. This
 example didn't typecheck initially because the path-equality
 provisions only applied when objects are in the store, so the
 application was not well-typed. But if we started preservation in a store
-which has $a$, $b$, $c$ and $d$ then the application type-checked,
+which had $a$, $b$, $c$ and $d$ then the application type-checked,
 because, through one of the path-equality provision, we could find that
 the type of $d$ was a subtype of $\Bot$. Now, of course, when we got to
 $d.\mathit{foo}$, reduction failed.
