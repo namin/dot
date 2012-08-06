@@ -1368,7 +1368,7 @@ By the above and operational semantics, $\reductionl {t_1'.m_i(v_2)}
 {s_{12}} {\subst {v_2} {x_i} {t_i}} {s_{12}} 1$.
 
 By the substitution lemma, ${\subst {v_2} {x_i} {t_i}} \in \rele
-{k-\max(j_1,j_2)-2} {\Gamma_{12}} {s_{12}} {T}$. Supposing,
+{k-\max(j_1,j_2)-1} {\Gamma_{12}} {s_{12}} {T}$. Supposing,
 $\reductionl {\subst {v_2} {x_i} {t_i}} {s_{12}} {t'} {s'} {j_3}$,
 with $j_1 + j_2 + j_3 + 1 = j$, this completes the case, eventually by
 monotonicity of $\mathcal{V}$.
@@ -1396,14 +1396,24 @@ Result follows by monotonicity of $\mathcal{V}$.
 
 \subsection{Proof of the Substitution Lemma}
 
-The substitution lemma states that if $v_2 \in \relv {k_2}
-{\Gamma_{12}} {s_{12}} {T_2}$ and $t \in \rele {k_1} {\Gamma_1
-  \envplus{{x_i} : S}} {s_1} T$ and $\Gamma \ts {T_2} \sub S$ with
+The substitution lemma states that if (1) $v_2 \in \relv {k_2}
+{\Gamma_{12}} {s_{12}} {T_2}$ and (2) $t \in \rele {k_1} {\Gamma_1
+  \envplus{{x_i} : S}} {s_1} T$ and (3) $\Gamma \ts {T_2} \sub S$ with
 $\Gamma$ included in $\Gamma_1$ and $\Gamma_{12}$ included in
 $\Gamma_1$ and $s_{12}$ included in $s_1$, then $\subst {v_2} {x_i}
-{t_i} \in \rele {\min(k_1,k_2)-1} {\Gamma_{12}} {s_{12}} T$.
+{t_i} \in \rele {\min(k_1,k_2)} {\Gamma_{12}} {s_{12}} T$.
 
-\todo{proof}
+\begin{proofsketch}
+By (1) and (3), it should hold that (4) $v_2 \in \relv {k_2}
+{\Gamma_{12}} {s_{12}} {S}$. Since (2) holds, it should also hold that
+${t_i} \in \rele {\min(k_1,k_2)} {\Gamma_{12} \envplus{{x_i} : S}}
+{s_{12}} T$ by monotonicity of the logical relation on all
+subscripts. Then, we can instantiate $x_i$ in the complete store to
+map to what $v_2$ maps to. This should be fine by (4) and
+monotonicity. Thus, ${t_i} \in \rele {\min(k_1,k_2)} {\Gamma_{12}
+  \envplus{{x_i} : S}} {s_{12} \envplus{{x_i} \mapsto s_{12}(v)}}
+T$. This implies what needs to be shown.
+\end{proofsketch}
 
 \section{Discussion}\label{discussion}
 
