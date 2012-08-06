@@ -1332,10 +1332,10 @@ By operational semantics and induction hypothesis, $\reductionl {t_1}
 s {t_1'} {s'} {j-1}$ and $\irred {t_1'} {s'}$ and ${t_1'} \in \relv
 {k-j+1-1} {\Gamma'} {s'} {T_1}$.
 
-By operational semantics, $\reductionl {t_1'.l_i} {s'} {t'} {s'}
-1$. Since ${t_1'} \in \relv {k-j} {\Gamma'} {s'} {T_1}$, we can
-conclude $t' \in \relv {k-j-1} {\Gamma'} {s'} T$ from the clause for
-value labels.
+By operational semantics and the above, $\reductionl {t_1'.l_i} {s'}
+{t'} {s'} 1$, and we can conclude $t' \in \relv {k-j-1} {\Gamma'} {s'}
+T$ from the clause for value labels of ${t_1'} \in \relv {k-j}
+{\Gamma'} {s'} {T_1}$.
 
 \ \\
 
@@ -1364,8 +1364,8 @@ starting in store $s_1$, since $s_1$ includes $s$. So let $\reductionl
 {t_2} {s_1} {v_2} {s_{12}} {j_2}$ with $v_2 \in \relv {k-j_2-1}
 {\Gamma_{12}} s_{12}$.
 
-By operational semantics, $\reductionl {t_1'.m_i(v_2)} {s_{12}}
-{\subst {v_2} {x_i} {t_i}} {s_{12}} 1$.
+By the above and operational semantics, $\reductionl {t_1'.m_i(v_2)}
+{s_{12}} {\subst {v_2} {x_i} {t_i}} {s_{12}} 1$.
 
 It remains to show that ${\subst {v_2} {x_i} {t_i}} \in \rele
 {k-j_2-j_2-1} {\Gamma_{12}} {s_{12}} {T}$ to complete the case. We
