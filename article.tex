@@ -1302,16 +1302,18 @@ $\Gamma \ds t : T$. Type safety is a straightforward corollary of this
 theorem.
 
 \begin{myproof}
-The proof is on induction on the derivation of $\Gamma \ts t : T$.
+The proof is on induction on the derivation of $\Gamma \ts t : T$. For
+each case, we need to show $t \in \rele k \Gamma - T, \forall k$. The
+non-trivial case is to need to show ${t'} \in \relv {k-j-1} {\Gamma'}
+{s'} T$ by supposing $k > 0$, $s \in \rels k \Gamma -$, and, for some
+$j \leq k$, $\reductionl {t} s {t'} {s'} j \andl \irred {t'}
+{s'} \andl \Gamma' \in \relg \Gamma k {s'} \Gamma$.
 
 \ \\
 
 \Case \textsc{var}: $\Gamma \ts x : T$ knowing $(x : T) \in
-\Gamma$.
-
-Need to show $x \in \rele k \Gamma - T$. Suppose $k > 0$ and $s \in
-\rels k \Gamma -$. Remains to show $x \in \relv {k-1} \Gamma s
-T$. This follows from the definition of $\mathcal{G}$.
+\Gamma$. $x \in \relv {k-1} \Gamma s T$ follows from the definition of
+$\mathcal{G}$.
 
 \ \\
 
@@ -1320,11 +1322,11 @@ T_1$, $\Gamma \ts T_1 \expand_z \seq{D}$, $\ldecl {l_i} {V_i} \in
 \seq{D}$ and knowing either that $t_1 = p_1 \andl T = \subst p z
     {V_i}$ or that $z \not\in \fn(V_i) \andl T = V_i$.
 
-Need to show $t_1.l_i \in \rele k \Gamma - T$. Suppose $k > 0$ and $s
-\in \rels k \Gamma -$. Suppose, for some $j \leq k$, $\reductionl
-    {t_1.l_i} s {t'} {s'} j \andl \irred {t'} {s'} \andl \Gamma' \in
-    \relg \Gamma k {s'} \Gamma$. Remains to show ${t'} \in \relv
-          {k-j-1} {\Gamma'} {s'} T$.
+%Need to show $t_1.l_i \in \rele k \Gamma - T$. Suppose $k > 0$ and $s
+%\in \rels k \Gamma -$. Suppose, for some $j \leq k$, $\reductionl
+%    {t_1.l_i} s {t'} {s'} j \andl \irred {t'} {s'} \andl \Gamma' \in
+%    \relg \Gamma k {s'} \Gamma$. Remains to show ${t'} \in \relv
+%          {k-j-1} {\Gamma'} {s'} T$.
 
 By operational semantics and induction hypothesis, $\reductionl {t_1}
 s {t_1'} {s'} {j-1}$ and $\irred {t_1'} {s'}$ and ${t_1'} \in \relv
@@ -1344,44 +1346,55 @@ that $t_1 = p_1 \andl S = \subst p z {S_i} \andl T = \subst p z {U_i}$
 or that $z \not\in \fn(S_i) \andl z \not\in \fn(U_i) \andl S = S_i \andl
 T = U_i$.
 
-Need to show $t_1.m_i(t_2) \in \rele k \Gamma - T$. Suppose $k > 0$
-and $s \in \rels k \Gamma -$. Suppose, for some $j \leq k$,
-$\reductionl {t_1.m_i(t_2)} s {t'} {s'} j \andl \irred {t'} {s'} \andl
-\Gamma' \in \relg \Gamma k {s'} \Gamma$. Remains to show ${t'} \in
-\relv {k-j-1} {\Gamma'} {s'} T$.
+%Need to show $t_1.m_i(t_2) \in \rele k \Gamma - T$. Suppose $k > 0$
+%and $s \in \rels k \Gamma -$. Suppose, for some $j \leq k$,
+%$\reductionl {t_1.m_i(t_2)} s {t'} {s'} j \andl \irred {t'} {s'} \andl
+%\Gamma' \in \relg \Gamma k {s'} \Gamma$. Remains to show ${t'} \in
+%\relv {k-j-1} {\Gamma'} {s'} T$.
 
 By operational semantics and induction hypotheses, $\reductionl {t_1}
 s {t_1'} {s_1} {j_1}$ and $\irred {t_1'} {s_1}$ and $\reductionl {t_2}
-{s_1} {t_2'} {s_2} {j_2}$ and $\irred {t_2'} {s_2}$ and ${t_1'} \in \relv
-{k-j_1-1} {\Gamma_1} {s_1} {T_1}$ and ${t_2'} \in \relv {k-j_1-j_2-1}
-{\Gamma_2} {s_2} {T_2}$.
+{s} {t_2'} {s_2} {j_2}$ and $\irred {t_2'} {s_2}$ and ${t_1'} \in
+\relv {k-j_1-1} {\Gamma_1} {s_1} {T_1}$ and ${t_2'} \in \relv
+{k-j_2-1} {\Gamma_2} {s_2} {T_2}$.
 
-By operational semantics, $\reductionl {t_1'.m_i(t_2')} {s_2} {\subst
-  {t_2'} x_i t_i} {s_2} 1$. By substitution lemma, ${\subst {t_2'} x_i
-  t_i} \in \rele {k-j_1-j_2-1} {\Gamma_2} {s_2} T$. So, $\reductionl
-{\subst {t_2'} x_i t_i} {s_2} {t'} {s'} {j_3}$, with $j_1 + j_2 + j_3 +
-1 = j$ implies what remains to be shown.
+Because $t_2$ reduces to a value $t_2'$ starting in store $s$, it
+should also reduce to a value $v_2$ in the same number of steps
+starting in store $s_1$, since $s_1$ includes $s$. So let $\reductionl
+{t_2} {s_1} {v_2} {s_{12}} {j_2}$ with $v_2 \in \relv {k-j_2-1}
+{\Gamma_{12}} s_{12}$.
+
+By operational semantics, $\reductionl {t_1'.m_i(v_2)} {s_{12}}
+{\subst {v_2} {x_i} {t_i}} {s_{12}} 1$.
+
+It remains to show that ${\subst {v_2} {x_i} {t_i}} \in \rele
+{k-j_2-j_2-1} {\Gamma_{12}} {s_{12}} {T}$ to complete the case. We
+defer this to the substitution lemma.
 
 \ \\
 
-\Case \textsc{new}: $\Gamma \ts \new y c {t'} : T$ knowing ...
+\Case \textsc{new}: $\Gamma \ts \new y c {t_b} : T$ knowing ...
 
-Need to show $\new y c {t'} \in \rele k \Gamma - T$. Suppose $k > 0$
-and $s \in \rels k \Gamma -$. Suppose, for some $j \leq k$,
-$\reductionl {\new y c {t'}} s {t''} {s''} j \andl \irred {t''} {s''} \andl
-\Gamma'' \in \relg \Gamma k {s''} \Gamma$. Remains to show ${t''} \in
-\relv {k-j-1} {\Gamma''} {s''} T$.
+%Need to show $\new y c {t'} \in \rele k \Gamma - T$. Suppose $k > 0$
+%and $s \in \rels k \Gamma -$. Suppose, for some $j \leq k$,
+%$\reductionl {\new y c {t'}} s {t''} {s''} j \andl \irred {t''} {s''} \andl
+%\Gamma'' \in \relg \Gamma k {s''} \Gamma$. Remains to show ${t''} \in
+%\relv {k-j-1} {\Gamma''} {s''} T$.
 
-By operational semantics, $\reductionl {\new y c {t'}} s {t'} s' 1$
-where $s' = s \envplus{y \mapsto c}$. So $\reductionl {t'} {s'} {t''}
-{s''} {j-1}$.
+By operational semantics, $\reductionl {\new y c {t_b}} s {t_b} {s_b} 1$
+where $s_b = s \envplus{y \mapsto c}$. So $\reductionl {t_b} {s_b} {t'}
+{s'} {j-1}$.
 
-By induction hypotheses, $y \in \relv k {\Gamma'} {s'} {T_c}$ and $t' \in
-\rele e k {\Gamma'} {s'}$.
+By induction hypotheses, $y \in \relv k {\Gamma_b} {s_b} {T_c}$ and $t_b \in
+\rele e k {\Gamma_b} {s_b}$.
 
 Result follows by monotonicity of $\mathcal{V}$.
 
 \end{myproof}
+
+\subsection{Proof of the Substitution Lemma}
+
+\todo{statement and proof}
 
 \section{Discussion}\label{discussion}
 
