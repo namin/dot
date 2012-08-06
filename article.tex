@@ -355,7 +355,7 @@
 \newcommand{\rels}[3]{\mathcal{S}_{#1;#2}\llbracket#3\rrbracket}
 \newcommand{\relg}[3]{\mathcal{G}_{#1;#2}\llbracket#3\rrbracket}
 \newcommand{\irred}[2]{\text{irred }(#1,#2)}
-\newcommand{\andl}{\;\wedge}
+\newcommand{\andl}{\;\wedge\;}
 \newcommand{\orl}{\vee}
 \newcommand{\impliesl}{\rightarrow}
 \newcommand{\reductionl}[5]{#1 \operatorname{|} #2 \;\rightarrow^{#5}\; #3 \operatorname{|} #4}
@@ -1301,6 +1301,41 @@ The fundamental theorem is the implication from $\Gamma \ts t : T$ to
 $\Gamma \ds t : T$. Type safety is a straightforward corollary of this
 theorem.
 
+\begin{myproof}
+The proof is on induction on the derivation of $\Gamma \ts t : T$.
+
+\Case \textsc{var}: $\Gamma \ts x : T$ knowing $(x : T) \in
+\Gamma$.
+
+Need to show $x \in \rele k \Gamma - T$. Suppose $k > 0$ and $s \in
+\rels k \Gamma -$. Remains to show $x \in \relv {k-1} \Gamma s
+T$. This follows from the definition of $\mathcal{G}$.
+
+\Case \textsc{sel}: $\Gamma \ts t_1.l_i : T$ knowing $\Gamma \ts t_1 :
+T_1$, $\Gamma \ts T_1 \expand_z \seq{D}$, $l_i : V_i \in \seq{D}$ and
+knowing either that $t_1 = p_1 \andl T = \subst p z {V_i}$ or that $z
+\not\in \fn(V_i) \andl T = V_i$.
+
+Need to show $t_1.l_i \in \rele k \Gamma - T$. Suppose $k > 0$ and $s
+\in \rels k \Gamma -$. Suppose $\reductionl {t_1.l_i} s {t'} {s'}
+\andl \irred {t'} {s'} \andl \Gamma' \in \relg \Gamma k {s'}
+\Gamma$. Remains to show ${t'} \in \relv {k-j-1} {\Gamma'} {s'} T$.
+
+By operational semantics, $\reductionl {t_1} s {t_1'} {s'} {j-1}$ and
+$\irred {t_1'} {s'}$. By induction hypothesis, ${t_1'} \in \relv
+{k-j+1-1} {\Gamma'} {s'} {T_1}$.
+
+By operational semantics, $\reductionl {t_1'.l_i} {s'} {t'} {s'}
+1$. Since ${t_1'} \in \relv {k-j} {\Gamma'} {s'} {T_1}$, we can
+conclude $t' \in \relv {k-j-1} {\Gamma'} {s'} T$ from the clause for
+value labels.
+
+\Case \textsc{msel}: \todo{case}.
+
+\Case \textsc{new}: \todo{case}.
+
+\end{myproof}
+
 \section{Discussion}\label{discussion}
 
 \subsection{Variants of the DOT Calculus}\label{dot-variants}
@@ -1310,7 +1345,6 @@ theorem.
 Currently, the proof of type-safety via logical relations
 fundamentally relies on types having an expansion. However, this was
 not our original motivation for limiting the calculus to $\wfe$-types.
-
 
 Originally, subtyping was not regular wrt $\wfe$. Roughly,
 all the $\wfe$ preconditions in subtyping were dropped. In this
