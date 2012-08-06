@@ -7,6 +7,7 @@
 % authoryear    To obtain author/year citation style instead of numeric.
 
 \usepackage{amsmath}
+\usepackage{amssymb}
 
 \usepackage{fleqn}
 \usepackage{listings}
@@ -357,6 +358,8 @@
 \newcommand{\andl}{\;\wedge}
 \newcommand{\orl}{\vee}
 \newcommand{\impliesl}{\rightarrow}
+\newcommand{\reductionl}[5]{#1 \operatorname{|} #2 \;\rightarrow^{#5}\; #3 \operatorname{|} #4}
+\newcommand{\ds}{\,\vDash\,}
 
 \begin{document}
 
@@ -1209,6 +1212,26 @@ we need to acknowledge path equality for preservation to hold.
 We sketch a proof of type-safety of the DOT calculus via step-indexed
 logical relations~\cite{ahmed04,ahmed06,step_indexed_obj}.
 
+\subsection{Type Safety}
+Type-safety states that a well-typed program doesn't get stuck. More
+formally: If $- \ts t \typ T$ and $\reductionl t - {t'} {s'} *$ then
+either $t'$ is a value or $\exists t'', s'', \reduction {t'} {s'}
+{t''} {s''}$.
+
+Our strategy is to define a logical relation $\Gamma \ds t : T$, such
+that $\Gamma \ts t : T$ implies $\Gamma \ds t : T$ implies
+type-safety.
+
+\subsection{Logical Relations}
+
+\subsubsection{$\mathcal{V}$}
+$\relv k \Gamma s T$ defines the set of values that appear to have
+type $T$ when taking at most $k$ steps. $\Gamma$ and $s$ must agree:
+$\dom(\Gamma) = \dom(s)$ and $\forall (x : T) \in \Gamma, x \in \relv
+k \Gamma s T$. A variable $y$ belongs to $\relv 0 \Gamma s T$ simply
+by being in the store. In addition, it belongs to $\relv k \Gamma s T$
+for $k > 0$, if it defines all method and value labels in the
+expansion of $T$ appropriately for $j < k$ steps.
 \begin{align*}
 &\relv k \Gamma s T = \{ y \ |\\
 &\gap \Gamma \ts T \wfe \andl\\
@@ -1224,18 +1247,31 @@ logical relations~\cite{ahmed04,ahmed06,step_indexed_obj}.
 &\}
 \end{align*}
 
+\subsubsection{$\mathcal{E}$}
+$\rele k \Gamma s T$ defines the set of terms that appear to have type
+$T$ when taking at most $k$ steps. $s$ must agree with $\Gamma$, but
+$\Gamma$ can additionaly contain variables not in $s$. This is needed
+for checking methods in $\mathcal{V}$ above, and for relating open
+terms. If $k > 0$, $\mathcal{E}$ completes the store to agree with
+$\Gamma$. It then states that if it can reduce $t$ in the completed
+store to an irreducible term in $j < k$ steps, then this term must be
+in a corresponding $\mathcal{V}$ set.
 \begin{align*}
 &\rele k \Gamma s T = \{ t \ |\\
 &\gap \Gamma \ts T \wfe \andl\\
 &\gap k = 0 \orl (\forall j \leq k,\\
 &\gap\gap \forall s' \in \rels k \Gamma s ,\\
-&\gap\gap \reduction t {s'} {t'} {s''} \andl\\
+&\gap\gap \reductionl t {s'} {t'} {s''} j \andl\\
 &\gap\gap \irred {t'} {s''} \impliesl\\
 &\gap\gap \forall \Gamma' \in \relg k {s''} \Gamma ,\\
 &\gap\gap {t'} \in \relv {k-j-1} {\Gamma'} {s''} T)\\
 &\}
 \end{align*}
 
+\subsubsection{$\mathcal{S}$}
+$\rels k \Gamma s$ for $k > 0$ defines the set of completed stores
+that agree with $\Gamma$ on each variable when taking at most $k-1$
+steps.
 \begin{align*}
 &\rels k \Gamma s = \{ s, \seq{x_i \mapsto c_i}^{m \leq i < n} \ |\\
 &\gap s = \seq{x \mapsto c}^m \andl \Gamma = \seq{x : T}^n \andl \\
@@ -1244,13 +1280,26 @@ logical relations~\cite{ahmed04,ahmed06,step_indexed_obj}.
 &\}
 \end{align*}
 
+\subsubsection{$\mathcal{G}$}
+$\relg k s \Gamma$ defines a singleton set of a completed environment
+that agrees with a store $s$ by simply copying the constructor type
+from the store for each missig variable.
 \begin{align*}
 &\relg k s \Gamma = \{ \Gamma, \seq{x_i : T_{c_i}}^{m \leq i < n} \ |\\
 &\gap \Gamma = \seq{x : T}^m \andl s = \seq{x \mapsto c}^n \andl\\
 &\}
 \end{align*}
 
-\todo{complete proof!}
+\subsubsection{$\Gamma \ds t : T$}
+
+$\Gamma \ds t : T$ is simplfy defined as $t \in \rele k \Gamma - T,
+\forall k$.
+
+\subsection{Proof of the Fundamental Theorem}
+
+The fundamental theorem is the implication from $\Gamma \ts t : T$ to
+$\Gamma \ds t : T$. Type safety is a straightforward corollary of this
+theorem.
 
 \section{Discussion}\label{discussion}
 
