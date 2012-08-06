@@ -353,7 +353,7 @@
 \copyrightdata{[to be supplied]} 
 
 \title{Dependent Object Types}
-\subtitle{A foundations for Scala's type system} % TODO: ask
+\subtitle{Towards a foundation for Scala's type system}
 
 \authorinfo{Nada Amin \and Adriaan Moors \and Martin Odersky}
            {EPFL}
@@ -372,7 +372,8 @@ is more normative than descriptive.
 
 We show that DOT and its patched-up variants are not syntactically
 sound, by exhibiting counterexamples to preservation. Nevertheless, we
-prove type-safety of the calculus via step-indexed logical relations.
+sketch a proof of type-safety of the calculus via step-indexed logical
+relations.
 \end{abstract}
 
 \category{D.3.3}{Language Constructs and Features}{Abstract data types, Classes and objects, polymorphism}
@@ -1083,14 +1084,14 @@ the upper bound or to $\Bot$, respectively.
 
 \section{Counterexamples to Preservation}\label{dot-preservation}
 
-We prove that the DOT calculus is type-safe using logical relations in
-section~\ref{dot-type-safety}. However, we first tried to prove the
-calculus type-safe using the standard theorems of preservation and
-progress~\cite{soundness,tapl}. Unfortunately, for the calculus as
-presented, and any of its variants that we devised, preservation
-doesn't hold. In this section, we review some of the most salient
-counterexamples to preservation that we found. These counterexamples
-have been checked with PLT Redex~\cite{plt_redex}.
+We sketch a proof that the DOT calculus is type-safe using logical
+relations in section~\ref{dot-type-safety}. However, we first tried to
+prove the calculus type-safe using the standard theorems of
+preservation and progress~\cite{soundness,tapl}. Unfortunately, for
+the calculus as presented, and any of its variants that we devised,
+preservation doesn't hold. In this section, we review some of the most
+salient counterexamples to preservation that we found. These
+counterexamples have been checked with PLT Redex~\cite{plt_redex}.
 
 \subsection{\texorpdfstring{\textsc{term-$\ni$}}{Term-Mem} Restriction}\label{term_mem}
 
@@ -1193,10 +1194,10 @@ true in general, but true here because $a.i$ reduces to $b$. Hence,
 we need to acknowledge path equality for preservation to hold.
 
 \section{Type Safety via Logical Relations}\label{dot-type-safety}
-We prove type-safety of the DOT calculus via step-indexed logical
-relations~\cite{ahmed04,ahmed06,step_indexed_obj}.
+We sketch a proof of type-safety of the DOT calculus via step-indexed
+logical relations~\cite{ahmed04,ahmed06,step_indexed_obj}.
 
-\todo{write up the proof!}
+\todo{complete proof!}
 
 \section{Discussion}\label{discussion}
 
