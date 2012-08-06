@@ -1304,12 +1304,16 @@ theorem.
 \begin{myproof}
 The proof is on induction on the derivation of $\Gamma \ts t : T$.
 
+\ \\
+
 \Case \textsc{var}: $\Gamma \ts x : T$ knowing $(x : T) \in
 \Gamma$.
 
 Need to show $x \in \rele k \Gamma - T$. Suppose $k > 0$ and $s \in
 \rels k \Gamma -$. Remains to show $x \in \relv {k-1} \Gamma s
 T$. This follows from the definition of $\mathcal{G}$.
+
+\ \\
 
 \Case \textsc{sel}: $\Gamma \ts t_1.l_i : T$ knowing $\Gamma \ts t_1 :
 T_1$, $\Gamma \ts T_1 \expand_z \seq{D}$, $\ldecl {l_i} {V_i} \in
@@ -1330,6 +1334,8 @@ By operational semantics, $\reductionl {t_1'.l_i} {s'} {t'} {s'}
 1$. Since ${t_1'} \in \relv {k-j} {\Gamma'} {s'} {T_1}$, we can
 conclude $t' \in \relv {k-j-1} {\Gamma'} {s'} T$ from the clause for
 value labels.
+
+\ \\
 
 \Case \textsc{msel}: $\Gamma \ts t_1.m_i(t_2) : T$ knowing $\Gamma \ts
 t_1 : T_1$, $\Gamma \ts t_2 : T_2$, $\Gamma \ts T_1 \expand_z
@@ -1355,6 +1361,8 @@ By operational semantics, $\reductionl {t_1'.m_i(t_2')} {s_2} {\subst
   t_i} \in \rele {k-j_1-j_2-1} {\Gamma_2} {s_2} T$. So, $\reductionl
 {\subst {t_2'} x_i t_i} {s_2} {t'} {s'} {j_3}$, with $j_1 + j_2 + j_3 +
 1 = j$ implies what remains to be shown.
+
+\ \\
 
 \Case \textsc{new}: $\Gamma \ts \new y c {t'} : T$ knowing ...
 
