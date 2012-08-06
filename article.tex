@@ -351,6 +351,7 @@
 % Logical relations
 \newcommand{\relv}[4]{\mathcal{V}_{#1;#2;#3}\llbracket#4\rrbracket}
 \newcommand{\rele}[4]{\mathcal{E}_{#1;#2;#3}\llbracket#4\rrbracket}
+\newcommand{\rels}[3]{\mathcal{S}_{#1;#2}\llbracket#3\rrbracket}
 \newcommand{\relg}[3]{\mathcal{G}_{#1;#2}\llbracket#3\rrbracket}
 \newcommand{\irred}[2]{\text{irred }(#1,#2)}
 \newcommand{\andl}{\;\wedge}
@@ -1227,7 +1228,7 @@ logical relations~\cite{ahmed04,ahmed06,step_indexed_obj}.
 &\rele k \Gamma s T = \{ t \ |\\
 &\gap \Gamma \ts T \wfe \andl\\
 &\gap k = 0 \orl (\forall j \leq k,\\
-&\gap\gap \forall s' \in \relg k \Gamma s ,\\
+&\gap\gap \forall s' \in \rels k \Gamma s ,\\
 &\gap\gap \reduction t {s'} {t'} {s''} \andl\\
 &\gap\gap \irred {t'} {s''} \impliesl\\
 &\gap\gap \forall \Gamma' \in \relg k {s''} \Gamma ,\\
@@ -1236,7 +1237,7 @@ logical relations~\cite{ahmed04,ahmed06,step_indexed_obj}.
 \end{align*}
 
 \begin{align*}
-&\relg k \Gamma s = \{ s, \seq{x_i \mapsto c_i}^{m \leq i < n} \ |\\
+&\rels k \Gamma s = \{ s, \seq{x_i \mapsto c_i}^{m \leq i < n} \ |\\
 &\gap s = \seq{x \mapsto c}^m \andl \Gamma = \seq{x : T}^n \andl \\
 &\gap m\leq n \andl \forall i, m \leq i < n,\\
 &\gap c_i \in \relv {k-1} \Gamma {s, \seq{x_j \mapsto c_j}^{m \leq j < i}} {T_i}\\
@@ -1385,7 +1386,9 @@ $d.\mathit{foo}$, reduction failed.
 
 %\appendix
 %\section{Appendix Title}
-%\acks
+
+\acks
+\todo{acks}
 
 \bibliographystyle{abbrvnat}
 \bibliography{dot}
