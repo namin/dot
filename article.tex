@@ -1344,7 +1344,7 @@ t_1 : T_1$, $\Gamma \ts t_2 : T_2$, $\Gamma \ts T_1 \expand_z
 \seq{D}$, $\mdecl {m_i} {S_i} {U_i} \in \seq{D}$ and knowing either
 that $t_1 = p_1 \andl S = \subst p z {S_i} \andl T = \subst p z {U_i}$
 or that $z \not\in \fn(S_i) \andl z \not\in \fn(U_i) \andl S = S_i \andl
-T = U_i$.
+T = U_i$, and knowing that $\Gamma \ts T_2 \sub S$.
 
 %Need to show $t_1.m_i(t_2) \in \rele k \Gamma - T$. Suppose $k > 0$
 %and $s \in \rels k \Gamma -$. Suppose, for some $j \leq k$,
@@ -1367,9 +1367,11 @@ starting in store $s_1$, since $s_1$ includes $s$. So let $\reductionl
 By the above and operational semantics, $\reductionl {t_1'.m_i(v_2)}
 {s_{12}} {\subst {v_2} {x_i} {t_i}} {s_{12}} 1$.
 
-It remains to show that ${\subst {v_2} {x_i} {t_i}} \in \rele
-{k-j_2-j_2-1} {\Gamma_{12}} {s_{12}} {T}$ to complete the case. We
-defer this to the substitution lemma.
+By the substitution lemma, ${\subst {v_2} {x_i} {t_i}} \in \rele
+{k-\max(j_1,j_2)-1} {\Gamma_{12}} {s_{12}} {T}$. Supposing,
+$\reductionl {\subst {v_2} {x_i} {t_i}} {s_{12}} {t'} {s'} {j_3}$,
+with $j_1 + j_2 + j_3 + 1 = k$, this completes the case by
+monotonicity of $\mathcal{V}$.
 
 \ \\
 
