@@ -101,7 +101,7 @@ Fixpoint open_rec_tm (k : nat) (u : tm) (e : tm) {struct e} : tm :=
   match e with
     | bvar i => if k == i then u else (bvar i)
     | fvar x => fvar x
-    | ref x => ref x
+(*  | ref x => ref x*)
 (*  | lam T b => lam (open_rec_tp k u T) (open_rec_tm (k+1) u b)*)
 (*  | app f a => app (open_rec_tm k u f) (open_rec_tm k u a)*)
     | new T args b => new (open_rec_tp k u T) (List.map (fun a => match a with (l, a) => (l, open_rec_tm (k+(match l with | lm _ => 2 | _ => 1 end)) u a) end) args) (open_rec_tm (k+1) u b)
@@ -190,8 +190,8 @@ with lc_decl : decl -> Prop :=
 with lc_tm : tm -> Prop :=
   | lc_var : forall x,
       lc_tm (fvar x)
-  | lc_ref : forall x,
-      lc_tm (ref x)
+(*| lc_ref : forall x,
+      lc_tm (ref x)*)
 (*| lc_lam : forall L t b,
       lc_tp t ->
       (forall x:var, x \notin L -> lc_tm (b ^^ x)) ->
@@ -229,13 +229,8 @@ with lc_args : args -> Prop :=
 .
 
 Inductive value : tm -> Prop := 
-  | value_ref : forall l,
-      value (ref l)
-.
-
-Inductive syn_value : tm -> Prop :=
-  | syn_value_value : forall v, value v -> syn_value v
-  | syn_value_fvar  : forall v, syn_value (fvar v)
+  | value_fvar : forall v,
+    value (fvar v)
 .
 
 (* Open up decl with tm if it's a path, otherwise ensure decl is locally closed. *)
@@ -286,12 +281,12 @@ with vars_ok_decl : env -> decl -> Prop :=
       vars_ok_decl E (decl_tm t1)
 
 with vars_ok_tm : env -> tm -> Prop :=
-  | vars_ok_var : forall G P x t,
-      binds x t G ->
-      vars_ok_tm (G, P) (fvar x)
-  | vars_ok_ref : forall G P a obj,
+  | vars_ok_var : forall E x t,
+      binds x t E ->
+      vars_ok_tm E (fvar x)
+(*| vars_ok_ref : forall G P a obj,
       binds a obj P ->
-      vars_ok_tm (G, P) (ref a)
+      vars_ok_tm (G, P) (ref a)*)
 (*| vars_ok_lam : forall E L t b,
       vars_ok_tp E t ->
       (forall x: var, x \notin L -> vars_ok_tm (ctx_bind E x t) (b ^^ x)) ->
@@ -344,7 +339,7 @@ Fixpoint fv_tm (e : tm) {struct e} : vars :=
   match e with
     | bvar i => {}
     | fvar x => {{x}}
-    | ref x => {{x}}
+(*  | ref x => {{x}}*)
 (*  | lam T b => (fv_tp T) \u (fv_tm b)*)
 (*  | app f a => (fv_tm f) \u (fv_tm a)*)
     | new T args b => (fv_tp T) \u  (fold_left (fun (ats: vars) (l_a :  label * tm) => match l_a with (l, t) => ats \u (fv_tm t) end) args {})
@@ -378,7 +373,7 @@ Definition fv_decls_lst (decls: decls_lst) := (fold_left (fun (ats: vars) (d : (
 Fixpoint subst_tm (z : atom) (u : tm) (e : tm) {struct e} : tm :=
   match e with
     | bvar i => bvar i
-    | ref x => if x == z then u else (ref x) (* TODO: ??? *)
+(*  | ref x => if x == z then u else (ref x) (* TODO: ??? *)*)
     | fvar x => if x == z then u else (fvar x)
 (*  | lam T b => lam (subst_tp z u T) (subst_tm z u b)*)
 (*  | app f a => app (subst_tm z u f) (subst_tm z u a)*)
@@ -421,13 +416,12 @@ Inductive wf_store : store -> Prop :=
 .
 
 Inductive wf_env : env -> Prop :=
-  | wf_env_nil : forall P, wf_store P -> wf_env (nil, P)
-  | wf_env_cons : forall G P x T,
-     wf_store P ->
-     wf_env (G, P) ->
-     vars_ok_tp (G, P) T ->
-     x `notin` dom G -> 
-     wf_env ((x ~ T) ++ G, P)
+  | wf_env_nil : wf_env nil
+  | wf_env_cons : forall E x T,
+     wf_env E ->
+     vars_ok_tp E T ->
+     x `notin` dom E ->
+     wf_env ((x ~ T) ++ E)
 .
 
 (* ********************************************************************** *)
@@ -442,6 +436,6 @@ Ltac gather_atoms ::=
   let D := gather_atoms_with (fun x : tp => fv_tp x) in
   let E := gather_atoms_with (fun x : decl => fv_decl x) in
   let F := gather_atoms_with (fun x : decls => decls_lift fv_decls_lst x) in
-  let G := gather_atoms_with (fun x : env => dom (fst x)) in
+  let G := gather_atoms_with (fun x : env => dom x) in
   let H := gather_atoms_with (fun x : ctx => dom x) in
   constr:(A `union` B `union` C `union` D `union` E `union` F `union` G `union` H).

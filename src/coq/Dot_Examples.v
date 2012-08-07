@@ -43,7 +43,7 @@ Ltac crush_rules :=
             | [ |- ?E |= (new ?X ?Tc ?args) ~: _ ] => let x := fresh "x" in let y := fresh "y" in pick fresh x and y and apply typing_new
             | [ |- ?E |= (fvar ?X) ~: _ ] => apply typing_var
             | [ |- wf_tp ?E (tp_rfn _ _) ] => let x:= fresh "x" in pick fresh x and apply wf_rfn
-            | [ |- wf_env ((?X, ?T) :: ?R, ?S) ] => rewrite_env (([(X,T)] ++ R), S); apply wf_env_cons
+            | [ |- wf_env ((?X, ?T) :: ?R) ] => rewrite_env ([(X,T)] ++ R); apply wf_env_cons
 (*          | [ |- lc_tm (lam ?T ?B) ] => let x := fresh "x" in pick fresh x and apply lc_lam*)
             | [ |- lc_tm (new ?Tc ?A ?B) ] => let x:= fresh "x" in pick fresh x and apply lc_new
             | [ |- lc_tp (tp_rfn _ _) ] =>  let x:= fresh "x" in pick fresh x and apply lc_tp_rfn
@@ -88,13 +88,13 @@ Proof. unfold ex1. crush_rules. Qed.
 *)
 
 Definition ex2 := new tp_top nil 0.
-Example ex2_red : exists a, nil |~ ex2 ~~> 0 ^^ (ref a) ~| ((a ~ (tp_top, nil)) ++ nil).
+Example ex2_red : exists a, nil |~ ex2 ~~> 0 ^^ (fvar a) ~| ((a ~ (tp_top, nil)) ++ nil).
 Proof.
   unfold ex2. pick fresh a. exists a. apply red_new; crush_rules.
 Qed.
 
 Definition ex3 := new (tp_rfn tp_top [(l, decl_tm tp_top)]) [(l, bvar 0)] (sel 0 l).
-Example ex3_red : exists a, exists store', nil |~ ex3 ~~> (sel 0 l) ^^ (ref a) ~| store'.
+Example ex3_red : exists a, exists store', nil |~ ex3 ~~> (sel 0 l) ^^ (fvar a) ~| store'.
 Proof.
   unfold ex3. pick fresh a. exists a. eexists. apply red_new; crush_rules. left. crush_rules.
 Qed.
@@ -119,7 +119,7 @@ Proof.
 Qed.
 *)
 
-Example ex2_typ : (nil,nil) |= ex2 ~: tp_top.
+Example ex2_typ : nil |= ex2 ~: tp_top.
 Proof. unfold ex2. crush_rules. Qed.
 
 (*

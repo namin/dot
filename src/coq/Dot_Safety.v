@@ -35,7 +35,7 @@ Definition irred (s: store) (t: tm) := ~ (exists s' t', red s t s' t').
 Definition can_step (s: store) (t: tm) := (exists s' t', red s t s' t').
 
 Definition type_safety := forall k t T t' s',
-  (nil,nil) |= t ~: T -> red_n k nil t s' t' ->
+  nil |= t ~: T -> red_n k nil t s' t' ->
   value t' \/ can_step s' t'.
 
 Inductive rel_comp_type: Type :=
@@ -43,13 +43,14 @@ Inductive rel_comp_type: Type :=
 | rel_comp_e
 .
 
+(*
 Inductive rel_g (P: env -> tm -> tp -> Prop) : ctx -> store -> tm -> store -> tm -> Prop :=
 | rel_g_nil: forall s t, rel_g P nil s t s t
 | rel_g_cons: forall x T G s t s' t' a Tc ags s'',
   a `notin` dom s ->
   s'' = (a ~ (Tc, ags)) ++ s ->
-  P (G,s'') (ref a) T ->
-  rel_g P G s'' (subst_tm x t (ref a)) s' t' ->
+  P (G,s'') (fvar a) T ->
+  rel_g P G s'' (subst_tm x t (fvar a)) s' t' ->
   rel_g P ((x ~ T) ++ G) s t s' t'
 .
 
@@ -191,3 +192,4 @@ Proof.
   Case "new".
    skip.
 Qed.
+*)

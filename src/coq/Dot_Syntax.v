@@ -18,7 +18,7 @@ with tm : Set :=                              (* Term *)                 (* t *)
                                                 (* Variables *)            (* x, y, z *)
   | bvar : nat -> tm                            (* bound variable *)
   | fvar : var -> tm                            (* free variable *)
-  | ref  : loc -> tm                            (* object reference *)
+(*| ref  : loc -> tm                            (* object reference *)*)
 (*| lam  : tp -> tm -> tm                       (* function *)             (* λx:T.t *)*)
 (*| app  : tm -> tm -> tm                       (* application *)          (* t t *)*)
   | new  : tp -> list (label * tm) -> tm -> tm  (* new instance *)         (* val x = new c; t *)
@@ -34,7 +34,6 @@ with decl : Set :=                            (* Declaration *)          (* D *)
 Inductive path : tm -> Prop :=
   | path_bvar : forall a, path (bvar a)
   | path_fvar : forall a, path (fvar a)
-  | path_ref  : forall a, path (ref a)
   | path_sel  : forall p l, path p -> value_label l -> path (sel p l)
 .
 
@@ -54,8 +53,8 @@ Definition decls_lst := list (label * decl).
 
 Definition ctx : Set := list (var * tp).
 Definition store : Set := list (loc * (tp * args)).
-Definition env : Set := (ctx * store)%type.
-Definition ctx_bind (E: env) (x: var) (T: tp) : env := ((x ~ T) ++ (fst E), snd E).
+Definition env : Set := ctx.
+Definition ctx_bind (E: env) (x: var) (T: tp) : env := ((x ~ T) ++ E).
 
 Coercion bvar : nat >-> tm.
 Coercion fvar : var >-> tm.
