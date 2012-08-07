@@ -43,48 +43,52 @@ Inductive rel_comp_type: Type :=
 | rel_comp_e
 .
 
-(*
-Inductive rel_g (P: env -> tm -> tp -> Prop) : ctx -> store -> tm -> store -> tm -> Prop :=
-| rel_g_nil: forall s t, rel_g P nil s t s t
-| rel_g_cons: forall x T G s t s' t' a Tc ags s'',
+Inductive rel_g : nat -> env -> store -> env -> Prop :=
+| rel_g_base : forall k E s, dom E = dom s -> rel_g k E s E
+| rel_g_cons : forall k E E' s a Tc ags,
+  rel_g k E s E' ->
   a `notin` dom s ->
-  s'' = (a ~ (Tc, ags)) ++ s ->
-  P (G,s'') (fvar a) T ->
-  rel_g P G s'' (subst_tm x t (fvar a)) s' t' ->
-  rel_g P ((x ~ T) ++ G) s t s' t'
+  rel_g k E ((a ~ (Tc, ags)) ++ s) ((a ~ Tc) ++ E')
 .
 
-Program Fixpoint rel_comp (rt: rel_comp_type) (k: nat) (E: env) (t: tm) (T: tp) {measure k}: Prop :=
+Inductive rel_s : (env -> store -> tm -> tp -> Prop) -> env -> store -> store -> Prop :=
+| rel_s_base : forall P E s, dom E = dom s -> rel_s P E s s
+| rel_s_cons : forall P E s s' a T c,
+  rel_s P E s s' ->
+  a `notin` dom E ->
+  P ((a ~ T) ++ E) ((a ~ c) ++ s') (fvar a) T ->
+  rel_s P ((a ~ T) ++ E) s ((a ~ c) ++ s')
+.
+
+Program Fixpoint rel_comp (rt: rel_comp_type) (k: nat) (E: env) (s: store) (t: tm) (T: tp) {measure k}: Prop :=
   match rt, t, k with
-    | _, ref a, _ =>
+    | rel_comp_v, fvar a, _ =>
       wfe_tp E T ->
-      forall G s,
-        (G,s) = E ->
-        a `in` dom s /\
-        (forall j Tc ags Ds L,
-          j < k ->
-          binds a (Tc, ags) s ->
-          lbl.uniq ags ->
-          E |= T ~< Ds ->
+      a `in` dom s /\
+      (forall j Tc ags Ds L,
+        j < k ->
+        binds a (Tc, ags) s ->
+        E |= T ~< Ds ->
           (forall l d, decls_binds l d Ds ->
-            (forall S U, d ^d^ (ref a) = decl_mt S U ->
+            (forall S U, d ^d^ (fvar a) = decl_mt S U ->
               exists m, lbl.binds l m ags /\
-                (forall y, y `notin` L -> rel_comp rel_comp_e j (ctx_bind E y S) (m ^ y) U))
+                (forall y, y `notin` L -> rel_comp rel_comp_e j (ctx_bind E y S) s (m ^ y) U))
             /\
-            (forall V, d ^d^ (ref a) = decl_tm V ->
+            (forall V, d ^d^ (fvar a) = decl_tm V ->
               exists v, lbl.binds l v ags /\
-                rel_comp rel_comp_v j E v V)))
-    | rel_e, _, O => True
+                rel_comp rel_comp_v j E s v V)))
+    | rel_e, _, O => wfe_tp E T
     | rel_e, _, _ =>
-      forall G s t' s' t'' s'' i j,
-        (G,s) = E ->
+      wfe_tp E T /\
+      forall i j t' s' s'' E',
         0 < k ->
         i < k ->
         j <= k ->
-        rel_g (fun E t T => rel_comp rel_comp_v i E t T) G s t s' t' ->
-        red_n j s' t' s'' t'' ->
-        irred s'' t'' ->
-        rel_comp rel_comp_v (k-j-1) (G,s'') t'' T
+        rel_s (fun E s t T => rel_comp rel_comp_v i E s t T) E s s' ->
+        red_n j s' t s'' t' ->
+        irred s'' t' ->
+        rel_g k E s'' E' ->
+        rel_comp rel_comp_v (k-j-1) E' s'' t' T
   end
 .
 
@@ -119,55 +123,54 @@ Defined.
 Next Obligation of rel_comp_func.
 split.
 intros. unfold not. intros. inversion H. inversion H1. inversion H3.
-intros. unfold not. intros. inversion H. inversion H0.
+intros. unfold not. intros. inversion H. inversion H1. inversion H2.
 Defined.
 
-Inductive rel_v: nat -> env -> tm -> tp -> Prop :=
-| rel_v_ref : forall a k E T,
+Inductive rel_v : nat -> env -> store -> tm -> tp -> Prop :=
+| rel_v_fvar : forall k E s T a,
   wfe_tp E T ->
-  forall G s,
-    (G,s) = E ->
-    a `in` dom s /\
-    (forall j Tc ags Ds L,
-      j < k ->
-      binds a (Tc, ags) s ->
-      lbl.uniq ags ->
-      E |= T ~< Ds ->
+  a `in` dom s ->
+  (forall j Tc ags Ds L,
+    j < k ->
+    binds a (Tc, ags) s ->
+    E |= T ~< Ds ->
       (forall l d, decls_binds l d Ds ->
-        (forall S U, d ^d^ (ref a) = decl_mt S U ->
+        (forall S U, d ^d^ (fvar a) = decl_mt S U ->
           exists m, lbl.binds l m ags /\
-            (forall y, y `notin` L -> rel_comp rel_comp_e j (ctx_bind E y S) (m ^ y) U))
+            (forall y, y `notin` L -> rel_comp rel_comp_e j (ctx_bind E y S) s (m ^ y) U))
         /\
-        (forall V, d ^d^ (ref a) = decl_tm V ->
+        (forall V, d ^d^ (fvar a) = decl_tm V ->
           exists v, lbl.binds l v ags /\
-            rel_comp rel_comp_v j E v V))) ->
-    rel_v k E (ref a) T
+            rel_comp rel_comp_v j E s v V))) ->
+  rel_v k E s (fvar a) T
 .
 
-Inductive rel_e: nat -> env -> tm -> tp -> Prop :=
-| rel_e_v : forall k E t T, rel_v k E t T -> rel_e k E t T
-| rel_e_0 : forall E t T, rel_e 0 E t T
-| rel_e_e : forall k E t T G s t' s' t'' s'' i j,
-  (G,s) = E ->
+Inductive rel_e : nat -> env -> store -> tm -> tp -> Prop :=
+| rel_e_0 : forall E s t T,
+  wfe_tp E T ->
+  rel_e 0 E s t T
+| rel_e_e : forall k E s t T i j t' s' s'' E',
+  wfe_tp E T ->
   0 < k ->
   i < k ->
   j <= k ->
-  rel_g (fun E t T => rel_v i E t T) G s t s' t' ->
-  red_n j s' t' s'' t'' ->
-  irred s'' t'' ->
-  rel_v (k-j-1) (G,s'') t'' T ->
-  rel_e k E t T
+  rel_s (fun E s t T => rel_v i E s t T) E s s' ->
+  red_n j s' t s'' t' ->
+  irred s'' t' ->
+  rel_g k E s'' E' ->
+  rel_v (k-j-1) E' s'' t' T ->
+  rel_e k E s t T
 .
 
 Definition rel_safe (E: env) (t: tm) (T: tp): Prop :=
-  forall k, rel_e k E t T.
+  forall k, rel_e k E nil t T.
 
-Theorem rel_e_comp : forall k E t T,
-  rel_comp rel_comp_e k E t T <-> rel_e k E t T.
+Theorem rel_e_comp : forall k E s t T,
+  rel_comp rel_comp_e k E s t T <-> rel_e k E s t T.
 Proof. Admitted.
 
-Theorem rel_v_comp : forall k E t T,
-  rel_comp rel_comp_v k E t T <-> rel_v k E t T.
+Theorem rel_v_comp : forall k E s t T,
+  rel_comp rel_comp_v k E s t T <-> rel_v k E s t T.
 Proof. Admitted.
 
 Theorem rel_fund: forall E t T,
@@ -176,14 +179,6 @@ Proof.
   unfold rel_safe.
   intros E t T H k. induction H.
   Case "var".
-    destruct k.
-    apply rel_e_0.
-
-    skip.
-  Case "ref".
-   apply rel_e_v. apply rel_v_ref with (G:=G) (s:=P).
-   skip.
-   reflexivity.
    skip.
   Case "sel".
    skip.
@@ -192,4 +187,3 @@ Proof.
   Case "new".
    skip.
 Qed.
-*)
