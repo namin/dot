@@ -3,8 +3,6 @@
 Require Export Dot_Labels.
 Require Import Metatheory.
 
-Definition loc := var.
-
 Inductive tp : Set :=                         (* Type *)                 (* S, T, U, V *)
   | tp_sel : tm -> label -> tp                  (* type selection *)       (* p.L *)
   | tp_rfn : tp -> list (label * decl) -> tp    (* refinement *)           (* T { z => Ds } *)
@@ -51,9 +49,8 @@ Inductive concrete : tp -> Prop :=
 Definition args := list (label * tm).
 Definition decls_lst := list (label * decl).
 
-Definition ctx : Set := list (var * tp).
-Definition store : Set := list (loc * (tp * args)).
-Definition env : Set := ctx.
+Definition store : Set := list (var * (tp * args)).
+Definition env : Set := list (var * tp).
 Definition ctx_bind (E: env) (x: var) (T: tp) : env := ((x ~ T) ++ E).
 
 Coercion bvar : nat >-> tm.
