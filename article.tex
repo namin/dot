@@ -407,17 +407,17 @@ calculus, objects, dependent types, step-indexed logical relations
 
 This paper presents a proposal for a new type-theoretic foundation of
 Scala and languages like it. The properties we are interested in
-modelling are Scala's path-dependent types and abstract type members,
+modeling are Scala's path-dependent types and abstract type members,
 as well as its mixture of nominal and structural typing through the
 use of refinement types. Compared to previous approaches~\cite{nuObj,FS},
 we make no attempt to model inheritance or mixin composition. Indeed
-we will argue that such concepts are better modelled in a different
+we will argue that such concepts are better modeled in a different
 setting.
 
 The calculus does not precisely describe what's currently in Scala. It
 is more normative than descriptive. The main point of deviation
 concerns the difference between Scala's compound type formation using
-{\bf with} and classical type intersection, as it is modelled in the
+{\bf with} and classical type intersection, as it is modeled in the
 calculus. Scala, and the previous calculi attempting to model it
 conflates the concepts of compound types (which inherit the members of
 several parent types) and mixin composition (which build classes from
@@ -672,7 +672,7 @@ where the lower bound and the upper bound are the same type $T$.
     \eda
 
 Sets of declarations form a lattice with the given meet $\wedge$ and
-join $\vee$, the empty set of declatations as the top element, and the
+join $\vee$, the empty set of declarations as the top element, and the
 bottom element $\seq{D_\Bot}$, Here $\seq{D_\Bot}$ is the set of
 declarations that contains for every term label $l$ the declaration
 $\ldecl l \Bot$, for every type label $L$ the declaration $\Ldecl L
@@ -1246,7 +1246,7 @@ the expansion of $T$ appropriately for $j < k$ steps.
 \subsubsection{Set of Terms}
 $\rele k \Gamma s T$ defines the set of terms that appear to have type
 $T$ when taking at most $k$ steps. $s$ must agree with a {\it prefix}
-of $\Gamma$, so $\Gamma$ can additionaly contain variables not in
+of $\Gamma$, so $\Gamma$ can additionally contain variables not in
 $s$. This is needed for checking methods in $\mathcal{V}$ above, and
 for relating open terms. If $k > 0$, $\mathcal{E}$ extends $\Gamma$
 and $s$ so that they agree. It then states that if it can reduce $t$
@@ -1434,7 +1434,7 @@ extends $s$, and $\Gamma$ agrees with $s$ and a prefix of $\Gamma'$
 agrees with $s$.
 
 \begin{proofsketch}
-For the monotonicty with regards to the step-index, this follows
+For the monotonicity with regards to the step-index, this follows
 directly from the definitions of $\mathcal{E}$ and $\mathcal{V}$. For the
 environment and the store, this follows from the definition of $\rels
 k {\Gamma \envplus{x : S}} s$. To extend the environment and the store
@@ -1455,7 +1455,7 @@ not our original motivation for limiting the calculus to $\wfe$-types.
 
 Originally, subtyping was not regular wrt $\wfe$. Roughly,
 all the $\wfe$ preconditions in subtyping were dropped. In this
-broader calculus, subtyping transivitiy doesn't hold, because of the
+broader calculus, subtyping transitivity doesn't hold, because of the
 rule (\textsc{$\sub$-rfn}) which requires expansion of the left type.
 
 The problem is deep, as attested by this elaborate counterexample
@@ -1484,7 +1484,7 @@ $S$ doesn't expand.
 
 Note that $u$ is realizable, since each lower bound is a subtype of
 its upper bound. So it is straightforward to turn this counterexample
-to subtyping transivity into a counterexample to preservation:
+to subtyping transitivity into a counterexample to preservation:
 \begin{align*}
 &\mlnew u \ldots {
 \ \mlapp{\abs x \Top x}{
