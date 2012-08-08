@@ -261,6 +261,7 @@
 \newcommand{\expand}{\prec}
 \newcommand{\weakexpand}{\prec^W}
 \newcommand{\spcomma}{~,~}
+\newcommand{\sat}{{\bf\;sat\;}}
 
 %\newcommand{\inst}{\mbox{\mathem inst}}
 \newcommand{\trans}[1]{\la\!\la#1\ra\!\ra}
@@ -495,9 +496,11 @@ t ::=      & \lindent{\mbox{Term}} \\
 p ::= & \lindent \mbox{Path} \\
 \gap x & \mbox{variable} \\
 \gap p.l & \mbox{selection} \\
-c ::= T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}} & \lindent{\mbox{Constructor}} \\[0.2em]
-\Gamma ::= \seq{x \typ T} & \lindent\mbox{Environment} \\
-s      ::= \seq{x \mapsto c} & \lindent\mbox{Store} \\
+c ::= T_c \ldefs{\seq{d}} & \lindent{\mbox{Constructor}} \\[0.2em]
+d ::= & \lindent{\mbox{Initialization}}\\
+\gap l = v & \mbox{field initialization}\\
+\gap m(x) = t & \mbox{method initialization}\\
+s      ::= \seq{x \mapsto c} & \lindent\mbox{Store}
 \ea
 &
 \ba[t]{l@{\hspace{10mm}}l}
@@ -516,7 +519,9 @@ S_c, T_c ::= & \lindent \mbox{Concrete type} \\
 D ::= & \lindent\mbox{Declaration} \\
 \gap \Ldecl L S U & \mbox{type declaration} \\
 \gap \ldecl l T   & \mbox{value declaration} \\
-\gap \mdecl m S U & \mbox{method declaration}
+\gap \mdecl m S U & \mbox{method declaration}\\
+\ \\
+\Gamma ::= \seq{x \typ T} & \lindent\mbox{Environment}
 \ea
 \ea$
 \end{center}
@@ -563,18 +568,32 @@ D ::= & \lindent\mbox{Declaration} \\
 
 \infrule[\textsc{new}]
 {
-c = {T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}}\\
 y \notin \fn(T') \\
-\Gamma \ts T_c \wf \\
-\Gamma \ts T_c \expand_y \seq{\Ldecl L S U},\seq{\ldecl l V},\seq{\mdecl m T W} \\
-\Gamma \envplus{y: T_c} \ts \seq{S \sub U}\\
-\Gamma \envplus{y: T_c} \ts \seq{v \typ V'} \spcomma \seq{V' \sub V}\\
-\Gamma \envplus{y: T_c} \ts \seq{{T_i} \wfe}\\
-\seq{\Gamma \envplus{y: T_c} \envplus{x_i: T_i} \ts t_i \typ {W_i}' \spcomma {W_i}' \sub {W_i}}\\
-\Gamma \envplus{y: T_c} \ts  {t'} \typ T'}
-{\Gamma \ts \new y c {t'} \typ T'}
+\Gamma \ts T_c \wfe \spcomma T_c \expand_y \seq{D} \\
+\Gamma \envplus{y: T_c} \ts \seq{D \sat \seq{d}} \spcomma {t'} \typ {T'}}
+{\Gamma \ts \new y {T_c \ldefs{\seq{d}}} {t'} \typ T'}
 
 \end{multicols}
+
+\linesep
+
+\begin{multicols}{2}[\judgement{Satisfied Declaration}{\fbox{$\Gamma \ts D \sat \seq{d}$}}]
+
+\infrule[\textsc{tdecl-sat}]
+{\Gamma \ts S \sub U}
+{\Gamma \ts \Ldecl L S U \sat \seq{d}}
+
+\infrule[\textsc{vdecl-sat}]
+{\Gamma \ts v \typ {V'} \spcomma {V'} \sub V}
+{\Gamma \ts \ldecl l V \sat l = v,\seq{d}}
+
+\infrule[\textsc{mdecl-sat}]
+{\Gamma \ts S \wfe\\
+ \Gamma \envplus{x : S} \ts t \typ {T'} \spcomma {T'} \sub T}
+{\Gamma \ts \mdecl m S T \sat m(x) = t,\seq{d}}
+
+\end{multicols}
+
 } % END dot-one
 
 The DOT calculus is a simple system of dependent
