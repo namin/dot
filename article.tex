@@ -1214,7 +1214,7 @@ logical relations~\cite{ahmed04,ahmed06,step_indexed_obj}.
 
 \subsection{Type Safety}
 Type-safety states that a well-typed program doesn't get stuck. More
-formally: If $- \ts t \typ T$ and $\reductionl t - {t'} {s'} *$ then
+formally: If $\emptyset \ts t \typ T$ and $\reductionl t \emptyset {t'} {s'} *$ then
 either $t'$ is a value or $\exists t'', s'', \reduction {t'} {s'}
 {t''} {s''}$.
 
@@ -1292,7 +1292,7 @@ from the store for each missing variable.
 
 \subsubsection{$\Gamma \ds t : T$}
 
-$\Gamma \ds t : T$ is simply defined as $t \in \rele k \Gamma - T,
+$\Gamma \ds t : T$ is simply defined as $t \in \rele k \Gamma \emptyset T,
 \forall k$.
 
 \subsection{Proof of the Fundamental Theorem}
@@ -1303,9 +1303,9 @@ theorem.
 
 \begin{myproof}
 The proof is on induction on the derivation of $\Gamma \ts t : T$. For
-each case, we need to show $t \in \rele k \Gamma - T, \forall k$. The
+each case, we need to show $t \in \rele k \Gamma \emptyset T, \forall k$. The
 non-trivial case is to need to show ${t'} \in \relv {k-j-1} {\Gamma'}
-{s'} T$ by supposing $k > 0$, $s \in \rels k \Gamma -$, and, for some
+{s'} T$ by supposing $k > 0$, $s \in \rels k \Gamma \emptyset$, and, for some
 $j \leq k$, $\reductionl {t} s {t'} {s'} j \andl \irred {t'}
 {s'} \andl \Gamma' \in \relg \Gamma k {s'} \Gamma$.
 
@@ -1322,8 +1322,8 @@ T_1$, $\Gamma \ts T_1 \expand_z \seq{D}$, $\ldecl {l_i} {V_i} \in
 \seq{D}$ and knowing either that $t_1 = p_1 \andl T = \subst p z
     {V_i}$ or that $z \not\in \fn(V_i) \andl T = V_i$.
 
-%Need to show $t_1.l_i \in \rele k \Gamma - T$. Suppose $k > 0$ and $s
-%\in \rels k \Gamma -$. Suppose, for some $j \leq k$, $\reductionl
+%Need to show $t_1.l_i \in \rele k \Gamma \emptyset T$. Suppose $k > 0$ and $s
+%\in \rels k \Gamma \emptyset$. Suppose, for some $j \leq k$, $\reductionl
 %    {t_1.l_i} s {t'} {s'} j \andl \irred {t'} {s'} \andl \Gamma' \in
 %    \relg \Gamma k {s'} \Gamma$. Remains to show ${t'} \in \relv
 %          {k-j-1} {\Gamma'} {s'} T$.
@@ -1346,8 +1346,8 @@ that $t_1 = p_1 \andl S = \subst p z {S_i} \andl T = \subst p z {U_i}$
 or that $z \not\in \fn(S_i) \andl z \not\in \fn(U_i) \andl S = S_i \andl
 T = U_i$, and knowing that $\Gamma \ts T_2 \sub S$.
 
-%Need to show $t_1.m_i(t_2) \in \rele k \Gamma - T$. Suppose $k > 0$
-%and $s \in \rels k \Gamma -$. Suppose, for some $j \leq k$,
+%Need to show $t_1.m_i(t_2) \in \rele k \Gamma \emptyset T$. Suppose $k > 0$
+%and $s \in \rels k \Gamma \emptyset$. Suppose, for some $j \leq k$,
 %$\reductionl {t_1.m_i(t_2)} s {t'} {s'} j \andl \irred {t'} {s'} \andl
 %\Gamma' \in \relg \Gamma k {s'} \Gamma$. Remains to show ${t'} \in
 %\relv {k-j-1} {\Gamma'} {s'} T$.
@@ -1377,8 +1377,8 @@ monotonicity of $\mathcal{V}$.
 
 \Case \textsc{new}: $\Gamma \ts \new y c {t_b} : T$ knowing ...
 
-%Need to show $\new y c {t'} \in \rele k \Gamma - T$. Suppose $k > 0$
-%and $s \in \rels k \Gamma -$. Suppose, for some $j \leq k$,
+%Need to show $\new y c {t'} \in \rele k \Gamma \emptyset T$. Suppose $k > 0$
+%and $s \in \rels k \Gamma \emptyset$. Suppose, for some $j \leq k$,
 %$\reductionl {\new y c {t'}} s {t''} {s''} j \andl \irred {t''} {s''} \andl
 %\Gamma'' \in \relg \Gamma k {s''} \Gamma$. Remains to show ${t''} \in
 %\relv {k-j-1} {\Gamma''} {s''} T$.
