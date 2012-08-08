@@ -1295,7 +1295,9 @@ from the store for each missing variable.
 $\Gamma \ds t : T$ is simply defined as $t \in \rele k \Gamma \emptyset T,
 \forall k$.
 
-\subsection{Proof of the Fundamental Theorem}
+\subsection{Statements and Proofs}
+
+\subsubsection{Fundamental Theorem}
 
 The fundamental theorem is the implication from $\Gamma \ts t : T$ to
 $\Gamma \ds t : T$. Type safety is a straightforward corollary of this
@@ -1394,7 +1396,7 @@ Result follows by monotonicity of $\mathcal{V}$.
 
 \end{myproof}
 
-\subsection{Proof of the Substitution Lemma}
+\subsubsection{Substitution Lemma}
 
 The substitution lemma states that if (1) $v_2 \in \relv {k_2}
 {\Gamma_{12}} {s_{12}} {T_2}$ and (2) $t \in \rele {k_1} {\Gamma_1
@@ -1421,6 +1423,11 @@ of $S$ for $x_i$: ${t_i} \in \rele {\min(k_1,k_2)} {\Gamma_{12}
       s_{12}(v)}} T$. This implies what needs to be shown.
 
 \end{proofsketch}
+
+\subsubsection{Extended Monotonicity Lemma}
+
+\subsubsection{Subset Semantics Lemma}
+
 
 \section{Discussion}\label{discussion}
 
