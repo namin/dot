@@ -1432,17 +1432,18 @@ implies what needs to be shown.
 
 \subsubsection{Subset Semantics Lemma}
 
-The subset semantics lemma states that if (1) $v \in \relv k \Gamma s S$
-and (2) $\Gamma \ts S <: U$, then $v \in \relv k \Gamma s U$.
+The subset semantics lemma states that if $v \in \relv k \Gamma s S$
+and $\Gamma \ts S <: U$, then $v \in \relv k \Gamma s U$.
 
 \begin{proofsketch}
 Because $S$ is a subtype of $U$, it should hold that the expansion of
 $S$ subsumes the expansion of $U$. Therefore, for $v \in \relv k
 \Gamma s U$, we have fewer and ``simpler'' definitions to check than
-for $v \in \relv k \Gamma s S$. One worry is that for methods, because
-the parameter type is contravariant, $U$ could require a more precise
-type than $S$. This shouldn't lead to narrowing issues, because if the
-parameter type becomes ill-typed, then the check is vacuously true.
+for $v \in \relv k \Gamma s S$. One worry is potential narrowing
+issues for methods: because the parameter type is contravariant, $U$
+can require a more precise type than $S$. This should be fine, because
+if the parameter type becomes ill-typed, then the check is vacuously
+true.
 \end{proofsketch}
 
 \subsubsection{Extended Monotonicity Lemma}
