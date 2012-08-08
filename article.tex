@@ -352,8 +352,8 @@
 % Logical relations
 \newcommand{\relv}[4]{\mathcal{V}_{#1;#2;#3}\llbracket#4\rrbracket}
 \newcommand{\rele}[4]{\mathcal{E}_{#1;#2;#3}\llbracket#4\rrbracket}
-\newcommand{\rels}[3]{\mathcal{S}_{#1;#2}\llbracket#3\rrbracket}
-\newcommand{\relg}[3]{\mathcal{G}_{#1;#2}\llbracket#3\rrbracket}
+\newcommand{\rels}[3]{\mathcal{\supseteq}_{#1}\llbracket#2;#3\rrbracket}
+\newcommand{\relg}[3]{\mathcal{\supseteq}_{#1;#2}\llbracket!#3\rrbracket}
 \newcommand{\irred}[2]{\text{irred }(#1,#2)}
 \newcommand{\andl}{\;\wedge\;}
 \newcommand{\orl}{\vee}
@@ -1224,14 +1224,14 @@ type-safety.
 
 \subsection{Logical Relations}
 
-\subsubsection{$\mathcal{V}$}
+\subsubsection{Set of Values}
 $\relv k \Gamma s T$ defines the set of values that appear to have
 type $T$ when taking at most $k$ steps. $\Gamma$ and $s$ must agree:
-$\dom(\Gamma) = \dom(s)$ and $\forall (x : T) \in \Gamma, x \in \relv
-k \Gamma s T$. A variable $y$ belongs to $\relv 0 \Gamma s T$ simply
-by being in the store. In addition, it belongs to $\relv k \Gamma s T$
-for $k > 0$, if it defines all method and value labels in the
-expansion of $T$ appropriately for $j < k$ steps.
+$\dom(\Gamma) = \dom(s)$ (ordered) and $\forall (x : T) \in \Gamma, x
+\in \relv k \Gamma s T$. A variable $y$ belongs to $\relv 0 \Gamma s
+T$ simply by being in the store. In addition, it belongs to $\relv k
+\Gamma s T$ for $k > 0$, if it defines all method and value labels in
+the expansion of $T$ appropriately for $j < k$ steps.
 \begin{align*}
 &\relv k \Gamma s T = \{ y \ |\\
 &\gap \Gamma \ts T \wfe \andl\\
@@ -1247,40 +1247,47 @@ expansion of $T$ appropriately for $j < k$ steps.
 &\}
 \end{align*}
 
-\subsubsection{$\mathcal{E}$}
+\subsubsection{Set of Terms}
 $\rele k \Gamma s T$ defines the set of terms that appear to have type
-$T$ when taking at most $k$ steps. $s$ must agree with $\Gamma$, but
-$\Gamma$ can additionaly contain variables not in $s$. This is needed
-for checking methods in $\mathcal{V}$ above, and for relating open
-terms. If $k > 0$, $\mathcal{E}$ completes the store to agree with
-$\Gamma$. It then states that if it can reduce $t$ in the completed
-store to an irreducible term in $j < k$ steps, then this term must be
-in a corresponding $\mathcal{V}$ set.
+$T$ when taking at most $k$ steps. $s$ must agree with a {\it prefix}
+of $\Gamma$, so $\Gamma$ can additionaly contain variables not in
+$s$. This is needed for checking methods in $\mathcal{V}$ above, and
+for relating open terms. If $k > 0$, $\mathcal{E}$ extends $\Gamma$
+and $s$ so that they agree. It then states that if it can reduce $t$
+in the extended store to an irreducible term in $j < k$ steps, then
+this term must be in a corresponding $\mathcal{V}$ set.
 \begin{align*}
 &\rele k \Gamma s T = \{ t \ |\\
 &\gap \Gamma \ts T \wfe \andl\\
 &\gap k = 0 \orl (\forall j \leq k,\\
-&\gap\gap \forall s' \in \rels k \Gamma s ,\\
+&\gap\gap \forall (\Gamma'; s') \in \rels k \Gamma s ,\\
 &\gap\gap \reductionl t {s'} {t'} {s''} j \andl\\
 &\gap\gap \irred {t'} {s''} \impliesl\\
-&\gap\gap \forall \Gamma' \in \relg k {s''} \Gamma ,\\
-&\gap\gap {t'} \in \relv {k-j-1} {\Gamma'} {s''} T)\\
+&\gap\gap \forall \Gamma'' \in \relg k {s''} {\Gamma'} ,\\
+&\gap\gap {t'} \in \relv {k-j-1} {\Gamma''} {s''} T)\\
 &\}
 \end{align*}
 
-\subsubsection{$\mathcal{S}$}
-$\rels k \Gamma s$ for $k > 0$ defines the set of completed stores
-that agree with $\Gamma$ on each variable when taking at most $k-1$
-steps.
+\subsubsection{Extending the environment and the store}
+$\rels k \Gamma s$ for $k > 0$ defines the set of completed
+environment and stores that agree on $k-1$ steps, and that extend
+$\Gamma$ and $s$. $s$ must agree with a {\it prefix} of $\Gamma$.
+Both $\Gamma$ and $s$ are ordered maps. For $s$, $s'$ extends $s$ if
+$s$ is a prefix of $s'$. For $\Gamma$, $\Gamma'$ extends $\Gamma$ if
+we get back $\Gamma$ by keeping only the elements of $\Gamma'$ that
+belong to $\Gamma$. Furthermore, a prefix of $\Gamma'$ agrees with
+$s$.
 \begin{align*}
-&\rels k \Gamma s = \{ s, \seq{x_i \mapsto c_i}^{m \leq i < n} \ |\\
-&\gap s = \seq{x \mapsto c}^m \andl \Gamma = \seq{x : T}^n \andl \\
-&\gap m\leq n \andl \forall i, m \leq i < n,\\
-&\gap c_i \in \relv {k-1} \Gamma {s, \seq{x_j \mapsto c_j}^{m \leq j < i}} {T_i}\\
+&\rels k \Gamma s = \{\\
+&\ (\seq{x : T}^m, \seq{x_{ij} : T_{ij}}^{m \leq i < n; 0 \leq j < i_n}; s, \seq{x_{ij} \mapsto c_{ij}}^{m \leq i < n; 0 \leq j < i_n}) |\\
+&\ s = \seq{x \mapsto c}^m \andl \Gamma = \seq{x : T}^n \andl \\
+&\ m\leq n \andl \forall i, m \leq i < n, \forall {i_n}, j, 0 \leq j < i_n,\\
+&\ \forall T_{ij}, c_{ij}, T_{i{(i_n-1)}} = T_i, \forall n' \leq n, i_n' \leq i_n,\\
+&\ c_{ij} \in \relv {k-1} {\seq{x : T}^m, \seq{x_{ij} : T_{ij}}^{m \leq i' < n; 0 \leq j < i_n'}} {s, \seq{x_{ij} \mapsto c_{ij}}^{m \leq i < n'; 0 \leq j < i_n'}} {T_{ij}}\\
 &\}
 \end{align*}
 
-\subsubsection{$\mathcal{G}$}
+\subsubsection{Completing the environment to agree with the store}
 $\relg k s \Gamma$ defines a singleton set of a completed environment
 that agrees with a store $s$ by simply copying the constructor type
 from the store for each missing variable.
@@ -1306,16 +1313,16 @@ theorem.
 \begin{myproof}
 The proof is on induction on the derivation of $\Gamma \ts t : T$. For
 each case, we need to show $t \in \rele k \Gamma \emptyset T, \forall k$. The
-non-trivial case is to need to show ${t'} \in \relv {k-j-1} {\Gamma'}
-{s'} T$ by supposing $k > 0$, $s \in \rels k \Gamma \emptyset$, and, for some
+non-trivial case is to need to show ${t'} \in \relv {k-j-1} {\Gamma''}
+{s'} T$ by supposing $k > 0$, $(\Gamma'; s) \in \rels k \Gamma \emptyset$, and, for some
 $j \leq k$, $\reductionl {t} s {t'} {s'} j \andl \irred {t'}
-{s'} \andl \Gamma' \in \relg \Gamma k {s'} \Gamma$.
+{s'} \andl {\Gamma''} \in \relg \Gamma k {s'} {\Gamma'}$.
 
 \ \\
 
 \Case \textsc{var}: $\Gamma \ts x : T$ knowing $(x : T) \in
-\Gamma$. $x \in \relv {k-1} \Gamma s T$ follows from the definition of
-$\mathcal{G}$.
+\Gamma$. $x \in \relv {k-1} {\Gamma'} s T$ follows from the definition of
+$\rels k \Gamma \emptyset$.
 
 \ \\
 
@@ -1324,20 +1331,14 @@ T_1$, $\Gamma \ts T_1 \expand_z \seq{D}$, $\ldecl {l_i} {V_i} \in
 \seq{D}$ and knowing either that $t_1 = p_1 \andl T = \subst p z
     {V_i}$ or that $z \not\in \fn(V_i) \andl T = V_i$.
 
-%Need to show $t_1.l_i \in \rele k \Gamma \emptyset T$. Suppose $k > 0$ and $s
-%\in \rels k \Gamma \emptyset$. Suppose, for some $j \leq k$, $\reductionl
-%    {t_1.l_i} s {t'} {s'} j \andl \irred {t'} {s'} \andl \Gamma' \in
-%    \relg \Gamma k {s'} \Gamma$. Remains to show ${t'} \in \relv
-%          {k-j-1} {\Gamma'} {s'} T$.
-
 By operational semantics and induction hypothesis, $\reductionl {t_1}
 s {t_1'} {s'} {j-1}$ and $\irred {t_1'} {s'}$ and ${t_1'} \in \relv
 {k-j+1-1} {\Gamma'} {s'} {T_1}$.
 
 By operational semantics and the above, $\reductionl {t_1'.l_i} {s'}
-{t'} {s'} 1$, and we can conclude $t' \in \relv {k-j-1} {\Gamma'} {s'}
+{t'} {s'} 1$, and we can conclude $t' \in \relv {k-j-1} {\Gamma''} {s'}
 T$ from the clause for value labels of ${t_1'} \in \relv {k-j}
-{\Gamma'} {s'} {T_1}$.
+{\Gamma''} {s'} {T_1}$.
 
 \ \\
 
@@ -1348,12 +1349,6 @@ that $t_1 = p_1 \andl S = \subst p z {S_i} \andl T = \subst p z {U_i}$
 or that $z \not\in \fn(S_i) \andl z \not\in \fn(U_i) \andl S = S_i \andl
 T = U_i$, and knowing that $\Gamma \ts T_2 \sub S$.
 
-%Need to show $t_1.m_i(t_2) \in \rele k \Gamma \emptyset T$. Suppose $k > 0$
-%and $s \in \rels k \Gamma \emptyset$. Suppose, for some $j \leq k$,
-%$\reductionl {t_1.m_i(t_2)} s {t'} {s'} j \andl \irred {t'} {s'} \andl
-%\Gamma' \in \relg \Gamma k {s'} \Gamma$. Remains to show ${t'} \in
-%\relv {k-j-1} {\Gamma'} {s'} T$.
-
 By operational semantics and induction hypotheses, $\reductionl {t_1}
 s {t_1'} {s_1} {j_1}$ and $\irred {t_1'} {s_1}$ and $\reductionl {t_2}
 {s} {t_2'} {s_2} {j_2}$ and $\irred {t_2'} {s_2}$ and ${t_1'} \in
@@ -1362,7 +1357,7 @@ s {t_1'} {s_1} {j_1}$ and $\irred {t_1'} {s_1}$ and $\reductionl {t_2}
 
 Because $t_2$ reduces to a value $t_2'$ starting in store $s$, it
 should also reduce to a value $v_2$ in the same number of steps
-starting in store $s_1$, since $s_1$ includes $s$. So let $\reductionl
+starting in store $s_1$, since $s_1$ extends $s$. So let $\reductionl
 {t_2} {s_1} {v_2} {s_{12}} {j_2}$ with $v_2 \in \relv {k-j_2-1}
 {\Gamma_{12}} {s_{12}} {T_2}$.
 
@@ -1379,12 +1374,6 @@ monotonicity of $\mathcal{V}$.
 
 \Case \textsc{new}: $\Gamma \ts \new y c {t_b} : T$ knowing ...
 
-%Need to show $\new y c {t'} \in \rele k \Gamma \emptyset T$. Suppose $k > 0$
-%and $s \in \rels k \Gamma \emptyset$. Suppose, for some $j \leq k$,
-%$\reductionl {\new y c {t'}} s {t''} {s''} j \andl \irred {t''} {s''} \andl
-%\Gamma'' \in \relg \Gamma k {s''} \Gamma$. Remains to show ${t''} \in
-%\relv {k-j-1} {\Gamma''} {s''} T$.
-
 By operational semantics, $\reductionl {\new y c {t_b}} s {t_b} {s_b} 1$
 where $s_b = s \envplus{y \mapsto c}$. So $\reductionl {t_b} {s_b} {t'}
 {s'} {j-1}$.
@@ -1398,36 +1387,65 @@ Result follows by monotonicity of $\mathcal{V}$.
 
 \subsubsection{Substitution Lemma}
 
-The substitution lemma states that if (1) $v_2 \in \relv {k_2}
+The substitution lemma states that if (1) $v \in \relv {k_2}
 {\Gamma_{12}} {s_{12}} {T_2}$ and (2) $t \in \rele {k_1} {\Gamma_1
-  \envplus{{x_i} : S}} {s_1} T$ and (3) $\Gamma \ts {T_2} \sub S$ with
-(4) $x_i \not\in \fn(T)$ and $\Gamma$ included in $\Gamma_1$ and
-$\Gamma_{12}$ included in $\Gamma_1$ and $s_{12}$ included in $s_1$,
-then $\subst {v_2} {x_i} {t_i} \in \rele {\min(k_1,k_2)} {\Gamma_{12}}
-{s_{12}} T$.
+  \envplus{{x} : S}} {s_1} T$ and (3) $\Gamma \ts {T_2} \sub S$ with
+(4) $x \not\in \fn(T)$ and $\Gamma_1$ extends $\Gamma$ and
+$\Gamma_{12}$ included in $\Gamma_1$ and $s_{12}$ extends $s_1$ and
+$\Gamma_1$ agrees with $s_1$ and $\Gamma_{12}$ agrees with $s_{12}$
+and a prefix of $\Gamma_{12}$ agrees with $s_1$, then $\subst {v} {x}
+{t} \in \rele {\min(k_1,k_2)} {\Gamma_{12}} {s_{12}} T$.
 
 \begin{proofsketch}
-By (1) and (3), it should hold that (5) $v_2 \in \relv {k_2}
-{\Gamma_{12}} {s_{12}} {S}$.  Since (2) holds, it should also hold
-that ${t_i} \in \rele {\min(k_1,k_2)} {\Gamma_{12} \envplus{{x_i} :
-    S}} {s_{12}} T$ by monotonicity of the logical relation on all
-subscripts. Then, we can instantiate $x_i$ in the complete store to
-map to what $v_2$ maps to. This should be fine by (5) and
-monotonicity. Thus, ${t_i} \in \rele {\min(k_1,k_2)} {\Gamma_{12}
-  \envplus{{x_i} : S}} {s_{12} \envplus{{x_i} \mapsto s_{12}(v)}}
-T$. Thanks to (4), we don't actually need $x_i$ to be held abstract in
-the environment, because it won't occur in $T$ or its expansion, so
-we can use the actual type constructor of $v_2$, say $T_{v_2}$, instead
-of $S$ for $x_i$: ${t_i} \in \rele {\min(k_1,k_2)} {\Gamma_{12}
-  \envplus{{x_i} : {T_{v_2}}}} {s_{12} \envplus{{x_i} \mapsto
-      s_{12}(v)}} T$. This implies what needs to be shown.
+By (1) and (3), it should hold that (5) $v \in \relv {k_2}
+{\Gamma_{12}} {s_{12}} {S}$ by the subset semantics lemma.  Since (2)
+holds, it should also hold that ${t} \in \rele {\min(k_1,k_2)}
+{\Gamma_{12} \envplus{{x} : S}} {s_{12}} T$ by the extended
+monotonicity lemma. Then, we can instantiate $x$ in the complete store
+to map to what $v$ maps to. This should be fine by (5) and
+monotonicity. Thus, ${t} \in \rele {\min(k_1,k_2)} {\Gamma_{12}
+  \envplus{{x} : S}} {s_{12} \envplus{{x} \mapsto s_{12}(v)}}
+T$. Thanks to (4), we don't actually need $x$ to be held abstract in
+the environment, because it won't occur in $T$ or its expansion, so we
+can use the actual type constructor of $v$, say $T_{v}$, instead of
+$S$ for $x$: ${t} \in \rele {\min(k_1,k_2)} {\Gamma_{12} \envplus{{x}
+    : {T_{v_2}}}} {s_{12} \envplus{{x} \mapsto s_{12}(v)}} T$. This
+implies what needs to be shown.
 
+\end{proofsketch}
+
+\subsubsection{Subset Semantics Lemma}
+
+The subset semantics lemma states that if (1) $v \in \relv k \Gamma s S$
+and (2) $\Gamma \ts S <: U$, then $v \in \relv k \Gamma s U$.
+
+\begin{proofsketch}
+Because $S$ is a subtype of $U$, it should hold that the expansion of
+$S$ subsumes the expansion of $U$. Therefore, for $v \in \relv k
+\Gamma s U$, we have fewer and ``simpler'' definitions to check than
+for $v \in \relv k \Gamma s S$. One worry is that for methods, because
+the parameter type is contravariant, $U$ could require a more precise
+type than $S$. This shouldn't lead to narrowing issues, because if the
+parameter type becomes ill-typed, then the check is vacuously true.
 \end{proofsketch}
 
 \subsubsection{Extended Monotonicity Lemma}
 
-\subsubsection{Subset Semantics Lemma}
+The extended monotonicity lemma states that if $t \in \rele k {\Gamma
+  \envplus{x : S}} s T$ then $t \in \rele j {\Gamma' \envplus{x : S}}
+{s'} T$ for $j \leq k$, $\Gamma'$ extends $\Gamma$, $s'$
+extends $s$, and $\Gamma$ agrees with $s$ and a prefix of $\Gamma'$
+agrees with $s$.
 
+\begin{proofsketch}
+For the monotonicty with regards to the step-index, this follows
+directly from the definitions of $\mathcal{E}$ and $\mathcal{V}$. For the
+environment and the store, this follows from the definition of $\rels
+k {\Gamma \envplus{x : S}} s$. To extend the environment and the store
+for $x : S$, we can append as much as we want to $\Gamma$ and $s$, to
+get $\Gamma'$ and $s'$, and then ignore the last element which is for
+$x : S$.
+\end{proofsketch}
 
 \section{Discussion}\label{discussion}
 
