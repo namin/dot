@@ -469,15 +469,11 @@ inheritance lends itself to a different approach than the basic
 calculus. For the latter, we need to prove type safety of the calculus.
 One might try to do this also for a calculus with inheritance, but our
 experience suggests that this complicates the proofs considerably.  An
-alternative approach to inheritance that might work better is to model
+alternative approach that might work better is to model inheritance
 it as a form of code-reuse. Starting with an enriched type system with
 inheritance, and a translation to the basic calculus, one needs to
 show type safety wrt the translation. This might be easier than
 to prove type safety wrt reduction.
-
-\remark{Does this last point still makes sense wrt to type safety via
-  logical relations instead of via the standard theorems of
-  preservation and progress?}
 
 \section{The DOT Calculus}
 
@@ -1573,16 +1569,16 @@ because, through one of the path-equality provision, we could find that
 the type of $d$ was a subtype of $\Bot$. Now, of course, when we got to
 $d.\mathit{foo}$, reduction failed.
 
-\todo{more discussion subsections?}
-
 \section{Conclusion}\label{conclusion}
-\todo{conclusion}
 
 %\appendix
 %\section{Appendix Title}
 
 \acks
-\todo{acks}
+
+We thank Amal Ahmed for her many discussions and insights about
+applying logical relations to DOT. We thank Donna Malayeri and
+Geoffrey Washburn for preliminary work on DOT.
 
 \bibliographystyle{abbrvnat}
 \bibliography{dot}
