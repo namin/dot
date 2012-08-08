@@ -1094,19 +1094,20 @@ type by fixing the lower bound of the $\mi{Elem}$ re-declaration to
 the upper bound or to $\Bot$, respectively.
 \begin{align*}
 &\mlnew {\mi{genLists}} {\Top \mlrefine g {\Ldecl {\mi{ListPackage}} \Bot {\Top \mlrefine p {\\\displaybreak[3]
-&\ \Ldecl {\mi{Elem}} \Bot \Top\\
-&\ \Ldecl {\mi{ListOfElement}} {g.\mi{List} \refine z {\Ldecl {\mi{Elem}} {p.\mi{Elem}} {p.\mi{Elem}}}} {\\&\gap\gap\gap\gap g.\mi{List} \refine z {\Ldecl {\mi{Elem}} {p.\mi{Elem}} {p.\mi{Elem}}}}\\
+&\ \Ldecl {\mi{Elem}} \Bot \Top\\\displaybreak[3]
+&\ \Ldecl {\mi{ListOfElement}} {g.\mi{List} \refine z {\Ldecl {\mi{Elem}} {p.\mi{Elem}} {p.\mi{Elem}}}} {\\&\gap\gap\gap\gap g.\mi{List} \refine z {\Ldecl {\mi{Elem}} {p.\mi{Elem}} {p.\mi{Elem}}}}\\\displaybreak[3]
 &\ \Ldecl {\mi{List}} \Bot {\Top \mlrefine z {\\\displaybreak[3]
-&\ \gap \mdecl {\mi{isEmpty}} {\mi{root}.\mi{Unit}} {\mi{root}.\mi{Boolean}}\\
-&\ \gap \mdecl {\mi{head}} {\mi{root}.\mi{Unit}} {g.\mi{Elem}}\\
-&\ \gap \mdecl {\mi{tail}} {\mi{root}.\mi{Unit}} {g.\mi{ListOfElem}}\\
-&\gap}}\\
-&\ \mdecl {\mi{nil}} {\mi{root}.\mi{Unit}} {g.\mi{ListOfElem}}\\
-&\ \mdecl {\mi{cons}} {g.\mi{Elem}} {g.\mi{ListOfElem}}\\
+&\ \gap \mdecl {\mi{isEmpty}} {\mi{root}.\mi{Unit}} {\mi{root}.\mi{Boolean}}\\\displaybreak[3]
+&\ \gap \mdecl {\mi{head}} {\mi{root}.\mi{Unit}} {g.\mi{Elem}}\\\displaybreak[3]
+&\ \gap \mdecl {\mi{tail}} {\mi{root}.\mi{Unit}} {g.\mi{ListOfElem}}\\\displaybreak[3]
+&\gap}}\\\displaybreak[3]
+&\ \mdecl {\mi{nil}} {\mi{root}.\mi{Unit}} {g.\mi{ListOfElem}}\\\displaybreak[3]
+&\ \mdecl {\mi{cons}} {g.\mi{Elem}} {g.\mi{ListOfElem}}\\\displaybreak[3]
 &}}}}{
-\mlnew {\mi{natLists}} {{\mi{genLists}.\mi{ListPackage}} \mlrefine p { \Ldecl {\mi{Elem}} {\mi{Nat}} {\mi{Nat}} }\mlldefs{\\\displaybreak[3]
-&\ {\mi{nil}}(u) = \ldots\\
-&\ {\mi{cons}}(u) = \ldots\\
+\mlnew {\mi{natLists}} {{\mi{genLists}.\mi{ListPackage}} \mlrefine p {\\\displaybreak[3]
+&\gap \Ldecl {\mi{Elem}} {\mi{root}.\mi{Nat}} {\mi{root}.\mi{Nat}} }\mlldefs{\\\displaybreak[3]
+&\ {\mi{nil}}(u) = \ldots\\\displaybreak[3]
+&\ {\mi{cons}}(u) = \ldots\\\displaybreak[3]
 &}}}{
 \ldots
 }
