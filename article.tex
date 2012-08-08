@@ -1275,7 +1275,7 @@ this term must be in a corresponding $\mathcal{V}$ set.
 \begin{align*}
 &\rele k \Gamma s T = \{ t \ |\\
 &\gap \Gamma \ts T \wfe \andl\\
-&\gap k = 0 \orl (\forall j \leq k,\\
+&\gap k = 0 \orl (\forall j < k,\\
 &\gap\gap \forall (\Gamma'; s') \in \rels k \Gamma s ,\\
 &\gap\gap \reductionl t {s'} {t'} {s''} j \andl\\
 &\gap\gap \irred {t'} {s''} \impliesl\\
@@ -1331,7 +1331,7 @@ The proof is on induction on the derivation of $\Gamma \ts t : T$. For
 each case, we need to show $t \in \rele k \Gamma \emptyset T, \forall k$. The
 non-trivial case is to need to show ${t'} \in \relv {k-j-1} {\Gamma''}
 {s'} T$ by supposing $k > 0$, $(\Gamma'; s) \in \rels k \Gamma \emptyset$, and, for some
-$j \leq k$, $\reductionl {t} s {t'} {s'} j \andl \irred {t'}
+$j < k$, $\reductionl {t} s {t'} {s'} j \andl \irred {t'}
 {s'} \andl {\Gamma''} \in \relg \Gamma k {s'} {\Gamma'}$.
 
 \ \\
