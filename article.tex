@@ -1590,14 +1590,25 @@ $d.\mathit{foo}$, reduction failed.
 
 \section{Conclusion}\label{conclusion}
 
+We have presented DOT, a calculus aimed as a new foundation of Scala
+and languages like it. DOT features path-dependent types, refinement
+types, and abstract type members.
+
+Proving the DOT calculus type-safe has been an interesting
+adventure. We have shown that DOT does not satisfy preservation (also
+known as subject-reduction). However, the standard theorems of
+preservation and progress are just one way to prove type-safety. We
+have sketched a plausible proof of type safety by using the powerful
+method of logical relations.
+
 %\appendix
 %\section{Appendix Title}
 
 \acks
 
-We thank Amal Ahmed for her many discussions and insights about
-applying logical relations to DOT. We thank Donna Malayeri and
-Geoffrey Washburn for preliminary work on DOT.
+We thank Amal Ahmed for many discussions and insights about applying
+logical relations to DOT. We thank Donna Malayeri and Geoffrey
+Washburn for preliminary work on DOT.
 
 \bibliographystyle{abbrvnat}
 \bibliography{dot}
