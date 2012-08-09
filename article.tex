@@ -1218,6 +1218,9 @@ a.i.X$. This cannot be established with the current rules: it is not
 true in general, but true here because $a.i$ reduces to $b$. Hence,
 we need to acknowledge path equality for preservation to hold.
 
+In section~\ref{pres-patch}, we discuss our failure to patch the
+calculus for preservation to hold.
+
 \section{Type Safety via Logical Relations}\label{dot-type-safety}
 We sketch a proof of type-safety of the DOT calculus via step-indexed
 logical relations~\cite{ahmed04,ahmed06,step_indexed_obj}.
@@ -1563,7 +1566,7 @@ method.
 An alternative design would have been to change the expansion of the
 function type to have a declaration for a special marker value label.
 
-\subsubsection{Why not patch the DOT calculus for preservation to hold?}
+\subsubsection{Why not patch the DOT calculus for preservation to hold?}\label{pres-patch}
 
 We tried! However, the resulting calculi were not elegant, and
 furthermore, we still found issues with preservation. Below, we give a
@@ -1600,6 +1603,10 @@ which had $a$, $b$, $c$ and $d$ then the application type-checked,
 because, through one of the path-equality provision, we could find that
 the type of $d$ was a subtype of $\Bot$. Now, of course, when we got to
 $d.\mathit{foo}$, reduction failed.
+
+\subsection{Related Work}
+
+
 
 \section{Conclusion}\label{conclusion}
 
