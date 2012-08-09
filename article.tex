@@ -292,6 +292,7 @@
 % well-formedness
 \newcommand{\wf}{\;\mbox{\textbf{wf}}}
 \newcommand{\wfe}{\;\mbox{\textbf{wfe}}}
+\newcommand{\nswfe}{\mbox{\textbf{wfe}}}
 
 %% Operators
 % Type selection
@@ -739,7 +740,7 @@ by the binding $y: T_c$. In particular this allows field values that
 recurse on ``self'' by referring to the bound variable $x$. Similarly,
 every method declaration $\mdecl m T W$ must have a corresponding
 initializing method definition $m(x) = t$. The parameter type $T$ must
-be $\wfe$ (well-formed and expanding; see \figref{dot-wf}), and
+be $\nswfe$ (well-formed and expanding; see \figref{dot-wf}), and
 the body $t$ must type check to $W$ in an environment extended by the
 bindings $y : T_c$ and $x : T$.
 
@@ -909,10 +910,10 @@ declarations (recall \figref{dot-decls}).
 
 \figref{dot-sub} defines the subtyping judgement $\Gamma \ts S
 \sub T$ which states that in environment $\Gamma$ type $S$ is a
-subtype of type $T$. Subtyping is regular wrt $\wfe$: if
+subtype of type $T$. Subtyping is regular wrt $\nswfe$: if
 type $S$ is a subtype of type $T$, then $S$ and $T$ are well-formed
 and expanding. Though this regularity limits our calculus to
-$\wfe$-types, this limitation allows us to show that subtyping is
+$\nswfe$-types, this limitation allows us to show that subtyping is
 transitive, as discussed in section~\ref{dot-preservation}.
 
 \subsection{Declaration Subsumption}
@@ -1478,14 +1479,14 @@ to prove type safety wrt reduction.
 
 \subsection{Variants of the DOT Calculus}\label{dot-variants}
 
-\subsubsection{Why limit the calculus to $\wfe$-types?}
+\subsubsection{Why limit the calculus to $\nswfe$-types?}
 
 Currently, the proof of type-safety via logical relations
 fundamentally relies on types having an expansion. However, this was
-not our original motivation for limiting the calculus to $\wfe$-types.
+not our original motivation for limiting the calculus to $\nswfe$-types.
 
-Originally, subtyping was not regular wrt $\wfe$. Roughly,
-all the $\wfe$ preconditions in subtyping were dropped. In this
+Originally, subtyping was not regular wrt $\nswfe$. Roughly,
+all the $\nswfe$ preconditions in subtyping were dropped. In this
 broader calculus, subtyping transitivity doesn't hold, because of the
 rule (\textsc{$\sub$-rfn}) which requires expansion of the left type.
 
