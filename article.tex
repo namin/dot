@@ -261,7 +261,6 @@
 \newcommand{\expand}{\prec}
 \newcommand{\weakexpand}{\prec^W}
 \newcommand{\spcomma}{~,~}
-\newcommand{\sat}{{\bf\;sat\;}}
 
 %\newcommand{\inst}{\mbox{\mathem inst}}
 \newcommand{\trans}[1]{\la\!\la#1\ra\!\ra}
@@ -485,7 +484,7 @@ section~\ref{conclusion}.
 
 \section{The DOT Calculus}\label{dot-calculus}
 
-\boxfig{dot-one}{The DOT Calculus : Syntax, Reduction, Type Assignment}{
+\boxfig{dot-one}{The DOT Calculus : Syntax, Reduction, Type / Declaration Assignment}{
 {\bf Syntax}\medskip
 \begin{center}    
 $\ba{l@{\hspace{0.2mm}}|@{\hspace{0.2mm}}l}
@@ -577,27 +576,31 @@ D ::= & \lindent\mbox{Declaration} \\
 {
 y \notin \fn(T') \\
 \Gamma \ts T_c \wfe \spcomma T_c \expand_y \seq{D} \\
-\Gamma \envplus{y: T_c} \ts \seq{D \sat \seq{d}} \spcomma {t'} \typ {T'}}
+\Gamma \envplus{y: T_c} \ts \seq{d} \typ \seq{D} \spcomma {t'} \typ {T'}}
 {\Gamma \ts \new y {T_c \ldefs{\seq{d}}} {t'} \typ T'}
 
 \end{multicols}
 
 \linesep
 
-\begin{multicols}{2}[\judgement{Satisfied Declaration}{\fbox{$\Gamma \ts D \sat \seq{d}$}}]
+\begin{multicols}{2}[\judgement{Declaration Assignment}{\fbox{$\Gamma \ts d \typ D$}}]
 
-\infrule[\textsc{tdecl-sat}]
-{\Gamma \ts S \sub U}
-{\Gamma \ts \Ldecl L S U \sat \seq{d}}
-
-\infrule[\textsc{vdecl-sat}]
+\infrule[\textsc{vdecl}]
 {\Gamma \ts v \typ {V'} \spcomma {V'} \sub V}
-{\Gamma \ts \ldecl l V \sat l = v,\seq{d}}
+{\Gamma \ts l = v \typ \ldecl l V}
 
-\infrule[\textsc{mdecl-sat}]
+\infrule[\textsc{mdecl}]
 {\Gamma \ts S \wfe\\
  \Gamma \envplus{x : S} \ts t \typ {T'} \spcomma {T'} \sub T}
-{\Gamma \ts \mdecl m S T \sat m(x) = t,\seq{d}}
+{\Gamma \ts m(x) = t \typ \mdecl m S T }
+
+\end{multicols}
+
+\begin{multicols}{2}[\judgement{}{\fbox{$\Gamma \ts \seq{d} \typ \seq{D}$}}]
+
+\infrule[\textsc{decls}]
+{\Gamma \ts \seq{d_i \typ D_i} \spcomma \seq{S \sub U}}
+{\Gamma \ts \seq{d} \typ \seq{D}, \seq{\Ldecl L S U}}
 
 \end{multicols}
 
