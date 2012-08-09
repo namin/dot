@@ -1253,6 +1253,10 @@ type-safety.
 
 \subsection{Logical Relations}
 
+\todo{quick intro that explains the general approach of step-indexed
+  logical relations and the strategy here of setting up $\ds$ in terms
+  of $\mathcal{E}$ -- give an overview of what's coming}
+
 \subsubsection{Set of Values}
 $\relv k \Gamma s T$ defines the set of values that appear to have
 type $T$ when taking at most $k$ steps. $\Gamma$ and $s$ must agree:
@@ -1276,6 +1280,11 @@ the expansion of $T$ appropriately for $j < k$ steps.
 &\}
 \end{align*}
 
+\todo{mention possible pitfall: we are not checking type labels of a
+  semantic value, yet because we're substituing the value for the
+  ``self'' in the expansion, the value and its type labels show up and
+  are constrained by T.}
+
 \subsubsection{Set of Terms}
 $\rele k \Gamma s T$ defines the set of terms that appear to have type
 $T$ when taking at most $k$ steps. $s$ must agree with a {\it prefix}
@@ -1296,6 +1305,10 @@ this term must be in a corresponding $\mathcal{V}$ set.
 &\gap\gap {t'} \in \relv {k-j-1} {\Gamma''} {s''} T)\\
 &\}
 \end{align*}
+
+\todo{irred is never formally defined (easy one!)}
+\todo{explain the strange ! notation, or make it more intuitive}
+\todo{briefly introduce the extensions to env and store before they are used}
 
 \subsubsection{Extending the environment and the store}
 $\rels k \Gamma s$ for $k > 0$ defines the set of completed
@@ -1346,6 +1359,8 @@ non-trivial case is to need to show ${t'} \in \relv {k-j-1} {\Gamma''}
 {s'} T$ by supposing $k > 0$, $(\Gamma'; s) \in \rels k \Gamma \emptyset$, and, for some
 $j < k$, $\reductionl {t} s {t'} {s'} j \andl \irred {t'}
 {s'} \andl {\Gamma''} \in \relg \Gamma k {s'} {\Gamma'}$.
+
+\todo{expand on why this non-trivial subcase is all that is needed for each case.}
 
 \ \\
 
@@ -1459,6 +1474,8 @@ if the parameter type becomes ill-typed, then the check is vacuously
 true.
 \end{proofsketch}
 
+\todo{possible pitfall with narrowing needs more cautiousness}
+
 \subsubsection{Extended Monotonicity Lemma}
 
 The extended monotonicity lemma states that if $t \in \rele k {\Gamma
@@ -1466,6 +1483,9 @@ The extended monotonicity lemma states that if $t \in \rele k {\Gamma
 {s'} T$ for $j \leq k$, $\Gamma'$ extends $\Gamma$, $s'$
 extends $s$, and $\Gamma$ agrees with $s$ and a prefix of $\Gamma'$
 agrees with $s$.
+
+\todo{explain that this is the reason why extending the store is so
+  flexible}
 
 \begin{proofsketch}
 For the monotonicity with regards to the step-index, this follows
