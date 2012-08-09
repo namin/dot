@@ -460,6 +460,19 @@ This is problematic because glbs and lubs play a central role in
 Scala's type inference. The absence of universal glbs and lubs makes
 type inference more brittle and more unpredictable.
 
+%The primary contributions of this paper are:
+%\begin{itemize}
+%\item Development of DOT -- a core calculus which models
+%  path-dependent types. We formally specify a small-step operational
+%  semantics and a static typing assignment in
+%  section~\ref{dot-calculus} and show some examples in
+%  section~\ref{dot-examples}.
+%\item Counterexamples to the standard theorem of preservation --
+%  section~\ref{dot-preservation}.
+%\item A sketch of a type-safety proof based on logical relations --
+%  section~\ref{dot-type-safety}.
+%\end{itemize}
+
 We propose DOT as a core calculus for path-dependent types. We present
 the calculus formally in section \ref{pres} and through examples in
 section~\ref{dot-examples}. Though we show that the calculus does not
@@ -470,7 +483,7 @@ section~\ref{discussion}, we discuss choices and variants of the
 calculus, as well as related work, and conclude in
 section~\ref{conclusion}.
 
-\section{The DOT Calculus}\label{pres}
+\section{The DOT Calculus}\label{dot-calculus}
 
 \boxfig{dot-one}{The DOT Calculus : Syntax, Reduction, Type Assignment}{
 {\bf Syntax}\medskip
@@ -1606,7 +1619,22 @@ $d.\mathit{foo}$, reduction failed.
 
 \subsection{Related Work}
 
+In addition to Scala's previous models~\cite{nuObj,FS}, several
+calculi present some form of path-dependent types.
 
+The {\it vc} calculus~\cite{vc} models virtual classes with
+path-dependent types. {\it vc} restricts paths to start with ``this'',
+though it provides a way (``out'') to refer to the enclosing object.
+
+The Tribe calculus~\cite{tribe} builds an ownership types
+system~\cite{tribalo} on top of a core calculus which models virtual
+classes. The soundness proof for the core calculus seems to be tied to
+the ownership types system.
+
+Some ML-style module systems~\cite{homl,mixinml} have a form of
+stratified path-dependent types. Because of the stratification,
+recursion is not allowed. In MixML~\cite{mixml} like in Scala, this
+restriction is lifted.
 
 \section{Conclusion}\label{conclusion}
 
