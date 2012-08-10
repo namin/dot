@@ -1362,10 +1362,11 @@ theorem.
 \begin{myproof}
 The proof is on induction on the derivation of $\Gamma \ts t : T$. For
 each case, we need to show $t \in \rele k \Gamma \emptyset T, \forall
-k$. The non-trivial case is when $k > 0$ and for some $j < k$,
-$\reductionl {t} s {t'} {s'} j \andl \irred {t'} {s'}$. Then, we need
-to show ${t'} \in \relv {k-j-1} {\Gamma''} {s'} T$ for ${\Gamma''} \in
-\relg \Gamma k {s'} {\Gamma'}$.
+k$. The non-trivial case is when $k > 0$ and for $(\Gamma'; s') \in
+\rels k \Gamma s$ and some $j < k$, $\reductionl {t} s {t'} {s'} j
+\andl \irred {t'} {s'}$. Then, we need to show ${t'} \in \relv {k-j-1}
+      {\Gamma''} {s'} T$ for ${\Gamma''} \in \relg \Gamma k {s'}
+      {\Gamma'}$.
 
 \ \\
 
@@ -1440,7 +1441,7 @@ The substitution lemma states that if (1) $v \in \relv {k_2}
 {\Gamma_{12}} {s_{12}} {T_2}$ and (2) $t \in \rele {k_1} {\Gamma_1
   \envplus{{x} : S}} {s_1} T$ and (3) $\Gamma \ts {T_2} \sub S$ with
 (4) $x \not\in \fn(T)$ and $\Gamma_1$ extends $\Gamma$ and
-$\Gamma_{12}$ included in $\Gamma_1$ and $s_{12}$ extends $s_1$ and
+$\Gamma_{12}$ extends $\Gamma_1$ and $s_{12}$ extends $s_1$ and
 $\Gamma_1$ agrees with $s_1$ and $\Gamma_{12}$ agrees with $s_{12}$
 and a prefix of $\Gamma_{12}$ agrees with $s_1$, then $\subst {v} {x}
 {t} \in \rele {\min(k_1,k_2)} {\Gamma_{12}} {s_{12}} T$.
