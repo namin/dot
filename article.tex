@@ -1261,17 +1261,17 @@ T$ simply by being in the store. In addition, it belongs to $\relv k
 the expansion of $T$ appropriately for $j < k$ steps.
 \begin{align*}
 &\relv k \Gamma s T = \{ y \ |\\
-&\gap \Gamma \ts T \wfe \andl\\
-&\gap y \in \dom(s) \andl\\
+&\gap y \in \dom(s) \andl (\\
+&(\Gamma \ts T \wfe \andl\\
 &\gap \forall j < k,\\
 &\gap y \mapsto T_c \ldefs{\seq{l = v}\;\seq{m(x)=t}} \in s,\\
 &\gap \Gamma \ts T \expand_y \seq{D},\\
-&\gap (\forall L_i : S \rightarrow U \in \seq{D},\\
-&\gap\gap \Gamma \ts y \ni L_i \typ {S'..U'}) \andl\\
 &\gap (\forall m_i : S \rightarrow U \in \seq{D},\\
 &\gap\gap t_i \in \rele j {\Gamma \envplus{x_i : S}} s U) \andl\\
 &\gap (\forall l_i : V \in \seq{D},\\
-&\gap\gap v_i \in \relv j \Gamma s V)\\
+&\gap\gap v_i \in \relv j \Gamma s V)) \orl\\
+& (T = T_1 \tand T_2 \andl y \in \relv k \Gamma s {T_1} \andl y \in \relv k \Gamma s {T_2}) \orl\\
+& (T = T_1 \tor T_2 \andl  (y \in \relv k \Gamma s {T_1} \orl y \in \relv k \Gamma s {T_2}))\\
 &\}
 \end{align*}
 
@@ -1279,8 +1279,7 @@ This relation captures the observation that the only ways for a term
 to get stuck is to have a field selection on an uninitialized field or
 a method invocation on an uninitialized method. However, a {\it potential
   pitfall} is that the value itself might occur in the types $S$, $U$,
-$V$, because we substitute it for the ``self'' occurrences in the
-expansion, so the relation makes sure that the type labels exist.
+$V$.
 
 \subsubsection{Set of Terms}
 $\rele k \Gamma s T$ defines the set of terms that appear to have type
