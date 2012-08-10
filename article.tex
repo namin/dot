@@ -1267,9 +1267,10 @@ the expansion of $T$ appropriately for $j < k$ steps.
 &\gap y \mapsto T_c \ldefs{\seq{l = v}\;\seq{m(x)=t}} \in s,\\
 &\gap \Gamma \ts T \expand_y \seq{D},\\
 &\gap (\forall L_i : S \rightarrow U \in \seq{D},\\
-&\gap\gap \Gamma \ts v.L_i \wfe \spcomma S \wf \spcomma U \wf \spcomma S \sub U\\
+&\gap\gap \Gamma \ts y.L_i \wfe \spcomma S \wf \spcomma U \wf \spcomma S \sub U \andl\\
+&\gap\gap \Gamma \ts y \ni L_i \typ {S'..U'} \spcomma S \sub S' \spcomma U' \sub U\\
 &\gap (\forall m_i : S \rightarrow U \in \seq{D},\\
-&\gap\gap \Gamma \ts S \wf \spcomma U \wf \andl t_i \in \rele j {\Gamma \envplus{x : S}} s U)\\
+&\gap\gap \Gamma \ts S \wf \spcomma U \wf \andl t_i \in \rele j {\Gamma \envplus{x_i : S}} s U)\\
 &\gap \andl\\
 &\gap (\forall l_i : V \in \seq{D},\\
 &\gap\gap \Gamma \ts V \wf \andl v_i \in \relv j \Gamma s V)\\
@@ -1281,7 +1282,7 @@ to get stuck is to have a field selection on an uninitialized field or
 a method invocation on uninitialized method. However, a {\it potential
   pitfall} is that the value itself might occur in the types $S$, $U$,
 $V$, because we substitute it for the ``self'' occurrences in the
-expansion, so the relation makes sure that the type labels exist.
+expansion, so the relation makes sure that the type labels are appropriate.
 
 
 \subsubsection{Set of Terms}
