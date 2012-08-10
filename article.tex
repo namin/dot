@@ -1236,7 +1236,7 @@ logical relations~\cite{ahmed04,ahmed06,step_indexed_obj}.
 \subsection{Type Safety}
 Type-safety states that a well-typed program doesn't get stuck. More
 formally: If $\emptyset \ts t \typ T$ and $\reductionl t \emptyset {t'} {s'} *$ then
-either $t'$ is a value or $\exists t'', s'', \reduction {t'} {s'}
+either $t'$ is a value or $\exists t'', s''. \reduction {t'} {s'}
 {t''} {s''}$.
 
 Our strategy is to define a logical relation $\Gamma \ds t : T$, such
@@ -1279,7 +1279,7 @@ the expansion of $T$ appropriately for $j < k$ steps.
 
 This relation captures the observation that the only ways for a term
 to get stuck is to have a field selection on an uninitialized field or
-a method invocation on uninitialized method. However, a {\it potential
+a method invocation on an uninitialized method. However, a {\it potential
   pitfall} is that the value itself might occur in the types $S$, $U$,
 $V$, because we substitute it for the ``self'' occurrences in the
 expansion, so the relation makes sure that the type labels are appropriate.
