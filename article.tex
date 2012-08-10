@@ -354,7 +354,7 @@
 \newcommand{\relv}[4]{\mathcal{V}_{#1;#2;#3}\llbracket#4\rrbracket}
 \newcommand{\rele}[4]{\mathcal{E}_{#1;#2;#3}\llbracket#4\rrbracket}
 \newcommand{\rels}[3]{\mathcal{\supseteq}_{#1}\llbracket#2;#3\rrbracket}
-\newcommand{\relg}[3]{\mathcal{\supseteq}_{#1;#2}\llbracket!#3\rrbracket}
+\newcommand{\relg}[3]{\mathcal{\supseteq^!}_{#1;#2}\llbracket#3\rrbracket}
 \newcommand{\irred}[2]{\text{irred }(#1,#2)}
 \newcommand{\andl}{\;\wedge\;}
 \newcommand{\orl}{\vee}
@@ -1243,11 +1243,13 @@ Our strategy is to define a logical relation $\Gamma \ds t : T$, such
 that $\Gamma \ts t : T$ implies $\Gamma \ds t : T$ implies
 type-safety.
 
-\subsection{Logical Relations}
+\subsection{Step-Indexed Logical Relations}
 
-\todo{quick intro that explains the general approach of step-indexed
-  logical relations and the strategy here of setting up $\ds$ in terms
-  of $\mathcal{E}$ -- give an overview of what's coming}
+In order to ensure that our logical relation is well-founded, we use a
+step index. For each step index $k$, we define the set of values and
+the set of terms that appear to belong to a given type, when taking at
+most $k$ steps. $\Gamma \ds t : T$ is then defined in terms of the
+step-indexed logical relation by requiring it to hold $\forall k$.
 
 \subsubsection{Set of Values}
 $\relv k \Gamma s T$ defines the set of values that appear to have
@@ -1272,10 +1274,21 @@ the expansion of $T$ appropriately for $j < k$ steps.
 &\}
 \end{align*}
 
-\todo{mention possible pitfall: we are not checking type labels of a
-  semantic value, yet because we're substituing the value for the
-  ``self'' in the expansion, the value and its type labels show up and
-  are constrained by T.}
+This relation captures the observation that the only ways for a term
+to get stuck is to have a field selection on an uninitialized field or
+a method invocation on uninitialized method.
+
+Note that this relation doesn't directly impose constraints on the
+type labels. In particular, since we're just enforcing appropriate
+initializations of all fields and methods by looking at an expansion,
+lower bounds of type selections are completely ignored. This is by
+design, because a term doesn't get stuck in a method invocation if
+its argument type doesn't satisfy the lower bound required by a type
+selection -- the upper bound is what matters operationally.
+
+However, a {\it potential pitfall} is that the value itself might
+occur in the types $S$, $U$, $V$, because we substitute it for the
+``self'' occurrences in the expansion.
 
 \subsubsection{Set of Terms}
 $\rele k \Gamma s T$ defines the set of terms that appear to have type
@@ -1285,7 +1298,18 @@ $s$. This is needed for checking methods in $\mathcal{V}$ above, and
 for relating open terms. If $k > 0$, $\mathcal{E}$ extends $\Gamma$
 and $s$ so that they agree. It then states that if it can reduce $t$
 in the extended store to an irreducible term in $j < k$ steps, then
-this term must be in a corresponding $\mathcal{V}$ set.
+this term must be in a corresponding $\mathcal{V}$ set with $\Gamma$
+now extended to agree with the store resulting from the reduction
+steps.
+
+$\irred {t} {s}$ is a shorthand for $\neg\exists t', s'. \reduction t s
+{t'} {s'}$. $\mathcal{\supseteq}$ is used initially for the possibly
+shorter store to agree with the environment, and can extend both in
+many different ways. $\mathcal{\supseteq}^!$ is used finally for the
+possibly shorter environment to agree with the store, and just extends
+the environment in one straightforward way: hence, it defines
+singleton sets.
+
 \begin{align*}
 &\rele k \Gamma s T = \{ t \ |\\
 &\gap \Gamma \ts T \wfe \andl\\
@@ -1297,10 +1321,6 @@ this term must be in a corresponding $\mathcal{V}$ set.
 &\gap\gap {t'} \in \relv {k-j-1} {\Gamma''} {s''} T)\\
 &\}
 \end{align*}
-
-\todo{irred is never formally defined (easy one!)}
-\todo{explain the strange ! notation, or make it more intuitive}
-\todo{briefly introduce the extensions to env and store before they are used}
 
 \subsubsection{Extending the environment and the store}
 $\rels k \Gamma s$ for $k > 0$ defines the set of completed
