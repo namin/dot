@@ -1257,7 +1257,7 @@ type $T$ when taking at most $k$ steps. $\Gamma$ and $s$ must agree:
 $\dom(\Gamma) = \dom(s)$ (ordered) and $\forall (x : T) \in \Gamma, x
 \in \relv k \Gamma s T$. A variable $y$ belongs to $\relv 0 \Gamma s
 T$ simply by being in the store. In addition, it belongs to $\relv k
-\Gamma s T$ for $k > 0$, if it defines all method and value labels in
+\Gamma s T$ for $k > 0$, if it defines all type, method and value labels in
 the expansion of $T$ appropriately for $j < k$ steps.
 \begin{align*}
 &\relv k \Gamma s T = \{ y \ |\\
@@ -1266,29 +1266,23 @@ the expansion of $T$ appropriately for $j < k$ steps.
 &\gap \forall j < k,\\
 &\gap y \mapsto T_c \ldefs{\seq{l = v}\;\seq{m(x)=t}} \in s,\\
 &\gap \Gamma \ts T \expand_y \seq{D},\\
+&\gap (\forall L_i : S \rightarrow U \in \seq{D},\\
+&\gap\gap \Gamma \ts v.L_i \wfe \spcomma S \wf \spcomma U \wf \spcomma S \sub U\\
 &\gap (\forall m_i : S \rightarrow U \in \seq{D},\\
-&\gap\gap \Gamma \ts S \wf \andl t_i \in \rele j {\Gamma \envplus{x : S}} s U)\\
+&\gap\gap \Gamma \ts S \wf \spcomma U \wf \andl t_i \in \rele j {\Gamma \envplus{x : S}} s U)\\
 &\gap \andl\\
 &\gap (\forall l_i : V \in \seq{D},\\
-&\gap\gap v_i \in \relv j \Gamma s V)\\
+&\gap\gap \Gamma \ts V \wf \andl v_i \in \relv j \Gamma s V)\\
 &\}
 \end{align*}
 
 This relation captures the observation that the only ways for a term
 to get stuck is to have a field selection on an uninitialized field or
-a method invocation on uninitialized method.
+a method invocation on uninitialized method. However, a {\it potential
+  pitfall} is that the value itself might occur in the types $S$, $U$,
+$V$, because we substitute it for the ``self'' occurrences in the
+expansion, so the relation makes sure that the type labels exist.
 
-Note that this relation doesn't directly impose constraints on the
-type labels. In particular, since we're just enforcing appropriate
-initializations of all fields and methods by looking at an expansion,
-lower bounds of type selections are completely ignored. This is by
-design, because a term doesn't get stuck in a method invocation if
-its argument type doesn't satisfy the lower bound required by a type
-selection -- the upper bound is what matters operationally.
-
-However, a {\it potential pitfall} is that the value itself might
-occur in the types $S$, $U$, $V$, because we substitute it for the
-``self'' occurrences in the expansion.
 
 \subsubsection{Set of Terms}
 $\rele k \Gamma s T$ defines the set of terms that appear to have type
@@ -1475,26 +1469,17 @@ and $\Gamma \ts S <: U$, then $v \in \relv k \Gamma s U$.
 
 \begin{proofsketch}
 Because $S$ is a subtype of $U$, it should hold that the expansion of
-$S$ subsumes the expansion of $U$. Therefore, for $v \in \relv k
-\Gamma s U$, we have fewer definitions to check than for $v \in \relv
-k \Gamma s S$.
+$S$ subsumes the expansion of $U$, when the ``self'' occurrences are
+of type $S$. Therefore, for $v \in \relv k \Gamma s U$, we have fewer
+declarations to check than for $v \in \relv k \Gamma s S$.
 
-There are two {\it potential pitfalls}.
-
-First, because we don't check for type labels, we can end up in a
-situation where a type label defined in both $S$ and $U$ is actually
-only used meaningfully in $U$, and so $v \in \relv k \Gamma s S$ never
-enforces it. Consider $v$ to map to $\Top \refine z {\ldecl l \Top}
-\ldefs{l = v}$, $S$ is $\Top \refine z {\Ldecl L \Top \Top , \ldecl l
-  \Top}$ and $U$ is $\Top \refine z {\Ldecl L \Top \Top , \ldecl l
-  {z.\Top}}$. Now, $v \in \relv k \Gamma s S$ even though it doesn't
-define the type label $L$. But $v \not\in \relv k \Gamma s U$ because
-$v.L$ is not well-formed. \remark{Counterexample!}
-
-Another worry is potential narrowing issues for methods: because the
-parameter type is contravariant, $U$ can require a more precise type
-than $S$. This should be fine, because if the parameter type becomes
-non-expanding, then the check is vacuously true.
+A {\it potential pitfall} is whether some types of the expansion of
+$U$ can become non-expanding when the ``self'' occurrences are
+actually $v$ instead of just abstractly of type $S$, causing a check
+to fail. Another worry is that such a non-expanding type results from
+narrowing of a parameter type. However, we believe this is fine by
+subtyping regularity wtr to $\nswfe$ and $v \in \relv k \Gamma s S$
+which cheks bounds and $\nswfe$ of the type labels.
 \end{proofsketch}
 
 \subsubsection{Extended Monotonicity Lemma}
