@@ -575,8 +575,8 @@ D ::= & \lindent\mbox{Declaration} \\
 \infrule[\textsc{new}]
 {
 y \notin \fn(T') \\
-\Gamma \ts T_c \wfe \spcomma T_c \expand_y \seq{D} \\
-\Gamma \envplus{y: T_c} \ts \seq{d} \typ \seq{D} \spcomma {t'} \typ {T'}}
+\Gamma \ts T_c \wfe \spcomma T_c \expand_y \seq{\Ldecl L S U}, \seq{D} \\
+\Gamma \envplus{y: T_c} \ts \seq{S <: U} \spcomma \seq{d} \typ \seq{D} \spcomma {t'} \typ {T'}}
 {\Gamma \ts \new y {T_c \ldefs{\seq{d}}} {t'} \typ T'}
 
 \end{multicols}
@@ -593,14 +593,6 @@ y \notin \fn(T') \\
 {\Gamma \ts S \wfe\\
  \Gamma \envplus{x : S} \ts t \typ {T'} \spcomma {T'} \sub T}
 {\Gamma \ts m(x) = t \typ \mdecl m S T }
-
-\end{multicols}
-
-\begin{multicols}{2}[\judgement{}{\fbox{$\Gamma \ts \seq{d} \typ \seq{D}$}}]
-
-\infrule[\textsc{decls}]
-{\Gamma \ts \seq{d_i \typ D_i} \spcomma \seq{S \sub U}}
-{\Gamma \ts \seq{d} \typ \seq{D}, \seq{\Ldecl L S U}}
 
 \end{multicols}
 
