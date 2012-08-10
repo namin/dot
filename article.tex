@@ -1267,13 +1267,11 @@ the expansion of $T$ appropriately for $j < k$ steps.
 &\gap y \mapsto T_c \ldefs{\seq{l = v}\;\seq{m(x)=t}} \in s,\\
 &\gap \Gamma \ts T \expand_y \seq{D},\\
 &\gap (\forall L_i : S \rightarrow U \in \seq{D},\\
-&\gap\gap \Gamma \ts y.L_i \wfe \spcomma S \wf \spcomma U \wf \spcomma S \sub U \andl\\
-&\gap\gap \Gamma \ts y \ni L_i \typ {S'..U'} \spcomma S \sub S' \spcomma U' \sub U\\
+&\gap\gap \Gamma \ts y \ni L_i \typ {S'..U'}) \andl\\
 &\gap (\forall m_i : S \rightarrow U \in \seq{D},\\
-&\gap\gap \Gamma \ts S \wf \spcomma U \wf \andl t_i \in \rele j {\Gamma \envplus{x_i : S}} s U)\\
-&\gap \andl\\
+&\gap\gap t_i \in \rele j {\Gamma \envplus{x_i : S}} s U) \andl\\
 &\gap (\forall l_i : V \in \seq{D},\\
-&\gap\gap \Gamma \ts V \wf \andl v_i \in \relv j \Gamma s V)\\
+&\gap\gap v_i \in \relv j \Gamma s V)\\
 &\}
 \end{align*}
 
@@ -1282,8 +1280,7 @@ to get stuck is to have a field selection on an uninitialized field or
 a method invocation on an uninitialized method. However, a {\it potential
   pitfall} is that the value itself might occur in the types $S$, $U$,
 $V$, because we substitute it for the ``self'' occurrences in the
-expansion, so the relation makes sure that the type labels are appropriate.
-
+expansion, so the relation makes sure that the type labels exist.
 
 \subsubsection{Set of Terms}
 $\rele k \Gamma s T$ defines the set of terms that appear to have type
@@ -1456,12 +1453,13 @@ to map to what $v$ maps to. This should be fine by (5) and
 monotonicity. Thus, ${t} \in \rele {\min(k_1,k_2)} {\Gamma_{12}
   \envplus{{x} : S}} {s_{12} \envplus{{x} \mapsto s_{12}(v)}}
 T$. Thanks to (4), we don't actually need $x$ to be held abstract in
-the environment, because it won't occur in $T$ or its expansion, so we
-can use the type of $v$ in the environment instead of
-$S$ for $x$: ${t} \in \rele {\min(k_1,k_2)} {\Gamma_{12} \envplus{{x}
-    : {\Gamma_{12}(v)}}} {s_{12} \envplus{{x} \mapsto s_{12}(v)}} T$. This
-implies what needs to be shown.
-
+the environment, because it won't occur in $T$ or its expansion (a
+{\it potential pitfall} is whether its occurrences in $t_i$ could
+still cause a check to fail through narrowing issues), so we can use
+the type of $v$ in the environment instead of $S$ for $x$: ${t} \in
+\rele {\min(k_1,k_2)} {\Gamma_{12} \envplus{{x} : {\Gamma_{12}(v)}}}
+      {s_{12} \envplus{{x} \mapsto s_{12}(v)}} T$. This implies what
+      needs to be shown.
 \end{proofsketch}
 
 \subsubsection{Subset Semantics Lemma}
@@ -1479,9 +1477,10 @@ A {\it potential pitfall} is whether some types of the expansion of
 $U$ can become non-expanding when the ``self'' occurrences are
 actually $v$ instead of just abstractly of type $S$, causing a check
 to fail. Another worry is that such a non-expanding type results from
-narrowing of a parameter type. However, we believe this is fine by
-subtyping regularity wtr to $\nswfe$ and $v \in \relv k \Gamma s S$
-which cheks bounds and $\nswfe$ of the type labels.
+narrowing of a parameter type.
+%However, we believe this is fine by
+%subtyping regularity wtr to $\nswfe$ and $v \in \relv k \Gamma s S$
+%which cheks bounds and $\nswfe$ of the type labels.
 \end{proofsketch}
 
 \subsubsection{Extended Monotonicity Lemma}
