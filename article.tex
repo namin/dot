@@ -1457,9 +1457,9 @@ monotonicity. Thus, ${t} \in \rele {\min(k_1,k_2)} {\Gamma_{12}
   \envplus{{x} : S}} {s_{12} \envplus{{x} \mapsto s_{12}(v)}}
 T$. Thanks to (4), we don't actually need $x$ to be held abstract in
 the environment, because it won't occur in $T$ or its expansion, so we
-can use the actual type constructor of $v$, say $T_{v}$, instead of
+can use the type of $v$ in the environment instead of
 $S$ for $x$: ${t} \in \rele {\min(k_1,k_2)} {\Gamma_{12} \envplus{{x}
-    : {T_{v_2}}}} {s_{12} \envplus{{x} \mapsto s_{12}(v)}} T$. This
+    : {\Gamma_{12}(v)}}} {s_{12} \envplus{{x} \mapsto s_{12}(v)}} T$. This
 implies what needs to be shown.
 
 \end{proofsketch}
