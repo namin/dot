@@ -1366,13 +1366,11 @@ theorem.
 
 \begin{myproof}
 The proof is on induction on the derivation of $\Gamma \ts t : T$. For
-each case, we need to show $t \in \rele k \Gamma \emptyset T, \forall k$. The
-non-trivial case is to need to show ${t'} \in \relv {k-j-1} {\Gamma''}
-{s'} T$ by supposing $k > 0$, $(\Gamma'; s) \in \rels k \Gamma \emptyset$, and, for some
-$j < k$, $\reductionl {t} s {t'} {s'} j \andl \irred {t'}
-{s'} \andl {\Gamma''} \in \relg \Gamma k {s'} {\Gamma'}$.
-
-\todo{expand on why this non-trivial subcase is all that is needed for each case.}
+each case, we need to show $t \in \rele k \Gamma \emptyset T, \forall
+k$. The non-trivial case is when $k > 0$ and for some $j < k$,
+$\reductionl {t} s {t'} {s'} j \andl \irred {t'} {s'}$. Then, we need
+to show ${t'} \in \relv {k-j-1} {\Gamma''} {s'} T$ for ${\Gamma''} \in
+\relg \Gamma k {s'} {\Gamma'}$.
 
 \ \\
 
@@ -1478,15 +1476,26 @@ and $\Gamma \ts S <: U$, then $v \in \relv k \Gamma s U$.
 \begin{proofsketch}
 Because $S$ is a subtype of $U$, it should hold that the expansion of
 $S$ subsumes the expansion of $U$. Therefore, for $v \in \relv k
-\Gamma s U$, we have fewer and ``simpler'' definitions to check than
-for $v \in \relv k \Gamma s S$. One worry is potential narrowing
-issues for methods: because the parameter type is contravariant, $U$
-can require a more precise type than $S$. This should be fine, because
-if the parameter type becomes ill-typed, then the check is vacuously
-true.
-\end{proofsketch}
+\Gamma s U$, we have fewer definitions to check than for $v \in \relv
+k \Gamma s S$.
 
-\todo{possible pitfall with narrowing needs more cautiousness}
+There are two {\it potential pitfalls}.
+
+First, because we don't check for type labels, we can end up in a
+situation where a type label defined in both $S$ and $U$ is actually
+only used meaningfully in $U$, and so $v \in \relv k \Gamma s S$ never
+enforces it. Consider $v$ to map to $\Top \refine z {\ldecl l \Top}
+\ldefs{l = v}$, $S$ is $\Top \refine z {\Ldecl L \Top \Top , \ldecl l
+  \Top}$ and $U$ is $\Top \refine z {\Ldecl L \Top \Top , \ldecl l
+  {z.\Top}}$. Now, $v \in \relv k \Gamma s S$ even though it doesn't
+define the type label $L$. But $v \not\in \relv k \Gamma s U$ because
+$v.L$ is not well-formed. \remark{Counterexample!}
+
+Another worry is potential narrowing issues for methods: because the
+parameter type is contravariant, $U$ can require a more precise type
+than $S$. This should be fine, because if the parameter type becomes
+non-expanding, then the check is vacuously true.
+\end{proofsketch}
 
 \subsubsection{Extended Monotonicity Lemma}
 
@@ -1496,17 +1505,14 @@ The extended monotonicity lemma states that if $t \in \rele k {\Gamma
 extends $s$, and $\Gamma$ agrees with $s$ and a prefix of $\Gamma'$
 agrees with $s$.
 
-\todo{explain that this is the reason why extending the store is so
-  flexible}
-
 \begin{proofsketch}
-For the monotonicity with regards to the step-index, this follows
-directly from the definitions of $\mathcal{E}$ and $\mathcal{V}$. For the
-environment and the store, this follows from the definition of $\rels
-k {\Gamma \envplus{x : S}} s$. To extend the environment and the store
-for $x : S$, we can append as much as we want to $\Gamma$ and $s$, to
-get $\Gamma'$ and $s'$, and then ignore the last element which is for
-$x : S$.
+For the monotonicity with regards to the step index, this follows
+directly from the definitions of $\mathcal{E}$ and $\mathcal{V}$. For
+the environment and the store, this follows by design from the
+definition of $\rels k {\Gamma \envplus{x : S}} s$. To extend the
+environment and the store for $x : S$, we can append as much as we
+want to $\Gamma$ and $s$, to get $\Gamma'$ and $s'$, and then ignore
+the last element which is for $x : S$.
 \end{proofsketch}
 
 \section{Discussion}\label{discussion}
