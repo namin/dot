@@ -1260,26 +1260,29 @@ T$ simply by being in the store. In addition, it belongs to $\relv k
 \Gamma s T$ for $k > 0$, if it defines all type, method and value labels in
 the expansion of $T$ appropriately for $j < k$ steps.
 \begin{align*}
-&\relv k \Gamma s T = \{ y \ |\\
-&\gap y \in \dom(s) \andl (\\
-&(\Gamma \ts T \wfe \andl\\
+&\relv k \Gamma s T = \{ y \ | y \in \dom(s) \andl (\\
+& (\Gamma \ts T \wfe \andl\\
 &\gap \forall j < k,\\
 &\gap y \mapsto T_c \ldefs{\seq{l = v}\;\seq{m(x)=t}} \in s,\\
 &\gap \Gamma \ts T \expand_y \seq{D},\\
+&\gap (\forall L_i : S \rightarrow U \in \seq{D},\\
+&\gap\gap \Gamma \ts y \ni L_i \typ {S'..U'}) \andl\\
 &\gap (\forall m_i : S \rightarrow U \in \seq{D},\\
 &\gap\gap t_i \in \rele j {\Gamma \envplus{x_i : S}} s U) \andl\\
 &\gap (\forall l_i : V \in \seq{D},\\
 &\gap\gap v_i \in \relv j \Gamma s V)) \orl\\
 & (T = T_1 \tand T_2 \andl y \in \relv k \Gamma s {T_1} \andl y \in \relv k \Gamma s {T_2}) \orl\\
-& (T = T_1 \tor T_2 \andl  (y \in \relv k \Gamma s {T_1} \orl y \in \relv k \Gamma s {T_2}))\\
-&\}
+& (T = T_1 \tor T_2 \andl  (y \in \relv k \Gamma s {T_1} \orl y \in \relv k \Gamma s {T_2})) \orl\\
+& (T = p.L \andl \Gamma \ts p \ni L \typ {S'..U'} \andl \forall j < k, y \in \relv j \Gamma s {U'})\\
+&)\}
 \end{align*}
 
 This relation captures the observation that the only ways for a term
 to get stuck is to have a field selection on an uninitialized field or
 a method invocation on an uninitialized method. However, a {\it potential
   pitfall} is that the value itself might occur in the types $S$, $U$,
-$V$.
+$V$, because we substitute it for the ``self'' occurrences in the
+expansion, so the relation makes sure that the required type labels exist.
 
 \subsubsection{Set of Terms}
 $\rele k \Gamma s T$ defines the set of terms that appear to have type
@@ -1303,7 +1306,6 @@ singleton sets.
 
 \begin{align*}
 &\rele k \Gamma s T = \{ t \ |\\
-&\gap \Gamma \ts T \wfe \andl\\
 &\gap k = 0 \orl (\forall j < k,\\
 &\gap\gap \forall (\Gamma'; s') \in \rels k \Gamma s ,\\
 &\gap\gap \reductionl t {s'} {t'} {s''} j \andl\\
