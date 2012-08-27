@@ -9,7 +9,7 @@ Require Import Coq.Program.Equality.
 Require Import Coq.Classes.Equivalence.
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Logic.Decidable.
-
+(*
 Definition typing_store G s :=
   wf_store s
   /\ (forall a Tc argsRT, binds a (Tc, argsRT) s ->
@@ -613,4 +613,5 @@ Proof. unfold preservation.
     apply same_tp_any; apply sub_tp_refl; try assumption; apply preserved_wfe with (s:=s) (t:=new Tc ags t) (t':=t ^^ ref a); assumption.
 Qed.
 
+*)
 *)
