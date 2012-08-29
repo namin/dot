@@ -1080,6 +1080,17 @@ checking, is undecidable.
 
 \subsection{Tribe: a simple virtual class calculus}
 
+In~\cite{tribe}, Clarke et al. present a calculus for virtual
+classes. Virtual classes allows {\it families} of classes to be
+inherited, rather than just single classes. Classes are lexically
+nested inside other classes. When a class is inherited, its nested
+inner classes are inherited along with its methods and fields. {\it
+  Further binding} enables the nested classes to be further extended.
+
+Though Scala doesn't have virtual classes, its abstract types enables
+it to emulate some (but not all) of the benefits of virtual classes as
+presented in the Tribe calculus.
+
 In terms of theoretical results, there's a sketch of soundness in the
 paper, but it's unclear whether it is correct. Decidability and
 completeness of subtyping has not yet been established.
