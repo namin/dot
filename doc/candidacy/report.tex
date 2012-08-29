@@ -1049,13 +1049,31 @@ limitation of the SML module system is that ``type sharing'' is
 limited to equality between type names, not general type
 expressions. In effect, this means that the transparency / opaqueness
 of a signature cannot be fully fine-tuned. Their proposal introduces
-translucent signatures, which allows any type to be partially
+translucent signatures, which allows any type to be partially or fully
 determined by a type expression.
 
-%Scala's abstract types have close
-%resemblances to abstract types of signatures in the module systems of
-%ML.
+Scala's abstract types have close resemblances to abstract types of
+signatures in these ML-like module systems. % TODO: develop
 
+Their calculus is grounded in type theory. It is based on Girard's
+$F_\omega$~\cite{tapl}. They add {\it translucent sums} to model
+modules, dependent functions to model functors, a notion of subtyping
+to model module implementation-interface matching. The crucial
+addition and novelty is that of a {\it translucent sum}. A translucent
+sum has the form of a possibly empty sequence of bindings. Similarly,
+a translucent sum type has the form of a possibly empty sequence of
+declarations. They differ from traditional records, because they can
+contain types and because later fields can depend on ealier
+ones. Translucent sums are ordinary values. Since they model modules,
+it means that modules are first-class values. There's a form of
+dependent type, since translucent sums are expressions that may
+contain types.
+
+In terms of theoretical results, Lillibridge shows in his thesis that
+a simplified kernel system based on this calculus is sound, even in
+the presence of side effects~\cite{lillibridge:thesis}. In the
+appendix of the paper, they show that subtyping, and hence type
+checking, is undecidable.
 
 \subsection{A Nominal Theory of Objects with Dependent Types~\cite{nuObj}}
 
