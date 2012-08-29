@@ -1052,9 +1052,6 @@ of a signature cannot be fully fine-tuned. Their proposal introduces
 translucent signatures, which allows any type to be partially or fully
 determined by a type expression.
 
-Scala's abstract types have close resemblances to abstract types of
-signatures in these ML-like module systems. % TODO: develop
-
 Their calculus is grounded in type theory. It is based on Girard's
 $F_\omega$~\cite{tapl}. They add {\it translucent sums} to model
 modules, dependent functions to model functors, a notion of subtyping
@@ -1065,9 +1062,14 @@ a translucent sum type has the form of a possibly empty sequence of
 declarations. They differ from traditional records, because they can
 contain types and because later fields can depend on ealier
 ones. Translucent sums are ordinary values. Since they model modules,
-it means that modules are first-class values. There's a form of
-dependent type, since translucent sums are expressions that may
-contain types.
+it means that modules are first-class values.
+
+Scala's abstract types have close resemblances to abstract types of
+signatures in these ML-like module systems. In particular, in their
+calculus, there's a form of dependent type, since translucent sums are
+expressions that may contain types. Compared to path-dependent types
+as found in Scala, these are more limited because recursive references
+are not allowed.
 
 In terms of theoretical results, Lillibridge shows in his thesis that
 a simplified kernel system based on this calculus is sound, even in
@@ -1075,9 +1077,9 @@ the presence of side effects~\cite{lillibridge:thesis}. In the
 appendix of the paper, they show that subtyping, and hence type
 checking, is undecidable.
 
-\subsection{A Nominal Theory of Objects with Dependent Types~\cite{nuObj}}
+\subsection{Tribe: a simple virtual class calculus}
 
-\subsection{Tribe: a simple virtual class calculus~\cite{tribe}}
+\subsection{A Nominal Theory of Objects with Dependent Types}
 
 \section{Research Proposal} %: How I Plan to Revolutionize the World
 % TODO
