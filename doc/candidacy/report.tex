@@ -1085,7 +1085,17 @@ classes. Virtual classes allows {\it families} of classes to be
 inherited, rather than just single classes. Classes are lexically
 nested inside other classes. When a class is inherited, its nested
 inner classes are inherited along with its methods and fields. {\it
-  Further binding} enables the nested classes to be further extended.
+  Further binding} enables the nested classes to be further
+extended. Path-dependent types arise naturally to distinguish objects
+coming from different families. In Tribe, paths can additionally use
+an ``out'' field to refer to the surrounding instance of the prefixed
+object.
+
+%Tribe, like Scala, distinguishes object families by using
+%path-dependent types. An {\it object family type} such as {\code
+%  x.f.C} refers to class {\code C} which is nested within the object
+%at the end of path {\code x.f}. Paths have to be invariant, and so
+%consists of chains of immutable fields or variables.
 
 Though Scala doesn't have virtual classes, its abstract types enables
 it to emulate some (but not all) of the benefits of virtual classes as
