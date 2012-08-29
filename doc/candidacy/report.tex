@@ -1022,6 +1022,45 @@ calculus with path-dependent types.
 %tackle, the solutions and results, and their shortcomings, and how they
 %relate to your work.  This part builds the basis for the oral candidacy exam.
 
+\subsection{A Type-Theoretic Approach to Higher-Order Modules with Sharing}
+
+In~\cite{homl}, Harper and Lillibridge present a calculus for
+first-class modules, with complete control over the propagation of
+compile-time information.
+
+Their module system is inspired by Standard ML (SML). The SML module
+system has three constructs: {\it signatures}, {\it structures}, and
+{\it functors}. A {\it structure} is a module: it defines a collection
+of types, values and (sub)structures packaged as a program unit. A
+{\it signature} is an interface, the ``type'' of a structure: it
+describes the types, values and (sub)structures of a structure by
+giving their kinds, types and interfaces. A {\it functor} is a
+function mapping structures to structures. SML has a notion of ``type
+sharing'' which allows stating that types specified in separate
+modules are actually equal.
+
+Their module system addresses some shortcomings of the SML module
+system. Though the SML module system is higher-order, because SML
+provides functors and substructures, it still treats modules as
+second-class. For example, it isn't possible to return a structure
+from an if statement. In fact, allowing this might require obscuring
+the visibility of the resulting structure to ensure soundness. Another
+limitation of the SML module system is that ``type sharing'' is
+limited to equality between type names, not general type
+expressions. In effect, this means that the transparency / opaqueness
+of a signature cannot be fully fine-tuned. Their proposal introduces
+translucent signatures, which allows any type to be partially
+determined by a type expression.
+
+%Scala's abstract types have close
+%resemblances to abstract types of signatures in the module systems of
+%ML.
+
+
+\subsection{A Nominal Theory of Objects with Dependent Types~\cite{nuObj}}
+
+\subsection{Tribe: a simple virtual class calculus~\cite{tribe}}
+
 \section{Research Proposal} %: How I Plan to Revolutionize the World
 % TODO
 %Describe your own work and include a  summary and references. Write how you
