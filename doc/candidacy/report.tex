@@ -884,7 +884,26 @@ calculus, objects, dependent types, scala
 % Here we have the typical use of a "T" for an initial drop letter
 % and "HIS" in caps to complete the first word.
 
-% TODO
+% TODO intro
+
+\IEEEPARstart{T}{he} aim of this research is to propose a new sound
+and tractable type-theoretic foundation of Scala and languages like
+it: the Dependent Object Types calculus (DOT). The properties we are
+interested in modeling are Scala's path-dependent types and abstract
+type members, as well as its mixture of nominal and structural typing
+through the use of refinement types. Compared to previous
+approaches~\cite{nuObj,FS}, we make no attempt to model inheritance or
+mixing composition. Furthermore, the calculus is more normative than
+descriptive, in that it does not precisely describe what's currently
+in Scala.
+
+Path-dependent types are a key concept in the DOT calculus, and a
+unifying concept of the three papers we choose to study. A {\it
+  dependent type} is a type which depends on a term. A {\it
+  path-dependent type} is a limited form of dependent type, in which a
+type depends on a path: a chain of immutable fields or
+variables. Path-dependent types arise when terms, usually objects, can
+have types as members.
 
 %\IEEEPARstart{T}{his} template is not trying to suggest a specific
 %style for the content of your candidacy exam/thesis proposal paper; it
@@ -1014,7 +1033,7 @@ calculus, objects, dependent types, scala
 
 \section{Survey of the Selected Papers}%: The Giants upon whose shoulders I will stand
 
-I present three papers~\cite{nuObj,tribe,homl}, each of which models a
+We present three papers~\cite{nuObj,tribe,homl}, each of which models a
 calculus with path-dependent types.
 
 % TODO
