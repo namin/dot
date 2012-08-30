@@ -1171,16 +1171,30 @@ object while a translucent sum is a module. Like in a translucent sum,
 $\tup d$ binds term labels to values and type labels to types. The $x$
 of type $S$ stands for the self, i.e.\ the object being constructed
 from the template. Its scope is the bindings $\tup d$. Since the self
-is explicitly typed, the bindings in class templates can freely refer
-to each other (and even to themselves) via $x$, while recall that, in
-translucent sums, only later fields can depend on earlier ones.
+is explicitly typed, the bindings in class templates can contractively
+refer to each other (and even to themselves) via $x$, while recall
+that, in translucent sums, only later fields can depend on earlier
+ones.
 
 Contrasting concrete type bindings $\tup d$ used in class template
 terms with type declarations $\tup D$ used in record and class types,
 the possible type binders in type declarations are type aliases $=$,
 new types $\expand$ and abstract types $<:$. Only the first two are
 also concrete type binders available in type bindings of class
-templates.
+templates. A consequence is that classes with abstract type members
+cannot be instantiated, because each type declaration of the self type
+needs to have a corresponding type binding when an object is
+instantiated.
+
+Mixing composition is not commutative. When expanding a type to a
+record type, a compound type $R_1 \with R_2$ expands to a record type
+containing the concatenation of the declarations in $R_1$ and $R_2$,
+but if some label is defined in both $R_1$ and $R_2$, the definition
+in $R_2$ overrides (and so must be more specific than) the definition
+in $R_1$. Though this break of commutativity is justified from an
+implementation standpoint, it is awkward from a typing standpoint: in
+particular, it means that least upper bounds and greatest lower bounds
+do not always exist.
 
 \comment{
 A {\em term} denotes an object or a class. It can be of the following
@@ -1268,8 +1282,8 @@ the role of virtual members.
 \end{itemize}
 }
 
-In terms of theoretical results, the paper confirms type soundness of
-the calculus and the undecidability of type checking.
+In terms of theoretical results, the paper confirms the type soundness
+of the calculus and the undecidability of its type checking.
 
 \section{Research Proposal} %: How I Plan to Revolutionize the World
 % TODO
