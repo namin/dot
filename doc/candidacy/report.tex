@@ -1118,6 +1118,20 @@ has not yet been established.
 
 \subsection{A Nominal Theory of Objects with Dependent Types}
 
+In~\cite{nuObj}, Odersky et al. presents ${\nu}Obj$, a calculus for
+classes and objects which can have types as members. It proposes three
+kinds of type members: aliases, abstract types, and new types. The
+calculus can encode Java's inner classes, virtual types, family
+polymorphism, essential aspects of the ML-like module systems
+including sharing consraints and higher-order functors, and System
+$F_{<:}$~\cite{tapl}. The calculus can be used as a basis for unifying
+concepts that so far existed in parallel in advanced object systems
+and module systems. ${\nu}Obj$ makes the following connections: Object =
+Module, Object type = Signature, Class = Method = Functor.
+
+In terms of theoretical results, the paper confirms type soundness of
+the calculus and the undecidability of type checking.
+
 \section{Research Proposal} %: How I Plan to Revolutionize the World
 % TODO
 %Describe your own work and include a  summary and references. Write how you
