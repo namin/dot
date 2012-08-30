@@ -1,27 +1,28 @@
 abstract class Graph { graph =>
-  type Node <: AbstractNode
-  type Edge <: AbstractEdge
+  type Node <: ANode
+  type Edge <: AEdge
 
   def newNode(): Node
   def newEdge(from: Node, to: Node): Edge
 
-  class AbstractEntity {
+  class WithOut {
     val out: graph.type = graph
   }
 
-  abstract class AbstractNode extends AbstractEntity { this: Node =>
-    def connect(other: out.Node): out.Edge = newEdge(this, other)
+  abstract class ANode extends WithOut { this: Node =>
+    def connect(other: out.Node): out.Edge =
+      newEdge(this, other)
   }
 
-  abstract class AbstractEdge extends AbstractEntity { this: Edge =>
+  abstract class AEdge extends WithOut { this: Edge =>
     val from: out.Node
     val to: out.Node
   }
 }
 
 class BasicGraph extends Graph {
-  class Node extends AbstractNode
-  class Edge(val from: Node, val to: Node) extends AbstractEdge
+  class Node extends ANode
+  class Edge(val from: Node, val to: Node) extends AEdge
 
   def newNode(): Node =
     new Node()
@@ -30,8 +31,8 @@ class BasicGraph extends Graph {
 }
 
 class ColouredGraph extends Graph {
-  class Node(var colour: String) extends AbstractNode
-  class Edge(val from: Node, val to: Node) extends AbstractEdge
+  class Node(var colour: String) extends ANode
+  class Edge(val from: Node, val to: Node) extends AEdge
 
   def newNode(): Node =
     new Node("blue")
