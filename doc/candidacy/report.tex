@@ -1095,6 +1095,8 @@ expressions that may contain types. Compared to path-dependent types
 as found in Scala, these are more limited because recursive references
 and bounded quantifications are not allowed.
 
+% TODO: example of translucent module and its utility. woudl be nice to re-use this example in nuObj to show how it can be encoded
+
 In terms of theoretical results, Lillibridge shows in his thesis that
 a simplified kernel system based on this calculus is sound, even in
 the presence of side effects~\cite{lillibridge:thesis}. In the
@@ -1129,6 +1131,8 @@ virtual types. In a follow-up paper~\cite{tribalo}, an improved
 variant of Tribe with simpler types, cross-family inheritance and
 generics is presented and a formalization of ownership types built
 upon it.
+
+%TODO examples comparing Scala with Tribe... perhaps graph ex?
 
 In terms of theoretical results, there's a sketch of soundness in the
 paper, but it's unclear whether it is correct. In particular, the
@@ -1226,6 +1230,8 @@ First we instantiate function \code!g! with a concrete argument
 yielding a thunk \code!g$_{app}$!. Then we evaluate this thunk by
 creating an instance \code!g$_{eval}$! of it. Finally we extract the
 result by querying field \code!res! of \code!g$_{eval}$!.
+
+% TODO: example of module encoding... perhaps in Scala rather than nuObj?
 
 In terms of theoretical results, the paper confirms the type soundness
 of the calculus and the undecidability of its type checking.
