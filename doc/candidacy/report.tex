@@ -1175,10 +1175,9 @@ cn2.connect(cn3); // Type Error!!!
 
 Now, we can emulate this Tribe example in Scala at the expense of some
 synctactic overhead, since further binding and ``out'' selection are
-not native. Note that I tried to emulate ``out'' faithfully, but gave
-up and pass the family object to the library methods instead, because
-I couldn't make Scala recognize that, for example, \code{e.from.type}
-is a subtype of \code{e.out.Node}.
+not native. Emulating ``out'' faithfully involves a bit of hackery in
+making Scala recognize that, for example, \code{e.from.type} is a
+subtype of \code{e.out.Node}.
 \lstinputlisting{tribe.scala}
 
 In terms of theoretical results, there's a sketch of soundness in the

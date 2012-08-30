@@ -1,42 +1,57 @@
-abstract class Graph {
-  type Node <: BasicNode
-  type Edge <: BasicEdge
+abstract class Graph { graph =>
+  type Node <: AbstractNode
+  type Edge <: AbstractEdge
 
   def newNode(): Node
   def newEdge(from: Node, to: Node): Edge
 
-  class BasicNode { this: Node =>
-    def connect(other: Node) = newEdge(this, other)
+  class AbstractEntity {
+    val out: graph.type = graph
   }
 
-  class BasicEdge(val from: Node, val to: Node)
+  abstract class AbstractNode extends AbstractEntity { this: Node =>
+    def connect(other: out.Node): out.Edge = newEdge(this, other)
+  }
+
+  abstract class AbstractEdge extends AbstractEntity { this: Edge =>
+    val from: out.Node
+    val to: out.Node
+  }
 }
 
 class BasicGraph extends Graph {
-  type Node = BasicNode
-  type Edge = BasicEdge
+  class Node extends AbstractNode
+  class Edge(val from: Node, val to: Node) extends AbstractEdge
 
   def newNode(): Node =
-    new BasicNode()
+    new Node()
   def newEdge(from: Node, to: Node): Edge =
-    new BasicEdge(from, to)
+    new Edge(from, to)
 }
 
 class ColouredGraph extends Graph {
-  type Node = ColouredNode
-  type Edge = BasicEdge
+  class Node(var colour: String) extends AbstractNode
+  class Edge(val from: Node, val to: Node) extends AbstractEdge
 
   def newNode(): Node =
-    new ColouredNode("blue")
+    new Node("blue")
   def newEdge(from: Node, to: Node): Edge =
-    new BasicEdge(from, to)
-
-  class ColouredNode(var colour: String) extends BasicNode
+    new Edge(from, to)
 }
 
-abstract class Library {
-  def distance(g: Graph)(n1: g.Node, n2: g.Node): Int
-  def copyEdge(g: Graph)(e: g.Edge): g.Edge =
+object Library {
+  def distance(n1: Graph#Node)(n2: n1.out.Node): Int = {
+    val e: n1.out.Edge = n1.connect(n2)
+    0 // ...
+  }
+  def copyEdge(e: Graph#Edge): e.out.Edge =
+    e.out.newEdge(e.from, e.to)
+
+  def distance2(g: Graph)(n1: g.Node, n2: g.Node): Int = {
+    val e: g.Edge = n1.connect(n2)
+    0 // ...
+  }
+  def copyEdge2(g: Graph)(e: g.Edge): g.Edge =
     g.newEdge(e.from, e.to)
 }
 
@@ -51,4 +66,12 @@ object Test extends App {
   //  (which expands to)  Test.cg1.ColouredNode
   // required: Test.cg2.Node
   //  (which expands to)  Test.cg2.ColouredNode
+  val d1 = Library.distance(cn1)(cn3)
+  val d2 = Library.distance2(cg1)(cn1, cn3)
+  val e1 = Library.copyEdge(e)
+  val e2 = Library.copyEdge2(cg1)(e)
+  // these are all type mismatches
+  // Library.distance(cn1)(cn2)
+  // Library.distance2(cg2)(cn1, cn3)
+  // Library.copyEdge2(cg2)(e)
 }
