@@ -1070,7 +1070,7 @@ signatures in these ML-like module systems. In particular, in their
 calculus, there's a form of dependent type, since translucent sums are
 expressions that may contain types. Compared to path-dependent types
 as found in Scala, these are more limited because recursive references
-are not allowed.
+and bounded quantifications are not allowed.
 
 In terms of theoretical results, Lillibridge shows in his thesis that
 a simplified kernel system based on this calculus is sound, even in
@@ -1081,15 +1081,15 @@ checking, is undecidable.
 \subsection{Tribe: a simple virtual class calculus}
 
 In~\cite{tribe}, Clarke et al. present a calculus for virtual
-classes. Virtual classes allows {\it families} of classes to be
+classes. Virtual classes allow {\it families} of classes to be
 inherited, rather than just single classes. Classes are lexically
 nested inside other classes. When a class is inherited, its nested
 inner classes are inherited along with its methods and fields. {\it
   Further binding} enables the nested classes to be further
 extended. Path-dependent types arise naturally to distinguish objects
 coming from different families. In Tribe, paths can additionally use
-an ``out'' field to refer to the surrounding instance of the prefixed
-object.
+an ``out'' field to move from an object to the object which surrounds
+it.
 
 %Tribe, like Scala, distinguishes object families by using
 %path-dependent types. An {\it object family type} such as {\code
@@ -1099,11 +1099,20 @@ object.
 
 Though Scala doesn't have virtual classes, its abstract types enables
 it to emulate some (but not all) of the benefits of virtual classes as
-presented in the Tribe calculus.
+presented in the Tribe calculus. On the other hand, Tribe doesn't have
+virtual types. In a follow-up paper~\cite{tribalo}, an improved
+variant of Tribe with simpler types, cross-family inheritance and
+generics is presented and a formalisation of ownership types built
+upon it.
 
 In terms of theoretical results, there's a sketch of soundness in the
-paper, but it's unclear whether it is correct. Decidability and
-completeness of subtyping has not yet been established.
+paper, but it's unclear whether it is correct. In particular, the
+substitution lemma does not seem valid when null is the value to be
+substituted and the expression has a type which contains the variable
+to be substituted. In the follow-up paper~\cite{tribalo}, the
+soundness proof sketch seems more plausible but then is tied to the
+ownership system formalism. Decidability and completeness of subtyping
+has not yet been established.
 
 \subsection{A Nominal Theory of Objects with Dependent Types}
 
