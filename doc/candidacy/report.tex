@@ -1087,9 +1087,11 @@ nested inside other classes. When a class is inherited, its nested
 inner classes are inherited along with its methods and fields. {\it
   Further binding} enables the nested classes to be further
 extended. Path-dependent types arise naturally to distinguish objects
-coming from different families. In Tribe, paths can additionally use
-an ``out'' field to move from an object to the object which surrounds
-it.
+coming from different families. In Tribe, path types can depend
+simultaneously on both classes and objects. Additionally, paths can
+use an ``out'' field to move from an object to the object which
+surrounds it. This ``out'' feature enables ubiquitous access to an
+object's family without the need to drag around family arguments.
 
 %Tribe, like Scala, distinguishes object families by using
 %path-dependent types. An {\it object family type} such as {\code
