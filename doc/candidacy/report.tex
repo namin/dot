@@ -1132,7 +1132,51 @@ variant of Tribe with simpler types, cross-family inheritance and
 generics is presented and a formalization of ownership types built
 upon it.
 
-%TODO examples comparing Scala with Tribe... perhaps graph ex?
+Let's now re-use an example from the paper, and discuss how we would
+emulate it in Scala.
+\begin{lstlisting}
+class Graph {
+  class Node {
+    Edge connect(Node other) {
+      return new Edge(this, other);
+    }
+  }
+  class Edge {
+    Node from, to;
+    Edge(Node f, Node t) { from = f; to = t; }
+  }
+}
+
+class ColouredGraph extends Graph { // subclassing
+  class Node {                      // further binding
+    Colour nodeColour;
+  }
+}
+
+class Library {
+  int distance(Graph.Node n1, n1.out.Node n2) { ... }
+
+  e.out.Edge copyEdge(Graph.Edge e) {
+    e.out.Node from = e.from;
+    e.out.Node to = e.to;
+    new e.out.Edge(from, to);
+  }
+}
+\end{lstlisting}
+
+The ``tests'' are:
+\begin{lstlisting}
+final ColouredGraph cg1, cg2;
+cg1.Node cn1, cn3;
+cg2.Node cn2;
+cn1.connect(cn3); // Type Correct
+cn2.connect(cn3); // Type Error!!!
+\end{lstlisting}
+
+Now, we can emulate this Tribe example in Scala at the expense of some
+synctactic overhead, since further binding and ``out'' selection are
+not native.
+\lstinputlisting{tribe.scala}
 
 In terms of theoretical results, there's a sketch of soundness in the
 paper, but it's unclear whether it is correct. In particular, the
