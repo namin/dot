@@ -1205,7 +1205,27 @@ earlier.
 
 First, we show how to encode monomorphic functions into the
 calculus. The paper goes further and generalizes the encoding to
-system $F_{<:}$
+system $F_{<:}$. A $\lambda$-abstraction $\lambda ( x : T )\; t$ is
+represented as a class with an abstract member \code!arg! for the
+function argument:
+\begin{lstlisting}
+[x: {arg: T}| fun = [res = $t'$]]
+\end{lstlisting}
+$t'$ corresponds to term $t$ in which all occurrences of $x$ are
+replaced by \code!$x$.arg!. We cannot directly access \code!arg! on
+the right-hand side of \code!fun!: this wouldn't be ``contractive'',
+because \code!arg! might not be initialised before \code!fun!. Hence,
+we pack $t'$ in another class to ensure contractiveness. Now, an
+application $g(e)$ gets decomposed into three subsequent steps:
+\begin{lstlisting}
+$\nu\,$g$_{app}$  <- g & [arg = e];
+$\nu\,$g$_{eval}$ <- g$_{app}$.fun;
+g$_{eval}$.res
+\end{lstlisting}
+First we instantiate function \code!g! with a concrete argument
+yielding a thunk \code!g$_{app}$!. Then we evaluate this thunk by
+creating an instance \code!g$_{eval}$! of it. Finally we extract the
+result by querying field \code!res! of \code!g$_{eval}$!.
 
 In terms of theoretical results, the paper confirms the type soundness
 of the calculus and the undecidability of its type checking.
