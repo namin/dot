@@ -897,7 +897,7 @@ interested in modeling are Scala's path-dependent types and abstract
 type members, as well as its mixture of nominal and structural typing
 through the use of refinement types. Compared to previous
 approaches~\cite{nuObj,FS}, we make no attempt to model inheritance or
-mixing composition. Furthermore, the calculus is more normative than
+mixin composition. Furthermore, the calculus is more normative than
 descriptive, in that it does not precisely describe what's currently
 in Scala.
 
@@ -1156,7 +1156,7 @@ The terms in ${\nu}Obj$ denotes objects or classes. They consist of
 variables $x$ denoting objects, selections $t.l$, object creations
 \mbox{$\newin{x \larrowc t}{u}$} defining an object $x$ of class $t$
 whose scope is the term $u$, class templates $\cls{x: S \sep \tup d}$,
-and mixing compositions $t \withsub{S} u$ denoting a class of self
+and mixin compositions $t \withsub{S} u$ denoting a class of self
 type $S$ combined from two classes $t$ and $u$. A value is a variable
 or a class template. A path is a variable followed by a possibly empty
 sequence of selections.
@@ -1181,12 +1181,16 @@ terms with type declarations $\tup D$ used in record and class types,
 the possible type binders in type declarations are type aliases $=$,
 new types $\expand$ and abstract types $<:$. Only the first two are
 also concrete type binders available in type bindings of class
-templates. A consequence is that classes with abstract type members
-cannot be instantiated, because each type declaration of the self type
-needs to have a corresponding type binding when an object is
-instantiated.
+templates.
 
-Mixing composition is not commutative. When expanding a type to a
+A class type $\cls{x: S \sep \tup D}$ contains as values classes that
+instantiate to objects of (sub)type $\obj{x \sep \tup D}$. The
+explicit self type $S$ may be different from $\obj{x \sep \tup
+  D}$. Declarations in $S$ which are not in $\tup D$ play the role of
+abstract members -- they must be defined by mixin composition in order
+for the class to be instantiated.
+
+Mixin composition is not commutative. When expanding a type to a
 record type, a compound type $R_1 \with R_2$ expands to a record type
 containing the concatenation of the declarations in $R_1$ and $R_2$,
 but if some label is defined in both $R_1$ and $R_2$, the definition
@@ -1197,7 +1201,11 @@ particular, least upper bounds and greatest lower bounds
 do not always exist in Scala.
 
 Let's now illustrate with a few examples the correspondences outlined
-earlier. %TODO
+earlier.
+
+First, we show how to encode monomorphic functions into the
+calculus. The paper goes further and generalizes the encoding to
+system $F_{<:}$
 
 In terms of theoretical results, the paper confirms the type soundness
 of the calculus and the undecidability of its type checking.
