@@ -1087,13 +1087,14 @@ system. Though the SML module system is higher-order, because SML
 provides functors and substructures, it still treats modules as
 second-class. For example, it isn't possible to return a structure
 from an if statement. In fact, allowing this might require obscuring
-the visibility of the resulting structure to ensure soundness. Another
-limitation of the SML module system is that ``type sharing'' is
-limited to equality between type names, not general type
-expressions. In effect, this means that the transparency / opaqueness
-of a signature cannot be fully fine-tuned. Their proposal introduces
-translucent signatures, which allows any type to be partially or fully
-determined by a type expression.
+the visibility of the resulting structure to ensure soundness, which
+we illustrate with an example below. Another limitation of the SML
+module system is that ``type sharing'' is limited to equality between
+type names, not general type expressions. In effect, this means that
+the transparency / opaqueness of a signature cannot be fully
+fine-tuned. Their proposal introduces translucent signatures, which
+allows any type to be partially or fully determined by a type
+expression.
 
 Their calculus is grounded in type theory. It is based on Girard's
 $F_\omega$~\cite{tapl}. They add {\it translucent sums} to model
@@ -1121,7 +1122,7 @@ the presence of side effects~\cite{lillibridge:thesis}. In the
 appendix of the paper, they show that subtyping, and hence type
 checking, is undecidable.
 
-\subsubsection*{Pseudo-SML Example and Scala Encoding}
+\subsubsection*{ML-like Example and Scala Encoding}
 Consider this example, in a ML-like language implementing the calculus
 of the paper. Since modules are first-class, we can \code{flip} a coin
 and return a module depending on the outcome:
@@ -1156,7 +1157,8 @@ It is straightforward to encode this example in Scala, with the
 correspondence Object = Module, and Object Type = Signature. Indeed,
 the ${\nu}Obj$ calculus, which we study in section~\ref{sec:nuObj}
 embraces this correspondence, and futher claims: Class = Method =
-Functor, as we will see.
+Functor, as we will see. Note that type members, and hence
+path-dependent types, are crucial for this correspondence.
 \lstinputlisting{ml.scala}
 
 \subsection{Tribe: a simple virtual class calculus}\label{sec:tribe}
