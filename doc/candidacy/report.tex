@@ -1174,7 +1174,7 @@ cn2.connect(cn3); // Type Error!!!
 \end{lstlisting}
 
 Now, we can emulate this Tribe example in Scala at the expense of some
-synctactic overhead, since further binding and ``out'' selection are
+syntactic overhead, since further binding and ``out'' selection are
 not native. Emulating ``out'' faithfully involves a bit of hackery in
 making Scala recognize that, for example, \code{e.from.type} is a
 subtype of \code{e.out.Node}. As noted in the paper, using ``out'' in
