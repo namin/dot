@@ -1176,15 +1176,18 @@ cn2.connect(cn3); // Type Error!!!
 Now, we can emulate this Tribe example in Scala at the expense of some
 syntactic overhead, since further binding and ``out'' selection are
 not native. We use virtual types to ensure that the inner classes are
-indeed ``virtual'', i.e.\ dynamically instead of statically
-dispatched. Emulating ``out'' faithfully involves a bit of hackery in
-making Scala recognize that, for example, \code{e.from.type} is a
-subtype of \code{e.out.Node}. As noted in the paper, using ``out'' in
-library code obscures the symmetry between the parameters (for
-example, in the \code{distance} method below) but allows the family
-object to be recovered without being explicitly passed around
-(contrast with the method \code{distance2}).
-\lstinputlisting{tribe.scala}
+indeed ``virtual'', i.e. dynamically instead of statically
+dispatched. In order to conform to the ``virtual class'' pattern, the
+leaf classes \code{Graph} and \code{ColourGraph} are no longer in a
+subclassing relationship with one another, as this would only bring
+confusion when ascribing a coloured graph to a graph. Emulating
+``out'' faithfully involves a bit of hackery in making Scala recognize
+that, for example, \code{e.from.type} is a subtype of
+\code{e.out.Node}. As noted in the paper, using ``out'' in library
+code obscures the symmetry between the parameters (for example, in the
+\code{distance} method below) but allows the family object to be
+recovered without being explicitly passed around (contrast with the
+method \code{distance2}).  \lstinputlisting{tribe.scala}
 
 In terms of theoretical results, there's a sketch of soundness in the
 paper, but it's unclear whether it is correct. In particular, the
