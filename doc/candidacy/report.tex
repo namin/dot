@@ -1250,10 +1250,13 @@ object while a translucent sum is a module. Like in a translucent sum,
 $\tup d$ binds term labels to values and type labels to types. The $x$
 of type $S$ stands for the self, i.e.\ the object being constructed
 from the template. Its scope is the bindings $\tup d$. Since the self
-is explicitly typed, the bindings in class templates can contractively
-refer to each other (and even to themselves) via $x$, while recall
-that, in translucent sums, only later fields can depend on earlier
-ones.
+is explicitly typed, the bindings in class templates can
+``contractively'' refer to each other (and even to themselves) via
+$x$, while recall that, in translucent sums, only later fields can
+refer to earlier ones but the references don't have any
+``contractive'' restrictions. Roughly, ``contractiveness'' in
+${\nu}Obj$ guarantees that a field cannot be referenced before it is
+initalized.
 
 Contrasting concrete type bindings $\tup d$ used in class template
 terms with type declarations $\tup D$ used in record and class types,
