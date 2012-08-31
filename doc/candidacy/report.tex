@@ -1112,7 +1112,7 @@ is higher-order ``for free''.
 Scala's abstract types have close resemblances to abstract types of
 signatures in these ML-like module systems. In particular, in their
 calculus, there's a form of dependent type, since translucent sums are
-expressions that may contain types. Compared to path-dependent types
+terms that may contain types. Compared to path-dependent types
 as found in Scala, these are more limited because recursive references
 and bounded quantifications are not allowed.
 
@@ -1285,7 +1285,7 @@ selections $T\Tsel L$, record types $\obj{x \sep \tup D}$, compound
 types $T \with U$, and class types $\cls{x: S \sep \tup D}$.
 
 A class template $\cls{x: S \sep \tup d}$ is closely related to a
-translucent sum, except that it needs to be instantiated into an
+translucent sum of section~\ref{sec:homl}, except that it needs to be instantiated into an
 object while a translucent sum is a module. Like in a translucent sum,
 $\tup d$ binds term labels to values and type labels to types. The $x$
 of type $S$ stands for the self, i.e.\ the object being constructed
