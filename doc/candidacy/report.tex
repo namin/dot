@@ -1115,13 +1115,14 @@ expressions that may contain types. Compared to path-dependent types
 as found in Scala, these are more limited because recursive references
 and bounded quantifications are not allowed.
 
-% TODO: example of translucent module and its utility. woudl be nice to re-use this example in nuObj to show how it can be encoded
-
 In terms of theoretical results, Lillibridge shows in his thesis that
 a simplified kernel system based on this calculus is sound, even in
 the presence of side effects~\cite{lillibridge:thesis}. In the
 appendix of the paper, they show that subtyping, and hence type
 checking, is undecidable.
+
+\subsubsection*{SML Example and Scala Encoding}
+TODO
 
 \subsection{Tribe: a simple virtual class calculus}
 
@@ -1152,6 +1153,16 @@ variant of Tribe with simpler types, cross-family inheritance and
 generics is presented and a formalization of ownership types built
 upon it.
 
+In terms of theoretical results, there's a sketch of soundness in the
+paper, but it's unclear whether it is correct. In particular, the
+substitution lemma does not seem valid when null is the value to be
+substituted and the expression has a type which contains the variable
+to be substituted. In the follow-up paper~\cite{tribalo}, the
+soundness proof sketch seems more plausible but then is tied to the
+ownership system formalism. Decidability of subtyping, and hence
+typechecking, has not yet been established.
+
+\subsubsection*{Tribe Example and Scala Encoding}
 Let's now re-use an example from the paper, and discuss how we would
 emulate it in Scala.
 \begin{lstlisting}
@@ -1207,16 +1218,8 @@ that, for example, \code{e.from.type} is a subtype of
 code obscures the symmetry between the parameters (for example, in the
 \code{distance} method below) but allows the family object to be
 recovered without being explicitly passed around (contrast with the
-method \code{distance2}).  \lstinputlisting{tribe.scala}
-
-In terms of theoretical results, there's a sketch of soundness in the
-paper, but it's unclear whether it is correct. In particular, the
-substitution lemma does not seem valid when null is the value to be
-substituted and the expression has a type which contains the variable
-to be substituted. In the follow-up paper~\cite{tribalo}, the
-soundness proof sketch seems more plausible but then is tied to the
-ownership system formalism. Decidability of subtyping, and hence
-typechecking, has not yet been established.
+method \code{distance2}).
+\lstinputlisting{tribe.scala}
 
 \subsection{A Nominal Theory of Objects with Dependent Types}
 
@@ -1282,14 +1285,17 @@ implementation standpoint, it is awkward from a typing standpoint: in
 particular, least upper bounds and greatest lower bounds
 do not always exist in Scala.
 
-Let's now illustrate with a few examples the correspondences outlined
-earlier.
+In terms of theoretical results, the paper confirms the type soundness
+of the calculus and the undecidability of its type checking.
 
-First, we show how to encode monomorphic functions into the
+\subsubsection*{${\nu}Obj$ Example}
+
+We show how to encode monomorphic functions into the
 calculus. The paper goes further and generalizes the encoding to
-system $F_{<:}$. A $\lambda$-abstraction $\lambda ( x : T )\; t$ is
-represented as a class with an abstract member \code!arg! for the
-function argument:
+system $F_{<:}$.
+
+A $\lambda$-abstraction $\lambda ( x : T )\; t$ is represented as a
+class with an abstract member \code!arg! for the function argument:
 \begin{lstlisting}
 [x: {arg: T}| fun = [res = $t'$]]
 \end{lstlisting}
@@ -1309,10 +1315,8 @@ yielding a thunk \code!g$_{app}$!. Then we evaluate this thunk by
 creating an instance \code!g$_{eval}$! of it. Finally we extract the
 result by querying field \code!res! of \code!g$_{eval}$!.
 
-% TODO: example of module encoding... perhaps in Scala rather than nuObj?
-
-In terms of theoretical results, the paper confirms the type soundness
-of the calculus and the undecidability of its type checking.
+This example illustrates the correspondence between classes, methods
+and functors claimed by ${\nu}Obj$.
 
 \section{Research Proposal} %: How I Plan to Revolutionize the World
 
