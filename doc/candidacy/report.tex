@@ -1065,7 +1065,7 @@ a calculus with path-dependent types.
 %tackle, the solutions and results, and their shortcomings, and how they
 %relate to your work.  This part builds the basis for the oral candidacy exam.
 
-\subsection{A Type-Theoretic Approach to Higher-Order Modules with Sharing}
+\subsection{A Type-Theoretic Approach to Higher-Order Modules with Sharing}\label{sec:homl}
 
 In~\cite{homl}, Harper and Lillibridge present a calculus for
 first-class modules, with complete control over the propagation of
@@ -1121,10 +1121,44 @@ the presence of side effects~\cite{lillibridge:thesis}. In the
 appendix of the paper, they show that subtyping, and hence type
 checking, is undecidable.
 
-\subsubsection*{SML Example and Scala Encoding}
-TODO
+\subsubsection*{Pseudo-SML Example and Scala Encoding}
+Consider this example, in a ML-like language implementing the calculus
+of the paper. Since modules are first-class, we can \code{flip} a coin
+and return a module depending on the outcome:
+\begin{lstlisting}
+structure XInt = struct
+  type T = int
+  val v = 3
+  val f = negate
+end
+structure XBool = struct
+  type T = bool
+  val v = true
+  val f = not
+end
+structure X =
+  if flip() then XInt else XBool
+\end{lstlisting}
+But now, what should be the static type or signature of structure
+\code{X}? In ML, in order to make the \code{if} type check, the two
+branches must have equal types. In the calculus, the subsumption rule
+is used to coerce both types to their least upper bound, represented
+by the signature:
+\begin{lstlisting}
+signature XType = sig
+  type T
+  val v = T
+  val f = T -> T
+end
+\end{lstlisting}
 
-\subsection{Tribe: a simple virtual class calculus}
+It is straightforward to encode this example in Scala, with the
+correspondence Object = Module, and Object Type = Signature. Indeed,
+the ${\nu}Obj$ calculus, which we study in section~\ref{sec:nuObj}
+embraces this correspondence, and futher claims: Class = Method =
+Functor, as we will see.
+
+\subsection{Tribe: a simple virtual class calculus}\label{sec:tribe}
 
 In~\cite{tribe}, Clarke et al. present a calculus for virtual
 classes. Virtual classes allow {\it families} of classes to be
@@ -1221,7 +1255,7 @@ recovered without being explicitly passed around (contrast with the
 method \code{distance2}).
 \lstinputlisting{tribe.scala}
 
-\subsection{A Nominal Theory of Objects with Dependent Types}
+\subsection{A Nominal Theory of Objects with Dependent Types}\label{sec:nuObj}
 
 In~\cite{nuObj}, Odersky et al. presents ${\nu}Obj$, a calculus for
 classes and objects which can have types as members. It proposes three
