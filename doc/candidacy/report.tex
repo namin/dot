@@ -1037,8 +1037,28 @@ have types as members.
 
 \section{Survey of the Selected Papers}%: The Giants upon whose shoulders I will stand
 
-We present three papers~\cite{nuObj,tribe,homl}, each of which models a
-calculus with path-dependent types.
+We present three papers~\cite{homl,tribe,nuObj}, each of which models
+a calculus with path-dependent types.
+\begin{itemize}
+\item The first paper, {\it A Type-Theoretic Approach to Higher-Order
+  Modules with Sharing} by Robert Harper and Mark
+  Lillibridge~\cite{homl}, presents a calculus for modules in the ML
+  tradition. Path-dependent types arise because modules, which may
+  contain type components, are first-class values in their calculus.
+\item The second paper, {\it Tribe: a simple virtual class calculus}
+  by Dave Clarke, Sophia Drossopoulou, James Noble and Tobias
+  Wrigstad~\cite{tribe}, presents a core calculus for virtual
+  classes. Path-dependent types arise because, in Tribe, paths are
+  types, and, almost vice versa: each type is a generalized form of
+  path.
+\item The third paper, {\it A Nomial Theory of Objects with Dependent
+  Types} by Martin Odersky, Vincent Cremet, Christine R{\"o}ckl and
+  Matthias Zenger~\cite{nuObj}, presents a calculus which unifies
+  concepts from advanced object-oriented systems and module systems
+  and, with~\cite{FS}, serves as a type-theoretic foundation for many
+  features of Scala's type system. Path-dependent types arise because
+  any path $p$ has a singleton type $p.\type$.
+\end{itemize}
 
 % TODO
 %Background --- Describe the three papers in detail, the problem they
@@ -1292,6 +1312,7 @@ In terms of theoretical results, the paper confirms the type soundness
 of the calculus and the undecidability of its type checking.
 
 \section{Research Proposal} %: How I Plan to Revolutionize the World
+
 % TODO
 %Describe your own work and include a  summary and references. Write how you
 %propose to advance the state of the art given the background. What
