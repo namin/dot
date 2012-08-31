@@ -1,6 +1,7 @@
 trait GraphBase { graph =>
   type Node <: NodeBase
   type Edge <: EdgeBase
+  def newNode(): Node
   def newEdge(from: Node, to: Node): Edge
 
   trait WithOut {
@@ -19,12 +20,14 @@ trait GraphBase { graph =>
 class Graph extends GraphBase {
   class Node extends NodeBase
   class Edge(val from: Node, val to: Node) extends EdgeBase
+  def newNode() = new Node
   def newEdge(from: Node, to: Node) = new Edge(from, to)
 }
 
 class ColouredGraph extends GraphBase {
   class Node(val colour: String) extends NodeBase
   class Edge(val from: Node, val to: Node) extends EdgeBase
+  def newNode() = new Node("blue")
   def newEdge(from: Node, to: Node) = new Edge(from, to)
 }
 

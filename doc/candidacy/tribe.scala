@@ -12,12 +12,16 @@ class Graph { graph =>
     val from: out.Node = f
     val to: out.Node = t
   }
+
+  def newNode() = new Node
 }
 
 class ColouredGraph extends Graph {
   class Node extends super.Node {
     var colour: String = "blue"
   }
+
+  override def newNode() = new Node
 }
 
 object Library {
