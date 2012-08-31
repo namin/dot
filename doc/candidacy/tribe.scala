@@ -1,49 +1,57 @@
-class Graph { graph =>
-  class WithOut {
+trait GraphBase { graph =>
+  type Node <: NodeBase
+  type Edge <: EdgeBase
+  def newNode(): Node
+  def newEdge(from: Node, to: Node): Edge
+
+  trait WithOut {
     val out: graph.type = graph
   }
-
-  class Node extends WithOut {
+  trait NodeBase extends WithOut { this: Node =>
     def connect(other: out.Node): out.Edge =
-      new out.Edge(this, other)
+      newEdge(this, other)
   }
-
-  class Edge(f: Node, t: Node) extends WithOut {
-    val from: out.Node = f
-    val to: out.Node = t
+  trait EdgeBase extends WithOut { this: Edge =>
+    val from: out.Node
+    val to: out.Node
   }
-
-  def newNode() = new Node
 }
 
-class ColouredGraph extends Graph {
-  class Node extends super.Node {
-    var colour: String = "blue"
-  }
+class Graph extends GraphBase {
+  class Node extends NodeBase
+  class Edge(val from: Node, val to: Node) extends EdgeBase
+  def newNode() = new Node
+  def newEdge(from: Node, to: Node) = new Edge(from, to)
+}
 
-  override def newNode() = new Node
+class ColouredGraph extends GraphBase {
+  class Node(val colour: String) extends NodeBase
+  class Edge(val from: Node, val to: Node) extends EdgeBase
+  def newNode() = new Node("blue")
+  def newEdge(from: Node, to: Node) = new Edge(from, to)
 }
 
 object Library {
-  def distance(n1: Graph#Node)(n2: n1.out.Node): Int = {
+  def distance(n1: GraphBase#Node)(n2: n1.out.Node): Int = {
     val e: n1.out.Edge = n1.connect(n2)
     0 // ...
   }
-  def copyEdge(e: Graph#Edge): e.out.Edge =
-    new e.out.Edge(e.from, e.to)
+  def copyEdge(e: GraphBase#Edge): e.out.Edge =
+    e.out.newEdge(e.from, e.to)
 
-  def distance2(g: Graph)(n1: g.Node, n2: g.Node): Int = {
+  def distance2(g: GraphBase)(n1: g.Node, n2: g.Node): Int = {
     val e: g.Edge = n1.connect(n2)
     0 // ...
   }
-  def copyEdge2(g: Graph)(e: g.Edge): g.Edge =
-    new g.Edge(e.from, e.to)
+  def copyEdge2(g: GraphBase)(e: g.Edge): g.Edge =
+    g.newEdge(e.from, e.to)
 }
 
 object Test extends App {
   val cg1, cg2 = new ColouredGraph()
-  val cn1, cn3 = new cg1.Node()
-  val cn2 = new cg2.Node()
+  val cn1 = new cg1.Node("blue")
+  val cn2 = new cg2.Node("green")
+  val cn3 = new cg1.Node("red")
   val e = cn1.connect(cn3)
   // this is a type mismatch
   // cn2.connect(cn3)
