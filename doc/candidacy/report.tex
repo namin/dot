@@ -1175,7 +1175,9 @@ cn2.connect(cn3); // Type Error!!!
 
 Now, we can emulate this Tribe example in Scala at the expense of some
 syntactic overhead, since further binding and ``out'' selection are
-not native. Emulating ``out'' faithfully involves a bit of hackery in
+not native. We use virtual types to ensure that the inner classes are
+indeed ``virtual'', i.e.\ dynamically instead of statically
+dispatched. Emulating ``out'' faithfully involves a bit of hackery in
 making Scala recognize that, for example, \code{e.from.type} is a
 subtype of \code{e.out.Node}. As noted in the paper, using ``out'' in
 library code obscures the symmetry between the parameters (for
