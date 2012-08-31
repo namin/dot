@@ -1363,7 +1363,68 @@ and functors claimed by ${\nu}Obj$.
 
 \section{Research Proposal} %: How I Plan to Revolutionize the World
 
-% TODO
+In our own research, we have been exploring a new core calculus for
+path-dependent types, the Dependent Object Types (DOT) calculus, which
+could serve as a new type-theoretic foundation for Scala and languages
+like it. The three calculi presented demonstrate that path-dependent
+types arise in diverse settings, and thus, it is valuable to identify
+a core calculus which captures their essence. In DOT, we are not
+concerned with modeling orthogonal concepts such as inheritance and
+mixin composition. In contrast to the three previous calculi,
+type-checking in DOT is decidable, since all the judgments are
+syntax-directed (in the current design).
+
+DOT aims to bring more uniformity and simplicity to Scala. Scala, and
+${\nu}Obj$ which models it, conflate the concepts of compound types
+(which inherit the members of several parent types) and mixin
+composition (which build classes from other classes and traits). At
+first glance, this offers an economy of concepts. However, it is
+problematic because mixin composition and intersection types have
+quite different properties. In particular, we have seen in
+section~\ref{sec:nuObj} that mixin composition is not commutative,
+unlike classical intersection types.
+
+In DOT, we replace Scala's compound types by classical intersection
+types, which are commutative. We also complement this by classical
+union types. Intersections and unions form a lattice wrt
+subtyping. This addresses another problematic feature of Scala: In
+Scala's current type system, least upper bounds and greatest lower
+bounds do not always exist. Here is an example: Given two traits
+\begin{lstlisting}
+  trait A { type T <: A }
+  trait B { type T <: B }
+\end{lstlisting}
+The greatest lower bound of \code@A@ and \code@B@ is approximated by the
+infinite sequence
+\begin{lstlisting}
+  A with B { type T <: A with B { type T <: A with B {
+    type T < ...
+  }}}
+\end{lstlisting}
+The limit of this sequence does not exist as a type in Scala. This is
+problematic because glbs and lubs play a central role in Scala's type
+inference. The absence of universal glbs and lubs makes type inference
+more brittle and more unpredictable.
+
+Our immediate goal is to prove type soundness of the DOT calculus. We
+first tried to prove the calculus type-safe using the standard
+theorems of preservation and progress~\cite{soundness,
+  tapl}. Unfortunately, for the DOT calculus and any variants that we
+devise, preservation doesn't hold. Indeed, we found many
+counterexamples to preservation due to narrowing, i.e.\ a type becoming more
+precise after substitution. However, the standard theorems of
+preservation and progress are just one way to prove type soundness. We
+are exploring a promising avenue to prove type safey using the
+powerful method of step-indexed logical
+relations~\cite{ahmed04,ahmed06,step_indexed_obj}. In the process of
+proving the calculus sound, we are also refining it.
+
+In future work, we plan to investigate translations of Scala features
+into the core DOT calculus, and implement an experimental compiler
+front-end which uses the DOT calculus for type-checking.
+
+%\clearpage
+
 %Describe your own work and include a  summary and references. Write how you
 %propose to advance the state of the art given the background. What
 %is new technically? How does it improve over prior work?
