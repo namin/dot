@@ -1,7 +1,40 @@
 \documentclass{beamer}
+
 \usepackage{minted}
 \usemintedstyle{eclipse}
+
 \begin{document}
+
+\begin{frame}
+\frametitle{DOT: Dependent Object Types}
+
+The DOT calculus proposes a new \emph{type-theoretic foundation} for Scala
+and languages like it. It models
+\begin{itemize}
+\item \emph{path-dependent types}
+\item abstract type members
+\item mixture of nominal and structural typing via refinement types
+\end{itemize}
+
+It does not model
+\begin{itemize}
+\item inheritance and mixin composition
+\item what's currently in Scala
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]{Path-dependent types}
+
+\begin{description}[path-dependent type]
+\item[path-dependent type] limited form of \emph{dependent type}, in which a type depends on a \emph{path}
+\item[dependent type] a type which depends on a term
+\item[path] a chain of immutable fields or variables
+\end{description}
+
+\inputminted[frame=lines,fontsize=\footnotesize]{scala}{intro.scala}
+
+\end{frame}
 
 \begin{frame}[fragile]{Hello}
 \begin{minted}{scala}

@@ -912,7 +912,17 @@ unifying concept of the three papers we choose to study. A {\it
   path-dependent type} is a limited form of dependent type, in which a
 type depends on a path: a chain of immutable fields or
 variables. Path-dependent types arise when terms, usually objects, can
-have types as members.
+have types as members. Abstract type members, together with explicit
+selftypes and modular mixin composition have been identified as key
+abstractions for the construction of reusable components~\cite{SCA}.
+
+\subsubsection*{Scala Example} In the code below,
+\code{type T} is an abstract type member of \code{AbsCell}. In a
+library method taking an abstract cell \code{c}, the expression
+\code{c.set(c.init)} is well-typed because \code{c.init} has type
+\code{c.T} and \code{c.set} has the type of a function that expects a
+parameter of type \code{c.T}. Note that \code{c.T} is a path-dependent
+type. \lstinputlisting{intro.scala}
 
 %\IEEEPARstart{T}{his} template is not trying to suggest a specific
 %style for the content of your candidacy exam/thesis proposal paper; it
@@ -1038,9 +1048,13 @@ have types as members.
 % floats. This can be corrected via the \fnbelowfloat command of the
 % stfloats package.
 
+In section~\ref{survey}, we survey selected previous work related to
+path-dependent types. Whenever possible, we contrast the formalisms
+with concrete examples in Scala. In section~\ref{proposal}, we discuss
+in more details our proposal for a new type-theoretic foundation of
+Scala based on path-dependent types.
 
-
-\section{Survey of the Selected Papers}%: The Giants upon whose shoulders I will stand
+\section{Survey of the Selected Papers}\label{survey}%: The Giants upon whose shoulders I will stand
 
 We present three papers~\cite{homl,tribe,nuObj}, each of which models
 a calculus with path-dependent types.
@@ -1362,7 +1376,7 @@ result by querying field \code!res! of \code!g$_{eval}$!.
 This example illustrates the correspondence between classes, methods
 and functors claimed by ${\nu}Obj$.
 
-\section{Research Proposal} %: How I Plan to Revolutionize the World
+\section{Research Proposal}\label{proposal}%: How I Plan to Revolutionize the World
 
 In our own research, we have been exploring a new core calculus for
 path-dependent types, the Dependent Object Types (DOT) calculus, which
