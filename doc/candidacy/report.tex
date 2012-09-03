@@ -911,7 +911,7 @@ unifying concept of the three papers we choose to study. A {\it
   dependent type} is a type which depends on a term. A {\it
   path-dependent type} is a limited form of dependent type, in which a
 type depends on a path: a chain of immutable fields or
-variables. Path-dependent types arise when terms, usually objects, can
+stable values. Path-dependent types arise when terms, usually objects, can
 have types as members. Abstract type members, together with explicit
 selftypes and modular mixin composition have been identified as key
 abstractions for the construction of reusable components~\cite{SCA}.
@@ -1132,9 +1132,14 @@ is higher-order ``for free''.
 Scala's abstract types have close resemblances to abstract types of
 signatures in these ML-like module systems. In particular, in their
 calculus, there's a form of dependent type, since translucent sums are
-terms that may contain types. Compared to path-dependent types
-as found in Scala, these are more limited because recursive references
-and bounded quantifications are not allowed.
+terms that may contain types. More concretely, their so-called VALUE
+rules enable a translucent sum to be given a more precise type by
+referring to the names of its type members with a path selection --
+this ability based on path-dependent types is not only essential for
+breaking the dependencies between (sub)fields but also critical for
+the propagation of typing information. Compared to Scala, these
+path-dependent types are more limited because recursive references and
+bounded quantifications are not allowed.
 
 In terms of theoretical results, Lillibridge shows in his thesis that
 a simplified kernel system based on this calculus is sound, even in
