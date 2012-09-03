@@ -1062,7 +1062,8 @@ a calculus with path-dependent types.
   concepts from advanced object-oriented systems and module systems
   and, with~\cite{FS}, serves as a type-theoretic foundation for many
   features of Scala's type system. Path-dependent types arise because
-  any path $p$ has a singleton type $p.\type$.
+  any path $p$ has a singleton type $p.\type$, from which type members
+  can be selected.
 \end{itemize}
 
 % TODO
@@ -1074,7 +1075,7 @@ a calculus with path-dependent types.
 
 In~\cite{homl}, Harper and Lillibridge present a calculus for
 first-class modules, with complete control over the propagation of
-compile-time information.
+information between compile-time program units.
 
 Their module system is inspired by Standard ML (SML). The SML module
 system has three constructs: {\it signatures}, {\it structures}, and
@@ -1091,7 +1092,7 @@ Their module system addresses some shortcomings of the SML module
 system. Though the SML module system is higher-order, because SML
 provides functors and substructures, it still treats modules as
 second-class. For example, it isn't possible to return a structure
-from an if statement. In fact, allowing this might require obscuring
+from an if expression. In fact, allowing this might require obscuring
 the visibility of the resulting structure to ensure soundness, which
 we illustrate with an example below. Another limitation of the SML
 module system is that ``type sharing'' is limited to equality between
@@ -1252,11 +1253,11 @@ not native. We use virtual types to ensure that the inner classes are
 indeed ``virtual'', i.e. dynamically instead of statically
 dispatched. In order to conform to the ``virtual class'' pattern, the
 leaf classes \code{Graph} and \code{ColourGraph} are no longer in a
-subclassing relationship with one another, as this would only bring
-confusion when ascribing a coloured graph to a graph. Emulating
+subclassing / further-binding with one another, as this would only bring
+confusion when ascribing a coloured graph to a graph, since the constructors are statically dispatched. Emulating
 ``out'' faithfully involves a bit of hackery in making Scala recognize
 that, for example, \code{e.from.type} is a subtype of
-\code{e.out.Node}. As noted in the paper, using ``out'' in library
+\code{e.out.Node}. As noted in the Tribe paper, using ``out'' in library
 code obscures the symmetry between the parameters (for example, in the
 \code{distance} method below) but allows the family object to be
 recovered without being explicitly passed around (contrast with the
@@ -1276,7 +1277,7 @@ concepts that so far existed in parallel in advanced object systems
 and module systems. ${\nu}Obj$ makes the following connections: Object =
 Module, Object type = Signature, Class = Method = Functor.
 
-The terms in ${\nu}Obj$ denotes objects or classes. They consist of
+The terms in ${\nu}Obj$ denote objects or classes. They consist of
 variables $x$ denoting objects, selections $t.l$, object creations
 \mbox{$\newin{x \larrowc t}{u}$} defining an object $x$ of class $t$
 whose scope is the term $u$, class templates $\cls{x: S \sep \tup d}$,
@@ -1285,7 +1286,7 @@ type $S$ combined from two classes $t$ and $u$. A value is a variable
 or a class template. A path is a variable followed by a possibly empty
 sequence of selections.
 
-The types in ${\nu}Obj$ consists of singleton types $p.\type$, type
+The types in ${\nu}Obj$ consist of singleton types $p.\type$, type
 selections $T\Tsel L$, record types $\obj{x \sep \tup D}$, compound
 types $T \with U$, and class types $\cls{x: S \sep \tup D}$.
 
@@ -1414,7 +1415,7 @@ devise, preservation doesn't hold. Indeed, we found many
 counterexamples to preservation due to narrowing, i.e.\ a type becoming more
 precise after substitution. However, the standard theorems of
 preservation and progress are just one way to prove type soundness. We
-are exploring a promising avenue to prove type safey using the
+are exploring a promising avenue to prove type safety using the
 powerful method of step-indexed logical
 relations~\cite{ahmed04,ahmed06,step_indexed_obj}. In the process of
 proving the calculus sound, we are also refining it.
