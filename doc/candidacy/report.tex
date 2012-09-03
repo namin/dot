@@ -1092,10 +1092,10 @@ Their module system addresses some shortcomings of the SML module
 system. Though the SML module system is higher-order, because SML
 provides functors and substructures, it still treats modules as
 second-class. For example, it isn't possible to return a structure
-from an if expression. In fact, allowing this might require obscuring
+from an \code{if} expression. In fact, allowing this might require obscuring
 the visibility of the resulting structure to ensure soundness, which
 we illustrate with an example below. Another limitation of the SML
-module system is that ``type sharing'' is limited to equality between
+module system is that ``type sharing'' is restricted to equality between
 type names, not general type expressions. In effect, this means that
 the transparency / opaqueness of a signature cannot be fully
 fine-tuned. Their proposal introduces translucent signatures, which
@@ -1147,7 +1147,7 @@ structure X =
   if flip() then XInt else XBool
 \end{lstlisting}
 But now, what should be the static type or signature of structure
-\code{X}? In ML, in order to make the \code{if} type check, the two
+\code{X}? In ML, in order to make the \code{if} expression typecheck, the two
 branches must have equal types. In the calculus, the subsumption rule
 is used to coerce both types to their least upper bound, represented
 by the signature:
@@ -1178,8 +1178,8 @@ inner classes are inherited along with its methods and fields. {\it
 extended. Path-dependent types arise naturally to distinguish objects
 coming from different families. In Tribe, path types can depend
 simultaneously on both classes and objects. Additionally, paths can
-use an ``out'' field to move from an object to the object which
-surrounds it. This ``out'' feature enables ubiquitous access to an
+use an \code{out} field to move from an object to the object which
+surrounds it. This \code{out} feature enables ubiquitous access to an
 object's family without the need to drag around family arguments.
 
 %Tribe, like Scala, distinguishes object families by using
@@ -1248,16 +1248,16 @@ cn2.connect(cn3); // Type Error!!!
 \end{lstlisting}
 
 Now, we can emulate this Tribe example in Scala at the expense of some
-syntactic overhead, since further binding and ``out'' selection are
+syntactic overhead, since further binding and \code{out} selection are
 not native. We use virtual types to ensure that the inner classes are
 indeed ``virtual'', i.e. dynamically instead of statically
 dispatched. In order to conform to the ``virtual class'' pattern, the
 leaf classes \code{Graph} and \code{ColourGraph} are no longer in a
 subclassing / further-binding with one another, as this would only bring
 confusion when ascribing a coloured graph to a graph, since the constructors are statically dispatched. Emulating
-``out'' faithfully involves a bit of hackery in making Scala recognize
+\code{out} faithfully involves a bit of hackery in making Scala recognize
 that, for example, \code{e.from.type} is a subtype of
-\code{e.out.Node}. As noted in the Tribe paper, using ``out'' in library
+\code{e.out.Node}. As noted in the Tribe paper, using \code{out} in library
 code obscures the symmetry between the parameters (for example, in the
 \code{distance} method below) but allows the family object to be
 recovered without being explicitly passed around (contrast with the
@@ -1411,7 +1411,7 @@ Our immediate goal is to prove type soundness of the DOT calculus. We
 first tried to prove the calculus type-safe using the standard
 theorems of preservation and progress~\cite{soundness,
   tapl}. Unfortunately, for the DOT calculus and any variants that we
-devise, preservation doesn't hold. Indeed, we found many
+devised, preservation doesn't hold. Indeed, we found many
 counterexamples to preservation due to narrowing, i.e.\ a type becoming more
 precise after substitution. However, the standard theorems of
 preservation and progress are just one way to prove type soundness. We
