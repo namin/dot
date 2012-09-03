@@ -913,7 +913,7 @@ unifying concept of the three papers we choose to study. A {\it
 type depends on a path: a chain of immutable fields or
 stable values. Path-dependent types arise when terms, usually objects, can
 have types as members. Abstract type members, together with explicit
-selftypes and modular mixin composition have been identified as key
+selftypes and modular mixin composition, have been identified as key
 abstractions for the construction of reusable components~\cite{SCA}.
 
 \subsubsection*{Scala Example} In the code below,
@@ -1195,11 +1195,13 @@ nested inside other classes. When a class is inherited, its nested
 inner classes are inherited along with its methods and fields. {\it
   Further binding} enables the nested classes to be further
 extended. Path-dependent types arise naturally to distinguish objects
-coming from different families. In Tribe, path types can depend
-simultaneously on both classes and objects. Additionally, paths can
-use an \code{out} field to move from an object to the object which
-surrounds it. This \code{out} feature enables ubiquitous access to an
-object's family without the need to drag around family arguments.
+coming from different families. Yet, thanks to {\it family
+  polymorphism}, code written for one family also works for extension
+of that family. In Tribe, path types can depend simultaneously on both
+classes and objects. Additionally, paths can use an \code{out} field
+to move from an object to the object which surrounds it. This
+\code{out} feature enables ubiquitous access to an object's family
+without the need to drag around family arguments.
 
 %Tribe, like Scala, distinguishes object families by using
 %path-dependent types. An {\it object family type} such as {\code
