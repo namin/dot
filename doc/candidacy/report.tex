@@ -1181,7 +1181,7 @@ end
 It is straightforward to encode this example in Scala, with the
 correspondence Object = Module, and Object Type = Signature. Indeed,
 the ${\nu}Obj$ calculus, which we study in section~\ref{sec:nuObj}
-embraces this correspondence, and futher claims: Class = Method =
+embraces this correspondence, and further claims: Class = Method =
 Functor, as we will see. Note that type members, and hence
 path-dependent types, are crucial for this correspondence.
 \lstinputlisting{ml.scala}
@@ -1192,7 +1192,7 @@ In~\cite{tribe}, Clarke et al. present a calculus for virtual
 classes. Virtual classes allow {\it families} of classes to be
 inherited, rather than just single classes. Classes are lexically
 nested inside other classes. When a class is inherited, its nested
-inner classes are inherited along with its methods and fields. {\it
+inner classes are inherited along with their methods and fields. {\it
   Further binding} enables the nested classes to be further
 extended. Path-dependent types arise naturally to distinguish objects
 coming from different families. Yet, thanks to {\it family
@@ -1273,7 +1273,7 @@ syntactic overhead, since further binding and \code{out} selection are
 not native. We use virtual types to ensure that the inner classes are
 indeed ``virtual'', i.e. dynamically instead of statically
 dispatched. In order to conform to the ``virtual class'' pattern, the
-leaf classes \code{Graph} and \code{ColourGraph} are no longer in a
+leaf classes \code{Graph} and \code{ColouredGraph} are no longer in a
 subclassing / further-binding with one another, as this would only bring
 confusion when ascribing a coloured graph to a graph, since the constructors are statically dispatched. Emulating
 \code{out} faithfully involves a bit of hackery in making Scala recognize
@@ -1323,7 +1323,7 @@ $x$, while recall that, in translucent sums, only later fields can
 refer to earlier ones but the references don't have any
 ``contractive'' restrictions. Roughly, ``contractiveness'' in
 ${\nu}Obj$ guarantees that a field cannot be referenced before it is
-initalized.
+initialized.
 
 Contrasting concrete type bindings $\tup d$ used in class template
 terms with type declarations $\tup D$ used in record and class types,
@@ -1367,7 +1367,7 @@ class with an abstract member \code!arg! for the function argument:
 $t'$ corresponds to term $t$ in which all occurrences of $x$ are
 replaced by \code!$x$.arg!. We cannot directly access \code!arg! on
 the right-hand side of \code!fun!: this wouldn't be ``contractive'',
-because \code!arg! might not be initialised before \code!fun!. Hence,
+because \code!arg! might not be initialized before \code!fun!. Hence,
 we pack $t'$ in another class to ensure contractiveness. Now, an
 application $g(e)$ gets decomposed into three subsequent steps:
 \begin{lstlisting}
