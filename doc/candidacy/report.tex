@@ -1196,7 +1196,7 @@ inner classes are inherited along with their methods and fields. {\it
   Further binding} enables the nested classes to be further
 extended. Path-dependent types arise naturally to distinguish objects
 coming from different families. Yet, thanks to {\it family
-  polymorphism}, code written for one family also works for extension
+  polymorphism}, code written for one family also works for extensions
 of that family. In Tribe, path types can depend simultaneously on both
 classes and objects. Additionally, paths can use an \code{out} field
 to move from an object to the object which surrounds it. This
@@ -1209,6 +1209,27 @@ without the need to drag around family arguments.
 %at the end of path {\code x.f}. Paths have to be invariant, and so
 %consists of chains of immutable fields or variables.
 
+In Tribe, types are a form of generalized paths: a final variable,
+\code{this} or a class name then followed by a possibly empty sequence
+of field or class selections. Given the code below, we can read the
+type \code{kitt.Passenger.name} as the name of one of Kitt's
+passengers (including the driver). Subtyping is natural:
+\code{kitt.driver <: Car.driver <: Car.Passenger <: Car.Traveller <: Vehicle.Traveller}. Crucially, \code{kitt.driver} is not a subtype
+of \code{karr.driver} and similarly for \code{kitt.Passenger} and
+\code{karr.Passenger}.
+\begin{lstlisting}
+class Vehicle { class Traveller { ... } }
+class Car extends Vehicle {
+  class Passenger extends Traveller {
+    class String { ... }
+    final String name;
+  }
+  final Passenger driver;
+}
+final Car kitt;
+final Car karr;
+\end{lstlisting}
+
 Though Scala doesn't have virtual classes, its abstract types enable
 it to emulate some (but not all) of the benefits of virtual classes as
 presented in the Tribe calculus. On the other hand, Tribe doesn't have
@@ -1219,7 +1240,7 @@ upon it.
 
 In terms of theoretical results, there's a sketch of soundness in the
 paper, but it's unclear whether it is correct. In particular, the
-substitution lemma does not seem valid when null is the value to be
+substitution lemma does not seem valid when \code{null} is the value to be
 substituted and the expression has a type which contains the variable
 to be substituted. In the follow-up paper~\cite{tribalo}, the
 soundness proof sketch seems more plausible but then is tied to the
