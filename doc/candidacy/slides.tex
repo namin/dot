@@ -95,7 +95,7 @@ It does not model
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Translucent Sums}
+\begin{frame}{ML: Translucent Sums}
 \begin{itemize}
 \item values representing modules
 \item translucent sum: sequence of bindings; translucent sum type:
@@ -106,7 +106,7 @@ It does not model
 \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Example}
+\begin{frame}[fragile]{ML: Example}
 \begin{minted}{sml}
 structure XInt = struct
   type T = int
@@ -130,7 +130,7 @@ end
 
 % Maintaing Soundness?
 
-\begin{frame}{Path-Dependent Types}
+\begin{frame}{ML: Path-Dependent Types}
 \begin{itemize}
 \item Scala's abstract types have close resemblances to abstract types
   of signatures in these ML-like module systems. In particular, in
@@ -149,6 +149,43 @@ end
 \end{frame}
 
 \subsection{Tribe Calculus}
+
+\begin{frame}{Tribe Calculus: Virtual Classes}
+\begin{itemize}
+\item {\it familes} of classes inherited together
+\item classes are lexically nested inside other classes: when a class
+  is inherited, its nested inner classes are inherited along with
+  their methods and fields
+\item two form of inheritance: subclassing and further binding
+\item {\it family polymorphism}: code written for one family
+  also works for extensions of that family
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Tribe Types}
+\begin{itemize}
+\item In Tribe, types are a form of generalized paths: a final
+  variable, {\tt this} or a class name then followed by a possibly
+  empty sequence of field, {\tt out} or class selections.
+\item {\tt kitt.Passenger.name}: the name of one of Kitt's passengers
+\item {\tt kitt.driver <: Car.driver <: Car.Passenger <: Car.Traveller <:
+  Vehicle.Traveller}.
+\item {\tt kitt.driver $\not<:$ karr.driver} and {\tt kitt.Passenger $\not<:$ karr.Passenger}.
+\end{itemize}
+\begin{minted}[frame=lines,fontsize=\footnotesize]{java}
+class Vehicle { class Traveller { ... } }
+class Car extends Vehicle {
+  class Passenger extends Traveller {
+    class String { ... }
+    final String name;
+  }
+  final Passenger driver;
+}
+final Car kitt;
+final Car karr;
+\end{minted}
+\end{frame}
+
 % Virtual Classes
 % Example
 % Tribe Types (generalized paths & subtyping relation)
