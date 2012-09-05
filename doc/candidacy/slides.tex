@@ -159,7 +159,55 @@ end
 \item two form of inheritance: subclassing and further binding
 \item {\it family polymorphism}: code written for one family
   also works for extensions of that family
+\item in Tribe:\begin{itemize}
+\item path types can depend simultaneously on both classes and objects
+\item paths can use an {\tt out} field to move from an object to the
+  object which surrounds it; enables ubiquitous access to an object's
+  family without the need to drag around family arguments.
 \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Tribe: Example}
+\begin{minted}{java}
+class Graph {
+  class Node {
+    Edge connect(Node other) {
+      return new Edge(this, other);
+    }
+  }
+  class Edge {
+    Node from, to;
+    Edge(Node f, Node t) { from = f; to = t; }
+  }
+}
+
+class ColouredGraph extends Graph { // subclassing
+  class Node {                      // further binding
+    Colour nodeColour;
+  }
+}
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Tribe: Example (continued)}
+\begin{minted}{java}
+final ColouredGraph cg1, cg2;
+cg1.Node cn1, cn3;
+cg2.Node cn2;
+cn1.connect(cn3); // Type Correct
+cn2.connect(cn3); // Type Error!!!
+
+class Library {
+  int distance(Graph.Node n1, n1.out.Node n2) { ... }
+
+  e.out.Edge copyEdge(Graph.Edge e) {
+    e.out.Node from = e.from;
+    e.out.Node to = e.to;
+    new e.out.Edge(from, to);
+  }
+}
+\end{minted}
 \end{frame}
 
 \begin{frame}[fragile]{Tribe Types}
