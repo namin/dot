@@ -234,6 +234,17 @@ final Car karr;
 \end{minted}
 \end{frame}
 
+\begin{frame}{Tribe: Discussion}
+\begin{itemize}
+\item no virtual classes in Scala; its virtual types can emulate some (but not all) of the benefits
+\item because of {\tt out} field, Tribe has limited cross-family inheritance
+\item soundness? substitution lemma seems wrong when {\tt null} is
+  substituted for a variable in an expression whose type contains
+  that variable
+\item aims to have decidable type-checking, but still not proved so
+\end{itemize}
+\end{frame}
+
 % Virtual Classes
 % Example
 % Tribe Types (generalized paths & subtyping relation)
