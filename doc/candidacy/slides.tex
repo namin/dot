@@ -70,12 +70,83 @@ It does not model
 \section{Survey of Selected Papers}
 
 \subsection{``Translucent'' ML}
-% SML module
-% Limitations
-% Translucent Sums
-% Example
-% Maintaining Soundness
-% Path-Dependent Types
+
+\begin{frame}{SML modules}
+\begin{description}[structure]
+\item[structure] a module; a collection of types, values and
+  (sub)structures packaged as a program unit.
+\item[signature] an interface; the type of a structure; description of
+  the types, values and (sub)structures of a structure given by their
+  kinds, types and interfaces.
+\item[functor] a function mapping structures to structures
+\item[type-sharing] enables stating that types specified in separate
+  modules are actually equal
+\end{description}
+% example?
+\end{frame}
+
+\begin{frame}{Limitations of SML modules}
+\begin{itemize}
+\item modules are not first-class; e.g. not possible to return a
+  structure from an {\tt if} expression.
+\item type sharing is restricted to equality between type names, not
+  general type expressions; in effect, transparency / opaqueness of a
+  signature cannot be fully fined-tuned
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Translucent Sums}
+\begin{itemize}
+\item values representing modules
+\item translucent sum: sequence of bindings; translucent sum type:
+  sequence of declarations
+\item differs from traditional records, because later fields can
+  depend on earlier ones
+\item allows any type to be partially or fully deermined by a type
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Example}
+\begin{minted}{sml}
+structure XInt = struct
+  type T = int
+  val v = 3
+  val f = negate
+end
+structure XBool = struct
+  type T = bool
+  val v = true
+  val f = not
+end
+structure X =
+  if flip() then XInt else XBool
+signature XType = sig
+  type T
+  val v = T
+  val f = T -> T
+end
+\end{minted}
+\end{frame}
+
+% Maintaing Soundness?
+
+\begin{frame}{Path-Dependent Types}
+\begin{itemize}
+\item Scala's abstract types have close resemblances to abstract types
+  of signatures in these ML-like module systems. In particular, in
+  their calculus, there's a form of dependent type, since translucent
+  sums are terms that may contain types.
+\item More concretely, their so-called VALUE rules enable a
+  translucent sum to be given a more precise type by referring to the
+  names of its type members with a path selection -- this ability
+  based on path-dependent types is not only essential for breaking the
+  dependencies between (sub)fields but also critical for the
+  propagation of typing information.
+\item Compared to Scala, these path-dependent types are more limited
+  because recursive references and bounded quantifications are not
+  allowed.
+\end{itemize}
+\end{frame}
 
 \subsection{Tribe Calculus}
 % Virtual Classes
