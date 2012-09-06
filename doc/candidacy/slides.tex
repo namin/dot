@@ -89,7 +89,7 @@ It does not model
 \end{frame}
 
 \begin{frame}[fragile]{SML modules: Example}
-TODO
+\inputminted[fontsize=\footnotesize]{sml}{intro.sml}
 \end{frame}
 
 \begin{frame}{Limitations of SML modules}
@@ -138,8 +138,8 @@ structure X =
   if flip() then XInt else XBool
 signature XType = sig
   type T
-  val v = T
-  val f = T -> T
+  val v: T
+  val f: T -> T
 end
 \end{minted}
 \end{frame}
