@@ -370,7 +370,7 @@ result by querying field \code!res! of \code!g$_{eval}$!.
   trait B { type T <: B }
   // glb is approximated by an infinite sequence
   A with B { type T <: A with B { type T <: A with B {
-    type T < ...
+    type T <: ...
   }}}
 \end{minted}
 \end{frame}
