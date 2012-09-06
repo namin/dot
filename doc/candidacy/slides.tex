@@ -347,6 +347,25 @@ creating an instance \code!g$_{eval}$! of it. Finally we extract the
 result by querying field \code!res! of \code!g$_{eval}$!.
 \end{frame}
 
+\begin{frame}[fragile]{${\nu}Obj$: Discussion}
+\begin{itemize}
+\item conflate the concepts of compound types (which inherit the
+  members of several parent types) and mixin composition (which build
+  classes from other classes and traits)
+\item mixin composition is not commutative, unlike classical
+  intersection types
+\item in Scala, least upper bounds and greatest lower bounds do not always exist, e.g:
+\end{itemize}
+\begin{minted}{scala}
+  trait A { type T <: A }
+  trait B { type T <: B }
+  // glb is approximated by an infinite sequence
+  A with B { type T <: A with B { type T <: A with B {
+    type T < ...
+  }}}
+\end{minted}
+\end{frame}
+
 \section{Proposal}
 
 \section{Backup Slides}
