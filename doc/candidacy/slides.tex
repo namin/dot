@@ -102,6 +102,15 @@ TODO
 \end{itemize}
 \end{frame}
 
+\begin{frame}{ML-Like: Calculus}
+grounded in type theory; based on Girard's $F_\omega$, adding:
+\begin{itemize}
+\item {\it translucent sums} to model modules
+\item dependent functions to model functors
+\item a notion of subtyping to model module implementation-interface matching
+\end{itemize}
+\end{frame}
+
 \begin{frame}{ML-Like: Translucent Sums}
 \begin{itemize}
 \item translucent sums are values representing modules
@@ -144,7 +153,7 @@ end
 \item recursive references
 \item bounded quantifications
 \end{itemize}
-\item translucent sum can be given a more precise type by referring to the name of its member path with a path selection; essential for
+\item translucent sum can be given a more precise type by referring to the name of its type member with a path selection; essential for
 \begin{itemize}
 \item breaking the dependencies between (sub)fields
 \item propagation of typing information
