@@ -1,5 +1,6 @@
 \documentclass{beamer}
 
+\input{macros}
 \input{nuobj}
 
 \usepackage{minted}
@@ -321,6 +322,29 @@ A basis for unifying concepts  in advaced object and module systems. Connections
 \item declarations in $S$ which are not in $\tup D$ play the role of abstract members, defined by mixin composition during instantiation
 \end{itemize}
 \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{${\nu}Obj$: Example (encoding of monomorphic functions)}
+A $\lambda$-abstraction $\lambda ( x : T )\; t$ is represented as a
+class with an abstract member \code!arg! for the function argument:
+\begin{lstlisting}
+[x: {arg: T}| fun = [res = $t'$]]
+\end{lstlisting}
+$t'$ corresponds to term $t$ in which all occurrences of $x$ are
+replaced by \code!$x$.arg!. We cannot directly access \code!arg! on
+the right-hand side of \code!fun!: this wouldn't be ``contractive'',
+because \code!arg! might not be initialized before \code!fun!. Hence,
+we pack $t'$ in another class to ensure contractiveness. Now, an
+application $g(e)$ gets decomposed into three subsequent steps:
+\begin{lstlisting}
+$\nu\,$g$_{app}$  <- g & [arg = e];
+$\nu\,$g$_{eval}$ <- g$_{app}$.fun;
+g$_{eval}$.res
+\end{lstlisting}
+First we instantiate function \code!g! with a concrete argument
+yielding a thunk \code!g$_{app}$!. Then we evaluate this thunk by
+creating an instance \code!g$_{eval}$! of it. Finally we extract the
+result by querying field \code!res! of \code!g$_{eval}$!.
 \end{frame}
 
 \section{Proposal}
