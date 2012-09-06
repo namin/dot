@@ -116,12 +116,12 @@ It does not model
   structure from an {\tt if} expression
 \item type sharing is restricted to equality between type names, not
   general type expressions; in effect, transparency / opaqueness of a
-  signature cannot be fully fined-tuned
+  signature cannot be fully fined-tuned % example?
 \end{itemize}
 \end{frame}
 
 \begin{frame}{ML-Like: Calculus}
-grounded in type theory; based on Girard's $F_\omega$, adding:
+grounded in type theory; based on Girard's $F_\omega$, adding: % quick summary of F_\omega
 \begin{itemize}
 \item {\it translucent sums} to model modules
 \item dependent functions to model functors
@@ -171,7 +171,7 @@ end
 \item recursive references
 \item bounded quantifications
 \end{itemize}
-\item translucent sum can be given a more precise type by referring to the name of its type member with a path selection; essential for %example?
+\item translucent sum can be given a more precise type by referring to the name of its type member with a path selection; essential for %example with justification for two items below?
 \begin{itemize}
 \item breaking the dependencies between (sub)fields
 \item propagating typing information
@@ -266,6 +266,8 @@ final Car karr;
 \end{minted}
 \end{frame}
 
+%maybe one slide on implementation?
+
 \begin{frame}{Tribe: Discussion}
 \begin{itemize}
 \item no virtual classes in Scala; its virtual types can emulate some (but not all) of the benefits
@@ -333,7 +335,7 @@ A basis for unifying concepts  in advanced object and module systems. Connection
 \begin{frame}{${\nu}Obj$: Details}
 \begin{itemize}
 \item type bindings
-\begin{description}[abstract types]
+\begin{description}[abstract types] %examples?
 \item[type aliases] $=$
 \item[new types] $\expand$
 \item[abstract types] $<:$
