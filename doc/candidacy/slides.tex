@@ -279,20 +279,28 @@ A basis for unifying concepts  in advaced object and module systems. Connections
 \end{frame}
 
 \begin{frame}{${\nu}Obj$: Syntax}
-The terms in ${\nu}Obj$ denote objects or classes. They consist of
-variables $x$ denoting objects, selections $t.l$, object creations
-\mbox{$\newin{x \larrowc t}{u}$} defining an object $x$ of class $t$
-whose scope is the term $u$, class templates $\cls{x: S \sep \tup d}$,
-and mixin compositions $t \withsub{S} u$ denoting a class of self
-type $S$ combined from two classes $t$ and $u$. A value is a variable
-or a class template. A path is a variable followed by a possibly empty
-sequence of selections.
-
-The types in ${\nu}Obj$ consist of singleton types $p.\type$, type
-selections $T\Tsel L$, record types $\obj{x \sep \tup D}$, compound
-types $T \with U$, and class types $\cls{x: S \sep \tup D}$.
 \begin{itemize}
-\item TODO
+\item terms in ${\nu}Obj$ denote objects or classes; consist of:
+\begin{itemize}
+\item variables $x$ denoting objects
+\item selections $t.l$
+\item object creations
+\item \mbox{$\newin{x \larrowc t}{u}$} defining an object $x$ of class $t$
+whose scope is the term $u$
+\item class templates $\cls{x: S \sep \tup d}$,
+\item mixin compositions $t \withsub{S} u$ denoting a class of self
+type $S$ combined from two classes $t$ and $u$
+\end{itemize}
+\item a value is a variable or class template
+\item a path is a variable followed by a possibly empty sequence of selections
+\item types in ${\nu}Obj$ consist of:
+\begin{itemize}
+\item singleton types $p.\type$
+\item type selections $T\Tsel L$
+\item record types $\obj{x \sep \tup D}$
+\item compound types $T \with U$
+\item class types $\cls{x: S \sep \tup D}$.
+\end{itemize}
 \end{itemize}
 \end{frame}
 
