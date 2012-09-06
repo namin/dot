@@ -95,7 +95,7 @@ TODO
 \begin{frame}{Limitations of SML modules}
 \begin{itemize}
 \item modules are not first-class; e.g. not possible to return a
-  structure from an {\tt if} expression.
+  structure from an {\tt if} expression
 \item type sharing is restricted to equality between type names, not
   general type expressions; in effect, transparency / opaqueness of a
   signature cannot be fully fined-tuned
@@ -167,7 +167,7 @@ end
 \item path types can depend simultaneously on both classes and objects
 \item paths can use an {\tt out} field to move from an object to the
   object which surrounds it; enables ubiquitous access to an object's
-  family without the need to drag around family arguments.
+  family without the need to drag around family arguments
 \end{itemize}
 \end{itemize}
 \end{frame}
@@ -216,13 +216,13 @@ class Library {
 
 \begin{frame}[fragile]{Tribe Types}
 \begin{itemize}
-\item In Tribe, types are a form of generalized paths: a final
+\item in Tribe, types are a form of generalized paths: a final
   variable, {\tt this} or a class name then followed by a possibly
-  empty sequence of field, {\tt out} or class selections.
+  empty sequence of field, {\tt out} or class selections
 \item {\tt kitt.Passenger.name}: the name of one of Kitt's passengers
 \item {\tt kitt.driver <: Car.driver <: Car.Passenger <: Car.Traveller <:
-  Vehicle.Traveller}.
-\item {\tt kitt.driver $\not<:$ karr.driver} and {\tt kitt.Passenger $\not<:$ karr.Passenger}.
+  Vehicle.Traveller}
+\item {\tt kitt.driver $\not<:$ karr.driver} and {\tt kitt.Passenger $\not<:$ karr.Passenger}
 \end{itemize}
 \begin{minted}[frame=lines,fontsize=\footnotesize]{java}
 class Vehicle { class Traveller { ... } }
