@@ -85,6 +85,10 @@ It does not model
 % example?
 \end{frame}
 
+\begin{frame}[fragile]{SML modules: Example}
+TODO
+\end{frame}
+
 \begin{frame}{Limitations of SML modules}
 \begin{itemize}
 \item modules are not first-class; e.g. not possible to return a
@@ -97,12 +101,12 @@ It does not model
 
 \begin{frame}{ML: Translucent Sums}
 \begin{itemize}
-\item values representing modules
-\item translucent sum: sequence of bindings; translucent sum type:
-  sequence of declarations
-\item differs from traditional records, because later fields can
-  depend on earlier ones
-\item allows any type to be partially or fully deermined by a type
+\item translucent sums are values representing modules
+\item translucent sum: sequence of bindings
+\item translucent sum type: sequence of declarations
+\item unlike traditional records, later fields can depend on earlier ones
+\item any type can be partially or fully determined by a type
+\item dependent typing since translucent sums are terms that may contain type components
 \end{itemize}
 \end{frame}
 
@@ -132,19 +136,16 @@ end
 
 \begin{frame}{ML: Path-Dependent Types}
 \begin{itemize}
-\item Scala's abstract types have close resemblances to abstract types
-  of signatures in these ML-like module systems. In particular, in
-  their calculus, there's a form of dependent type, since translucent
-  sums are terms that may contain types.
-\item More concretely, their so-called VALUE rules enable a
-  translucent sum to be given a more precise type by referring to the
-  names of its type members with a path selection -- this ability
-  based on path-dependent types is not only essential for breaking the
-  dependencies between (sub)fields but also critical for the
-  propagation of typing information.
-\item Compared to Scala, these path-dependent types are more limited
-  because recursive references and bounded quantifications are not
-  allowed.
+\item Scala's abstract types  $\approx$ ML's abstract types of signatures; limitations:
+\begin{itemize}
+\item recursive references
+\item bounded quantifications
+\end{itemize}
+\item translucent sum can be given a more precise type by referring to the name of its member path with a path selection; essential for
+\begin{itemize}
+\item breaking the dependencies between (sub)fields
+\item propagation of typing information
+\end{itemize}
 \end{itemize}
 \end{frame}
 
@@ -256,14 +257,6 @@ final Car karr;
 \subsection{${\nu}Obj$}
 
 \section{Proposal}
-
-\begin{frame}[fragile]{Hello}
-\begin{minted}{scala}
-object HelloWorld extends App {
-  println("Hello, World")
-}
-\end{minted}
-\end{frame}
 
 \section{Backup Slides}
 
