@@ -301,6 +301,28 @@ A basis for unifying concepts  in advaced object and module systems. Connections
 \end{itemize}
 \end{frame}
 
+\begin{frame}{${\nu}Obj$: Details}
+\begin{itemize}
+\item type bindings
+\begin{description}[abstract types]
+\item[type aliases] $=$
+\item[new types] $\expand$
+\item[abstract types] $<:$
+\end{description}
+\item class template $\cls{x: S \sep \tup d}$ related to translucent sum; some differences:
+\begin{itemize}
+\item needs to be instantiated
+\item ``contractive'' restriction
+\end{itemize}
+\item class type $\cls{x: S \sep \tup D}$
+\begin{itemize}
+\item contains as values classes that instantiate to objects of (sub)type $\obj{x \sep \tup D}$
+\item explicit self type $S$ may be different from $\obj{x \sep \tup D}$
+\item declarations in $S$ which are not in $\tup D$ play the role of abstract members, defined by mixin composition during instantiation
+\end{itemize}
+\end{itemize}
+\end{frame}
+
 \section{Proposal}
 
 \section{Backup Slides}
