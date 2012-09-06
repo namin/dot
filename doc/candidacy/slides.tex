@@ -165,7 +165,7 @@ end
 
 \begin{frame}{Tribe Calculus: Virtual Classes}
 \begin{itemize}
-\item {\it familes} of classes inherited together
+\item {\it families} of classes inherited together
 \item classes are lexically nested inside other classes: when a class
   is inherited, its nested inner classes are inherited along with
   their methods and fields
@@ -250,10 +250,10 @@ final Car karr;
 \begin{frame}{Tribe: Discussion}
 \begin{itemize}
 \item no virtual classes in Scala; its virtual types can emulate some (but not all) of the benefits
-\item because of {\tt out} field, Tribe has limited cross-family inheritance
+\item because of {\tt out} field, Tribe has limited cross-family inheritance %example?
 \item soundness? substitution lemma seems wrong when {\tt null} is
   substituted for a variable in an expression whose type contains
-  that variable
+  that variable %details?
 \item aims to have decidable type-checking, but still not proved so
 \end{itemize}
 \end{frame}
