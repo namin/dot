@@ -6,6 +6,24 @@
 \usepackage{minted}
 \usemintedstyle{eclipse}
 
+
+\useoutertheme{infolines}
+\setbeamertemplate{headline}{} % removes the headline that infolines inserts
+% \setbeamertemplate{footline}{
+%   \hfill%
+%   \usebeamercolor[fg]{page number in head/foot}%
+%   \usebeamerfont{page number in head/foot}%
+%   \insertpagenumber\,/\,\insertpresentationendpage\kern1em\vskip2pt%
+% }
+\setbeamertemplate{footline}{
+  \hfill%
+  \usebeamercolor[fg]{page number in head/foot}%
+  \usebeamerfont{page number in head/foot}%
+  \insertpagenumber\kern1em\vskip2pt%
+}
+\setbeamertemplate{navigation symbols}{}
+
+
 \title{Dependent Object Types}
 \subtitle{EDIC Candidacy Exam}
 \author{Nada Amin}
