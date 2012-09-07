@@ -87,10 +87,10 @@ It does not model
 \subsection{``Translucent'' ML}
 
 \begin{frame}{SML modules}
-\begin{description}[structure]
-\item[structure] a module; a collection of types, values and
+\begin{description}[type-sharing]
+\item[structure] a module\\a collection of types, values and
   (sub)structures packaged as a program unit.
-\item[signature] an interface; the type of a structure; description of
+\item[signature] an interface; the type of a structure\\description of
   the types, values and (sub)structures of a structure given by their
   kinds, types and interfaces.
 \item[functor] a function mapping structures to structures
@@ -129,6 +129,7 @@ grounded in type theory; based on Girard's $F_\omega$, adding: % quick summary o
 \item translucent sum: sequence of bindings
 \item translucent sum type: sequence of declarations
 \item unlike traditional records, later fields can depend on earlier ones
+\item fields can be types or terms
 \item any type can be partially or fully determined by a type expression
 \item dependent typing since translucent sums are terms that may contain type components
 \end{itemize}
@@ -165,7 +166,7 @@ end
 \item recursive references
 \item bounded quantifications
 \end{itemize}
-\item translucent sum can be given a more precise type by referring to the name of its type member with a path selection; essential for %example with justification for two items below?
+\item translucent sum can be given a more precise type by referring to the name of its type member with a path selection; essential for %example with justification for two items below? not clear without introducing internal names?
 \begin{itemize}
 \item breaking the dependencies between (sub)fields
 \item propagating typing information
@@ -311,7 +312,8 @@ A basis for unifying concepts  in advanced object and module systems. Connection
 \item[selections] $t.l$
 \item[object creations] \mbox{$\newin{x \larrowc t}{u}$}
 \item[class templates] $\cls{x: S \sep \tup d}$
-\item[mixin compositions] $t \withsub{S} u$
+\item[mixin compositions] $t_1 \withsub{S} t_2$\\(if omitted, $S = {S_1 \with (S_2 \with
+  \obj{x \sep D_1 \uplus D_2})}$)
 \end{description}
 \item a value is a variable or class template
 \item a path is a variable followed by a possibly empty sequence of selections
