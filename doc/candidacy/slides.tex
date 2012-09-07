@@ -354,6 +354,7 @@ A basis for unifying concepts  in advanced object and module systems. Connection
 \end{itemize}
 \end{frame}
 
+% can you make this slide less cluttered?
 \begin{frame}[fragile]{${\nu}Obj$: Example (encoding of monomorphic functions)}
 A $\lambda$-abstraction $\lambda ( x : T )\; t$ is represented as a
 class with an abstract member \code!arg! for the function argument:
@@ -384,7 +385,7 @@ result by querying field \code!res! of \code!g$_{eval}$!.
   classes from other classes and traits)
 \item mixin composition is not commutative, unlike classical
   intersection types
-\item in Scala, least upper bounds and greatest lower bounds do not always exist, e.g:
+\item in Scala, least upper bounds and greatest lower bounds do not always exist, e.g: %can you translate this to nuObj?
 \end{itemize}
 \begin{minted}{scala}
   trait A { type T <: A }
@@ -397,6 +398,23 @@ result by querying field \code!res! of \code!g$_{eval}$!.
 \end{frame}
 
 \section{Proposal}
+\begin{frame}{DOT: Dependent Object Types}
+\begin{itemize}
+\item core calculus for modeling {\it path-dependent types}
+\item we've seen path-dependent types arise in three settings:
+\begin{itemize}
+\item ML-like module systems
+\item virtual classes
+\item ${\nu}Obj$ / Scala
+\end{itemize}
+\item DOT aims to bring more uniformity and simplicity to Scala
+\begin{itemize}
+\item replace Scala's compound types with classical intersection types
+\item complement calculus with classical union types
+\item intersections and unions form a lattice wrt subtyping
+\end{itemize}
+\end{itemize}
+\end{frame}
 
 \section{Backup Slides}
 
