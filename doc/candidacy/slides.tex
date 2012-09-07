@@ -97,20 +97,28 @@ It does not model
 \item[type-sharing] enables stating that types specified in separate
   modules are actually equal
 \end{description}
-% example?
 \end{frame}
 
 \begin{frame}[fragile]{SML modules: Example}
 \inputminted[fontsize=\footnotesize]{sml}{intro.sml}
 \end{frame}
 
-\begin{frame}{Limitations of SML modules}
+\begin{frame}[fragile]{Limitations of SML modules}
 \begin{itemize}
 \item modules are not first-class; e.g. not possible to return a
   structure from an {\tt if} expression
 \item type sharing is restricted to equality between type names, not
-  general type expressions; in effect, transparency / opaqueness of a
-  signature cannot be fully fined-tuned % example?
+  general type expressions (limitation of SML '90; lifted in SML '97)
+\begin{minted}{sml}
+signature X' = sig
+  type T
+  type T2T = T -> T
+  val v: T
+  val f: T2T
+end
+\end{minted}
+\item in effect, transparency / opaqueness of a signature cannot be
+  fully fined-tuned
 \end{itemize}
 \end{frame}
 
