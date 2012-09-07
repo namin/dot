@@ -426,7 +426,7 @@ result by querying field \code!res! of \code!g$_{eval}$!.
 \begin{description}[1234567890]
 \item[terms $t$]
 \begin{description}[123456789012345678901234567890]
-\item[typed lambda-calculus terms] $x$ -- $\lambda x:T.t$ -- $t t$
+\item[typed lambda-calculus terms] $x$ -- $\lambda x:T.t$ -- $t\ t$
 \item[type abstraction] $\lambda X::K.t$
 \item[type application] $t [T]$
 \end{description}
@@ -436,7 +436,7 @@ result by querying field \code!res! of \code!g$_{eval}$!.
 \item[type of functions] $T \rightarrow T$
 \item[universal type] $\forall X::K.T$
 \item[operator abstraction] $\lambda X::K.T$
-\item[operator application] $T T$
+\item[operator application] $T\ T$
 \end{description}
 \item[kinds $K$]
 \begin{description}[123456789012345678901234567890]
@@ -446,5 +446,22 @@ result by querying field \code!res! of \code!g$_{eval}$!.
 \end{description}
 \end{frame}
 
-% System F sub
+\begin{frame}[fragile]{System $F_{<:}$: Bounded Quantification}
+\begin{description}[1234567890]
+\item[terms $t$]
+\begin{description}[123456789012345678901234567890]
+\item[typed lambda-calculus terms] $x$ -- ${\lambda}x:T.t$ -- $t\ t$
+\item[type abstraction] $\lambda X<:T.t$
+\item[type application] $t [T]$
+\end{description}
+\item[types $T$]
+\begin{description}[123456789012345678901234567890]
+\item[type variable] $X$
+\item[maximum type] $\top$
+\item[type of functions] $T \rightarrow T$
+\item[universal type] $\forall X<:T.T$
+\end{description}
+\end{description}
+\end{frame}
+
 \end{document}
