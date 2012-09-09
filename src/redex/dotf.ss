@@ -17,7 +17,7 @@
   (loc (location i))
   (v loc)
   (vx v x)
-  (e vx (valnew (x c) e) (sel e l) (sel e m e))
+  (e vx (val x = new c in e) (sel e l) (sel e m e))
   (p x loc (sel p l))
   (c (Tc (l vx) ... (m x e) ...))
   (Gamma ([x T] ...))
@@ -38,16 +38,40 @@
   (Lm Lt m)
   (Lany Lt l m))
 
-(check-true (redex-match? dot e (term (valnew (u (Top)) u))))
-(check-true (redex-match? dot e (term (valnew (u ((refinement Top self (: (label-value l) Top)) [(label-value l) u])) (sel u (label-value l))))))
+;; --- typesetting ---
+(require mzlib/struct)
+(define (with-dot-writers thunk)
+  (define (combine name lw0)
+    (copy-struct lw lw0 [lw-e name]))
+  (with-compound-rewriters
+   (['val
+     (λ (lws)
+       (list
+        (combine "val" (list-ref lws 1))
+        (list-ref lws 2) ; x
+        (list-ref lws 3) ; =
+        (list-ref lws 4) ; new
+        (list-ref lws 5) ; c
+        (combine ";" (list-ref lws 6)) ; in
+        (list-ref lws 7) ; e
+       ))])
+   (thunk)))
+;; --- end typesetting ---
+
+(define-metafunction dot
+  valnew : (x c) e -> e
+  [(valnew (x c) e) (val x = new c in e)])
+
+(check-true (redex-match? dot e (term (val u = new (Top) in u))))
+(check-true (redex-match? dot e (term (val u = new ((refinement Top self (: (label-value l) Top)) [(label-value l) u]) in (sel u (label-value l))))))
 
 (define-metafunction dot
   subst : any x any -> any
   ;; 1. x_1 bound
   [(subst (m_1 x_1 any_1) x_1 any_2)
    (m_1 x_1 any_1)]
-  [(subst (valnew (x_1 c_1) any_1) x_1 any_2)
-   (valnew (x_1 c_1) any_1)]
+  [(subst (val x_1 = new c_1 in any_1) x_1 any_2)
+   (val x_1 = new c_1 in any_1)]
   [(subst (refinement T_1 x_1 D_1 ...) x_1 any_2)
    (refinement (subst T_1 x_1 any_2) x_1 D_1 ...)]
   
@@ -57,8 +81,8 @@
         (subst (subst-var any_1 x_1 x_3) x_2 any_2))
    (where x_3 ,(variable-not-in (term (x_2 any_1 any_2))
                                 (term x_1)))]
-  [(subst (valnew (x_1 c_1) any_1) x_2 any_2)
-   (valnew (x_3 (subst (subst-var c_1 x_1 x_3) x_2 any_2))
+  [(subst (val x_1 = new c_1 in any_1) x_2 any_2)
+   (val x_3 = new (subst (subst-var c_1 x_1 x_3) x_2 any_2) in
            (subst (subst-var any_1 x_1 x_3) x_2 any_2))
    (where x_3 ,(variable-not-in (term (x_2 c_1 any_1 any_2))
                                 (term x_1)))]
@@ -94,22 +118,22 @@
   [(subst-var any_1 x_1 x_2) any_1])
 
 (check-true (redex-match? dot
- (valnew (x_1 ((refinement Top self (: (label-method f) Top Top)) [(label-method f) x_2 x_2])) x_1)
- (term (subst (valnew (u ((refinement Top self (: (label-method f) Top Top)) [(label-method f) x x])) u) x y))))
+ (val x_1 = new ((refinement Top self (: (label-method f) Top Top)) [(label-method f) x_2 x_2]) in x_1)
+ (term (subst (val u = new ((refinement Top self (: (label-method f) Top Top)) [(label-method f) x x]) in u) x y))))
 (check-true (redex-match? dot
- (valnew (x_1 ((refinement Top self (: (label-method f) Top Top)) [(label-method f) (side-condition x_2 (not (equal? 'y (term x_2)))) y])) x_1)
+ (val x_1 = new ((refinement Top self (: (label-method f) Top Top)) [(label-method f) (side-condition x_2 (not (equal? 'y (term x_2)))) y]) in x_1)
  (term (subst (valnew (u ((refinement Top self (: (label-method f) Top Top)) [(label-method f) y x])) u) x y))))
 (check-true (redex-match? dot
- (valnew (x_1 ((refinement Top self (: (label-method f) Top Top)) [(label-method f) (side-condition x_2 (not (equal? 'y (term x_2)))) y])) x_1)
+ (val x_1 = new ((refinement Top self (: (label-method f) Top Top)) [(label-method f) (side-condition x_2 (not (equal? 'y (term x_2)))) y]) in x_1)
  (term (subst (valnew (u ((refinement Top self (: (label-method f) Top Top)) [(label-method f) z x])) u) x y))))
 (check-true (redex-match? dot
- (valnew (x_1 (Top)) y)
+ (val x_1 = new (Top) in y)
  (term (subst (valnew (u (Top)) x) x y))))
 (check-true (redex-match? dot
- (valnew ((side-condition x_1 (not (equal? 'u (term x_1)))) (Top)) u)
+ (val (side-condition x_1 (not (equal? 'u (term x_1)))) = new (Top) in u)
  (term (subst (valnew (u (Top)) x) x u))))
 (check-true (redex-match? dot
- (valnew (x_1 ((refinement Top self (: (label-method mt) Top Top)) [(label-method mt) x_2 x_1])) (sel x_1 (label-method mt) x_1))
+ (val x_1 = new ((refinement Top self (: (label-method mt) Top Top)) [(label-method mt) x_2 x_1]) in (sel x_1 (label-method mt) x_1))
  (term (subst (valnew (u ((refinement Top self (: (label-method mt) Top Top)) [(label-method mt) y u])) (sel u (label-method mt) u)) mt x))))
 
 (define-metafunction dot
@@ -158,7 +182,7 @@
    (where any_lookup (method-label-lookup c m))
    (found any_lookup #t)
    (where (x e) any_lookup)]
-  [(red store (in-hole ec (valnew (x c) e)) (in-hole ec (subst e x loc_new)) (store-extend store (subst c x loc_new)))
+  [(red store (in-hole ec (val x = new c in e)) (in-hole ec (subst e x loc_new)) (store-extend store (subst c x loc_new)))
    (where loc_new (store-fresh-location store))] ;; (New)
   [(red store (in-hole ec (sel (location i) l)) (in-hole ec v) store) ;; (Sel)
    (where c (store-lookup store i))
@@ -189,7 +213,7 @@
    (where (x e_11) any_lookup)
    (where (v_2 store_2) (ev store_1 e_i2))
    (where (v_f store_f) (ev store_2 (subst e_11 x v_2)))]
-  [(ev store_i (valnew (x_i c_i) e_i)) (v_f store_f)
+  [(ev store_i (val x_i = new c_i in e_i)) (v_f store_f)
    (where loc_new (store-fresh-location store_i))
    (where e_s (subst e_i x_i loc_new))
    (where store_s (store-extend store_i (subst c_i x_i loc_new)))
@@ -221,7 +245,7 @@
   fn : any x -> bool
   ;; x_1 bound
   [(fn (m_1 x_1 any_1) x_1) #f]
-  [(fn (valnew (x_1 c_1) any_1) x_1) #f]
+  [(fn (val x_1 = new c_1 in any_1) x_1) #f]
   [(fn (refinement T_1 x_1 D_1 ...) x_1) (fn T_1 x_1)]
 
   ;; x_1 free
@@ -551,7 +575,7 @@
   [(typeof (Gamma store) x T)
    (where T (gamma-lookup Gamma x))
    (found T #t)]
-  [(typeof (Gamma store) (valnew (x (Tc (l vx) ... (m x_m e_m) ...)) e) T)
+  [(typeof (Gamma store) (val x = new (Tc (l vx) ... (m x_m e_m) ...) in e) T)
    (wfe-type (Gamma store) Tc)
    (expansion (Gamma store) x Tc (((: Lt S U) ...) (Dl ...) (Dm ...)))
    (where ((l_s vx_s) ...) (sorted-assigns ((l vx) ...)))
@@ -798,7 +822,7 @@
               (match (steps-to store e)
                 [(list store_to e_to)
                  (loop e_to store_to)]
-                [_ (error 'type-safety "expect match")]))))
+                [_ #f]))))
       #t))
 
 (test-predicate preservation (term (valnew (u (Top)) u)))
