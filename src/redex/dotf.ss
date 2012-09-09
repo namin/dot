@@ -955,8 +955,7 @@
                (fun- f ((: (label-abstract-type Y) ,typeX ,typeX)) (d Top) (sel f (label-abstract-type Y)) (as (sel f (label-abstract-type Y)) u)))))))))
 )
 
-(check-not-false
-(type-safety
+(test-predicate type-safety
  (term
   (valnew
    (b ((refinement Top z
@@ -972,10 +971,8 @@
     (cast Top
      (cast (sel (sel a (label-value i)) (label-abstract-type X))
       (sel (sel a (label-value i)) (label-value l))))))))
-)
 
-(check-not-false
-(big-step-preservation
+(test-predicate big-step-preservation
  (term
   (valnew
    (b ((refinement Top z
@@ -993,10 +990,8 @@
                (arrow Top Top)
                (fun (d Top) (sel (sel a (label-value i)) (label-abstract-type X)) x))
           (sel (sel a (label-value i)) (label-value l))))))))
-)
 
-(check-not-false
-(type-safety
+(test-predicate type-safety
  (term
    (valnew
     (b ((refinement Top z
@@ -1012,10 +1007,8 @@
     (cast Top
      (cast (sel (sel a (label-value i)) (label-abstract-type X))
       (sel (sel a (label-value i)) (label-value l))))))))
-)
 
-(check-not-false
-(big-step-preservation
+(test-predicate big-step-preservation
  (term
    (valnew
     (b ((refinement Top z
@@ -1033,7 +1026,6 @@
                (arrow Top (sel (sel a (label-value i)) (label-abstract-type X)))
                (fun (d Top) (sel (sel a (label-value i)) (label-abstract-type X)) x))
           (sel (sel a (label-value i)) (label-value l))))))))
-)
 
 (check-true
 (let* ([typeX (term (refinement Top z
@@ -1050,18 +1042,15 @@
   (subtyping-transitive (term (() ())) typeZ typeX typeY))
 )
 
-(check-not-false
-(preservation
+(test-predicate preservation
  (term
   (valnew (v ((refinement Top z (: (label-class L) Bottom (refinement Top z (: (label-abstract-type A) Top Bottom))))))
           (app (fun (x (refinement Top z (: (label-class L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top)))))
                     Top
                     (valnew (z ((sel x (label-class L)))) (cast Top z)))
                v))))
-)
 
-(check-not-false
-(type-safety
+(test-predicate type-safety
  (term
   (valnew (v ((refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A))))))))
   (app (fun (x (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top))))) Top
@@ -1074,10 +1063,8 @@
                                           (as Top (fun (a (sel y (label-abstract-type A))) Top a)))))
                     (cast Top z)))
        (as (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top)))) v)))))
-)
 
-(check-not-false
-(type-safety
+(test-predicate type-safety
  (term
   (valnew (x00 ((refinement Top z (: (label-abstract-type L) Bottom
                                      (refinement Top self
@@ -1096,10 +1083,8 @@
                  (valnew (z ((sel z0 (label-class Lc2))))
                          (cast Top z))))
        (as (sel x0 (label-class Lc1)) x1))))))))
-)
 
-(check-not-false
-(type-safety
+(test-predicate type-safety
  (term
   (valnew (v ((refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) (sel z (label-abstract-type A)) Top))))))
   (app (fun (x (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top))))) Top
@@ -1112,19 +1097,15 @@
                                           (as Top (fun (a (sel y (label-abstract-type A))) Top a)))))
                     (cast Top z)))
        (as (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top)))) v)))))
-)
 
-(check-not-false
-(preservation
+(test-predicate preservation
  (term
   (valnew (v ((refinement Top z (: (label-abstract-type L) Bottom Top) (: (label-value l) (refinement Top z (: (label-abstract-type L) Bottom Top))))
               ((label-value l) v)))
   (app (fun (x Top) Top x)
        (sel (as (refinement Top z (: (label-value l) Top)) v) (label-value l))))))
-)
 
-(check-not-false
-(preservation
+(test-predicate preservation
  (term
   (valnew (v ((refinement Top z (: (label-method m) Top Top))
               ((label-method m) x x)))
@@ -1132,10 +1113,8 @@
        (sel (as (refinement Top z (: (label-method m) (refinement Top z (: (label-method m) Top Top)) Top)) v)
             (label-method m)
             v)))))
-)
 
-(check-not-false
-(preservation
+(test-predicate preservation
  (term
   (valnew (v ((refinement Top z
                           (: (label-abstract-type A) Top Top)
@@ -1145,10 +1124,8 @@
        (sel (as (refinement Top z (: (label-method m) (refinement Top z (: (label-abstract-type A) Top Top)) Top)) v)
             (label-method m)
             (as (refinement Top z (: (label-abstract-type A) Top Top)) v))))))
-)
 
-(check-not-false
-(preservation
+(test-predicate preservation
  (term
   (valnew (v ((refinement Top z
                           (: (label-abstract-type A) Top Top)
@@ -1159,10 +1136,8 @@
        (sel (as (refinement Top z (: (label-method m) (refinement Top z (: (label-abstract-type A) Top Top) (: (label-abstract-type B) Bottom Top)) Top)) v)
             (label-method m)
             (as (refinement Top z (: (label-abstract-type A) Top Top) (: (label-abstract-type B) Bottom Top)) v))))))
-)
 
-(check-not-false
-(type-safety
+(test-predicate type-safety
  (term
   (valnew (v ((refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A))))))))
   (app (as (arrow (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A)))))) Top)
@@ -1175,7 +1150,6 @@
                             ((label-method l) y (as Top (fun (a (sel y (label-abstract-type A))) Top a)))))
                         (cast Top z))))
        v))))
-)
 
 (check-not-false
 (let ((Tc (term (refinement Top z
@@ -1195,8 +1169,7 @@
              v))))))
 )
 
-(check-not-false
-(preservation
+(test-predicate preservation
  (term
   (valnew (a ((refinement Top z
                           (: (label-class C) Bottom (refinement Top z
@@ -1210,7 +1183,6 @@
                     (app (fun (x Bottom) Bottom (sel x (label-value foo)))
                          d)))
        b))))))
-)
 
 (check-not-false
 (let ((Tc (term (refinement Top z
