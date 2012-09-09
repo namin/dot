@@ -382,7 +382,7 @@ We propose a new type-theoretic foundation of Scala and languages like
 it: the Dependent Object Types calculus (DOT). DOT models Scala's
 path-dependent types and abstract type members, as well as its mixture
 of nominal and structural typing through the use of refinement
-types. It makes no attempt to model inheritance or mixing
+types. It makes no attempt to model inheritance or mixin
 composition. The calculus does not model what's currently in Scala: it
 is more normative than descriptive.
 
@@ -419,7 +419,7 @@ The calculus does not precisely describe what's currently in Scala. It
 is more normative than descriptive. The main point of deviation
 concerns the difference between Scala's compound type formation using
 {\bf with} and classical type intersection, as it is modeled in the
-calculus. Scala, and the previous calculi attempting to model it
+calculus. Scala, and the previous calculi attempting to model it,
 conflates the concepts of compound types (which inherit the members of
 several parent types) and mixin composition (which build classes from
 other classes and traits). At first glance, this offers an economy of
@@ -441,7 +441,7 @@ complement this by classical union types. Intersections and unions
 form a lattice wrt subtyping. This addresses another problematic
 feature of Scala: In Scala's current type system, least upper bounds
 and greatest lower bounds do not always exist. Here is an example:
-Given two traits
+given two traits
 \begin{lstlisting}
   trait A { type T <: A }
   trait B { type T <: B }
@@ -598,12 +598,12 @@ y \notin \fn(T') \\
 
 } % END dot-one
 
-The DOT calculus is a simple system of dependent
+The DOT calculus is a small system of dependent
 object-types. \figref{dot-one} gives its syntax, reduction rules,
 and type assignment rules.
 
 \subsection{Notation} We use standard notational conventions for
-sets. The notation $\seq{X}$ denotes a set of elements $X$. Given a
+sets. The notation $\seq{X}$ denotes a set of elements $X$. Given
 such a set $\seq X$ in a typing rule, $X_i$ denotes an arbitrary
 element of $X$. 
 %The $\uplus$ operator extends a set of bindings. It is required that the added binding does not
@@ -638,7 +638,7 @@ $\seq v$ and methods $\seq m$ initialized to methods of one parameter
 $\seq{x}$ and body $\seq{t}$.  The scope of $y$ extends through the term
 ${t'}$.
 
-Two subclasses of terms are values $v$, which consist of just
+Two sub-sorts of terms are values $v$, which consist of just
 variables, and paths $p$ which consist of just variables and field
 selections.
 
@@ -772,7 +772,7 @@ by preconditions in rules (\textsc{msel}) and (\textsc{new}).
     \begin{multicols}{2}[\judgement{Expansion}{\fbox{$\Gamma \ts T \expand_z \seq D$}}]  
 
       \infrule[\textsc{rfn-$\expand$}]
-      {\Gamma \ts T \expand_z {\seq D'}}
+      {\Gamma \ts T \expand_z {\seq {D'}}}
       {\Gamma \ts T \refine z {\seq D} \expand_z \seq {D'} \tand \seq D}
 
       \infrule[\textsc{$\tand$-$\expand$}]
@@ -817,8 +817,8 @@ rules and in subtyping refinements on the right (see
 \figref{dot-sub}).
 
 Rule (\textsc{rfn-$\expand$}) states that a refinement type $T
-\expand_z {\seq D}$ expands to the conjunction of the expansion $D'$
-of $T$ and the newly added declarations $D$. Rule
+\expand_z {\seq D}$ expands to the conjunction of the expansion $\seq {D'}$
+of $T$ and the newly added declarations $\seq D$. Rule
 (\textsc{tsel-$\expand$}) states that a type selection $p.L$ carries
 the same declarations as the upper bound $U$ of $L$ in $T$.  Rules
 ($\tand$-$\expand$) and ($\tor$-$\expand$) states that expansion
@@ -1045,7 +1045,7 @@ this paper. Note that the variable $z$ must be fresh.
 \arrow S T &\iff {\Top \refine z {\mdecl {\mi{apply}} S T}}\\
 \fun x S T t &\iff \new z {{\arrow S T}\ldefs{\mi{apply}(x) = t}} z\\
 \app f x &\iff \mapp f {\mi{apply}} x\\
-\cast T t&\iff \app {\fun x T T x} t
+\cast T t&\iff \app {(\fun x T T x)} t
 \end{align*}
 
 In the remaining examples, for brevity, we will also use $\abs x S t$
