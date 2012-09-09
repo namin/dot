@@ -83,7 +83,7 @@
                                 (term x_1)))]
   [(subst (val x_1 = new c_1 in any_1) x_2 any_2)
    (val x_3 = new (subst (subst-var c_1 x_1 x_3) x_2 any_2) in
-           (subst (subst-var any_1 x_1 x_3) x_2 any_2))
+        (subst (subst-var any_1 x_1 x_3) x_2 any_2))
    (where x_3 ,(variable-not-in (term (x_2 c_1 any_1 any_2))
                                 (term x_1)))]
   [(subst (refinement T_1 x_1 D_1 ...) x_2 any_2)
