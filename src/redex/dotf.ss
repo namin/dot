@@ -1,6 +1,13 @@
 #lang racket
 (require redex)
-(require rackunit)
+;(require rackunit)
+; redefining these so that redex includes them in the summary
+(define (check-true e)
+  (test-equal e #t))
+(define (check-false e)
+  (test-equal e #f))
+(define (check-not-false e)
+  (test-equal (not (not e)) #t))
 
 (define-language dot
   ((x y z) variable-not-otherwise-mentioned)
@@ -194,9 +201,9 @@
    (where v_f (value-label-lookup c_f l_i))
    (judgment-holds (found v_f #t))])
 
-;(term (ev () (valnew (u (Top)) u)))
-;(term (ev () (valnew (u ((refinement Top self (: (label-method f) Top Top)) [(label-method l) x x])) (sel u (label-method l) u))))
-;(term (ev () (valnew (u ((refinement Top self (: (label-method l) Top Top)) [(label-method l) x u])) (sel u (label-method l) u))))
+(check-not-false (term (ev () (valnew (u (Top)) u))))
+(check-not-false (term (ev () (valnew (u ((refinement Top self (: (label-method f) Top Top)) [(label-method l) x x])) (sel u (label-method l) u)))))
+(check-not-false (term (ev () (valnew (u ((refinement Top self (: (label-method l) Top Top)) [(label-method l) x u])) (sel u (label-method l) u)))))
 
 (define value? (redex-match dot v))
 (define (single-step? e)
