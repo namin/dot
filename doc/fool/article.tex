@@ -1,0 +1,1692 @@
+\documentclass[9pt]{sigplanconf}
+
+% The following \documentclass options may be useful:
+%
+% 10pt          To set in 10-point type instead of 9-point.
+% 11pt          To set in 11-point type instead of 9-point.
+% authoryear    To obtain author/year citation style instead of numeric.
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{fleqn}
+\usepackage{listings}
+\usepackage{math}
+\usepackage{amsmath}
+\usepackage{latexsym}
+\usepackage{bcprules}
+\usepackage[scaled=0.848971]{luximono} % This is for 11 pt Default font
+\usepackage[T1]{fontenc}
+
+% Prooftree formatting
+\usepackage{prooftree}
+
+\usepackage{multicol}
+\usepackage{framed}
+
+\usepackage{stmaryrd}
+
+%\usepackage{float}
+%\floatstyle{boxed} 
+%\restylefloat{figure}
+
+% support for generating PDF files
+%\newif\ifpdf
+%    \ifx\pdfoutput\undefined
+%    \pdffalse
+%\else
+%    \pdftrue
+%    \pdfoutput=1
+%\fi
+
+%versions
+% Use dependent function types
+\newif\ifdep\depfalse
+
+\lstset{
+  literate=
+  {=>}{$\Rightarrow\;$}{2}
+  {<:}{$<:\;$}{1}
+}
+
+\lstdefinelanguage{scala}{% 
+       morekeywords={% 
+                try, catch, throw, private, public, protected, import, package, implicit, final, package, trait, type, class, val, def, var, if, for, this, else, extends, with, while, new, abstract, object, case, match, sealed,override},
+         sensitive=t, % 
+   morecomment=[s]{/*}{*/},morecomment=[l]{\//},% 
+   mathescape,
+%   escapeinside={/*\%}{*/},%
+   rangeprefix= /*< ,rangesuffix= >*/,%
+   morestring=[d]{"}% 
+ }
+ 
+\lstset{breaklines=true,language=scala} 
+
+\def\code{\lstinline}  % shorter version so you can write \code|String[Foo]|
+                       % -- \def must be in same file as uses for this to
+                       % work...
+\newcommand{\lstref}[1]{Listing~\ref{#1}}
+\newcommand{\Lstref}[1]{Listing~\ref{#1}} % only capitalise at beginning of sentence?
+\newcommand{\secref}[1]{Section~\ref{#1}}
+\newcommand{\Secref}[1]{Section~\ref{#1}} % only capitalise at beginning of sentence?
+
+
+
+% \lstset{basicstyle=\footnotesize\ttfamily, breaklines=true, language=scala, tabsize=2, columns=fixed, mathescape=false,includerangemarker=false}
+% thank you, Burak 
+% (lstset tweaking stolen from
+% http://lampsvn.epfl.ch/svn-repos/scala/scala/branches/typestate/docs/tstate-report/datasway.tex)
+\lstset{
+    xleftmargin=2em,%
+    framesep=5pt,%
+    frame=none,%
+    captionpos=b,%
+    fontadjust=true,%
+    columns=[c]fixed,%
+    keepspaces=false,%
+    basewidth={0.56em, 0.52em},%
+    tabsize=2,%
+    basicstyle=\small\tt,% \small\tt
+    commentstyle=\textit,%
+    keywordstyle=\bfseries,%
+    escapechar=\%,%
+}
+
+%% set latex/pdflatex specific stuff
+%\ifpdf
+    \usepackage[pdftex,
+                hyperindex,
+                plainpages=false,
+                breaklinks,
+                colorlinks,
+                citecolor=black,
+                filecolor=black,
+                linkcolor=black,
+                pagecolor=black,
+                urlcolor=black]{hyperref}
+    \usepackage[pdftex]{graphicx}
+    \DeclareGraphicsExtensions{.jpg,.pdf}
+    \pdfcatalog {
+        /PageMode (/UseNone)
+    }
+    \usepackage{thumbpdf}
+    \usepackage[pdftex]{color}
+%\else
+%    \usepackage[ps2pdf]{hyperref}
+%    \usepackage{graphicx}
+%    \DeclareGraphicsExtensions{.eps,.jpg}
+%    \usepackage{color}
+%\fi
+
+%\setlength{\parindent}{0pt}
+%\setlength{\parskip}{5pt}
+
+% verbfilter stuff
+\newcommand{\prog}[1]{{\sl #1}}
+\newenvironment{program}[1][10.5]
+  {\fontsize{#1}{13.6}\tt\begin{tabbing}\hspace*{0.5\parindent}\=\+\kill}
+  {\end{tabbing}\noindent}
+\newcommand{\blockcomment}[1]{{\color{grayPoint3}#1}}
+\newcommand{\linecomment}{\color{grayPoint3}}
+\newcommand{\grey}{\color{grey}}
+
+%\newenvironment{program}{\ \ \ \ \begin{minipage}{\textwidth}\renewcommand{\baselinestretch}{1.0}\sl\begin{tabbing}}{\end{tabbing}\end{minipage}}
+\newcommand{\vem}{\bfseries}
+\newcommand{\quotedstring}[1]{{#1}}
+\newcommand{\typename}[1]{{#1}}
+\newcommand{\literal}[1]{{#1}}
+\newcommand{\mi}[1]{\mathit{#1}}
+
+% comments and notes
+\newcommand{\comment}[1]{}
+%\newcommand{\note}[1]{{\bf $\clubsuit$ #1 $\spadesuit$}}
+
+% figures
+\newcommand{\figurebox}[1]
+        {\fbox{\begin{minipage}{\textwidth} #1 \medskip\end{minipage}}}
+%        {\fbox{\begin{minipage}{\textwidth}\begin{center} #1 \end{center}\medskip\end{minipage}}}
+\newcommand{\boxfig}[3]
+        {\begin{figure*}\figurebox{#3\caption{\label{fig:#1}#2}}\end{figure*}}
+\newcommand{\figref}[1]
+        {Figure~\ref{fig:#1}}
+
+% typing rules (not used here)
+\newcommand{\ttag}[1]{\mbox{\textsc{\small(#1)}}}
+\newcommand{\infer}[3]{\mbox{#1 }\ba{c} #2 \\ \hline #3 \ea}
+\newcommand{\irule}[2]{{\renewcommand{\arraystretch}{1.2}\ba{c} #1 
+                        \\ \hline #2 \ea}}
+\newlength{\trulemargin}
+\newlength{\trulewidth}
+\newlength{\srulewidth}
+\setlength{\trulemargin}{0.80cm}
+\setlength{\trulewidth}{40.0mm}
+\setlength{\srulewidth}{3.0cm}
+\newenvironment{trules}{$\vspace{0.5em}\ba{p{\trulemargin}@{~}p{\trulewidth}@{~}p{\trulemargin}}}{\ea$}
+\newenvironment{srules}{$\vspace{0.5em}\ba{p{\trulemargin}@{~}p{\srulewidth}}}{\ea$}
+\newcommand{\laxiom}[2]{\ttag{#1} & $ #2 \hfill\ }
+\newcommand{\raxiom}[2]{\hfill #2 $& \hfill \ttag{#1}}
+\newcommand{\caxiom}[2]{\ttag{#1} & $\hfill #2 \hfill $& \ }
+\newcommand{\lrule}[3]{\laxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\rrule}[3]{\raxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\crule}[3]{\caxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\lsrule}[3]{\lsaxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\rsrule}[3]{\rsaxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\nl}{\end{trules}\\[0.5em] \begin{trules}}
+\newcommand{\snl}{\end{srules}\\[0.5em] \begin{srules}}
+
+% commas and semicolons
+\newcommand{\comma}{,\,}
+\newcommand{\commadots}{\comma \ldots \comma}
+\newcommand{\semi}{;\mbox{;};}
+\newcommand{\semidots}{\semi \ldots \semi}
+
+% spacing
+\newcommand{\gap}{\quad\quad}
+\newcommand{\biggap}{\quad\quad\quad}
+\newcommand{\nextline}{\\ \\}
+\newcommand{\htabwidth}{0.5cm}
+\newcommand{\tabwidth}{1cm}
+\newcommand{\htab}{\hspace{\htabwidth}}
+\newcommand{\tab}{\hspace{\tabwidth}}
+\newcommand{\linesep}{\ \hrulefill \ \smallskip}
+
+% math stuff
+\newenvironment{myproof}{{\em Proof:}}{$\Box$}
+\newenvironment{proofsketch}{{\em Proof Sketch:}}{$\Box$}
+\newcommand{\Case}{{\em Case\ }}
+
+% make ; a delimiter in math mode
+% \mathcode`\;="8000 % Makes ; active in math mode
+% {\catcode`\;=\active \gdef;{\;}}
+% \mathchardef\semicolon="003B
+
+% reserved words
+\newcommand{\mathem}{\bf}
+
+% brackets
+\newcommand{\set}[1]{\{#1\}}
+\newcommand{\sbs}[1]{\lquote #1 \rquote}
+
+% arrays
+\newcommand{\ba}{\begin{array}}
+\newcommand{\ea}{\end{array}}
+\newcommand{\bda}{\[\ba}
+\newcommand{\eda}{\ea\]}
+\newcommand{\ei}{\end{array}}
+\newcommand{\bcases}{\left\{\begin{array}{ll}}
+\newcommand{\ecases}{\end{array}\right.}
+
+% \cal ids
+\renewcommand{\AA}{{\cal A}}
+\newcommand{\BB}{{\cal B}}
+\newcommand{\CC}{{\cal C}}
+\newcommand{\DD}{{\cal D}}
+\newcommand{\EE}{{\cal E}}
+\newcommand{\FF}{{\cal F}}
+\newcommand{\GG}{{\cal G}}
+\newcommand{\HH}{{\cal H}}
+\newcommand{\II}{{\cal I}}
+\newcommand{\JJ}{{\cal J}}
+\newcommand{\KK}{{\cal K}}
+\newcommand{\LL}{{\cal L}}
+\newcommand{\MM}{{\cal M}}
+\newcommand{\NN}{{\cal N}}
+\newcommand{\OO}{{\cal O}}
+\newcommand{\PP}{{\cal P}}
+\newcommand{\QQ}{{\cal Q}}
+\newcommand{\RR}{{\cal R}}
+\newcommand{\TT}{{\cal T}}
+\newcommand{\UU}{{\cal U}}
+\newcommand{\VV}{{\cal V}}
+\newcommand{\WW}{{\cal W}}
+\newcommand{\XX}{{\cal X}}
+\newcommand{\YY}{{\cal Y}}
+\newcommand{\ZZ}{{\cal Z}}
+
+% misc symbols
+\newcommand{\dhd}{\!\!\!\!\!\rightarrow}
+\newcommand{\Dhd}{\!\!\!\!\!\Rightarrow}
+\newcommand{\ts}{\,\vdash\,}
+\newcommand{\la}{\langle}
+\newcommand{\ra}{\rangle}
+\newcommand{\eg}{{\em e.g.}}
+
+% misc identifiers
+\newcommand{\dom}{\mbox{\sl dom}}
+\newcommand{\fn}{\mbox{\sl fn}}
+\newcommand{\bn}{\mbox{\sl bn}}
+\newcommand{\sig}{\mbox{\sl sig}}
+\newcommand{\IF}{\mbox{\mathem if}}
+\newcommand{\OTHERWISE}{\mbox{\mathem otherwise}}
+\newcommand{\expand}{\prec}
+\newcommand{\weakexpand}{\prec^W}
+\newcommand{\spcomma}{~,~}
+
+%\newcommand{\inst}{\mbox{\mathem inst}}
+\newcommand{\trans}[1]{\la\!\la#1\ra\!\ra}
+\newcommand{\remark}[1]{{\bf $\clubsuit$ #1 $\spadesuit$}}
+\newcommand{\todo}[1]{\remark{to do: #1}}
+%\newcommand{\J}{\justifies}
+%\newcommand{\U}{\using}
+
+% names
+\newcommand{\Scala}{\mbox{\textsc{Scala}}}
+\newcommand{\Java}{\mbox{\textsc{Java}}}
+
+%\renewcommand\textfraction{.05}
+%\renewcommand\floatpagefraction{.9}
+%\renewcommand\topfraction{.8}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   Language abstraction commands     %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Relations
+% Subtype 
+\newcommand{\sub}{<:}
+% Type assignment
+\newcommand{\typ}{:}
+% reduction
+\newcommand{\reduces}{\;\rightarrow\;}
+% well-formedness
+\newcommand{\wf}{\;\mbox{\textbf{wf}}}
+\newcommand{\wfe}{\;\mbox{\textbf{wfe}}}
+\newcommand{\nswfe}{\mbox{\textbf{wfe}}}
+
+%% Operators
+% Type selection
+\newcommand{\tsel}{\#}
+% Function type
+\newcommand{\tfun}{\rightarrow}
+\newcommand{\dfun}[3]{(#1\!:\!#2) \Rightarrow #3}
+% Conjunction
+\newcommand{\tand}{\wedge}
+% Disjunction
+\newcommand{\tor}{\vee}
+% Singleton type suffix
+\newcommand{\sing}{.\textbf{type}}
+
+%% Syntax
+% Header for typing rules
+\newcommand{\judgement}[2]{{\bf #1} \hfill #2}
+% Refinement
+\newcommand{\refine}[2]{\left\{#1 \Rightarrow #2 \right\}}
+\newcommand{\mlrefine}[2]{\{#1 \Rightarrow #2 \}}
+% Field definitions
+\newcommand{\ldefs}[1]{\left\{#1\right\}}
+\newcommand{\mlldefs}[1]{\{#1\}}
+% Member sequences
+\newcommand{\seq}[1]{\overline{#1}}
+% Lambda
+\newcommand{\dabs}[3]{(#1\!:\!#2)\Rightarrow #3}
+\newcommand{\abs}[3]{\lambda #1\!:\!#2.#3}
+% Method Application
+\newcommand{\mapp}[3]{#1.#2(#3)}
+% Substitution
+\newcommand{\subst}[3]{[#1/#2]#3}
+% Object creation
+\newcommand{\new}[3]{\textbf{val }#1 = \textbf{new }#2 ;\; #3}
+\newcommand{\mlnew}[3]{\textbf{val }#1 = \textbf{new }#2 ;\;\\&#3}
+%\renewcommand{\new}[3]{#1 \leftarrow #2 \,\textbf{in}\, #3}
+% Field declaration
+\newcommand{\Ldecl}[3]{#1 : #2..#3}%{#1 \operatorname{>:} #2 \operatorname{<:} #3}
+\newcommand{\ldecl}[2]{#1 : #2}
+\newcommand{\mdecl}[3]{#1 : #2 \tfun #3}
+% Top and Bottom
+\newcommand{\Top}{\top}%{\textbf{Top}}
+\newcommand{\Bot}{\bot}%\textbf{Bot}}
+% Environment extension
+%\newcommand{\envplus}[1]{\uplus \{ #1 \}}
+\newcommand{\envplus}[1]{, #1}
+% Reduction
+\newcommand{\reduction}[4]{#1 \operatorname{|} #2 \reduces #3 \operatorname{|} #4}
+
+% Sugar
+\newcommand{\arrow}[2]{#1\rightarrow_s#2}
+\newcommand{\fun}[4]{\textbf{fun } (#1:#2)\;#3\;#4}
+\newcommand{\app}[2]{(\textbf{app }#1\;#2)}
+\newcommand{\mlapp}[2]{(\textbf{app }#1\;\\&#2)}
+\newcommand{\cast}[2]{(\textbf{cast }#1\;#2)}
+
+\newcommand{\lindent}{\hspace{-4mm}}
+
+% Logical relations
+\newcommand{\relv}[4]{\mathcal{V}_{#1;#2;#3}\llbracket#4\rrbracket}
+\newcommand{\rele}[4]{\mathcal{E}_{#1;#2;#3}\llbracket#4\rrbracket}
+\newcommand{\rels}[3]{\mathcal{\supseteq}_{#1}\llbracket#2;#3\rrbracket}
+\newcommand{\relg}[3]{\mathcal{\supseteq^!}_{#1;#2}\llbracket#3\rrbracket}
+\newcommand{\irred}[2]{\text{irred }(#1,#2)}
+\newcommand{\andl}{\;\wedge\;}
+\newcommand{\orl}{\vee}
+\newcommand{\impliesl}{\rightarrow}
+\newcommand{\reductionl}[5]{#1 \operatorname{|} #2 \;\rightarrow^{#5}\; #3 \operatorname{|} #4}
+\newcommand{\ds}{\,\vDash\,}
+
+\begin{document}
+
+\conferenceinfo{FOOL '12}{October 22, 2012, Tucson, AZ, USA.} 
+\copyrightyear{2012} 
+\copyrightdata{[to be supplied]} 
+
+\title{Dependent Object Types}
+\subtitle{Towards a foundation for Scala's type system}
+
+\authorinfo{Nada Amin \and Adriaan Moors \and Martin Odersky}
+           {EPFL}
+           {first.last@epfl.ch}
+
+\maketitle
+
+\begin{abstract}
+We propose a new type-theoretic foundation of Scala and languages like
+it: the Dependent Object Types calculus (DOT). DOT models Scala's
+path-dependent types and abstract type members, as well as its mixture
+of nominal and structural typing through the use of refinement
+types. It makes no attempt to model inheritance or mixing
+composition. The calculus does not model what's currently in Scala: it
+is more normative than descriptive.
+
+We show that DOT and its patched-up variants are not syntactically
+sound, by exhibiting counterexamples to preservation. Nevertheless, we
+sketch a proof of type-safety of the calculus via step-indexed logical
+relations.
+\end{abstract}
+
+\category{D.3.3}{Language Constructs and Features}{Abstract data types, Classes and objects, polymorphism}
+\category{D.3.1}{Formal Definitions and Theory}{Syntax, Semantics}
+\category{F.3.1}{Specifying and Verifying and Reasoning about Programs}{}
+\category{F.3.3}{Studies of Program Constructs}{Object-oriented constructs, type structure}
+\category{F.3.2}{Semantics or Programming Languages}{Operational semantics}
+
+\terms
+Languages, Theory, Verification
+
+\keywords
+calculus, objects, dependent types, step-indexed logical relations
+
+\section{Introduction}
+
+This paper presents a proposal for a new type-theoretic foundation of
+Scala and languages like it. The properties we are interested in
+modeling are Scala's path-dependent types and abstract type members,
+as well as its mixture of nominal and structural typing through the
+use of refinement types. Compared to previous approaches~\cite{nuObj,FS},
+we make no attempt to model inheritance or mixin composition. Indeed
+we will argue that such concepts are better modeled in a different
+setting.
+
+The calculus does not precisely describe what's currently in Scala. It
+is more normative than descriptive. The main point of deviation
+concerns the difference between Scala's compound type formation using
+{\bf with} and classical type intersection, as it is modeled in the
+calculus. Scala, and the previous calculi attempting to model it
+conflates the concepts of compound types (which inherit the members of
+several parent types) and mixin composition (which build classes from
+other classes and traits). At first glance, this offers an economy of
+concepts. However, it is problematic because mixin composition and
+intersection types have quite different properties. In the case of
+several inherited members with the same name, mixin composition has to
+pick one which overrides the others. It uses for that the concept of
+linearization of a trait hierarchy. Typically, given two independent
+traits $T_1$ and $T_2$ with a common method $m$, the mixin composition
+\code@$T_1$ with $T_2$@ would pick the $m$ in $T_2$, whereas the member in
+$T_1$ would be available via a super-call. All this makes sense from
+an implementation standpoint. From a typing standpoint it is more
+awkward, because it breaks commutativity and with it several
+monotonicity properties.
+
+In the present calculus, we replace Scala's compound types by
+classical intersection types, which are commutative. We also
+complement this by classical union types. Intersections and unions
+form a lattice wrt subtyping. This addresses another problematic
+feature of Scala: In Scala's current type system, least upper bounds
+and greatest lower bounds do not always exist. Here is an example:
+Given two traits
+\begin{lstlisting}
+  trait A { type T <: A }
+  trait B { type T <: B }
+\end{lstlisting}
+The greatest lower bound of \code@A@ and \code@B@ is approximated by the
+infinite sequence
+\begin{lstlisting}
+  A with B { type T <: A with B { type T <: A with B {
+    type T < ...
+  }}}
+\end{lstlisting}
+The limit of this sequence does not exist as a type in Scala.
+
+This is problematic because glbs and lubs play a central role in
+Scala's type inference. The absence of universal glbs and lubs makes
+type inference more brittle and more unpredictable.
+
+%The primary contributions of this paper are:
+%\begin{itemize}
+%\item Development of DOT -- a core calculus which models
+%  path-dependent types. We formally specify a small-step operational
+%  semantics and a static typing assignment in
+%  section~\ref{dot-calculus} and show some examples in
+%  section~\ref{dot-examples}.
+%\item Counterexamples to the standard theorem of preservation --
+%  section~\ref{dot-preservation}.
+%\item A sketch of a type-safety proof based on logical relations --
+%  section~\ref{dot-type-safety}.
+%\end{itemize}
+
+We propose DOT as a core calculus for path-dependent types. We present
+the calculus formally in section \ref{dot-calculus} and through examples in
+section~\ref{dot-examples}. Though we show that the calculus does not
+satisfy the standard theorem of preservation in
+section~\ref{dot-preservation}, we contribute a proof sketch of type
+safety using logical relations in section~\ref{dot-type-safety}. In
+section~\ref{discussion}, we discuss choices and variants of the
+calculus, as well as related work, and conclude in
+section~\ref{conclusion}.
+
+\section{The DOT Calculus}\label{dot-calculus}
+
+\boxfig{dot-one}{The DOT Calculus : Syntax, Reduction, Type / Declaration Assignment}{
+{\bf Syntax}\medskip
+\begin{center}    
+$\ba{l@{\hspace{0.2mm}}|@{\hspace{0.2mm}}l}
+\ba[t]{l@{\hspace{10mm}}l}
+x, y, z    & \lindent{\mbox{Variable}} \\
+l          & \lindent{\mbox{Value label}}\\
+m          & \lindent{\mbox{Method label}}\\[0.2em]
+v ::=      & \lindent{\mbox{Value}} \\
+\gap x     & \mbox{variable} \\[0.2em]
+t ::=      & \lindent{\mbox{Term}} \\
+\gap v     & \mbox{value} \\
+\gap \new x c t & \mbox{new instance} \\
+\gap t.l  & \mbox{field selection} \\
+\gap \mapp t m t  & \mbox{method invocation} \\[0.2em]
+p ::= & \lindent \mbox{Path} \\
+\gap x & \mbox{variable} \\
+\gap p.l & \mbox{selection} \\
+c ::= T_c \ldefs{\seq{d}} & \lindent{\mbox{Constructor}} \\[0.2em]
+d ::= & \lindent{\mbox{Initialization}}\\
+\gap l = v & \mbox{field initialization}\\
+\gap m(x) = t & \mbox{method initialization}\\
+s      ::= \seq{x \mapsto c} & \lindent\mbox{Store}
+\ea
+&
+\ba[t]{l@{\hspace{10mm}}l}
+L ::=      & \lindent{\mbox{Type label}} \\
+\gap L_c   & \mbox{class label} \\
+\gap L_a   & \mbox{abstract type label} \\[0.2em]
+S,T,U,V,W ::= & \lindent\mbox{Type}\\
+\gap p.L & \mbox{type selection} \\
+\gap T \refine z {\seq D} & \mbox{refinement} \\
+\gap T \tand T & \mbox{intersection type} \\
+\gap T \tor T & \mbox{union type} \\
+\gap \Top  & \mbox{top type} \\
+\gap \Bot  & \mbox{bottom type} \\[0.2em]
+S_c, T_c ::= & \lindent \mbox{Concrete type} \\
+\multicolumn{2}{l}{\gap p.L_c ~|~ T_c \refine z {\seq D} ~|~ T_c \wedge T_c  ~|~ \Top} \\[0.2em]
+D ::= & \lindent\mbox{Declaration} \\
+\gap \Ldecl L S U & \mbox{type declaration} \\
+\gap \ldecl l T   & \mbox{value declaration} \\
+\gap \mdecl m S U & \mbox{method declaration}\\
+\ \\
+\Gamma ::= \seq{x \typ T} & \lindent\mbox{Environment}
+\ea
+\ea$
+\end{center}
+\medskip
+
+\linesep
+
+\begin{multicols}{2}[\judgement{Reduction}{\fbox{$\reduction t s {t'} {s'}$}}]
+
+\infrule[\textsc{msel}]
+{y \mapsto T_c \ldefs{\seq{l = v'}\;\seq{m(x)=t}} \in s}
+{\reduction {\mapp y {m_i} v} s {\subst v {x_i} {t_i}} s}
+
+\infrule[\textsc{sel}]
+{y \mapsto T_c \ldefs{\seq{l = v}\;\seq{m(x)=t}} \in s}
+{\reduction {y.l_i} s {v_i} s}
+
+\infax[\textsc{new}]
+{\reduction {\new x c t} s t {s \envplus{x \mapsto c}}}
+
+\infrule[\textsc{context}]
+{\reduction t s {t'} {s'}}
+{\reduction {e[t]} s {e[t']} s'}
+\end{multicols}
+
+\hfill {\bf where} evaluation context $\gap e ::= [\,] ~|~ \mapp e m t ~|~ \mapp v m e ~|~ e.l\hspace{2cm}$
+
+\linesep
+
+\begin{multicols}{2}[\judgement{Type Assignment}{\fbox{$\Gamma \ts t \typ T$}}]
+
+\infrule[\textsc{var}]
+{x \typ T \in \Gamma}
+{\Gamma \ts x \typ T}
+
+\infrule[\textsc{msel}]
+{\Gamma \ts t \ni m \typ {S \tfun T} \\
+ \Gamma \ts t' \typ T' \spcomma T' \sub S}
+{\Gamma \ts \mapp t m {t'} \typ T}
+
+\infrule[\textsc{sel}]
+{\Gamma \ts t \ni l \typ T'}
+{\Gamma \ts t.l \typ T'}
+
+\infrule[\textsc{new}]
+{
+y \notin \fn(T') \\
+\Gamma \ts T_c \wfe \spcomma T_c \expand_y \seq{\Ldecl L S U}, \seq{D} \\
+\Gamma \envplus{y: T_c} \ts \seq{S <: U} \spcomma \seq{d} \typ \seq{D} \spcomma {t'} \typ {T'}}
+{\Gamma \ts \new y {T_c \ldefs{\seq{d}}} {t'} \typ T'}
+
+\end{multicols}
+
+\linesep
+
+\begin{multicols}{2}[\judgement{Declaration Assignment}{\fbox{$\Gamma \ts d \typ D$}}]
+
+\infrule[\textsc{vdecl}]
+{\Gamma \ts v \typ {V'} \spcomma {V'} \sub V}
+{\Gamma \ts l = v \typ \ldecl l V}
+
+\infrule[\textsc{mdecl}]
+{\Gamma \ts S \wfe\\
+ \Gamma \envplus{x : S} \ts t \typ {T'} \spcomma {T'} \sub T}
+{\Gamma \ts m(x) = t \typ \mdecl m S T }
+
+\end{multicols}
+
+} % END dot-one
+
+The DOT calculus is a simple system of dependent
+object-types. \figref{dot-one} gives its syntax, reduction rules,
+and type assignment rules.
+
+\subsection{Notation} We use standard notational conventions for
+sets. The notation $\seq{X}$ denotes a set of elements $X$. Given a
+such a set $\seq X$ in a typing rule, $X_i$ denotes an arbitrary
+element of $X$. 
+%The $\uplus$ operator extends a set of bindings. It is required that the added binding does not
+%introduce a variable which is already bound in the base-set.
+We use an
+abbreviation for preconditions in typing judgements. Given an
+environment $\Gamma$ and some predicates $P$ and $Q$, the condition $\Gamma \ts P \spcomma Q$
+is a shorthand for the two conditions $\Gamma \ts P$ and $\Gamma \ts Q$.
+
+\subsection{Syntax}
+
+There are four alphabets: Variable names $x$, $y$, $z$ are freely
+alpha-renamable. They occur as parameters of methods, as
+binders for objects created by \verb@new@-expressions, and as self
+references in refinements. Value labels $l$ denote fields in objects,
+which are bound to values at run-time. Similarly, method labels $m$
+denote methods in objects. Type labels $L$ denote type members of
+objects. Type labels are further separated into labels for abstract
+types $L_a$ and labels for classes $L_c$. It is assumed that in each
+program every class label $L_c$ is declared at most once.
+
+We assume that the label alphabets $l$, $m$ and $L$ are finite. This is
+not a restriction in practice, because one can include in these 
+alphabets every label occurring in a given program.
+
+The terms $t$ in DOT consist of variables $x$, $y$, $z$, field
+selections $t.l$, method invocations $t.m(t)$ and object creation
+expressions $\new y c {t'}$ where $c$ is a constructor $T_c \ldefs{\seq{l
+    = v}\;\seq{m(x) = t}}$. The latter binds a variable $y$ to a new
+instance of type $T_c$ with fields $\seq l$ initialized to values
+$\seq v$ and methods $\seq m$ initialized to methods of one parameter
+$\seq{x}$ and body $\seq{t}$.  The scope of $y$ extends through the term
+${t'}$.
+
+Two subclasses of terms are values $v$, which consist of just
+variables, and paths $p$ which consist of just variables and field
+selections.
+
+The types in DOT are denoted by letters $S$, $T$, $U$, $V$, or $W$. They consist of the following:
+\begin{itemize}
+\item[-] Type selections $p.L$, which denote the type member $L$ of path $p$.
+\item[-] Refinement types $T \refine z {\seq D}$, which refine a type $T$ by a set of declarations $D$.
+         The variable $z$ refers to the ``self''-reference of the type. Declarations can refer to
+         other declarations in the same type by selecting from $z$.
+\item[-] Type intersections $T \tand T'$, which carry the declarations of members present in either $T$ or $T'$.
+\item[-] Type unions $T \tor T'$, which carry only the declarations of members present in both $T$ and $T'$.
+\item[-] A top type $\Top$, which corresponds to an empty object.
+\item[-] A bottom type $\Bot$, which represents a non-terminating computation.
+\end{itemize}
+A subset of types $T_c$ are called {\em concrete types}. These are type selections
+$p.L_c$ of class labels,
+the top type $\Top$, intersections of concrete types, and refinements $T_c \refine z {\seq D}$ of concrete types. Only concrete types are allowed in constructors $c$.
+
+There are only three forms of declarations in DOT, which are all part
+of refinement types.  A value declaration $\ldecl l T$ introduces a
+field with type $T$.  A method declaration $\mdecl m S U$ introduces a
+method with parameter of type $S$ and result of type $U$. A type
+declaration $\Ldecl L S U$ introduces a type member $L$ with a lower
+bound type $S$ and an upper bound type $U$. There are no type aliases,
+but a type alias can be simulated by a type declaration $\Ldecl L T T$
+where the lower bound and the upper bound are the same type $T$.
+
+\boxfig{dot-decls}{The DOT Calculus : Declaration Lattice}{
+
+\bda{lcl@{\gap}l}
+    
+      \dom(\seq D \tand \seq {D'}) &~=~& \dom(\seq{D}) \cup \dom(\seq{D'}) \\
+      \dom(\seq D \tor \seq {D'}) &=& \dom(\seq{D}) \cap \dom(\seq{D'}) \\[0.5em]
+      (D \tand D')(L) &=&
+        \Ldecl L {(S \tor S')} {(U \tand U')} & \mbox{if~} (\Ldecl L S U) \in \seq{D} \;\mbox{and}\; (\Ldecl L {S'} {U'}) \in \seq{D'} \\
+        &=& D(L) & \mbox{if~} L \notin \dom(\seq{D'}) \\
+        &=& D'(L) & \mbox{if~} L \notin \dom(\seq{D}) \\
+      (D \tand D')(m) &=&
+        \mdecl m {(S \tor S')} {(U \tand U')} & \mbox{if~} (\mdecl m S U) \in \seq{D} \;\mbox{and}\; (\mdecl m {S'} {U'}) \in \seq{D'} \\
+        &=& D(m) & \mbox{if~} m \notin \dom(\seq{D'}) \\
+        &=& D'(m) & \mbox{if~} m \notin \dom(\seq{D}) \\
+      (D \tand D')(l) &=&
+        \ldecl l {T \tand T'} & \mbox{if~} (\ldecl l T) \in \seq{D} \;\mbox{and}\; (\ldecl l {T'}) \in \seq{D'} \\
+        &=& D(l) & \mbox{if~} l \notin \dom(\seq{D'}) \\
+        &=& D'(l) & \mbox{if~} l \notin \dom(\seq{D}) \\[0.5em]
+      (D \tor D')(L) &=&
+        \Ldecl L {(S \tand S')} {(U \tor U')} & \mbox{if~} (\Ldecl L S U) \in \seq{D} \;\mbox{and}\; (\Ldecl L {S'} {U'}) \in \seq{D'} \\
+      (D \tor D')(m) &=&
+        \mdecl m {(S \tand S')} {(U \tor U')} & \mbox{if~} (\mdecl m S U) \in \seq{D} \;\mbox{and}\; (\mdecl m {S'} {U'}) \in \seq{D'} \\
+      (D \tor D')(l) &=&
+        \ldecl l {T \tor T'} & \mbox{if~} (\ldecl l T) \in \seq{D} \;\mbox{and}\; (\ldecl l {T'}) \in \seq{D'} 
+    \eda
+
+Sets of declarations form a lattice with the given meet $\wedge$ and
+join $\vee$, the empty set of declarations as the top element, and the
+bottom element $\seq{D_\Bot}$, Here $\seq{D_\Bot}$ is the set of
+declarations that contains for every term label $l$ the declaration
+$\ldecl l \Bot$, for every type label $L$ the declaration $\Ldecl L
+\Top \Bot$ and for every method label $m$ the declaration $\mdecl m
+\Top \Bot$.
+}
+
+Every field or type label can be declared only once in a set of
+declarations $\seq D$. A set of declarations can hence be seen as a map from
+labels to their declarations.  Meets $\wedge$ and joins $\vee$ on sets of
+declarations are defined in ~\figref{dot-decls}.
+
+\subsection{Reduction rules}
+
+Reduction rules $\reduction t s {t'} {s'}$ in DOT rewrite pairs of
+terms $t$ and stores $s$, where stores map variables to constructors.
+There are three main reduction rules: Rule (\textsc{msel}) rewrites a
+method invocation $\mapp y {m_i} v$ by retrieving the corresponding method
+definition from the store, and performing a substitution of the
+argument for the parameter in the body. Rule (\textsc{sel}) rewrites a
+field selection $x.l$ by retrieving the corresponding value from the
+store. Rule (\textsc{new}) rewrites an object creation $\new x c t$ by
+placing the binding of variable $x$ to constructor $c$ in the store
+and continuing with term $t$.  These reduction rules can be applied
+anywhere in a term where the hole $[\,]$ of an evaluation context $e$
+can be situated.
+
+\subsection{Type assignment rules}
+
+The last part of \figref{dot-one} presents rules for type
+assignment.  
+
+Rules (\textsc{sel}) and (\textsc{msel}) type field selections and
+method invocations by means of an auxiliary membership relation $\ni$,
+which determines whether a given term contains a given declaration as
+one of its members. The membership relation is defined in
+\figref{dot-two} and is further explained in section~\ref{mem}.
+
+The last rule, (\textsc{new}), assigns types to object creation
+expressions. It is the most complex of DOT's typing rules.  To
+type-check an object creation $\new y {T_c \ldefs {\seq{l =
+      v}\;\seq{m(x) = t}}} t'$, one verifies first that the type $T_c$
+is well-formed (see \figref{dot-wf} for a definition of
+well-formedness).  One then determines the set of all declarations
+that this type carries, using the expansion relation $\expand$ defined
+in \figref{dot-two}.  Every type declaration $\Ldecl L S U$ in
+this set must be realizable, i.e.\ its lower bound $S$ must be a
+subtype of its upper bound $U$.  Every field declaration $\ldecl l V$
+in this set must have a corresponding initializing value of $v$ of
+type $V$.  These checks are made in an environment which is extended
+by the binding $y: T_c$. In particular this allows field values that
+recurse on ``self'' by referring to the bound variable $x$. Similarly,
+every method declaration $\mdecl m T W$ must have a corresponding
+initializing method definition $m(x) = t$. The parameter type $T$ must
+be $\nswfe$ (well-formed and expanding; see \figref{dot-wf}), and
+the body $t$ must type check to $W$ in an environment extended by the
+bindings $y : T_c$ and $x : T$.
+
+Instead of adding a separate subsumption rule, subtyping is expressed
+by preconditions in rules (\textsc{msel}) and (\textsc{new}).
+
+\boxfig{dot-two}{The DOT Calculus : Membership and Expansion}{
+    \begin{multicols}{2}[\judgement{Membership}{\fbox{$\Gamma \ts t \ni D$}}]
+
+      \infrule[\textsc{path-$\ni$}]
+      {\Gamma \ts p \typ T \spcomma T \expand_z \seq D}
+      {\Gamma \ts p \ni \subst p z {D_i}}
+
+      \infrule[\textsc{term-$\ni$}]
+      {z \not\in \fn(D_i) \andalso \Gamma \ts t \typ T \spcomma T \expand_z \seq D}
+      {\Gamma \ts t \ni D_i}
+   \end{multicols}
+
+   \linesep
+
+    \begin{multicols}{2}[\judgement{Expansion}{\fbox{$\Gamma \ts T \expand_z \seq D$}}]  
+
+      \infrule[\textsc{rfn-$\expand$}]
+      {\Gamma \ts T \expand_z {\seq D'}}
+      {\Gamma \ts T \refine z {\seq D} \expand_z \seq {D'} \tand \seq D}
+
+      \infrule[\textsc{$\tand$-$\expand$}]
+      {\Gamma \ts T_1 \expand_z {\seq D_1} \spcomma T_2 \expand_z {\seq D_2}}
+      {\Gamma \ts T_1 \tand T_2 \expand_z {\seq D_1 \tand \seq D_2}}
+
+      \infax[\textsc{$\Top$-$\expand$}]
+      {\Gamma \ts \Top \expand_z \{\}}
+
+      \infrule[\textsc{tsel-$\expand$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma U \expand_z \seq D}
+      {\Gamma \ts p.L \expand_z \seq D}
+
+      \infrule[\textsc{$\tor$-$\expand$}]
+      {\Gamma \ts T_1 \expand_z {\seq D_1} \spcomma T_2 \expand_z {\seq D_2}}
+      {\Gamma \ts T_1 \tor T_2 \expand_z {\seq D_1 \tor \seq D_2}}
+
+      \infax[\textsc{$\Bot$-$\expand$}]
+      {\Gamma \ts \Bot \expand_z \seq{D_\Bot}}
+    \end{multicols}
+
+} % END dot-two
+
+\subsection{Membership}\label{mem}
+
+\figref{dot-two} presents typing rules for membership and expansion.
+The membership judgement $\Gamma \ts t \ni D$ states that in
+environment $\Gamma$ a term $t$ has a declaration $D$ as a member. The
+membership rules rely on expansion. There are two rules, one for paths
+(\textsc{path-$\ni$}) and one for general terms
+(\textsc{term-$\ni$}). For general terms, the ``self''-reference of
+the type must not occur in the resulting declaration $D$, since, to
+guarantee syntactic validity, we can only substitute a path for the
+``self''-reference.
+
+\subsection{Expansion}
+      
+The expansion relation $\expand$ is needed to typecheck the complete
+set of declarations carried by a concrete type that is used in a
+\textbf{new}-expression. Expansion is also used by the membership
+rules and in subtyping refinements on the right (see
+\figref{dot-sub}).
+
+Rule (\textsc{rfn-$\expand$}) states that a refinement type $T
+\expand_z {\seq D}$ expands to the conjunction of the expansion $D'$
+of $T$ and the newly added declarations $D$. Rule
+(\textsc{tsel-$\expand$}) states that a type selection $p.L$ carries
+the same declarations as the upper bound $U$ of $L$ in $T$.  Rules
+($\tand$-$\expand$) and ($\tor$-$\expand$) states that expansion
+distributes through meets and joins.  Rule (\textsc{$\top$-$\expand$})
+states that the top type $\top$ expands to the empty set. Rule
+(\textsc{$\bot$-$\expand$}) states that the bottom type $\bot$ expands
+to the bottom element $\seq{D_\Bot}$ of the lattice of sets of
+declarations (recall \figref{dot-decls}).
+
+\boxfig{dot-sub}{The DOT Calculus : Subtyping and Declaration Subsumption}{
+
+    \begin{multicols}{2}[\judgement{Subtyping}{\fbox{$\Gamma \ts S \sub T$}}]
+
+%      \infrule[\textsc{trans}]
+%      {\Gamma \ts S \sub T \spcomma T \sub U}
+%      {\Gamma \ts S \sub U}
+
+      \infrule[\textsc{refl}]
+      {\Gamma \ts T \wfe}
+      {\Gamma \ts T \sub T}
+
+      \infrule[\textsc{$\sub$-rfn}]
+      {\Gamma \ts {T \refine z {\seq D}} \wfe
+       \spcomma S \sub T \spcomma S \expand_z \seq{D'} \\
+       \Gamma \envplus{z: S} \ts \seq{D' \sub D}}
+      {\Gamma \ts S \sub T \refine z {\seq D}}
+
+      \infrule[\textsc{$\sub$-tsel}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma S' \sub S }
+      {\Gamma \ts S' \sub p.L}
+
+      \infrule[\textsc{$\sub$-$\tand$}]
+      {\Gamma \ts T \sub T_1 \spcomma T \sub T_2}
+      {\Gamma \ts T \sub T_1 \tand T_2}
+
+      \infrule[\textsc{$\sub$-$\tor_1$}]
+      {\Gamma \ts T_2 \wfe \spcomma T \sub T_1}
+      {\Gamma \ts T \sub T_1 \tor T_2}
+
+      \infrule[\textsc{$\sub$-$\tor_2$}]
+      {\Gamma \ts T_1 \wfe \spcomma T \sub T_2}
+      {\Gamma \ts T \sub T_1 \tor T_2}
+      
+      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      \infrule[\textsc{$\sub$-$\Top$}]
+      {\Gamma \ts T \wfe}
+      {\Gamma \ts T \sub \Top}
+
+      \infrule[\textsc{$\Bot$-$\sub$}]
+      {\Gamma \ts T \wfe}
+      {\Gamma \ts \Bot \sub T}
+
+      \infrule[\textsc{rfn-$\sub$}]
+      {\Gamma \ts {T \refine z {\seq D}} \wfe
+       \spcomma T \sub T'}
+      {\Gamma \ts T \refine z {\seq D} \sub T'}
+
+      \infrule[\textsc{tsel-$\sub$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma U \sub U'}
+      {\Gamma \ts p.L \sub U'}
+
+      \infrule[\textsc{$\tor$-$\sub$}]
+      {\Gamma \ts T_1 \sub T \spcomma T_2 \sub T}
+      {\Gamma \ts T_1 \tor T_2 \sub T}
+
+      \infrule[\textsc{$\tand_1$-$\sub$}]
+      {\Gamma \ts T_2 \wfe \spcomma T_1 \sub T}
+      {\Gamma \ts T_1 \tand T_2 \sub T}
+
+      \infrule[\textsc{$\tand_2$-$\sub$}]
+      {\Gamma \ts T_1 \wfe \spcomma T_2 \sub T}
+      {\Gamma \ts T_1 \tand T_2 \sub T}
+
+      \end{multicols}
+
+    \linesep
+
+    \begin{multicols}{2}[\judgement{Declaration subsumption}{\fbox{$\Gamma \ts D \sub D'$}}]
+
+    \infrule[\textsc{tdecl-$\sub$}]
+            {\Gamma \ts S' \sub S \spcomma T \sub T'}
+            {\Gamma \ts (\Ldecl L S T) \sub (\Ldecl L {S'} {T'})}
+
+    \infrule[\textsc{vdecl-$\sub$}]
+            {\Gamma \ts T \sub T'}
+            {\Gamma \ts (\ldecl l T) \sub (\ldecl l {T'})}
+
+    \infrule[\textsc{mdecl-$\sub$}]
+            {\Gamma \ts S' \sub S \spcomma T \sub T'}
+            {\Gamma \ts (\mdecl m S T) \sub (\mdecl m {S'} {T'})}
+
+    \end{multicols}
+} % END dot-sub
+
+\subsection{Subtyping}
+
+\figref{dot-sub} defines the subtyping judgement $\Gamma \ts S
+\sub T$ which states that in environment $\Gamma$ type $S$ is a
+subtype of type $T$. Subtyping is regular wrt $\nswfe$: if
+type $S$ is a subtype of type $T$, then $S$ and $T$ are well-formed
+and expanding. Though this regularity limits our calculus to
+$\nswfe$-types, this limitation allows us to show that subtyping is
+transitive, as discussed in section~\ref{dot-preservation}.
+
+\subsection{Declaration Subsumption}
+
+The declaration subsumption judgement $\Gamma \ts D \sub D'$ in
+\figref{dot-sub} states that in environment $\Gamma$ the declaration
+$D$ subsumes the declaration $D'$. There are three rules, one for each
+kind (type, value, method) of declarations.  Rule
+(\textsc{tdecl-$\sub$}) states that a type declaration $\Ldecl L S U$
+subsumes another type declaration $\Ldecl L {S'} {U'}$ if $S'$ is a
+subtype of $S$ and $U$ is a subtype of $U'$. In other words, the set
+of types between $S$ and $U$ is contained in the set of types between
+$S'$ and $U'$.  Rule (\textsc{vdecl-$\sub$}) states that a value
+declaration $\ldecl l T$ subsumes another value declaration $\ldecl l
+T'$ if $T$ is a subtype of $T'$. Rule (\textsc{mdecl-$\sub$}) is
+similar to (\textsc{tdecl-$\sub$}), as the parameter type varies
+contravariantly and the return type covariantly.
+
+Declaration subsumption is extended to a binary relation between
+sequences of declarations: $\seq{D} <: \seq{D'}$ iff $\forall D'_i,
+\exists D_j. {D_j \sub D'_i}$.
+
+\boxfig{dot-wf}{The DOT Calculus : Well-Formedness}{
+
+       \begin{multicols}{2}[\judgement{Well-formed types}{\fbox{$\Gamma \ts T \wf$}}]
+
+      \infrule[\textsc{rfn-wf}]
+      {\Gamma \ts T \wf \\ 
+       \Gamma \envplus {z: T \refine z {\seq D}} \ts \seq {D \wf}}
+      {\Gamma \ts T \refine z {\seq D} \wf}
+
+      \infrule[\textsc{tsel-wf$_1$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \wf \spcomma U \wf}
+      {\Gamma \ts p.L \wf}
+
+      \infrule[\textsc{$\tand$-wf}]
+      {\Gamma \ts T \wf \spcomma T' \wf}
+      {\Gamma \ts T \tand T' \wf}
+
+      %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      \infax[\textsc{$\Top$-wf}]
+      {\Gamma \ts \Top \wf}
+
+      \infax[\textsc{$\Bot$-wf}]
+      {\Gamma \ts \Bot \wf}
+
+      \infrule[\textsc{tsel-wf$_2$}]
+      {\Gamma \ts p \ni \Ldecl L \Bot U}
+      {\Gamma \ts p.L \wf}
+
+      \infrule[\textsc{$\tor$-wf}]
+      {\Gamma \ts T \wf \spcomma T' \wf}
+      {\Gamma \ts T \tor T' \wf}
+
+    \end{multicols}
+
+    \linesep
+
+    \begin{multicols}{2}[\judgement{Well-formed declarations}{\fbox{$\Gamma \ts D \wf$}}]
+      \infrule[\textsc{tdecl-wf}]
+      {\Gamma \ts S \wf \spcomma U \wf}
+      {\Gamma \ts \Ldecl L S U \wf}
+
+      \infrule[\textsc{vdecl-wf}]
+      {\Gamma \ts T \wf}
+      {\Gamma \ts \ldecl l T \wf}
+
+      \infrule[\textsc{mdecl-wf}]
+      {\Gamma \ts S \wf \spcomma U \wf}
+      {\Gamma \ts \mdecl m S U \wf}
+
+    \end{multicols}
+
+    \linesep
+
+    \begin{multicols}{2}[\judgement{Well-formed and expanding types}{\fbox{$\Gamma \ts T \wfe$}}]
+      \infrule[\textsc{wfe}]
+      {\Gamma \ts T \wf \spcomma T \expand_z \seq{D}}
+      {\Gamma \ts T \wfe}
+    \end{multicols}
+} % END dot-wf
+
+\subsection{Well-formedness}
+
+The well-formedness judgement $\Gamma \ts T \wf$ in \figref{dot-wf}
+states that in environment $\Gamma$ the type $T$ is
+well-formed.
+
+A refinement type $T \refine z {\seq D}$ is
+well-formed if the parent type $T$ is well-formed and every
+declaration in $\seq D$ is well-formed in an environment augmented by
+the binding of the self-reference $z$ to the refinement type itself
+(\textsc{rfn-wf}).
+
+A type selection $p.L$ is well-formed if $L$ is a member of $p$, and
+the lower bound of $L$ is also well-formed (\textsc{tsel-wf$_1$} and
+\textsc{tsel-wf$_2$}). The latter condition has the effect that the
+lower bound of a type $p.L$ may not refer directly or indirectly to a
+type containing $p.L$ itself --- if it would, the well-formedness
+judgement of $p.L$ would not have a finite proof. No such restriction
+exists for the upper bound of $L$ if the lower bound is $\bot$
+(\textsc{tsel-wf$_2$}). The upper bound may in fact refer back to the
+type. Hence, recursive class types and F-bounded abstract types are
+both expressible.
+
+The other forms of types in DOT are all well-formed if their
+constituent types are well-formed.
+
+Well-formedness extends straightforwardly to declarations with the
+judgement $\Gamma \ts D \wf$. All declarations are well-formed if
+their constituent types are well-formed.
+
+\section{Examples}\label{dot-examples}
+
+\subsection{Sugar: Functions}
+Like in Scala, we can encode functions as objects with a special
+method. We will freely use the following sugar in the remaining of
+this paper. Note that the variable $z$ must be fresh.
+\begin{align*}
+\arrow S T &\iff {\Top \refine z {\mdecl {\mi{apply}} S T}}\\
+\fun x S T t &\iff \new z {{\arrow S T}\ldefs{\mi{apply}(x) = t}} z\\
+\app f x &\iff \mapp f {\mi{apply}} x\\
+\cast T t&\iff \app {\fun x T T x} t
+\end{align*}
+
+In the remaining examples, for brevity, we will also use $\abs x S t$
+for $\fun x S \_ t$ where the return type can be somewhat inferred
+from the context.
+
+\subsection{Basics: Booleans, Error, \ldots}
+This program defines a $\mi{root}$ object with basic types
+($\mi{Unit}$, $\mi{Boolean}$, $\mi{Nat}$) and methods ($\mi{true}$,
+$\mi{false}$, $\mi{error}$, $\mi{zero}$). For brevity, we've omitted
+the code related to natural numbers. During the object creation, the
+method labels such as $\mi{false}$ are all initialized.
+\begin{align*}
+&\mlnew {\mi{root}} {\Top \mlrefine r {\\\displaybreak[3]
+&\ \Ldecl {\mi{Unit}} \Bot \Top\\\displaybreak[3]
+&\ \mdecl {\mi{unit}} \Top {r.\mi{Unit}}\\\displaybreak[3]
+&\ \Ldecl {\mi{Boolean}} \Bot {\Top \mlrefine z {\\\displaybreak[3]
+&\ \gap \ldecl {\mi{ifNat}} \arrow {(\arrow {r.\mi{Unit}} {r.\mi{Nat}})} {\arrow {(\arrow {r.\mi{Unit}} {r.\mi{Nat}})} {r.\mi{Nat}}}\\\displaybreak[3]
+&\gap}}\\\displaybreak[3]
+&\ \mdecl {\mi{false}} {r.\mi{Unit}} {r.\mi{Boolean}}\\\displaybreak[3]
+&\ \mdecl {\mi{true}} {r.\mi{Unit}} {r.\mi{Boolean}}\\\displaybreak[3]
+&\ \mdecl {\mi{error}} {r.\mi{Unit}} \Bot\\\displaybreak[3]
+& \ \ldots\\\displaybreak[3]
+&}\mlldefs{\\\displaybreak[3]
+&\ \mi{unit}(x) = {\new u {\mi{root}.\mi{Unit}} u}\\\displaybreak[3]
+%
+&\ \mi{false}(u) =\\\displaybreak[3]
+&\ \gap \mlnew {\mi{ff}} {\mi{root}.\mi{Boolean} \mlldefs{\\\displaybreak[3]
+&\ \gap\gap {\mi{ifNat}} = \abs t {\arrow {\mi{root}.\mi{Unit}} {\mi{root}.\mi{Nat}}} {\\&\gap\gap\gap\abs e {\arrow {\mi{root}.\mi{Unit}} {\mi{root}.\mi{Nat}}}\\&\gap\gap\gap\app e {\mi{root}.\mi{unit}}}\\\displaybreak[3]
+&\ \gap}}{
+\ \gap \mi{ff}}\\\displaybreak[3]
+%
+&\ \mi{true}(u) = \ldots\\\displaybreak[3]
+%
+&\ \mi{error}(u) = {\app {\mi{root}.\mi{error}} u}\\\displaybreak[3]
+&\ \ldots\\\displaybreak[3]
+&}}{
+\ldots
+}
+\end{align*}
+
+\subsection{Polymorphic Lists}
+Polymorphic lists can be expressed using an abstract type member for
+the element type ($\mi{Elem}$). We can instantiate a refinement of the
+list package to manipulate lists with a particular element type. We
+can choose to make the lists invariant or covariant in the element
+type by fixing the lower bound of the $\mi{Elem}$ re-declaration to
+the upper bound or to $\Bot$, respectively.
+\begin{align*}
+&\mlnew {\mi{genLists}} {\Top \mlrefine g {\Ldecl {\mi{ListPackage}} \Bot {\Top \mlrefine p {\\\displaybreak[3]
+&\ \Ldecl {\mi{Elem}} \Bot \Top\\\displaybreak[3]
+&\ \Ldecl {\mi{ListOfElement}} {g.\mi{List} \refine z {\Ldecl {\mi{Elem}} {p.\mi{Elem}} {p.\mi{Elem}}}} {\\&\gap\gap\gap\gap g.\mi{List} \refine z {\Ldecl {\mi{Elem}} {p.\mi{Elem}} {p.\mi{Elem}}}}\\\displaybreak[3]
+&\ \Ldecl {\mi{List}} \Bot {\Top \mlrefine z {\\\displaybreak[3]
+&\ \gap \mdecl {\mi{isEmpty}} {\mi{root}.\mi{Unit}} {\mi{root}.\mi{Boolean}}\\\displaybreak[3]
+&\ \gap \mdecl {\mi{head}} {\mi{root}.\mi{Unit}} {g.\mi{Elem}}\\\displaybreak[3]
+&\ \gap \mdecl {\mi{tail}} {\mi{root}.\mi{Unit}} {g.\mi{ListOfElem}}\\\displaybreak[3]
+&\gap}}\\\displaybreak[3]
+&\ \mdecl {\mi{nil}} {\mi{root}.\mi{Unit}} {g.\mi{ListOfElem}}\\\displaybreak[3]
+&\ \mdecl {\mi{cons}} {g.\mi{Elem}} {g.\mi{ListOfElem}}\\\displaybreak[3]
+&}}}}{
+\mlnew {\mi{natLists}} {{\mi{genLists}.\mi{ListPackage}} \mlrefine p {\\\displaybreak[3]
+&\gap \Ldecl {\mi{Elem}} {\mi{root}.\mi{Nat}} {\mi{root}.\mi{Nat}} }\mlldefs{\\\displaybreak[3]
+&\ {\mi{nil}}(u) = \ldots\\\displaybreak[3]
+&\ {\mi{cons}}(u) = \ldots\\\displaybreak[3]
+&}}}{
+\ldots
+}
+\end{align*}
+
+\section{Counterexamples to Preservation}\label{dot-preservation}
+
+We sketch a proof that the DOT calculus is type-safe using logical
+relations in section~\ref{dot-type-safety}. However, we first tried to
+prove the calculus type-safe using the standard theorems of
+preservation and progress~\cite{soundness,tapl}. Unfortunately, for
+the calculus as presented, and any of its variants that we devised,
+preservation doesn't hold. In this section, we review some of the most
+salient counterexamples to preservation that we found. These
+counterexamples have been checked with PLT Redex~\cite{plt_redex}.
+
+\subsection{\texorpdfstring{\textsc{term-$\ni$}}{Term-Mem} Restriction}\label{term_mem}
+
+There are two membership ($t \ni D$) rules: one for when the term $t$
+is a path, and one for an arbitrary term $t$. For paths, we can
+substitute the self-references in the declarations, but we cannot do
+so for arbitrary terms as the resulting types wouldn't be well-formed
+syntactically. Hence, the $\textsc{term-$\ni$}$ has the restriction
+that self-occurrences are not allowed. Here is a counterexample related
+to this restriction.
+
+Let $X$ be a shorthand for the type:
+\begin{align*}
+\Top & \mlrefine z {\\
+&\ \Ldecl {L_a} \Top \Top\\
+&\ \ldecl l {z.L_a}\\
+}&
+\end{align*}
+
+Let $Y$ be a shorthand for the type:
+\begin{align*}
+\Top & \mlrefine z {\\
+&\ \ldecl l \Top\\
+}&
+\end{align*}
+
+Now, consider the term
+\begin{align*}
+&\mlnew u {X \ldefs{ l = u }}{
+\app {(\abs y {\Top \tfun Y} {\app y u})} {(\abs d \Top {\cast X u})}.l
+}
+\end{align*}
+
+The term type-checks because the term $t=\app {(\abs y {\Top \tfun Y}
+  {\app y u})} {(\abs d \Top {\cast X u})}$ has type
+$Y$, so we can apply $\textsc{term-$\ni$}$ for $l$. However, the term
+$t$ eventually steps to ${\cast X u}$ which has type $X$,
+so we cannot apply $\textsc{term-$\ni$}$ for $l$ because of the
+self-reference ($z.L_a$).
+
+\subsection{Expansion Lost}\label{narrowing_exp}
+
+Expansion is not preserved by narrowing. Here, we create two type
+selections that are mutually recursive in their upper bounds after
+narrowing: $z_0.C_2$ initially expands, but after narrowing, $z_0.C_2$
+expands to what $z_0.A_2$ expands to, which expands to what $z_0.A_1$
+expands to, which expands to what $z_0.A_2$ expands to, and thus we
+have an infinite expansion. Thus, the last new expression initially
+type-checks, but after narrowing, it doesn't because the precise
+expansion needed by $\textsc{new}$ cannot be inferred.
+
+\begin{align*}
+&\mlnew {x_0} {\Top \mlrefine z { \Ldecl {A_1} \Bot {\Top \mlrefine z {\\
+&\gap\Ldecl {A_2} \Bot \Top\\
+&\gap\Ldecl {A_3} \Bot \Top\\
+&\gap\Ldecl {C_2} \Bot {z.A_2}}}}\ldefs{}}{
+\mlnew {x_1} {\Top \refine z {\Ldecl {C_1} \Bot {\Top \refine z {\Ldecl {A_1} \Bot {x_0.A_1}}}}\ldefs{}}}{
+\mlnew {x_2} {{x_1.C_1} \refine z {\Ldecl {A_1} \Bot {{x_0.A_1} \refine z {\Ldecl {A_2} \Bot {z.A_3}}}}\ldefs{}}}{
+\mlnew {x_3} {{x_1.C_1} \refine z {\Ldecl {A_1} \Bot {{x_0.A_1} \refine z {\Ldecl {A_3} \Bot {z.A_2}}}}\ldefs{}}}{
+\mlapp {\abs x {x_1.C_1} {(\abs {z_0} {x.A_1 \tand x_3.A_1} {\\&\gap\gap\gap\new z {z_0.C_2} {\app {(\abs x \Top x)} z}})}} {\ x_2}}
+\end{align*}
+
+\subsection{Well-Formedness Lost}\label{narrowing_wf}
+
+Even well-formedness is not preserved by narrowing. The trick is that
+if the lower bound of a type selection is not $\Bot$, then the
+bounds needs to be checked for well-formedness. Here, we create two
+type selections that are mutually recursive in their bounds
+after narrowing. $y.A$ is initially well-formed, but after narrowing,
+it isn't because we run into an infinite derivation trying to prove
+the well-formedness of its bounds.
+
+\begin{align*}
+&\mlnew v {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B {z.A} {z.A}}}} \ldefs{}}{
+\mlapp {(\abs x {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B \Bot \Top}}}} {\\&\gap
+\mlnew z {\Top \mlrefine z {\\&\gap\gap\gap
+\mdecl l {x.L \tand {\Top \refine z {\Ldecl A {z.B} {z.B}, \Ldecl B \Bot \Top}}} \Top}\mlldefs{\\&\gap\gap\gap
+l(y) = \fun a {y.A} \Top a}}{
+\gap \cast {\top} z
+}})}{\ v}}
+\end{align*}
+
+\subsection{Path Equality}\label{patheq}
+
+For preservation, we need to be able to relate path-dependent types
+after reduction. Here is a motivating example:
+
+\begin{align*}
+&\mlnew b {\Top \mlrefine z {&&\Ldecl X \Top \Top&\\
+&&&\ \ldecl l {z.X}&}\ldefs{l = b}}{
+\mlnew a {\Top \mlrefine z {\ldecl i {\Top \mlrefine z {&&&\\
+&&&\Ldecl X \Bot \Top\\
+&&&\ldecl l {z.X}}}&}\ldefs{i = b}}}{
+\app {(\abs x \Top x)} {\app {(\abs x {a.i.X} x)} {a.i.l}}}
+\end{align*}
+
+$a.i.l$ reduces to $b.l$. $b.l$ has type $b.X$, so we need $b.X <:
+a.i.X$. This cannot be established with the current rules: it is not
+true in general, but true here because $a.i$ reduces to $b$. Hence,
+we need to acknowledge path equality for preservation to hold.
+
+In section~\ref{pres-patch}, we discuss our failure to patch the
+calculus for preservation to hold.
+
+\section{Type Safety via Logical Relations}\label{dot-type-safety}
+We sketch a proof of type-safety of the DOT calculus via step-indexed
+logical relations~\cite{ahmed04,ahmed06,step_indexed_obj}.
+
+\subsection{Type Safety}
+Type-safety states that a well-typed program doesn't get stuck. More
+formally: If $\emptyset \ts t \typ T$ and $\reductionl t \emptyset {t'} {s'} *$ then
+either $t'$ is a value or $\exists t'', s''. \reduction {t'} {s'}
+{t''} {s''}$.
+
+Our strategy is to define a logical relation $\Gamma \ds t : T$, such
+that $\Gamma \ts t : T$ implies $\Gamma \ds t : T$ implies
+type-safety.
+
+\subsection{Step-Indexed Logical Relations}
+
+In order to ensure that our logical relation is well-founded, we use a
+step index. For each step index $k$, we define the set of values and
+the set of terms that appear to belong to a given type, when taking at
+most $k$ steps. $\Gamma \ds t : T$ is then defined in terms of the
+step-indexed logical relation by requiring it to hold $\forall k$.
+
+\subsubsection{Set of Values}
+$\relv k \Gamma s T$ defines the set of values that appear to have
+type $T$ when taking at most $k$ steps. $\Gamma$ and $s$ must agree:
+$\dom(\Gamma) = \dom(s)$ (ordered) and $\forall (x : T) \in \Gamma, x
+\in \relv k \Gamma s T$. A variable $y$ belongs to $\relv 0 \Gamma s
+T$ simply by being in the store. In addition, it belongs to $\relv k
+\Gamma s T$ for $k > 0$, if it defines all type, method and value labels in
+the expansion of $T$ appropriately for $j < k$ steps.
+\begin{align*}
+&\relv k \Gamma s T = \{ y \ | y \in \dom(s) \andl (\\
+& (\Gamma \ts T \wfe \andl\\
+&\gap \forall j < k,\\
+&\gap y \mapsto T_c \ldefs{\seq{l = v}\;\seq{m(x)=t}} \in s,\\
+&\gap \Gamma \ts T \expand_y \seq{D},\\
+&\gap (\forall L_i : S \rightarrow U \in \seq{D},\\
+&\gap\gap \Gamma \ts y \ni L_i \typ {S'..U'}) \andl\\
+&\gap (\forall m_i : S \rightarrow U \in \seq{D},\\
+&\gap\gap t_i \in \rele j {\Gamma \envplus{x_i : S}} s U) \andl\\
+&\gap (\forall l_i : V \in \seq{D},\\
+&\gap\gap v_i \in \relv j \Gamma s V)) \orl\\
+& (T = T_1 \tand T_2 \andl y \in \relv k \Gamma s {T_1} \andl y \in \relv k \Gamma s {T_2}) \orl\\
+& (T = T_1 \tor T_2 \andl  (y \in \relv k \Gamma s {T_1} \orl y \in \relv k \Gamma s {T_2}))\\
+&)\}
+\end{align*}
+
+This relation captures the observation that the only ways for a term
+to get stuck is to have a field selection on an uninitialized field or
+a method invocation on an uninitialized method. However, a {\it potential
+  pitfall} is that the value itself might occur in the types $S$, $U$,
+$V$, because we substitute it for the ``self'' occurrences in the
+expansion, so the relation makes sure that the required type labels exist.
+
+\subsubsection{Set of Terms}
+$\rele k \Gamma s T$ defines the set of terms that appear to have type
+$T$ when taking at most $k$ steps. $s$ must agree with a {\it prefix}
+of $\Gamma$, so $\Gamma$ can additionally contain variables not in
+$s$. This is needed for checking methods in $\mathcal{V}$ above, and
+for relating open terms. If $k > 0$, $\mathcal{E}$ extends $\Gamma$
+and $s$ so that they agree. It then states that if it can reduce $t$
+in the extended store to an irreducible term in $j < k$ steps, then
+this term must be in a corresponding $\mathcal{V}$ set with $\Gamma$
+now extended to agree with the store resulting from the reduction
+steps.
+
+$\irred {t} {s}$ is a shorthand for $\neg\exists t', s'. \reduction t s
+{t'} {s'}$. $\mathcal{\supseteq}$ is used initially for the possibly
+shorter store to agree with the environment, and can extend both in
+many different ways. $\mathcal{\supseteq}^!$ is used finally for the
+possibly shorter environment to agree with the store, and just extends
+the environment in one straightforward way: hence, it defines
+singleton sets.
+
+\begin{align*}
+&\rele k \Gamma s T = \{ t \ |\\
+&\gap k = 0 \orl (\forall j < k,\\
+&\gap\gap \forall (\Gamma'; s') \in \rels k \Gamma s ,\\
+&\gap\gap \reductionl t {s'} {t'} {s''} j \andl\\
+&\gap\gap \irred {t'} {s''} \impliesl\\
+&\gap\gap \forall \Gamma'' \in \relg k {s''} {\Gamma'} ,\\
+&\gap\gap {t'} \in \relv {k-j-1} {\Gamma''} {s''} T)\\
+&\}
+\end{align*}
+
+\subsubsection{Extending the environment and the store}
+$\rels k \Gamma s$ for $k > 0$ defines the set of completed
+environment and stores that agree on $k-1$ steps, and that extend
+$\Gamma$ and $s$. $s$ must agree with a {\it prefix} of $\Gamma$.
+Both $\Gamma$ and $s$ are ordered maps. For $s$, $s'$ extends $s$ if
+$s$ is a prefix of $s'$. For $\Gamma$, $\Gamma'$ extends $\Gamma$ if
+we get back $\Gamma$ by keeping only the elements of $\Gamma'$ that
+belong to $\Gamma$. Furthermore, a prefix of $\Gamma'$ agrees with
+$s$.
+\begin{align*}
+&\rels k \Gamma s = \{\\
+&\ (\seq{x : T}^m, \seq{x_{ij} : T_{ij}}^{m \leq i < n; 0 \leq j < i_n}; s, \seq{x_{ij} \mapsto c_{ij}}^{m \leq i < n; 0 \leq j < i_n}) |\\
+&\ s = \seq{x \mapsto c}^m \andl \Gamma = \seq{x : T}^n \andl \\
+&\ m\leq n \andl \forall i, m \leq i < n, \forall {i_n}, j, 0 \leq j < i_n,\\
+&\ \forall T_{ij}, c_{ij}, T_{i{(i_n-1)}} = T_i, \forall n' \leq n, i_n' \leq i_n,\\
+&\ c_{ij} \in \relv {k-1} {\seq{x : T}^m, \seq{x_{ij} : T_{ij}}^{m \leq i' < n; 0 \leq j < i_n'}} {s, \seq{x_{ij} \mapsto c_{ij}}^{m \leq i < n'; 0 \leq j < i_n'}} {T_{ij}}\\
+&\}
+\end{align*}
+
+\subsubsection{Completing the environment to agree with the store}
+$\relg k s \Gamma$ defines a singleton set of a completed environment
+that agrees with a store $s$ by simply copying the constructor type
+from the store for each missing variable.
+\begin{align*}
+&\relg k s \Gamma = \{ \Gamma, \seq{x_i : T_{c_i}}^{m \leq i < n} \ |\\
+&\gap \Gamma = \seq{x : T}^m \andl s = \seq{x \mapsto c}^n \andl\\
+&\}
+\end{align*}
+
+\subsubsection{Terms in the Logical Relation}
+
+$\Gamma \ds t : T$ is simply defined as $t \in \rele k \Gamma \emptyset T,
+\forall k$.
+
+\subsection{Statements and Proofs}
+
+\subsubsection{Fundamental Theorem}
+
+The fundamental theorem is the implication from $\Gamma \ts t : T$ to
+$\Gamma \ds t : T$. Type safety is a straightforward corollary of this
+theorem.
+
+\begin{myproof}
+The proof is on induction on the derivation of $\Gamma \ts t : T$. For
+each case, we need to show $t \in \rele k \Gamma \emptyset T, \forall
+k$. The non-trivial case is when $k > 0$ and for $(\Gamma'; s') \in
+\rels k \Gamma s$ and some $j < k$, $\reductionl {t} s {t'} {s'} j
+\andl \irred {t'} {s'}$. Then, we need to show ${t'} \in \relv {k-j-1}
+      {\Gamma''} {s'} T$ for ${\Gamma''} \in \relg \Gamma k {s'}
+      {\Gamma'}$.
+
+\ \\
+
+\Case \textsc{var}: $\Gamma \ts x : T$ knowing $(x : T) \in
+\Gamma$. $x \in \relv {k-1} {\Gamma'} s T$ follows from the definition of
+$\rels k \Gamma \emptyset$.
+
+\ \\
+
+\Case \textsc{sel}: $\Gamma \ts t_1.l_i : T$ knowing $\Gamma \ts t_1 :
+T_1$, $\Gamma \ts T_1 \expand_z \seq{D}$, $\ldecl {l_i} {V_i} \in
+\seq{D}$ and knowing either that $t_1 = p_1 \andl T = \subst p z
+    {V_i}$ or that $z \not\in \fn(V_i) \andl T = V_i$.
+
+By operational semantics and induction hypothesis, $\reductionl {t_1}
+s {t_1'} {s'} {j-1}$ and $\irred {t_1'} {s'}$ and ${t_1'} \in \relv
+{k-j+1-1} {\Gamma'} {s'} {T_1}$.
+
+By operational semantics and the above, $\reductionl {t_1'.l_i} {s'}
+{t'} {s'} 1$, and we can conclude $t' \in \relv {k-j-1} {\Gamma''} {s'}
+T$ from the clause for value labels of ${t_1'} \in \relv {k-j}
+{\Gamma''} {s'} {T_1}$.
+
+\ \\
+
+\Case \textsc{msel}: $\Gamma \ts t_1.m_i(t_2) : T$ knowing $\Gamma \ts
+t_1 : T_1$, $\Gamma \ts t_2 : T_2$, $\Gamma \ts T_1 \expand_z
+\seq{D}$, $\mdecl {m_i} {S_i} {U_i} \in \seq{D}$ and knowing either
+that $t_1 = p_1 \andl S = \subst p z {S_i} \andl T = \subst p z {U_i}$
+or that $z \not\in \fn(S_i) \andl z \not\in \fn(U_i) \andl S = S_i \andl
+T = U_i$, and knowing that $\Gamma \ts T_2 \sub S$.
+
+By operational semantics and induction hypotheses, $\reductionl {t_1}
+s {t_1'} {s_1} {j_1}$ and $\irred {t_1'} {s_1}$ and $\reductionl {t_2}
+{s} {t_2'} {s_2} {j_2}$ and $\irred {t_2'} {s_2}$ and ${t_1'} \in
+\relv {k-j_1-1} {\Gamma_1} {s_1} {T_1}$ and ${t_2'} \in \relv
+{k-j_2-1} {\Gamma_2} {s_2} {T_2}$.
+
+Because $t_2$ reduces to a value $t_2'$ starting in store $s$, it
+should also reduce to a value $v_2$ in the same number of steps
+starting in store $s_1$, since $s_1$ extends $s$. So let $\reductionl
+{t_2} {s_1} {v_2} {s_{12}} {j_2}$ with $v_2 \in \relv {k-j_2-1}
+{\Gamma_{12}} {s_{12}} {T_2}$.
+
+By the above and operational semantics, $\reductionl {t_1'.m_i(v_2)}
+{s_{12}} {\subst {v_2} {x_i} {t_i}} {s_{12}} 1$.
+
+By the substitution lemma, ${\subst {v_2} {x_i} {t_i}} \in \rele
+{k-\max(j_1,j_2)-1} {\Gamma_{12}} {s_{12}} {T}$. Supposing,
+$\reductionl {\subst {v_2} {x_i} {t_i}} {s_{12}} {t'} {s'} {j_3}$,
+with $j_1 + j_2 + j_3 + 1 = j$, this completes the case, by
+monotonicity of $\mathcal{V}$.
+
+\ \\
+
+\Case \textsc{new}: $\Gamma \ts \new y c {t_b} : T$ knowing ...
+
+By operational semantics, $\reductionl {\new y c {t_b}} s {t_b} {s_b} 1$
+where $s_b = s \envplus{y \mapsto c}$. So $\reductionl {t_b} {s_b} {t'}
+{s'} {j-1}$.
+
+By induction hypotheses, $y \in \relv k {\Gamma_b} {s_b} {T_c}$ and $t_b \in
+\rele k {\Gamma_b} {s_b} {T}$.
+
+Result follows by monotonicity of $\mathcal{V}$.
+
+\end{myproof}
+
+\subsubsection{Substitution Lemma}
+
+The substitution lemma states that if (1) $v \in \relv {k_2}
+{\Gamma_{12}} {s_{12}} {T_2}$ and (2) $t \in \rele {k_1} {\Gamma_1
+  \envplus{{x} : S}} {s_1} T$ and (3) $\Gamma \ts {T_2} \sub S$ with
+(4) $x \not\in \fn(T)$ and $\Gamma_1$ extends $\Gamma$ and
+$\Gamma_{12}$ extends $\Gamma_1$ and $s_{12}$ extends $s_1$ and
+$\Gamma_1$ agrees with $s_1$ and $\Gamma_{12}$ agrees with $s_{12}$
+and a prefix of $\Gamma_{12}$ agrees with $s_1$, then $\subst {v} {x}
+{t} \in \rele {\min(k_1,k_2)} {\Gamma_{12}} {s_{12}} T$.
+
+\begin{proofsketch}
+By (1) and (3), it should hold that (5) $v \in \relv {k_2}
+{\Gamma_{12}} {s_{12}} {S}$ by the subset semantics lemma.  Since (2)
+holds, it should also hold that ${t} \in \rele {\min(k_1,k_2)}
+{\Gamma_{12} \envplus{{x} : S}} {s_{12}} T$ by the extended
+monotonicity lemma. Then, we can instantiate $x$ in the complete store
+to map to what $v$ maps to. This should be fine by (5) and
+monotonicity. Thus, ${t} \in \rele {\min(k_1,k_2)} {\Gamma_{12}
+  \envplus{{x} : S}} {s_{12} \envplus{{x} \mapsto s_{12}(v)}}
+T$. Thanks to (4), we don't actually need $x$ to be held abstract in
+the environment, because it won't occur in $T$ or its expansion (a
+{\it potential pitfall} is whether its occurrences in $t_i$ could
+still cause a check to fail through narrowing issues), so we can use
+the type of $v$ in the environment instead of $S$ for $x$: ${t} \in
+\rele {\min(k_1,k_2)} {\Gamma_{12} \envplus{{x} : {\Gamma_{12}(v)}}}
+      {s_{12} \envplus{{x} \mapsto s_{12}(v)}} T$. This implies what
+      needs to be shown.
+\end{proofsketch}
+
+\subsubsection{Subset Semantics Lemma}
+
+The subset semantics lemma states that if $v \in \relv k \Gamma s S$
+and $\Gamma \ts S <: U$, then $v \in \relv k \Gamma s U$.
+
+\begin{proofsketch}
+Because $S$ is a subtype of $U$, it should hold that the expansion of
+$S$ subsumes the expansion of $U$, when the ``self'' occurrences are
+of type $S$. Therefore, for $v \in \relv k \Gamma s U$, we have fewer
+declarations to check than for $v \in \relv k \Gamma s S$.
+
+A {\it potential pitfall} is whether some types of the expansion of
+$U$ can become non-expanding when the ``self'' occurrences are
+actually $v$ instead of just abstractly of type $S$, causing a check
+to fail. Another worry is that such a non-expanding type results from
+narrowing of a parameter type.
+%However, we believe this is fine by
+%subtyping regularity wtr to $\nswfe$ and $v \in \relv k \Gamma s S$
+%which cheks bounds and $\nswfe$ of the type labels.
+\end{proofsketch}
+
+\subsubsection{Extended Monotonicity Lemma}
+
+The extended monotonicity lemma states that if $t \in \rele k {\Gamma
+  \envplus{x : S}} s T$ then $t \in \rele j {\Gamma' \envplus{x : S}}
+{s'} T$ for $j \leq k$, $\Gamma'$ extends $\Gamma$, $s'$
+extends $s$, and $\Gamma$ agrees with $s$ and a prefix of $\Gamma'$
+agrees with $s$.
+
+\begin{proofsketch}
+For the monotonicity with regards to the step index, this follows
+directly from the definitions of $\mathcal{E}$ and $\mathcal{V}$. For
+the environment and the store, this follows by design from the
+definition of $\rels k {\Gamma \envplus{x : S}} s$. To extend the
+environment and the store for $x : S$, we can append as much as we
+want to $\Gamma$ and $s$, to get $\Gamma'$ and $s'$, and then ignore
+the last element which is for $x : S$.
+\end{proofsketch}
+
+\section{Discussion}\label{discussion}
+
+\subsection{Why No Inheritance?}\label{why-no-inheritance}
+
+In the calculus we made the deliberate choice not to model any form of
+inheritance. This is, first and foremost, to keep the calculus simple.
+Secondly, there are many different approaches to inheritance and
+mixin composition, so that it looks advantageous not to tie the basic
+calculus to a specific one. Finally, it seems that the modelization of
+inheritance lends itself to a different approach than the basic
+calculus. For the latter, we need to prove type safety of the calculus.
+One might try to do this also for a calculus with inheritance, but our
+experience suggests that this complicates the proofs considerably.  An
+alternative approach that might work better is to model inheritance
+as a form of code-reuse. Starting with an enriched type system with
+inheritance, and a translation to the basic calculus, one needs to
+show type safety wrt the translation. This might be easier than
+to prove type safety wrt reduction.
+
+\subsection{Variants of the DOT Calculus}\label{dot-variants}
+
+\subsubsection{Why limit the calculus to $\nswfe$-types?}
+
+Currently, the proof of type-safety via logical relations
+fundamentally relies on types having an expansion. However, this was
+not our original motivation for limiting the calculus to $\nswfe$-types.
+
+Originally, subtyping was not regular wrt $\nswfe$. Roughly,
+all the $\nswfe$ preconditions in subtyping were dropped. In this
+broader calculus, subtyping transitivity doesn't hold, because of the
+rule (\textsc{$\sub$-rfn}) which requires expansion of the left type.
+
+The problem is deep, as attested by this elaborate counterexample
+that is not so easily patched, and directly leads to a counterexample
+to preservation.
+
+Consider an environment where $u$ is bound to:
+\begin{align*}
+\Top & \mlrefine u {\\
+&\ \Ldecl {\mathit{Bad}} {\Bot} {u.\mathit{Bad}}\\
+&\ \Ldecl {\mathit{Good}} {\Top \refine z {\Ldecl L \Bot \Top}} {\Top \refine z {\Ldecl L \Bot \Top}}\\
+&\ \Ldecl {\mathit{Lower}} {u.\mathit{Bad} \tand u.\mathit{Good}} {u.\mathit{Good}}\\
+&\ \Ldecl {\mathit{Upper}} {u.\mathit{Good}} {u.\mathit{Bad} \tor u.\mathit{Good}}\\
+&\ \Ldecl X {u.\mathit{Lower}} {u.\mathit{Upper}}\\
+}&
+\end{align*}
+
+Now, consider the types $S$, $T$, $U$ defined in terms of $u$:
+\begin{align*}
+S &= u.\mathit{Bad} \tand u.\mathit{Good}\\
+T &= u.\mathit{Lower}\\
+U &= u.X \refine z {\Ldecl L \Bot \Top}
+\end{align*}
+We have $S \sub T$ and $T \sub U$, but we cannot derive $S \sub U$ because
+$S$ doesn't expand.
+
+Note that $u$ is realizable, since each lower bound is a subtype of
+its upper bound. So it is straightforward to turn this counterexample
+to subtyping transitivity into a counterexample to preservation:
+\begin{align*}
+&\mlnew u \ldots {
+\ \mlapp{\abs x \Top x}{
+\ \ \mlapp{\abs f {S \tfun U} f}{
+\ \ \ \mlapp{\abs f {S \tfun T} f}{
+\ \ \ \ \mlapp{\abs f {S \tfun S} f}{
+\ \ \  \ \ \abs x S x}}}}}
+\end{align*}
+
+The idea is to start with a function from $S \tfun S$ and cast it
+successively to $S \tfun T$ then $S \tfun U$. To typecheck the
+expression initially, we need to check $S \sub T$ and $T \sub
+U$. After some reduction steps, the first few casts vanish, and the
+reduced expression casts directly from $S \tfun S$ to $S \tfun U$, so
+we need to check $S \sub U$.
+
+\subsubsection{Why not include the lambda-calculus instead of methods?}
+
+Originally, the DOT calculus included the lambda-calculus, and
+explicit methods were not needed since they could be represented by a
+value label with a function type. However, the expansion of the
+function type was defined to be the empty set of declarations (like
+for $\Top$), which caused a real breach of type-safety.
+
+A concrete object could be a subtype of a function type without a
+function ever being defined. Consider:
+\begin{align*}
+&\mlnew u {\Top \refine z {\Ldecl C {\Top \tfun \Top} {\Top \tfun \Top}} \ldefs{}} {
+\mlnew f {u.C \ldefs{}} {
+\ldots
+}}
+\end{align*}
+
+Now, $f$ was a subtype of $\Top \tfun \Top$, but $\app f {(\abs x \Top
+  x)}$ was stuck (and, rightfully, didn't typecheck). But we could use
+narrowing to create a counterexample to type safety: $\app {(\abs g
+  {\Top \tfun \Top} {\app g (\abs x \Top x)})} f$.
+
+Because of this complication, we decided to drop the lambda-calculus
+from DOT, and instead introduce methods with one parameter. Like in
+Scala, functions are then just sugar for objects with a special
+method.
+
+An alternative design would have been to change the expansion of the
+function type to have a declaration for a special marker value label.
+
+\subsubsection{Why not patch the DOT calculus for preservation to hold?}\label{pres-patch}
+
+We tried! However, the resulting calculi were not elegant, and
+furthermore, we still found issues with preservation. Below, we give a
+brief summary of one failed attempt to patch the calculus for
+preservation to hold.
+
+Because many of the counterexamples to preservation are related to
+narrowing, we tried to make widening an explicit operation and change
+rules with implicit relaxations (\textsc{msel} and \textsc{new}) to be
+strict. From a typing perspective, the change was straightforward, but
+reduction became more complicated and dependent on typing because the
+type information in widenings needed to be propagated correctly.
+
+We added path equality provisions in the subtyping rules, in the same
+spirit as the Tribe calculus~\cite{tribe}.
+
+Unfortunately, these two patches interacted badly, and we were left
+with a disturbing counterexample to type safety.
+
+\begin{align*}
+&\mlnew a {\Top \refine z {\Ldecl C \Bot {\Top \refine z {\Ldecl D \Bot {z.X}, \Ldecl X \Bot \Top}}}}{
+\mlnew b {{a.C} \refine z {\Ldecl X \Bot \Bot}}}{
+\mlnew c {a.C}}{
+\mlnew d {{\cast {a.C} b}.D}}{
+\app {(\abs x \Bot {x.\mathit{foo}})} d
+}
+\end{align*}
+
+Notice that $d$ has type $\Bot$ if the cast on $b$ is ignored. This
+example didn't typecheck initially because the path-equality
+provisions only applied when objects are in the store, so the
+application was not well-typed. But if we started preservation in a store
+which had $a$, $b$, $c$ and $d$ then the application type-checked,
+because, through one of the path-equality provision, we could find that
+the type of $d$ was a subtype of $\Bot$. Now, of course, when we got to
+$d.\mathit{foo}$, reduction failed.
+
+\subsection{Related Work}
+
+In addition to Scala's previous models~\cite{nuObj,FS}, several
+calculi present some form of path-dependent types.
+
+The {\it vc} calculus~\cite{vc} models virtual classes with
+path-dependent types. {\it vc} restricts paths to start with ``this'',
+though it provides a way (``out'') to refer to the enclosing object.
+
+The Tribe calculus~\cite{tribe} builds an ownership types
+system~\cite{tribalo} on top of a core calculus which models virtual
+classes. The soundness proof for the core calculus seems to be tied to
+the ownership types system.
+
+Some ML-style module systems~\cite{homl,mixinml} have a form of
+stratified path-dependent types. Because of the stratification,
+recursion is not allowed. In MixML~\cite{mixml} like in Scala, this
+restriction is lifted.
+
+\section{Conclusion}\label{conclusion}
+
+We have presented DOT, a calculus aimed as a new foundation of Scala
+and languages like it. DOT features path-dependent types, refinement
+types, and abstract type members.
+
+Proving the DOT calculus type-safe has been an interesting
+adventure. We have shown that DOT does not satisfy preservation (also
+known as subject-reduction). However, the standard theorems of
+preservation and progress are just one way to prove type safety. We
+have sketched a plausible proof of type safety using the powerful
+method of logical relations.
+
+%\appendix
+%\section{Appendix Title}
+
+\acks
+
+We thank Amal Ahmed for many discussions and insights about applying
+logical relations to DOT. We thank Donna Malayeri and Geoffrey
+Washburn for preliminary work on DOT. We thank Tiark Rompf for helpful
+comments.
+
+\bibliographystyle{abbrvnat}
+\bibliography{dot}
+
+\end{document}
