@@ -146,38 +146,11 @@
                 #t)
             (with-dot-writers (lambda () (render-term dot e))))]))
 
-(with-dot-writers (lambda () (render-term dot
-(sel (sel (sel x (cv a)) (cv b)) (cv c))
-)))
-
-(render-dot-term #f #t
-(val u = new ((rfn Top self (: (cv l) Top))
-              [(cv l) u]) in
-(sel u (cv l)))
-)
-
-(render-dot-term #f #t
-(val u = new ((rfn Top self  (: (cc X) Top Top) (: (cv l) Top))
-              [(cv l) u]) in
-(cast Top (cast (sel u (cc X)) (sel u (cv l)))))
-)
-
-(render-dot-term #f #f
-(val v = new ((rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot (sel z (ca A))))))) in
-(app (cast (arrow (rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot (sel z (ca A)))))) Top)
-           (fun (x (rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot Top))))) Top
-                (val z = new ((rfn Top z (: (cm l) ((sel x (ca L)) ∧ (rfn Top z (: (ca A) Bot (sel z (ca B))) (: (ca B) Bot Top))) Top))
-                              ((cm l) y (as Top (fun (a (sel y (ca A))) Top a)))) in
-                (cast Top z))))
-     v))
-)
-
 (render-dot-term "ex_glb" #t
 (val u = new ((rfn Top z
-                   (: (cc A) Bot (rfn Top y (: (ca T) Bot (sel z (cc A)))))
-                   (: (cc B) Bot (rfn Top y (: (ca T) Bot (sel z (cc B))))))) in
+              (: (cc A) Bot (rfn Top y (: (ca T) Bot (sel z (cc A)))))
+              (: (cc B) Bot (rfn Top y (: (ca T) Bot (sel z (cc B))))))) in
 (cast Top
-(fun (x ((sel u (cc A)) ∧ (sel u (cc B)))) Top
-     (fun (y (sel x (ca T))) Top
-          y))))
+      (fun x ((sel u (cc A)) ∧ (sel u (cc B))) Top
+           (fun y (sel x (ca T)) Top y))))
 )

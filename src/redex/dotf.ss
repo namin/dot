@@ -571,8 +571,8 @@
    (where x_self ,(variable-not-in (term (S T)) 'self))])
 
 (define-metafunction dot
-  fun : (x S) T e -> e
-  [(fun (x S) T e) (fun- x_f () (x S) T e)
+  fun : x S T e -> e
+  [(fun x S T e) (fun- x_f () (x S) T e)
    (where x_f ,(variable-not-in (term (x S T e)) 'f))])
 
 (define-metafunction dot
@@ -581,7 +581,7 @@
 
 (define-metafunction dot
   cast : T e -> e
-  [(cast T e) (app (fun (x T) T x) e)
+  [(cast T e) (app (fun x T T x) e)
    (where x ,(variable-not-in (term (T e)) 'id))])
 
 (define-metafunction dot
@@ -612,43 +612,43 @@
                           (: (cm true) Top (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc BooleanClass))))
                           (: (cm zero) Top (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc NatClass))))
                           (: (cm successor) Top (arrow (sel rootThis (cc NatClass)) (sel rootThis (cc NatClass)))))
-                         [(cm unit) dummy (fun (x Top) (sel root (cc UnitClass)) (val u = new ((rfn (sel root (cc UnitClass)) this)) in u))]
+                         [(cm unit) dummy (fun x Top (sel root (cc UnitClass)) (val u = new ((rfn (sel root (cc UnitClass)) this)) in u))]
                          [(cm false) dummy
-                                     (fun (u (sel root (cc UnitClass))) (sel root (cc BooleanClass))
+                                     (fun u (sel root (cc UnitClass)) (sel root (cc BooleanClass))
                                           (val ff = new ((rfn (sel root (cc BooleanClass)) this)
                                                          [(cm ifNat) dummy
-                                                                     (fun (t (arrow (sel root (cc UnitClass)) (sel root (cc NatClass))))
+                                                                     (fun t (arrow (sel root (cc UnitClass)) (sel root (cc NatClass)))
                                                                           (arrow (arrow (sel root (cc UnitClass)) (sel root (cc NatClass))) (sel root (cc NatClass)))
-                                                                          (fun (e (arrow (sel root (cc UnitClass)) (sel root (cc NatClass))))
+                                                                          (fun e (arrow (sel root (cc UnitClass)) (sel root (cc NatClass)))
                                                                                (sel root (cc NatClass))
                                                                                (app e (app (sel root (cm unit) dummy) (sel root (cm unit) dummy)))))]) in ff))]
                          [(cm true) dummy
-                                    (fun (u (sel root (cc UnitClass))) (sel root (cc BooleanClass))
+                                    (fun u (sel root (cc UnitClass)) (sel root (cc BooleanClass))
                                          (val tt = new ((rfn (sel root (cc BooleanClass)) this)
                                                         [(cm ifNat) dummy
-                                                                    (fun (t (arrow (sel root (cc UnitClass)) (sel root (cc NatClass))))
+                                                                    (fun t (arrow (sel root (cc UnitClass)) (sel root (cc NatClass)))
                                                                          (arrow (arrow (sel root (cc UnitClass)) (sel root (cc NatClass))) (sel root (cc NatClass)))
-                                                                         (fun (e (arrow (sel root (cc UnitClass)) (sel root (cc NatClass))))
+                                                                         (fun e (arrow (sel root (cc UnitClass)) (sel root (cc NatClass)))
                                                                               (sel root (cc NatClass))
                                                                               (app t (app (sel root (cm unit) dummy) (sel root (cm unit) dummy)))))]) in tt))]
                          [(cm zero) dummy
-                                    (fun (u (sel root (cc UnitClass))) (sel root (cc NatClass))
+                                    (fun u (sel root (cc UnitClass)) (sel root (cc NatClass))
                                          (val zz = new ((rfn (sel root (cc NatClass)) this)
-                                                        [(cm isZero) dummy (fun (u (sel root (cc UnitClass))) (sel root (cc BooleanClass))
+                                                        [(cm isZero) dummy (fun u (sel root (cc UnitClass)) (sel root (cc BooleanClass))
                                                                                 (app (sel root (cm true) dummy) (app (sel root (cm unit) dummy) (sel root (cm unit) dummy))))]
-                                                        [(cm succ) dummy (fun (u (sel root (cc UnitClass))) (sel root (cc NatClass))
+                                                        [(cm succ) dummy (fun u (sel root (cc UnitClass)) (sel root (cc NatClass))
                                                                               (app (sel root (cm successor) dummy) zz))]
-                                                        [(cm pred) dummy (fun (u (sel root (cc UnitClass))) (sel root (cc NatClass)) zz)]) in zz))]
+                                                        [(cm pred) dummy (fun u (sel root (cc UnitClass)) (sel root (cc NatClass)) zz)]) in zz))]
                          [(cm successor) dummy
-                                         (fun (n (sel root (cc NatClass))) (sel root (cc NatClass))
+                                         (fun n (sel root (cc NatClass)) (sel root (cc NatClass))
                                               (val ss = new ((rfn (sel root (cc NatClass)) this)
-                                                             [(cm isZero) dummy (fun (u (sel root (cc UnitClass))) (sel root (cc BooleanClass)) 
+                                                             [(cm isZero) dummy (fun u (sel root (cc UnitClass)) (sel root (cc BooleanClass)) 
                                                                                      (app (sel root (cm false) dummy) (app (sel root (cm unit) dummy) (sel root (cm unit) dummy))))]
-                                                             [(cm succ) dummy (fun (u (sel root (cc UnitClass))) (sel root (cc NatClass))
+                                                             [(cm succ) dummy (fun u (sel root (cc UnitClass)) (sel root (cc NatClass))
                                                                                    (app (sel root (cm successor) dummy) ss))]
-                                                             [(cm pred) dummy (fun (u (sel root (cc UnitClass))) (sel root (cc NatClass)) n)]) in ss))]) in
-(app (fun (x Top) Top x)
-     (app (fun (unit (sel root (cc UnitClass))) (sel root (cc BooleanClass))
+                                                             [(cm pred) dummy (fun u (sel root (cc UnitClass)) (sel root (cc NatClass)) n)]) in ss))]) in
+(app (fun x Top Top x)
+     (app (fun unit (sel root (cc UnitClass)) (sel root (cc BooleanClass))
                (app (sel (app (sel (app (sel (app (sel root (cm zero) dummy) unit)
                                              (cm succ) dummy) unit)
                                    (cm pred) dummy) unit)
