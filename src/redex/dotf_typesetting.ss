@@ -17,6 +17,8 @@
     (build-lw e
               (lw-line a) 0
               (lw-column a) 0))
+  (define (collapse-all lws)
+    (collapse (first lws) (last lws)))
   (define (collapse a b)
     ;; Build a zero-width element that takes the same columns
     ;; as a through b
@@ -28,18 +30,6 @@
   (define (subtext txt)
     ;; Creates a text element as a subscript
     (text txt `(subscript . ,(default-style)) (default-font-size)))
-  (define (remove-parens a)
-    ;; Remove exactly one outer parentheses
-    (let* ([lws (lw-e a)]
-           [oparen (first lws)]
-           [cparen (last lws)]
-           (meat (rest (drop-right lws 1))))
-      (combine
-       (cons
-        (collapse oparen oparen)
-        (append
-         meat
-         (list (collapse cparen cparen)))) a)))
   (define (pretty-binding a)
     (match (lw-e a)
       [(list oparen l v cparen)
@@ -87,33 +77,25 @@
        (list
         (collapse (first lws) (list-ref lws 1))
         (list-ref lws 2)
-        (then "." (list-ref lws 3))
+        "."
         (list-ref lws 3)
         (collapse (list-ref lws 4) (last lws))))]
     ['label-value
      (λ (lws)
        (list
-        (collapse (first lws) (list-ref lws 1))
-        (list-ref lws 2)
-        (collapse (list-ref lws 3) (last lws))))]
+        (combine (lw-e (list-ref lws 2)) (collapse-all lws))))]
     ['label-method
      (λ (lws)
        (list
-        (collapse (first lws) (list-ref lws 1))
-        (list-ref lws 2)
-        (collapse (list-ref lws 3) (last lws))))]
+        (combine (lw-e (list-ref lws 2)) (collapse-all lws))))]
     ['label-abstract-type
      (λ (lws)
        (list
-        (collapse (first lws) (list-ref lws 1))
-        (list-ref lws 2)
-        ;(subtext "a")
-        (collapse (list-ref lws 3) (last lws))))]
+        (combine (lw-e (list-ref lws 2)) (collapse-all lws))))]
     ['label-class
      (λ (lws)
        (list
-        (collapse (first lws) (list-ref lws 1))
-        (list-ref lws 2)
+        (combine (lw-e (list-ref lws 2)) (collapse (first lws) (list-ref lws 2)))
         (subtext "c")
         (collapse (list-ref lws 3) (last lws))))]
     [':
@@ -164,10 +146,20 @@
                 #t)
             (with-dot-writers (lambda () (render-term dot e))))]))
 
+(with-dot-writers (lambda () (render-term dot
+(sel (sel (sel x (label-value a)) (label-value b)) (label-value c))
+)))
+
 (render-dot-term "simple" #t
 (val u = new ((refinement Top self (: (label-value l) Top))
               [(label-value l) u]) in
 (sel u (label-value l)))
+)
+
+(render-dot-term "simple2" #t
+(val u = new ((refinement Top self  (: (label-class X) Top Top) (: (label-value l) Top))
+              [(label-value l) u]) in
+(cast Top (cast (sel u (label-class X)) (sel u (label-value l)))))
 )
 
 (render-dot-term "foo" #f
