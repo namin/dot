@@ -107,7 +107,7 @@
        (list
         (collapse (first lws) (list-ref lws 1))
         (list-ref lws 2)
-        (subtext "a")
+        ;(subtext "a")
         (collapse (list-ref lws 3) (last lws))))]
     ['label-class
      (λ (lws)
@@ -150,18 +150,27 @@
          (helper (list-tail lws 4) null)))])
    (thunk)))))
 
+;; we are only typesetting concrete values
+(non-terminal-style (default-style))
+
 (define-syntax (render-dot-term stx)
   (syntax-case stx ()
-    [(_ e)
-     #'(and (typecheck (term (() ())) (term e)) (with-dot-writers (lambda () (render-term dot e))))]))
+    [(_ name p e)
+     #'(and (typecheck (term (() ())) (term e))
+            (if p (preservation (term e)) (not (preservation (term e))))
+            (type-safety (term e))
+            (if name
+                (with-dot-writers (lambda () (render-term dot e (build-path (string-append name ".pdf")))))
+                #t)
+            (with-dot-writers (lambda () (render-term dot e))))]))
 
-(render-dot-term
+(render-dot-term "simple" #t
 (val u = new ((refinement Top self (: (label-value l) Top))
               [(label-value l) u]) in
 (sel u (label-value l)))
 )
 
-(render-dot-term
+(render-dot-term "foo" #f
 (val v = new ((refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A))))))) in
 (app (cast (arrow (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A)))))) Top)
            (fun (x (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top))))) Top
