@@ -120,9 +120,9 @@
 
 (check-false
 (typecheck (term (() ())) (term (valnew (u ((rfn Top self 
-                                                        (: (ca L1) Bot (sel self (ca L1)))
-                                                        (: (ca L2) Bot (rfn Top z (: (ca L3) Bot Top)))
-                                                        (: (ca L4) ((sel self (ca L2)) ∧ (sel self (ca L1))) (sel self (ca L2))))))
+                                                 (: (ca L1) Bot (sel self (ca L1)))
+                                                 (: (ca L2) Bot (rfn Top z (: (ca L3) Bot Top)))
+                                                 (: (ca L4) ((sel self (ca L2)) ∧ (sel self (ca L1))) (sel self (ca L2))))))
                                         (cast Top
 (cast (arrow ((sel u (ca L2)) ∧ (sel u (ca L1))) (rfn Top z (: (ca L3) Bot Top)))
       (cast (arrow ((sel u (ca L2)) ∧ (sel u (ca L1))) (sel u (ca L4)))
@@ -134,9 +134,9 @@
 
 (check-true
 (let ([env (term (([u (rfn Top self 
-                                  (: (cc Bad) Bot (sel self (cc Bad))) 
-                                  (: (cc BadBounds) Top (sel self (cc Bad))) 
-                                  (: (cc Mix) (sel self (cc BadBounds)) Top))])
+                           (: (cc Bad) Bot (sel self (cc Bad))) 
+                           (: (cc BadBounds) Top (sel self (cc Bad))) 
+                           (: (cc Mix) (sel self (cc BadBounds)) Top))])
                   ()))]
       [s (term (sel u (cc BadBounds)))]
       [t (term (sel u (cc Mix)))]
@@ -146,11 +146,11 @@
 
 (check-true
 (let ([env (term (([u (rfn Top self
-                                  (: (cc Bad) Bot (sel self (cc Bad)))
-                                  (: (cc Good) (rfn Top z (: (cc L) Bot Top)) (rfn Top z (: (cc L) Bot Top)))
-                                  (: (cc Lower) ((sel self (cc Bad)) ∧ (sel self (cc Good))) (sel self (cc Good)))
-                                  (: (cc Upper) (sel self (cc Good)) ((sel self (cc Bad)) ∨ (sel self (cc Good))))
-                                  (: (cc X) (sel self (cc Lower)) (sel self (cc Upper))))])
+                           (: (cc Bad) Bot (sel self (cc Bad)))
+                           (: (cc Good) (rfn Top z (: (cc L) Bot Top)) (rfn Top z (: (cc L) Bot Top)))
+                           (: (cc Lower) ((sel self (cc Bad)) ∧ (sel self (cc Good))) (sel self (cc Good)))
+                           (: (cc Upper) (sel self (cc Good)) ((sel self (cc Bad)) ∨ (sel self (cc Good))))
+                           (: (cc X) (sel self (cc Lower)) (sel self (cc Upper))))])
                   ()))]
       [s (term ((sel u (cc Bad)) ∧ (sel u (cc Good))))]
       [t (term (sel u (cc Lower)))]
@@ -160,11 +160,11 @@
 
 (check-true
 (let ([Tc (term (rfn Top self
-                            (: (cc Bad) Bot (sel self (cc Bad)))
-                            (: (cc Good) (rfn Top z (: (cc L) Bot Top)) (rfn Top z (: (cc L) Bot Top)))
-                            (: (cc Lower) ((sel self (cc Bad)) ∧ (sel self (cc Good))) (sel self (cc Good)))
-                            (: (cc Upper) (sel self (cc Good)) ((sel self (cc Bad)) ∨ (sel self (cc Good))))
-                            (: (cc X) (sel self (cc Lower)) (sel self (cc Upper)))))]
+                     (: (cc Bad) Bot (sel self (cc Bad)))
+                     (: (cc Good) (rfn Top z (: (cc L) Bot Top)) (rfn Top z (: (cc L) Bot Top)))
+                     (: (cc Lower) ((sel self (cc Bad)) ∧ (sel self (cc Good))) (sel self (cc Good)))
+                     (: (cc Upper) (sel self (cc Good)) ((sel self (cc Bad)) ∨ (sel self (cc Good))))
+                     (: (cc X) (sel self (cc Lower)) (sel self (cc Upper)))))]
       [s (term ((sel u (cc Bad)) ∧ (sel u (cc Good))))]
       [t (term (sel u (cc Lower)))]
       [u (term (rfn (sel u (cc X)) z (: (cc L) Bot Top)))])
@@ -177,29 +177,29 @@
 
 (test-equal
 (typecheck (term (() ())) (term (valnew (u ((rfn Top self 
-                              (: (cc Bar) Bot (rfn Top self (: (cc T) Bot Top)))
-                              (: (cc Foo) Bot (rfn (sel self (cc Bar)) z (: (cc T) Bot (sel self (cc Foo)))))
-                              (: (cm foo) Top (arrow Top (sel self (cc Foo)))))
-              ((cm foo) dummy (fun (x Top) (sel u (cc Foo)) (valnew (foo ((sel u (cc Foo)))) foo)))))
-              (as Top (sel u (cm foo) (as Top u))))))
+                                                 (: (cc Bar) Bot (rfn Top self (: (cc T) Bot Top)))
+                                                 (: (cc Foo) Bot (rfn (sel self (cc Bar)) z (: (cc T) Bot (sel self (cc Foo)))))
+                                                 (: (cm foo) Top (arrow Top (sel self (cc Foo)))))
+                                            ((cm foo) dummy (fun (x Top) (sel u (cc Foo)) (valnew (foo ((sel u (cc Foo)))) foo)))))
+                                        (as Top (sel u (cm foo) (as Top u))))))
 'Top)
 
 (test-equal
 (typecheck (term (() ())) (term (valnew (u ((rfn Top self 
-                              (: (cc Bar) Bot (rfn Top self (: (cc T) Bot Top) (: (cm some) Top (sel self (cc T)))))
-                              (: (cc Foo) Bot (rfn (sel self (cc Bar)) z (: (cc T) (sel self (cc Foo)) Top)))
-                              (: (cm foo) Top (arrow Top (sel self (cc Foo)))))
-              ((cm foo) dummy (fun (x Top) (sel u (cc Foo)) (valnew (foo ((sel u (cc Foo)) ((cm some) dummy (as (sel foo (cc T)) foo)))) foo)))))
-              (cast Top (sel u (cm foo) (as Top u))))))
+                                                 (: (cc Bar) Bot (rfn Top self (: (cc T) Bot Top) (: (cm some) Top (sel self (cc T)))))
+                                                 (: (cc Foo) Bot (rfn (sel self (cc Bar)) z (: (cc T) (sel self (cc Foo)) Top)))
+                                                 (: (cm foo) Top (arrow Top (sel self (cc Foo)))))
+                                            ((cm foo) dummy (fun (x Top) (sel u (cc Foo)) (valnew (foo ((sel u (cc Foo)) ((cm some) dummy (as (sel foo (cc T)) foo)))) foo)))))
+                                        (cast Top (sel u (cm foo) (as Top u))))))
 'Top)
 
 #;
 (let ((w (term (rfn Top b
-                           (: (cc T) Bot (sel (sel b (cv x)) (cc T)))
-                           (: (cv x) (sel u (cc C)))))))
+                    (: (cc T) Bot (sel (sel b (cv x)) (cc T)))
+                    (: (cv x) (sel u (cc C)))))))
   (judgment-holds
    (expansion (((u (rfn Top a
-                               (: (cc C) Bot ,w)))
+                        (: (cc C) Bot ,w)))
                 (w ,w))
                ())
               z
@@ -213,10 +213,10 @@
 
 (check-not-false
 (let ((typeX (term (rfn Top z
-                               (: (ca A) Top Top)
-                               (: (cm l) Top (sel z (ca A))))))
+                        (: (ca A) Top Top)
+                        (: (cm l) Top (sel z (ca A))))))
       (typeY (term (rfn Top z
-                               (: (cm l) Top Top)))))
+                        (: (cm l) Top Top)))))
   (type-safety
    (term
     (valnew
@@ -226,10 +226,10 @@
 
 (check-not-false
 (let ((typeX (term (rfn Top z
-                               (: (ca A) Top Top)
-                               (: (cm l) Top (sel z (ca A))))))
+                        (: (ca A) Top Top)
+                        (: (cm l) Top (sel z (ca A))))))
       (typeY (term (rfn Top z
-                               (: (cm l) Top Top)))))
+                        (: (cm l) Top Top)))))
   (big-step-preservation
    (term
     (valnew
@@ -245,14 +245,14 @@
  (term
   (valnew
    (b ((rfn Top z
-                   (: (ca X) Top Top)
-                   (: (cv l) (sel z (ca X))))
+            (: (ca X) Top Top)
+            (: (cv l) (sel z (ca X))))
        ((cv l) b)))
    (valnew
     (a ((rfn Top z
-                    (: (cv i) (rfn Top z
-                                                   (: (ca X) Bot Top)
-                                                   (: (cv l) (sel z (ca X))))))
+             (: (cv i) (rfn Top z
+                            (: (ca X) Bot Top)
+                            (: (cv l) (sel z (ca X))))))
         ((cv i) b)))
     (cast Top
      (cast (sel (sel a (cv i)) (ca X))
@@ -262,14 +262,14 @@
  (term
   (valnew
    (b ((rfn Top z
-                   (: (ca X) Top Top)
-                   (: (cv l) (sel z (ca X))))
+            (: (ca X) Top Top)
+            (: (cv l) (sel z (ca X))))
        ((cv l) b)))
    (valnew
     (a ((rfn Top z
-                    (: (cv i) (rfn Top z
-                                                   (: (ca X) Bot Top)
-                                                   (: (cv l) (sel z (ca X))))))
+             (: (cv i) (rfn Top z
+                            (: (ca X) Bot Top)
+                            (: (cv l) (sel z (ca X))))))
         ((cv i) b)))
     (cast Top
      (app (fun (x (sel (sel a (cv i)) (ca X)))
@@ -281,14 +281,14 @@
  (term
    (valnew
     (b ((rfn Top z
-                    (: (ca X) Top Top)
-                    (: (cv l) (sel z (ca X))))
+             (: (ca X) Top Top)
+             (: (cv l) (sel z (ca X))))
         ((cv l) b)))
    (valnew
     (a ((rfn Top z
-                    (: (cv i) (rfn Top z
-                                                   (: (ca X) Bot Top)
-                                                   (: (cv l) (sel z (ca X))))))
+             (: (cv i) (rfn Top z
+                            (: (ca X) Bot Top)
+                            (: (cv l) (sel z (ca X))))))
         ((cv i) b)))
     (cast Top
      (cast (sel (sel a (cv i)) (ca X))
@@ -298,14 +298,14 @@
  (term
    (valnew
     (b ((rfn Top z
-                    (: (ca X) Top Top)
-                    (: (cv l) (sel z (ca X))))
+             (: (ca X) Top Top)
+             (: (cv l) (sel z (ca X))))
         ((cv l) b)))
    (valnew
     (a ((rfn Top z
-                    (: (cv i) (rfn Top z
-                                                   (: (ca X) Bot Top)
-                                                   (: (cv l) (sel z (ca X))))))
+             (: (cv i) (rfn Top z
+                            (: (ca X) Bot Top)
+                            (: (cv l) (sel z (ca X))))))
         ((cv i) b)))
     (cast Top
      (app (fun (x (sel (sel a (cv i)) (ca X)))
@@ -315,16 +315,16 @@
 
 (check-true
 (let* ([typeX (term (rfn Top z
-                                (: (ca A) Top Top)
-                                (: (ca B) Top Top)
-                                (: (ca C) Bot (sel z (ca B)))))]
+                         (: (ca A) Top Top)
+                         (: (ca B) Top Top)
+                         (: (ca C) Bot (sel z (ca B)))))]
        [typeY (term (rfn Top z
-                                (: (ca A) Bot Top)
-                                (: (ca B) Bot Top)
-                                (: (ca C) Bot (sel z (ca A)))))]
+                         (: (ca A) Bot Top)
+                         (: (ca B) Bot Top)
+                         (: (ca C) Bot (sel z (ca A)))))]
        [typeZ (term (rfn ,typeX z
-                                (: (ca A) Bot Bot)
-                                (: (ca B) Bot Bot)))])
+                         (: (ca A) Bot Bot)
+                         (: (ca B) Bot Bot)))])
   (subtyping-transitive (term (() ())) typeZ typeX typeY))
 )
 
@@ -341,33 +341,33 @@
   (valnew (v ((rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot (sel z (ca A))))))))
   (app (fun (x (rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot Top))))) Top
             (valnew (z ((rfn Top z (: (cm l)
-                                             ((sel x (ca L))
-                                              ∧
-                                              (rfn Top z (: (ca A) Bot (sel z (ca B))) (: (ca B) Bot Top)))
-                                             Top))
+                                      ((sel x (ca L))
+                                       ∧
+                                       (rfn Top z (: (ca A) Bot (sel z (ca B))) (: (ca B) Bot Top)))
+                                      Top))
                         ((cm l) y
-                                          (as Top (fun (a (sel y (ca A))) Top a)))))
+                                (as Top (fun (a (sel y (ca A))) Top a)))))
                     (cast Top z)))
        (as (rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot Top)))) v)))))
 
 (test-predicate type-safety
  (term
   (valnew (x00 ((rfn Top z (: (ca L) Bot
-                                     (rfn Top self
-                                                 (: (ca A) Bot Top)
-                                                 (: (ca B) Bot Top)
-                                                 (: (cc Lc2) Bot (sel self (ca A))))))))
-  (valnew (x0 ((rfn Top z (: (cc Lc1) Bot (rfn Top z (: (ca L) Bot (sel x00 (ca L))))))))
+                              (rfn Top self
+                                   (: (ca A) Bot Top)
+                                   (: (ca B) Bot Top)
+                                   (: (cc Lc2) Bot (sel self (ca A))))))))
+          (valnew (x0 ((rfn Top z (: (cc Lc1) Bot (rfn Top z (: (ca L) Bot (sel x00 (ca L))))))))
   (valnew (x1 ((rfn (sel x0 (cc Lc1)) z (: (ca L) Bot 
-                                                           (rfn (sel x00 (ca L)) self 
-                                                                       (: (ca A) Bot (sel self (ca B))))))))
+                                           (rfn (sel x00 (ca L)) self 
+                                                (: (ca A) Bot (sel self (ca B))))))))
   (valnew (x2 ((rfn (sel x0 (cc Lc1)) z (: (ca L) Bot 
-                                                           (rfn (sel x00 (ca L)) self 
-                                                                       (: (ca B) Bot (sel self (ca A))))))))
+                                           (rfn (sel x00 (ca L)) self 
+                                                (: (ca B) Bot (sel self (ca A))))))))
   (app (fun (x (sel x0 (cc Lc1))) Top
             (fun (z0 ((sel x (ca L)) ∧ (sel x2 (ca L)))) Top
                  (valnew (z ((sel z0 (cc Lc2))))
-                         (cast Top z))))
+                 (cast Top z))))
        (as (sel x0 (cc Lc1)) x1))))))))
 
 (test-predicate type-safety
@@ -375,12 +375,12 @@
   (valnew (v ((rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) (sel z (ca A)) Top))))))
   (app (fun (x (rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot Top))))) Top
             (valnew (z ((rfn Top z (: (cm l)
-                                             ((sel x (ca L))
-                                              ∧
-                                              (rfn Top z (: (ca A) (sel z (ca B)) Top) (: (ca B) Bot Top)))
-                                             Top))
+                                      ((sel x (ca L))
+                                       ∧
+                                       (rfn Top z (: (ca A) (sel z (ca B)) Top) (: (ca B) Bot Top)))
+                                      Top))
                         ((cm l) y
-                                          (as Top (fun (a (sel y (ca A))) Top a)))))
+                                (as Top (fun (a (sel y (ca A))) Top a)))))
                     (cast Top z)))
        (as (rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot Top)))) v)))))
 
@@ -403,8 +403,8 @@
 (test-predicate preservation
  (term
   (valnew (v ((rfn Top z
-                          (: (ca A) Top Top)
-                          (: (cm m) (rfn Top z (: (ca A) Top Top)) (rfn Top z (: (ca A) Top Top))))
+                   (: (ca A) Top Top)
+                   (: (cm m) (rfn Top z (: (ca A) Top Top)) (rfn Top z (: (ca A) Top Top))))
              ((cm m) x x)))
   (app (fun (x Top) Top x)
        (sel (as (rfn Top z (: (cm m) (rfn Top z (: (ca A) Top Top)) Top)) v)
@@ -414,9 +414,9 @@
 (test-predicate preservation
  (term
   (valnew (v ((rfn Top z
-                          (: (ca A) Top Top)
-                          (: (ca B) Bot Top)
-                          (: (cm m) (rfn Top z (: (ca A) Top Top)) (rfn Top z (: (ca A) Top Top))))
+                   (: (ca A) Top Top)
+                   (: (ca B) Bot Top)
+                   (: (cm m) (rfn Top z (: (ca A) Top Top)) (rfn Top z (: (ca A) Top Top))))
              ((cm m) x x)))
   (app (fun (x Top) Top x)
        (sel (as (rfn Top z (: (cm m) (rfn Top z (: (ca A) Top Top) (: (ca B) Bot Top)) Top)) v)
@@ -429,23 +429,23 @@
   (app (as (arrow (rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot (sel z (ca A)))))) Top)
            (fun (x (rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot Top))))) Top
                 (valnew (z ((rfn Top z (: (cm l)
-                                                 ((sel x (ca L))
-                                                  ∧
-                                                  (rfn Top z (: (ca A) Bot (sel z (ca B))) (: (ca B) Bot Top)))
-                                                 Top))
+                                          ((sel x (ca L))
+                                           ∧
+                                           (rfn Top z (: (ca A) Bot (sel z (ca B))) (: (ca B) Bot Top)))
+                                          Top))
                             ((cm l) y (as Top (fun (a (sel y (ca A))) Top a)))))
                         (cast Top z))))
        v))))
 
 (check-not-false
 (let ((Tc (term (rfn Top z
-                            (: (ca A) (rfn Top z (: (cm m) Bot Top)) Top)
-                            (: (ca B) Top Top)
-                            (: (cm m) (sel z (ca A)) Top))))
+                     (: (ca A) (rfn Top z (: (cm m) Bot Top)) Top)
+                     (: (ca B) Top Top)
+                     (: (cm m) (sel z (ca A)) Top))))
       (T  (term (rfn Top z
-                            (: (ca A) (rfn Top z (: (cm m) Bot Top)) Top)
-                            (: (ca B) Top Top)
-                            (: (cm m) (rfn (sel z (ca A)) z (: (ca B) Top Top)) Top)))))
+                     (: (ca A) (rfn Top z (: (cm m) Bot Top)) Top)
+                     (: (ca B) Top Top)
+                     (: (cm m) (rfn (sel z (ca A)) z (: (ca B) Top Top)) Top)))))
   (preservation
    (term
     (valnew (v (,Tc ((cm m) x (as Top x))))
@@ -458,11 +458,11 @@
 (test-predicate preservation
  (term
   (valnew (a ((rfn Top z
-                          (: (cc C) Bot (rfn Top z
-                                                                (: (cc D) Bot (sel z (ca X)))
-                                                                (: (ca X) Bot Top))))))
+                   (: (cc C) Bot (rfn Top z
+                                      (: (cc D) Bot (sel z (ca X)))
+                                      (: (ca X) Bot Top))))))
   (valnew (b ((rfn (sel a (cc C)) z
-                          (: (ca X) Bot Bot))))
+                   (: (ca X) Bot Bot))))
   (valnew (c ((sel a (cc C))))
   (app (fun (x (sel a (cc C))) Top
             (valnew (d ((sel x (cc D))))
@@ -472,13 +472,13 @@
 
 (check-not-false
 (let ((Tc (term (rfn Top z
-                            (: (ca A) (rfn Top z (: (cm m) Bot Top)) Top)
-                            (: (ca B) Top Top)
-                            (: (cm m) (sel z (ca A)) Top))))
+                     (: (ca A) (rfn Top z (: (cm m) Bot Top)) Top)
+                     (: (ca B) Top Top)
+                     (: (cm m) (sel z (ca A)) Top))))
       (T  (term (rfn Top z
-                            (: (ca A) (rfn Top z (: (cm m) Bot Top)) Top)
-                            (: (ca B) Top Top)
-                            (: (cm m) (rfn (sel z (ca A)) z (: (ca B) Top Top)) Top)))))
+                     (: (ca A) (rfn Top z (: (cm m) Bot Top)) Top)
+                     (: (ca B) Top Top)
+                     (: (cm m) (rfn (sel z (ca A)) z (: (ca B) Top Top)) Top)))))
   (preservation
    (term
     (valnew (v (,Tc ((cm m) x x)))
