@@ -95,7 +95,30 @@
         (collapse (first lws) (list-ref lws 1))
         (list-ref lws 2)
         (subtext "c")
-        (collapse (list-ref lws 3) (last lws))))])
+        (collapse (list-ref lws 3) (last lws))))]
+    [':
+     (λ (lws)
+       (list
+        (collapse (first lws) (list-ref lws 1))
+        (list-ref lws 2)
+        ":"
+        (list-ref lws 3)
+        (collapse (list-ref lws 4) (last lws))))]
+    ['refinement
+     (λ (lws)
+       (define (helper lws first?)
+         (if (null? (cdr lws))
+             (list (combine " }" (last lws)))
+             (append
+              (if first? (list (car lws)) (list "," (car lws)))
+              (helper (cdr lws) #f))))
+       (list*
+         (collapse (first lws) (list-ref lws 1))
+         (list-ref lws 2)
+         " { "
+         (list-ref lws 3)
+         " ⇒ "
+         (helper (list-tail lws 4) #t)))])
    (thunk)))
 ;; --- end typesetting ---
 
