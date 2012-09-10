@@ -17,18 +17,18 @@
 
 ;; grammar
 (check-true (redex-match? dot e (term (val u = new (Top) in u))))
-(check-true (redex-match? dot e (term (val u = new ((refinement Top self (: (cv l) Top)) [(cv l) u]) in (sel u (cv l))))))
+(check-true (redex-match? dot e (term (val u = new ((rfn Top self (: (cv l) Top)) [(cv l) u]) in (sel u (cv l))))))
 
 ;; substitution
 (check-true (redex-match? dot
- (val x_1 = new ((refinement Top self (: (cm f) Top Top)) [(cm f) x_2 x_2]) in x_1)
- (term (subst (val u = new ((refinement Top self (: (cm f) Top Top)) [(cm f) x x]) in u) x y))))
+ (val x_1 = new ((rfn Top self (: (cm f) Top Top)) [(cm f) x_2 x_2]) in x_1)
+ (term (subst (val u = new ((rfn Top self (: (cm f) Top Top)) [(cm f) x x]) in u) x y))))
 (check-true (redex-match? dot
- (val x_1 = new ((refinement Top self (: (cm f) Top Top)) [(cm f) (side-condition x_2 (not (equal? 'y (term x_2)))) y]) in x_1)
- (term (subst (valnew (u ((refinement Top self (: (cm f) Top Top)) [(cm f) y x])) u) x y))))
+ (val x_1 = new ((rfn Top self (: (cm f) Top Top)) [(cm f) (side-condition x_2 (not (equal? 'y (term x_2)))) y]) in x_1)
+ (term (subst (valnew (u ((rfn Top self (: (cm f) Top Top)) [(cm f) y x])) u) x y))))
 (check-true (redex-match? dot
- (val x_1 = new ((refinement Top self (: (cm f) Top Top)) [(cm f) (side-condition x_2 (not (equal? 'y (term x_2)))) y]) in x_1)
- (term (subst (valnew (u ((refinement Top self (: (cm f) Top Top)) [(cm f) z x])) u) x y))))
+ (val x_1 = new ((rfn Top self (: (cm f) Top Top)) [(cm f) (side-condition x_2 (not (equal? 'y (term x_2)))) y]) in x_1)
+ (term (subst (valnew (u ((rfn Top self (: (cm f) Top Top)) [(cm f) z x])) u) x y))))
 (check-true (redex-match? dot
  (val x_1 = new (Top) in y)
  (term (subst (valnew (u (Top)) x) x y))))
@@ -36,16 +36,16 @@
  (val (side-condition x_1 (not (equal? 'u (term x_1)))) = new (Top) in u)
  (term (subst (valnew (u (Top)) x) x u))))
 (check-true (redex-match? dot
- (val x_1 = new ((refinement Top self (: (cm mt) Top Top)) [(cm mt) x_2 x_1]) in (sel x_1 (cm mt) x_1))
- (term (subst (valnew (u ((refinement Top self (: (cm mt) Top Top)) [(cm mt) y u])) (sel u (cm mt) u)) mt x))))
+ (val x_1 = new ((rfn Top self (: (cm mt) Top Top)) [(cm mt) x_2 x_1]) in (sel x_1 (cm mt) x_1))
+ (term (subst (valnew (u ((rfn Top self (: (cm mt) Top Top)) [(cm mt) y u])) (sel u (cm mt) u)) mt x))))
 
 ;; reduction
-;(trace-dot (term (valnew (u ((refinement Top self (: (cv l) Top)) [(cv l) u])) (sel u (cv l)))))
+;(trace-dot (term (valnew (u ((rfn Top self (: (cv l) Top)) [(cv l) u])) (sel u (cv l)))))
 
 ;; evaluation
 (check-not-false (term (ev () (valnew (u (Top)) u))))
-(check-not-false (term (ev () (valnew (u ((refinement Top self (: (cm f) Top Top)) [(cm l) x x])) (sel u (cm l) u)))))
-(check-not-false (term (ev () (valnew (u ((refinement Top self (: (cm l) Top Top)) [(cm l) x u])) (sel u (cm l) u)))))
+(check-not-false (term (ev () (valnew (u ((rfn Top self (: (cm f) Top Top)) [(cm l) x x])) (sel u (cm l) u)))))
+(check-not-false (term (ev () (valnew (u ((rfn Top self (: (cm l) Top Top)) [(cm l) x u])) (sel u (cm l) u)))))
 
 ;; type-checking
 
@@ -53,35 +53,35 @@
             'Top)
 (test-equal (typecheck (term (() ())) (term (valnew (o (Top)) (valnew (o (Top)) o))))
             'Top)
-(test-equal (typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (cm f) Top Top)) [(cm f) x x])) u)))
-            (term (refinement Top u (: (cm f) Top Top))))
-(test-equal (typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (cm f) Top Top)) [(cm f) x x])) (sel u (cm f) u))))
+(test-equal (typecheck (term (() ())) (term (valnew (u ((rfn Top u (: (cm f) Top Top)) [(cm f) x x])) u)))
+            (term (rfn Top u (: (cm f) Top Top))))
+(test-equal (typecheck (term (() ())) (term (valnew (u ((rfn Top u (: (cm f) Top Top)) [(cm f) x x])) (sel u (cm f) u))))
             'Top)
-(test-equal (typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (cm l) Top Top)) [(cm l) x u])) (sel u (cm l) u))))
+(test-equal (typecheck (term (() ())) (term (valnew (u ((rfn Top u (: (cm l) Top Top)) [(cm l) x u])) (sel u (cm l) u))))
             'Top)
-(test-equal (typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (cc l) Top Top)))) u)))
-            (term (refinement Top u (: (cc l) Top Top))))
-(test-equal (typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (cc l) Top Top))))
-                                                    (valnew (w ((refinement Top w (: (cm f) (sel u (cc l)) Top))
+(test-equal (typecheck (term (() ())) (term (valnew (u ((rfn Top u (: (cc l) Top Top)))) u)))
+            (term (rfn Top u (: (cc l) Top Top))))
+(test-equal (typecheck (term (() ())) (term (valnew (u ((rfn Top u (: (cc l) Top Top))))
+                                                    (valnew (w ((rfn Top w (: (cm f) (sel u (cc l)) Top))
                                                                 [(cm f) x x]))
                                                             (sel w (cm f) u)))))
             'Top)
-(test-equal (typecheck (term (() ())) (term (valnew (u ((refinement Top u (: (cc l) Top Top) (: (cm f) (sel u (cc l)) Top))
+(test-equal (typecheck (term (() ())) (term (valnew (u ((rfn Top u (: (cc l) Top Top) (: (cm f) (sel u (cc l)) Top))
                                                         [(cm f) x x]))
                                                     (sel u (cm f) u))))
             'Top)
-(test-equal (typecheck (term (() ())) (term (valnew (u ((refinement Top u
+(test-equal (typecheck (term (() ())) (term (valnew (u ((rfn Top u
                                                                     (: (ca l) Top Top)
-                                                                    (: (cm f) (sel u (ca l)) (refinement Top z (: (ca l) Top Top))))
+                                                                    (: (cm f) (sel u (ca l)) (rfn Top z (: (ca l) Top Top))))
                                                         [(cm f) x u]))
                                                     (sel u (cm f) u))))
-            (term (refinement Top z (: (ca l) Top Top))))
+            (term (rfn Top z (: (ca l) Top Top))))
 
 ;; sugar
 (test-equal (typecheck (term (() ())) (term (fun (x Top) Top x)))
-            (term (refinement Top f (: (cm apply) Top Top))))
+            (term (rfn Top f (: (cm apply) Top Top))))
 (test-equal (typecheck (term (() ())) (term (valnew (d (Top)) (fun (x Top) Top x))))
-            (term (refinement Top f (: (cm apply) Top Top))))
+            (term (rfn Top f (: (cm apply) Top Top))))
 (test-equal (typecheck (term (() ())) (term (valnew (d (Top)) (app (fun (x Top) Top x) d))))
             'Top)
 ;(test-equal (typecheck (term (() ())) (dotExample)) 'Top)
@@ -89,42 +89,42 @@
 ;; soundness
 (test-predicate preservation (term (valnew (u (Top)) u)))
 (test-predicate preservation (term (app (fun (x Top) Top x) (fun (x Top) Top x))))
-(test-predicate preservation (term (valnew (u ((refinement Top u (: (cm l) Top Top)) [(cm l) x u])) (sel u (cm l) u))))
-(test-predicate preservation (term (valnew (u ((refinement Top u (: (cc l) Top Top)))) (app (fun (x (sel u (cc l))) Top u) u))))
+(test-predicate preservation (term (valnew (u ((rfn Top u (: (cm l) Top Top)) [(cm l) x u])) (sel u (cm l) u))))
+(test-predicate preservation (term (valnew (u ((rfn Top u (: (cc l) Top Top)))) (app (fun (x (sel u (cc l))) Top u) u))))
 ;(test-predicate preservation (dotExample))
 
 (test-predicate big-step-preservation (term (valnew (u (Top)) u)))
 (test-predicate big-step-preservation (term (app (fun (x Top) Top x) (fun (x Top) Top x))))
-(test-predicate big-step-preservation (term (valnew (u ((refinement Top u (: (cm l) Top Top)) [(cm l) x u])) (sel u (cm l) u))))
-(test-predicate big-step-preservation (term (valnew (u ((refinement Top u (: (cc l) Top Top)))) (app (fun (x (sel u (cc l))) Top u) u))))
+(test-predicate big-step-preservation (term (valnew (u ((rfn Top u (: (cm l) Top Top)) [(cm l) x u])) (sel u (cm l) u))))
+(test-predicate big-step-preservation (term (valnew (u ((rfn Top u (: (cc l) Top Top)))) (app (fun (x (sel u (cc l))) Top u) u))))
 ;(test-predicate big-step-preservation (dotExample))
 
 (test-predicate type-safety (term (valnew (u (Top)) u)))
 (test-predicate type-safety (term (app (fun (x Top) Top x) (fun (x Top) Top x))))
-(test-predicate type-safety (term (valnew (u ((refinement Top u (: (cm l) Top Top)) [(cm l) x u])) (sel u (cm l) u))))
-(test-predicate type-safety (term (valnew (u ((refinement Top u (: (cc l) Top Top)))) (app (fun (x (sel u (cc l))) Top u) u))))
+(test-predicate type-safety (term (valnew (u ((rfn Top u (: (cm l) Top Top)) [(cm l) x u])) (sel u (cm l) u))))
+(test-predicate type-safety (term (valnew (u ((rfn Top u (: (cc l) Top Top)))) (app (fun (x (sel u (cc l))) Top u) u))))
 ;(test-predicate type-safety (dotExample))
 
 
-(check-true (subtyping-transitive (term (([x (refinement Top self (: (cc L) Bottom (sel self (cc L))))]) ())) (term (sel x (cc L))) (term Top) (term (refinement Top z))))
-(test-predicate preservation (term (valnew (u ((refinement Top self (: (cc L) Bottom (sel self (cc L)))))) (fun (x Top) Top x))))
+(check-true (subtyping-transitive (term (([x (rfn Top self (: (cc L) Bottom (sel self (cc L))))]) ())) (term (sel x (cc L))) (term Top) (term (rfn Top z))))
+(test-predicate preservation (term (valnew (u ((rfn Top self (: (cc L) Bottom (sel self (cc L)))))) (fun (x Top) Top x))))
 
 
 (check-false
-(typecheck (term (() ())) (term (valnew (u ((refinement Top self (: (cc L) Bottom (sel self (cc L)))))) (cast Top
-(cast (arrow (sel u (cc L)) (refinement Top z))
+(typecheck (term (() ())) (term (valnew (u ((rfn Top self (: (cc L) Bottom (sel self (cc L)))))) (cast Top
+(cast (arrow (sel u (cc L)) (rfn Top z))
       (cast (arrow (sel u (cc L)) Top)
             (fun (x (sel u (cc L))) (sel u (cc L)) x)))
 ))))
 )
 
 (check-false
-(typecheck (term (() ())) (term (valnew (u ((refinement Top self 
+(typecheck (term (() ())) (term (valnew (u ((rfn Top self 
                                                         (: (ca L1) Bottom (sel self (ca L1)))
-                                                        (: (ca L2) Bottom (refinement Top z (: (ca L3) Bottom Top)))
+                                                        (: (ca L2) Bottom (rfn Top z (: (ca L3) Bottom Top)))
                                                         (: (ca L4) ((sel self (ca L2)) ∧ (sel self (ca L1))) (sel self (ca L2))))))
                                         (cast Top
-(cast (arrow ((sel u (ca L2)) ∧ (sel u (ca L1))) (refinement Top z (: (ca L3) Bottom Top)))
+(cast (arrow ((sel u (ca L2)) ∧ (sel u (ca L1))) (rfn Top z (: (ca L3) Bottom Top)))
       (cast (arrow ((sel u (ca L2)) ∧ (sel u (ca L1))) (sel u (ca L4)))
             (fun (x ((sel u (ca L2)) ∧ (sel u (ca L1))))
                  ((sel u (ca L2)) ∧ (sel u (ca L1)))
@@ -133,41 +133,41 @@
 )
 
 (check-true
-(let ([env (term (([u (refinement Top self 
+(let ([env (term (([u (rfn Top self 
                                   (: (cc Bad) Bottom (sel self (cc Bad))) 
                                   (: (cc BadBounds) Top (sel self (cc Bad))) 
                                   (: (cc Mix) (sel self (cc BadBounds)) Top))])
                   ()))]
       [s (term (sel u (cc BadBounds)))]
       [t (term (sel u (cc Mix)))]
-      [u (term (refinement (sel u (cc Mix)) z))])
+      [u (term (rfn (sel u (cc Mix)) z))])
   (subtyping-transitive env s t u))
 )
 
 (check-true
-(let ([env (term (([u (refinement Top self
+(let ([env (term (([u (rfn Top self
                                   (: (cc Bad) Bottom (sel self (cc Bad)))
-                                  (: (cc Good) (refinement Top z (: (cc L) Bottom Top)) (refinement Top z (: (cc L) Bottom Top)))
+                                  (: (cc Good) (rfn Top z (: (cc L) Bottom Top)) (rfn Top z (: (cc L) Bottom Top)))
                                   (: (cc Lower) ((sel self (cc Bad)) ∧ (sel self (cc Good))) (sel self (cc Good)))
                                   (: (cc Upper) (sel self (cc Good)) ((sel self (cc Bad)) ∨ (sel self (cc Good))))
                                   (: (cc X) (sel self (cc Lower)) (sel self (cc Upper))))])
                   ()))]
       [s (term ((sel u (cc Bad)) ∧ (sel u (cc Good))))]
       [t (term (sel u (cc Lower)))]
-      [u (term (refinement (sel u (cc X)) z (: (cc L) Bottom Top)))])
+      [u (term (rfn (sel u (cc X)) z (: (cc L) Bottom Top)))])
   (subtyping-transitive env s t u))
 )
 
 (check-true
-(let ([Tc (term (refinement Top self
+(let ([Tc (term (rfn Top self
                             (: (cc Bad) Bottom (sel self (cc Bad)))
-                            (: (cc Good) (refinement Top z (: (cc L) Bottom Top)) (refinement Top z (: (cc L) Bottom Top)))
+                            (: (cc Good) (rfn Top z (: (cc L) Bottom Top)) (rfn Top z (: (cc L) Bottom Top)))
                             (: (cc Lower) ((sel self (cc Bad)) ∧ (sel self (cc Good))) (sel self (cc Good)))
                             (: (cc Upper) (sel self (cc Good)) ((sel self (cc Bad)) ∨ (sel self (cc Good))))
                             (: (cc X) (sel self (cc Lower)) (sel self (cc Upper)))))]
       [s (term ((sel u (cc Bad)) ∧ (sel u (cc Good))))]
       [t (term (sel u (cc Lower)))]
-      [u (term (refinement (sel u (cc X)) z (: (cc L) Bottom Top)))])
+      [u (term (rfn (sel u (cc X)) z (: (cc L) Bottom Top)))])
   (preservation (term (valnew (u (,Tc)) (cast Top
     (cast (arrow ,s ,u)
           (cast (arrow ,s ,t)
@@ -176,29 +176,29 @@
 )
 
 (test-equal
-(typecheck (term (() ())) (term (valnew (u ((refinement Top self 
-                              (: (cc Bar) Bottom (refinement Top self (: (cc T) Bottom Top)))
-                              (: (cc Foo) Bottom (refinement (sel self (cc Bar)) z (: (cc T) Bottom (sel self (cc Foo)))))
+(typecheck (term (() ())) (term (valnew (u ((rfn Top self 
+                              (: (cc Bar) Bottom (rfn Top self (: (cc T) Bottom Top)))
+                              (: (cc Foo) Bottom (rfn (sel self (cc Bar)) z (: (cc T) Bottom (sel self (cc Foo)))))
                               (: (cm foo) Top (arrow Top (sel self (cc Foo)))))
               ((cm foo) dummy (fun (x Top) (sel u (cc Foo)) (valnew (foo ((sel u (cc Foo)))) foo)))))
               (as Top (sel u (cm foo) (as Top u))))))
 'Top)
 
 (test-equal
-(typecheck (term (() ())) (term (valnew (u ((refinement Top self 
-                              (: (cc Bar) Bottom (refinement Top self (: (cc T) Bottom Top) (: (cm some) Top (sel self (cc T)))))
-                              (: (cc Foo) Bottom (refinement (sel self (cc Bar)) z (: (cc T) (sel self (cc Foo)) Top)))
+(typecheck (term (() ())) (term (valnew (u ((rfn Top self 
+                              (: (cc Bar) Bottom (rfn Top self (: (cc T) Bottom Top) (: (cm some) Top (sel self (cc T)))))
+                              (: (cc Foo) Bottom (rfn (sel self (cc Bar)) z (: (cc T) (sel self (cc Foo)) Top)))
                               (: (cm foo) Top (arrow Top (sel self (cc Foo)))))
               ((cm foo) dummy (fun (x Top) (sel u (cc Foo)) (valnew (foo ((sel u (cc Foo)) ((cm some) dummy (as (sel foo (cc T)) foo)))) foo)))))
               (cast Top (sel u (cm foo) (as Top u))))))
 'Top)
 
 #;
-(let ((w (term (refinement Top b
+(let ((w (term (rfn Top b
                            (: (cc T) Bottom (sel (sel b (cv x)) (cc T)))
                            (: (cv x) (sel u (cc C)))))))
   (judgment-holds
-   (expansion (((u (refinement Top a
+   (expansion (((u (rfn Top a
                                (: (cc C) Bottom ,w)))
                 (w ,w))
                ())
@@ -212,10 +212,10 @@
 )
 
 (check-not-false
-(let ((typeX (term (refinement Top z
+(let ((typeX (term (rfn Top z
                                (: (ca A) Top Top)
                                (: (cm l) Top (sel z (ca A))))))
-      (typeY (term (refinement Top z
+      (typeY (term (rfn Top z
                                (: (cm l) Top Top)))))
   (type-safety
    (term
@@ -225,10 +225,10 @@
 )
 
 (check-not-false
-(let ((typeX (term (refinement Top z
+(let ((typeX (term (rfn Top z
                                (: (ca A) Top Top)
                                (: (cm l) Top (sel z (ca A))))))
-      (typeY (term (refinement Top z
+      (typeY (term (rfn Top z
                                (: (cm l) Top Top)))))
   (big-step-preservation
    (term
@@ -244,13 +244,13 @@
 (test-predicate type-safety
  (term
   (valnew
-   (b ((refinement Top z
+   (b ((rfn Top z
                    (: (ca X) Top Top)
                    (: (cv l) (sel z (ca X))))
        ((cv l) b)))
    (valnew
-    (a ((refinement Top z
-                    (: (cv i) (refinement Top z
+    (a ((rfn Top z
+                    (: (cv i) (rfn Top z
                                                    (: (ca X) Bottom Top)
                                                    (: (cv l) (sel z (ca X))))))
         ((cv i) b)))
@@ -261,13 +261,13 @@
 (test-predicate big-step-preservation
  (term
   (valnew
-   (b ((refinement Top z
+   (b ((rfn Top z
                    (: (ca X) Top Top)
                    (: (cv l) (sel z (ca X))))
        ((cv l) b)))
    (valnew
-    (a ((refinement Top z
-                    (: (cv i) (refinement Top z
+    (a ((rfn Top z
+                    (: (cv i) (rfn Top z
                                                    (: (ca X) Bottom Top)
                                                    (: (cv l) (sel z (ca X))))))
         ((cv i) b)))
@@ -280,13 +280,13 @@
 (test-predicate type-safety
  (term
    (valnew
-    (b ((refinement Top z
+    (b ((rfn Top z
                     (: (ca X) Top Top)
                     (: (cv l) (sel z (ca X))))
         ((cv l) b)))
    (valnew
-    (a ((refinement Top z
-                    (: (cv i) (refinement Top z
+    (a ((rfn Top z
+                    (: (cv i) (rfn Top z
                                                    (: (ca X) Bottom Top)
                                                    (: (cv l) (sel z (ca X))))))
         ((cv i) b)))
@@ -297,13 +297,13 @@
 (test-predicate big-step-preservation
  (term
    (valnew
-    (b ((refinement Top z
+    (b ((rfn Top z
                     (: (ca X) Top Top)
                     (: (cv l) (sel z (ca X))))
         ((cv l) b)))
    (valnew
-    (a ((refinement Top z
-                    (: (cv i) (refinement Top z
+    (a ((rfn Top z
+                    (: (cv i) (rfn Top z
                                                    (: (ca X) Bottom Top)
                                                    (: (cv l) (sel z (ca X))))))
         ((cv i) b)))
@@ -314,15 +314,15 @@
           (sel (sel a (cv i)) (cv l))))))))
 
 (check-true
-(let* ([typeX (term (refinement Top z
+(let* ([typeX (term (rfn Top z
                                 (: (ca A) Top Top)
                                 (: (ca B) Top Top)
                                 (: (ca C) Bottom (sel z (ca B)))))]
-       [typeY (term (refinement Top z
+       [typeY (term (rfn Top z
                                 (: (ca A) Bottom Top)
                                 (: (ca B) Bottom Top)
                                 (: (ca C) Bottom (sel z (ca A)))))]
-       [typeZ (term (refinement ,typeX z
+       [typeZ (term (rfn ,typeX z
                                 (: (ca A) Bottom Bottom)
                                 (: (ca B) Bottom Bottom)))])
   (subtyping-transitive (term (() ())) typeZ typeX typeY))
@@ -330,39 +330,39 @@
 
 (test-predicate preservation
  (term
-  (valnew (v ((refinement Top z (: (cc L) Bottom (refinement Top z (: (ca A) Top Bottom))))))
-          (app (fun (x (refinement Top z (: (cc L) Bottom (refinement Top z (: (ca A) Bottom Top)))))
+  (valnew (v ((rfn Top z (: (cc L) Bottom (rfn Top z (: (ca A) Top Bottom))))))
+          (app (fun (x (rfn Top z (: (cc L) Bottom (rfn Top z (: (ca A) Bottom Top)))))
                     Top
                     (valnew (z ((sel x (cc L)))) (cast Top z)))
                v))))
 
 (test-predicate type-safety
  (term
-  (valnew (v ((refinement Top z (: (ca L) Bottom (refinement Top z (: (ca A) Bottom Top) (: (ca B) Bottom (sel z (ca A))))))))
-  (app (fun (x (refinement Top z (: (ca L) Bottom (refinement Top z (: (ca A) Bottom Top) (: (ca B) Bottom Top))))) Top
-            (valnew (z ((refinement Top z (: (cm l)
+  (valnew (v ((rfn Top z (: (ca L) Bottom (rfn Top z (: (ca A) Bottom Top) (: (ca B) Bottom (sel z (ca A))))))))
+  (app (fun (x (rfn Top z (: (ca L) Bottom (rfn Top z (: (ca A) Bottom Top) (: (ca B) Bottom Top))))) Top
+            (valnew (z ((rfn Top z (: (cm l)
                                              ((sel x (ca L))
                                               ∧
-                                              (refinement Top z (: (ca A) Bottom (sel z (ca B))) (: (ca B) Bottom Top)))
+                                              (rfn Top z (: (ca A) Bottom (sel z (ca B))) (: (ca B) Bottom Top)))
                                              Top))
                         ((cm l) y
                                           (as Top (fun (a (sel y (ca A))) Top a)))))
                     (cast Top z)))
-       (as (refinement Top z (: (ca L) Bottom (refinement Top z (: (ca A) Bottom Top) (: (ca B) Bottom Top)))) v)))))
+       (as (rfn Top z (: (ca L) Bottom (rfn Top z (: (ca A) Bottom Top) (: (ca B) Bottom Top)))) v)))))
 
 (test-predicate type-safety
  (term
-  (valnew (x00 ((refinement Top z (: (ca L) Bottom
-                                     (refinement Top self
+  (valnew (x00 ((rfn Top z (: (ca L) Bottom
+                                     (rfn Top self
                                                  (: (ca A) Bottom Top)
                                                  (: (ca B) Bottom Top)
                                                  (: (cc Lc2) Bottom (sel self (ca A))))))))
-  (valnew (x0 ((refinement Top z (: (cc Lc1) Bottom (refinement Top z (: (ca L) Bottom (sel x00 (ca L))))))))
-  (valnew (x1 ((refinement (sel x0 (cc Lc1)) z (: (ca L) Bottom 
-                                                           (refinement (sel x00 (ca L)) self 
+  (valnew (x0 ((rfn Top z (: (cc Lc1) Bottom (rfn Top z (: (ca L) Bottom (sel x00 (ca L))))))))
+  (valnew (x1 ((rfn (sel x0 (cc Lc1)) z (: (ca L) Bottom 
+                                                           (rfn (sel x00 (ca L)) self 
                                                                        (: (ca A) Bottom (sel self (ca B))))))))
-  (valnew (x2 ((refinement (sel x0 (cc Lc1)) z (: (ca L) Bottom 
-                                                           (refinement (sel x00 (ca L)) self 
+  (valnew (x2 ((rfn (sel x0 (cc Lc1)) z (: (ca L) Bottom 
+                                                           (rfn (sel x00 (ca L)) self 
                                                                        (: (ca B) Bottom (sel self (ca A))))))))
   (app (fun (x (sel x0 (cc Lc1))) Top
             (fun (z0 ((sel x (ca L)) ∧ (sel x2 (ca L)))) Top
@@ -372,80 +372,80 @@
 
 (test-predicate type-safety
  (term
-  (valnew (v ((refinement Top z (: (ca L) Bottom (refinement Top z (: (ca A) Bottom Top) (: (ca B) (sel z (ca A)) Top))))))
-  (app (fun (x (refinement Top z (: (ca L) Bottom (refinement Top z (: (ca A) Bottom Top) (: (ca B) Bottom Top))))) Top
-            (valnew (z ((refinement Top z (: (cm l)
+  (valnew (v ((rfn Top z (: (ca L) Bottom (rfn Top z (: (ca A) Bottom Top) (: (ca B) (sel z (ca A)) Top))))))
+  (app (fun (x (rfn Top z (: (ca L) Bottom (rfn Top z (: (ca A) Bottom Top) (: (ca B) Bottom Top))))) Top
+            (valnew (z ((rfn Top z (: (cm l)
                                              ((sel x (ca L))
                                               ∧
-                                              (refinement Top z (: (ca A) (sel z (ca B)) Top) (: (ca B) Bottom Top)))
+                                              (rfn Top z (: (ca A) (sel z (ca B)) Top) (: (ca B) Bottom Top)))
                                              Top))
                         ((cm l) y
                                           (as Top (fun (a (sel y (ca A))) Top a)))))
                     (cast Top z)))
-       (as (refinement Top z (: (ca L) Bottom (refinement Top z (: (ca A) Bottom Top) (: (ca B) Bottom Top)))) v)))))
+       (as (rfn Top z (: (ca L) Bottom (rfn Top z (: (ca A) Bottom Top) (: (ca B) Bottom Top)))) v)))))
 
 (test-predicate preservation
  (term
-  (valnew (v ((refinement Top z (: (ca L) Bottom Top) (: (cv l) (refinement Top z (: (ca L) Bottom Top))))
+  (valnew (v ((rfn Top z (: (ca L) Bottom Top) (: (cv l) (rfn Top z (: (ca L) Bottom Top))))
               ((cv l) v)))
   (app (fun (x Top) Top x)
-       (sel (as (refinement Top z (: (cv l) Top)) v) (cv l))))))
+       (sel (as (rfn Top z (: (cv l) Top)) v) (cv l))))))
 
 (test-predicate preservation
  (term
-  (valnew (v ((refinement Top z (: (cm m) Top Top))
+  (valnew (v ((rfn Top z (: (cm m) Top Top))
               ((cm m) x x)))
   (app (fun (x Top) Top x)
-       (sel (as (refinement Top z (: (cm m) (refinement Top z (: (cm m) Top Top)) Top)) v)
+       (sel (as (rfn Top z (: (cm m) (rfn Top z (: (cm m) Top Top)) Top)) v)
             (cm m)
             v)))))
 
 (test-predicate preservation
  (term
-  (valnew (v ((refinement Top z
+  (valnew (v ((rfn Top z
                           (: (ca A) Top Top)
-                          (: (cm m) (refinement Top z (: (ca A) Top Top)) (refinement Top z (: (ca A) Top Top))))
+                          (: (cm m) (rfn Top z (: (ca A) Top Top)) (rfn Top z (: (ca A) Top Top))))
              ((cm m) x x)))
   (app (fun (x Top) Top x)
-       (sel (as (refinement Top z (: (cm m) (refinement Top z (: (ca A) Top Top)) Top)) v)
+       (sel (as (rfn Top z (: (cm m) (rfn Top z (: (ca A) Top Top)) Top)) v)
             (cm m)
-            (as (refinement Top z (: (ca A) Top Top)) v))))))
+            (as (rfn Top z (: (ca A) Top Top)) v))))))
 
 (test-predicate preservation
  (term
-  (valnew (v ((refinement Top z
+  (valnew (v ((rfn Top z
                           (: (ca A) Top Top)
                           (: (ca B) Bottom Top)
-                          (: (cm m) (refinement Top z (: (ca A) Top Top)) (refinement Top z (: (ca A) Top Top))))
+                          (: (cm m) (rfn Top z (: (ca A) Top Top)) (rfn Top z (: (ca A) Top Top))))
              ((cm m) x x)))
   (app (fun (x Top) Top x)
-       (sel (as (refinement Top z (: (cm m) (refinement Top z (: (ca A) Top Top) (: (ca B) Bottom Top)) Top)) v)
+       (sel (as (rfn Top z (: (cm m) (rfn Top z (: (ca A) Top Top) (: (ca B) Bottom Top)) Top)) v)
             (cm m)
-            (as (refinement Top z (: (ca A) Top Top) (: (ca B) Bottom Top)) v))))))
+            (as (rfn Top z (: (ca A) Top Top) (: (ca B) Bottom Top)) v))))))
 
 (test-predicate type-safety
  (term
-  (valnew (v ((refinement Top z (: (ca L) Bottom (refinement Top z (: (ca A) Bottom Top) (: (ca B) Bottom (sel z (ca A))))))))
-  (app (as (arrow (refinement Top z (: (ca L) Bottom (refinement Top z (: (ca A) Bottom Top) (: (ca B) Bottom (sel z (ca A)))))) Top)
-           (fun (x (refinement Top z (: (ca L) Bottom (refinement Top z (: (ca A) Bottom Top) (: (ca B) Bottom Top))))) Top
-                (valnew (z ((refinement Top z (: (cm l)
+  (valnew (v ((rfn Top z (: (ca L) Bottom (rfn Top z (: (ca A) Bottom Top) (: (ca B) Bottom (sel z (ca A))))))))
+  (app (as (arrow (rfn Top z (: (ca L) Bottom (rfn Top z (: (ca A) Bottom Top) (: (ca B) Bottom (sel z (ca A)))))) Top)
+           (fun (x (rfn Top z (: (ca L) Bottom (rfn Top z (: (ca A) Bottom Top) (: (ca B) Bottom Top))))) Top
+                (valnew (z ((rfn Top z (: (cm l)
                                                  ((sel x (ca L))
                                                   ∧
-                                                  (refinement Top z (: (ca A) Bottom (sel z (ca B))) (: (ca B) Bottom Top)))
+                                                  (rfn Top z (: (ca A) Bottom (sel z (ca B))) (: (ca B) Bottom Top)))
                                                  Top))
                             ((cm l) y (as Top (fun (a (sel y (ca A))) Top a)))))
                         (cast Top z))))
        v))))
 
 (check-not-false
-(let ((Tc (term (refinement Top z
-                            (: (ca A) (refinement Top z (: (cm m) Bottom Top)) Top)
+(let ((Tc (term (rfn Top z
+                            (: (ca A) (rfn Top z (: (cm m) Bottom Top)) Top)
                             (: (ca B) Top Top)
                             (: (cm m) (sel z (ca A)) Top))))
-      (T  (term (refinement Top z
-                            (: (ca A) (refinement Top z (: (cm m) Bottom Top)) Top)
+      (T  (term (rfn Top z
+                            (: (ca A) (rfn Top z (: (cm m) Bottom Top)) Top)
                             (: (ca B) Top Top)
-                            (: (cm m) (refinement (sel z (ca A)) z (: (ca B) Top Top)) Top)))))
+                            (: (cm m) (rfn (sel z (ca A)) z (: (ca B) Top Top)) Top)))))
   (preservation
    (term
     (valnew (v (,Tc ((cm m) x (as Top x))))
@@ -457,11 +457,11 @@
 
 (test-predicate preservation
  (term
-  (valnew (a ((refinement Top z
-                          (: (cc C) Bottom (refinement Top z
+  (valnew (a ((rfn Top z
+                          (: (cc C) Bottom (rfn Top z
                                                                 (: (cc D) Bottom (sel z (ca X)))
                                                                 (: (ca X) Bottom Top))))))
-  (valnew (b ((refinement (sel a (cc C)) z
+  (valnew (b ((rfn (sel a (cc C)) z
                           (: (ca X) Bottom Bottom))))
   (valnew (c ((sel a (cc C))))
   (app (fun (x (sel a (cc C))) Top
@@ -471,23 +471,23 @@
        b))))))
 
 (check-not-false
-(let ((Tc (term (refinement Top z
-                            (: (ca A) (refinement Top z (: (cm m) Bottom Top)) Top)
+(let ((Tc (term (rfn Top z
+                            (: (ca A) (rfn Top z (: (cm m) Bottom Top)) Top)
                             (: (ca B) Top Top)
                             (: (cm m) (sel z (ca A)) Top))))
-      (T  (term (refinement Top z
-                            (: (ca A) (refinement Top z (: (cm m) Bottom Top)) Top)
+      (T  (term (rfn Top z
+                            (: (ca A) (rfn Top z (: (cm m) Bottom Top)) Top)
                             (: (ca B) Top Top)
-                            (: (cm m) (refinement (sel z (ca A)) z (: (ca B) Top Top)) Top)))))
+                            (: (cm m) (rfn (sel z (ca A)) z (: (ca B) Top Top)) Top)))))
   (preservation
    (term
     (valnew (v (,Tc ((cm m) x x)))
-    (valnew (u ((refinement Top z (: (cv v) ,Tc))
+    (valnew (u ((rfn Top z (: (cv v) ,Tc))
                 ((cv v) v)))
     (as Top
         (sel (as ,T (sel u (cv v)))
              (cm m)
-             (app (fun (h ,T) Top (as (refinement (sel h (ca A)) z (: (ca B) Top Top)) v))
+             (app (fun (h ,T) Top (as (rfn (sel h (ca A)) z (: (ca B) Top Top)) v))
                   (sel u (cv v))))))))))
 )
 

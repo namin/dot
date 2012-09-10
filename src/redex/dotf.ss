@@ -19,8 +19,8 @@
   (Lt Lc La)
   (Lc (cc variable-not-otherwise-mentioned))
   (La (ca variable-not-otherwise-mentioned))
-  ((S T U V W) (sel p Lt) (refinement T z DLt ... Dl ... Dm ...) (T ∧ T) (T ∨ T) Top Bottom)
-  ((Sc Tc) (sel p Lc) (refinement Tc z DLt ... Dl ... Dm ...) (Tc ∧ Tc) Top)
+  ((S T U V W) (sel p Lt) (rfn T z DLt ... Dl ... Dm ...) (T ∧ T) (T ∨ T) Top Bottom)
+  ((Sc Tc) (sel p Lc) (rfn Tc z DLt ... Dl ... Dm ...) (Tc ∧ Tc) Top)
   (DLt (: Lt S U))
   (Dl (: l T))
   (Dm (: m S U))
@@ -38,8 +38,8 @@
    (m_1 x_1 any_1)]
   [(subst (val x_1 = new c_1 in any_1) x_1 any_2)
    (val x_1 = new c_1 in any_1)]
-  [(subst (refinement T_1 x_1 D_1 ...) x_1 any_2)
-   (refinement (subst T_1 x_1 any_2) x_1 D_1 ...)]
+  [(subst (rfn T_1 x_1 D_1 ...) x_1 any_2)
+   (rfn (subst T_1 x_1 any_2) x_1 D_1 ...)]
   
   ;; 2. do capture avoiding substitution by generating a fresh name
   [(subst (m_1 x_1 any_1) x_2 any_2)
@@ -52,8 +52,8 @@
         (subst (subst-var any_1 x_1 x_3) x_2 any_2))
    (where x_3 ,(variable-not-in (term (x_2 c_1 any_1 any_2))
                                 (term x_1)))]
-  [(subst (refinement T_1 x_1 D_1 ...) x_2 any_2)
-   (refinement (subst T_1 x_2 any_2) x_3 (subst (subst-var D_1 x_1 x_3) x_2 any_2) ...)
+  [(subst (rfn T_1 x_1 D_1 ...) x_2 any_2)
+   (rfn (subst T_1 x_2 any_2) x_3 (subst (subst-var D_1 x_1 x_3) x_2 any_2) ...)
    (where x_3 ,(variable-not-in (term (D_1 ... x_2 any_2))
                                 (term x_1)))]
 
@@ -187,7 +187,7 @@
   ;; x_1 bound
   [(fn (m_1 x_1 any_1) x_1) #f]
   [(fn (val x_1 = new c_1 in any_1) x_1) #f]
-  [(fn (refinement T_1 x_1 D_1 ...) x_1) (fn T_1 x_1)]
+  [(fn (rfn T_1 x_1 D_1 ...) x_1) (fn T_1 x_1)]
 
   ;; x_1 free
   [(fn x_1 x_1) #t]
@@ -237,9 +237,9 @@
   [(is_wf-type (T_p ...) env (-> T_1 T_2)) #t
    (side-condition (term (is_wf-type (T_p ...) env T_1)))
    (side-condition (term (is_wf-type (T_p ...) env T_2)))]
-  [(is_wf-type (T_p ...) (Gamma store) (refinement T z D ...)) #t
+  [(is_wf-type (T_p ...) (Gamma store) (rfn T z D ...)) #t
    (side-condition (term (is_wf-type (T_p ...) (Gamma store) T)))
-   (where env_extended ((gamma-extend Gamma z (refinement T z D ...)) store))
+   (where env_extended ((gamma-extend Gamma z (rfn T z D ...)) store))
    (side-condition (andmap (lambda (d) (judgment-holds (wf-decl env_extended ,d))) (term (D ...))))]
   [(is_wf-type (T_p ...) env (sel p Lt)) #t
    (where any_bound (membership-type-lookup env p Lt))
@@ -400,11 +400,11 @@
   #:contract (expansion-iter (T ...) env z T ((DLt ...) (Dl ...) (Dm ...)))
   [(expansion-iter (T_p ...) env z Top (() () ()))]
   [(expansion-iter (T_p ...) env z (-> S T) (() () ()))]
-  [(expansion-iter (T_p ...) env z_1 (refinement T_1 z_2 DLt_1 ... Dl_1 ... Dm_1 ...)
+  [(expansion-iter (T_p ...) env z_1 (rfn T_1 z_2 DLt_1 ... Dl_1 ... Dm_1 ...)
                    ((decl-intersection (sorted-decls (subst (DLt_1 ...) z_2 z_1)) (sorted-decls (DLt_2 ...)))
                     (decl-intersection (sorted-decls (subst (Dl_1 ...) z_2 z_1)) (sorted-decls (Dl_2 ...)))
                     (decl-intersection (sorted-decls (subst (Dm_1  ...) z_2 z_1)) (sorted-decls (Dm_2  ...)))))
-   (expansion-iter (T_p ... (refinement T_1 z_2 DLt_1 ... Dl_1 ... Dm_1 ...)) env z_1 T_1 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
+   (expansion-iter (T_p ... (rfn T_1 z_2 DLt_1 ... Dl_1 ... Dm_1 ...)) env z_1 T_1 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
   [(expansion-iter (T_p ...) env z (T_1 ∧ T_2)
                    ((decl-intersection (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
                     (decl-intersection (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))
@@ -461,18 +461,18 @@
    (judgment-holds (wfe-type env T))]
   [(is_subtype ((T_a T_b) ...) env Bottom T) #t
    (judgment-holds (wfe-type env T))]
-  [(is_subtype ((T_a T_b) ...) env S (refinement T z DLt ... Dl ... Dm ...)) #t
-   (judgment-holds (wfe-type env (refinement T z DLt ... Dl ... Dm ...)))
-   (side-condition (term (is_subtype ((T_a T_b) ... (S (refinement T z DLt ... Dl ... Dm ...))) env S T)))
+  [(is_subtype ((T_a T_b) ...) env S (rfn T z DLt ... Dl ... Dm ...)) #t
+   (judgment-holds (wfe-type env (rfn T z DLt ... Dl ... Dm ...)))
+   (side-condition (term (is_subtype ((T_a T_b) ... (S (rfn T z DLt ... Dl ... Dm ...))) env S T)))
    (judgment-holds (expansion env z S ((DLt_s ...) (Dl_s ...) (Dm_s ...))))
    (where (Gamma store) env)
    (where Gamma_z (gamma-extend Gamma z S))
    (judgment-holds (subdecls (Gamma_z store) (sorted-decls (DLt_s ...)) (sorted-decls (DLt ...))))
    (judgment-holds (subdecls (Gamma_z store) (sorted-decls (Dl_s ...)) (sorted-decls (Dl ...))))
    (judgment-holds (subdecls (Gamma_z store) (sorted-decls (Dm_s ...)) (sorted-decls (Dm ...))))]
-  [(is_subtype ((T_a T_b) ...) env (refinement T_1 z DLt ... Dl ... Dm ...) T_2) #t
-   (judgment-holds (wfe-type env (refinement T_1 z DLt ... Dl ... Dm ...)))
-   (side-condition (term (is_subtype ((T_a T_b) ... ((refinement T_1 z DLt ... Dl ... Dm ...) T_2)) env T_1 T_2)))]
+  [(is_subtype ((T_a T_b) ...) env (rfn T_1 z DLt ... Dl ... Dm ...) T_2) #t
+   (judgment-holds (wfe-type env (rfn T_1 z DLt ... Dl ... Dm ...)))
+   (side-condition (term (is_subtype ((T_a T_b) ... ((rfn T_1 z DLt ... Dl ... Dm ...) T_2)) env T_1 T_2)))]
   [(is_subtype ((T_a T_b) ...) env S_1 (sel p Lt)) #t
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))
@@ -556,7 +556,7 @@
 
 (define-metafunction dot
   arrow- : x (DLt ...) S T -> W
-  [(arrow- x (DLt ...) S T) (refinement Top x
+  [(arrow- x (DLt ...) S T) (rfn Top x
                               DLt ...
                               (: (cm apply) S T))])
 
@@ -590,16 +590,16 @@
 
 (define (dotExample)
   (term (val dummy = new (Top) in
-        (val root = new ((refinement
+        (val root = new ((rfn
                         Top rootThis
                         (: (cc UnitClass) Bottom Top)
-                        (: (cc BooleanClass) Bottom (refinement
+                        (: (cc BooleanClass) Bottom (rfn
                                                               Top this
                                                               (: (cm ifNat) Top
                                                                  (arrow (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc NatClass)))
                                                                         (arrow (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc NatClass)))
                                                                                (sel rootThis (cc NatClass)))))))
-                        (: (cc NatClass) Bottom (refinement
+                        (: (cc NatClass) Bottom (rfn
                                                           Top this
                                                           (: (cm isZero) Top
                                                              (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc BooleanClass))))
@@ -612,10 +612,10 @@
                         (: (cm true) Top (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc BooleanClass))))
                         (: (cm zero) Top (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc NatClass))))
                         (: (cm successor) Top (arrow (sel rootThis (cc NatClass)) (sel rootThis (cc NatClass)))))
-                       [(cm unit) dummy (fun (x Top) (sel root (cc UnitClass)) (val u = new ((refinement (sel root (cc UnitClass)) this)) in u))]
+                       [(cm unit) dummy (fun (x Top) (sel root (cc UnitClass)) (val u = new ((rfn (sel root (cc UnitClass)) this)) in u))]
                        [(cm false) dummy
                         (fun (u (sel root (cc UnitClass))) (sel root (cc BooleanClass))
-                          (val ff = new ((refinement (sel root (cc BooleanClass)) this)
+                          (val ff = new ((rfn (sel root (cc BooleanClass)) this)
                                        [(cm ifNat) dummy
                                                             (fun (t (arrow (sel root (cc UnitClass)) (sel root (cc NatClass))))
                                                                  (arrow (arrow (sel root (cc UnitClass)) (sel root (cc NatClass))) (sel root (cc NatClass)))
@@ -625,7 +625,7 @@
                                ff))]
                        [(cm true) dummy
                         (fun (u (sel root (cc UnitClass))) (sel root (cc BooleanClass))
-                          (val tt = new ((refinement (sel root (cc BooleanClass)) this)
+                          (val tt = new ((rfn (sel root (cc BooleanClass)) this)
                                        [(cm ifNat) dummy
                                                             (fun (t (arrow (sel root (cc UnitClass)) (sel root (cc NatClass))))
                                                                  (arrow (arrow (sel root (cc UnitClass)) (sel root (cc NatClass))) (sel root (cc NatClass)))
@@ -635,7 +635,7 @@
                                tt))]
                        [(cm zero) dummy
                         (fun (u (sel root (cc UnitClass))) (sel root (cc NatClass))
-                          (val zz = new ((refinement (sel root (cc NatClass)) this)
+                          (val zz = new ((rfn (sel root (cc NatClass)) this)
                                        [(cm isZero) dummy (fun (u (sel root (cc UnitClass))) (sel root (cc BooleanClass))
                                                                               (app (sel root (cm true) dummy) (app (sel root (cm unit) dummy) (sel root (cm unit) dummy))))]
                                        [(cm succ) dummy (fun (u (sel root (cc UnitClass))) (sel root (cc NatClass))
@@ -644,7 +644,7 @@
                                zz))]
                        [(cm successor) dummy
                         (fun (n (sel root (cc NatClass))) (sel root (cc NatClass))
-                          (val ss = new ((refinement (sel root (cc NatClass)) this)
+                          (val ss = new ((rfn (sel root (cc NatClass)) this)
                                        [(cm isZero) dummy (fun (u (sel root (cc UnitClass))) (sel root (cc BooleanClass)) 
                                                                               (app (sel root (cm false) dummy) (app (sel root (cm unit) dummy) (sel root (cm unit) dummy))))]
                                        [(cm succ) dummy (fun (u (sel root (cc UnitClass))) (sel root (cc NatClass))
@@ -661,7 +661,7 @@
 
 (define-metafunction dot
   wf-prog : any -> bool
-  [(wf-prog (refinement T z DLt ... Dl ... Dm ...)) #f
+  [(wf-prog (rfn T z DLt ... Dl ... Dm ...)) #f
    (side-condition (not (equal? (term (DLt ... Dl ... Dm ...)) (remove-duplicates (term (DLt ... Dl ... Dm ...)) #:key cadadr))))]
   [(wf-prog (any_1 ...))
    ,(andmap (lambda (x) x) (term ((wf-prog any_1) ...)))]

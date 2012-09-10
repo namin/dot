@@ -115,7 +115,7 @@
             (then (if (eq? 'cm (label-type (list-ref lws 2))) "→" "..") (list-ref lws 4))
             (list-ref lws 4)
             (collapse (list-ref lws 5) (last lws)))))]
-    ['refinement
+    ['rfn
      (λ (lws)
        (define (helper lws prev)
          (if (null? (cdr lws))
@@ -151,22 +151,22 @@
 )))
 
 (render-dot-term "simple" #t
-(val u = new ((refinement Top self (: (cv l) Top))
+(val u = new ((rfn Top self (: (cv l) Top))
               [(cv l) u]) in
 (sel u (cv l)))
 )
 
 (render-dot-term "simple2" #t
-(val u = new ((refinement Top self  (: (cc X) Top Top) (: (cv l) Top))
+(val u = new ((rfn Top self  (: (cc X) Top Top) (: (cv l) Top))
               [(cv l) u]) in
 (cast Top (cast (sel u (cc X)) (sel u (cv l)))))
 )
 
 (render-dot-term "foo" #f
-(val v = new ((refinement Top z (: (ca L) Bottom (refinement Top z (: (ca A) Bottom Top) (: (ca B) Bottom (sel z (ca A))))))) in
-(app (cast (arrow (refinement Top z (: (ca L) Bottom (refinement Top z (: (ca A) Bottom Top) (: (ca B) Bottom (sel z (ca A)))))) Top)
-           (fun (x (refinement Top z (: (ca L) Bottom (refinement Top z (: (ca A) Bottom Top) (: (ca B) Bottom Top))))) Top
-                (val z = new ((refinement Top z (: (cm l) ((sel x (ca L)) ∧ (refinement Top z (: (ca A) Bottom (sel z (ca B))) (: (ca B) Bottom Top))) Top))
+(val v = new ((rfn Top z (: (ca L) Bottom (rfn Top z (: (ca A) Bottom Top) (: (ca B) Bottom (sel z (ca A))))))) in
+(app (cast (arrow (rfn Top z (: (ca L) Bottom (rfn Top z (: (ca A) Bottom Top) (: (ca B) Bottom (sel z (ca A)))))) Top)
+           (fun (x (rfn Top z (: (ca L) Bottom (rfn Top z (: (ca A) Bottom Top) (: (ca B) Bottom Top))))) Top
+                (val z = new ((rfn Top z (: (cm l) ((sel x (ca L)) ∧ (rfn Top z (: (ca A) Bottom (sel z (ca B))) (: (ca B) Bottom Top))) Top))
                               ((cm l) y (as Top (fun (a (sel y (ca A))) Top a)))) in
                 (cast Top z))))
      v))
