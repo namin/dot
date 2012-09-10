@@ -64,6 +64,8 @@
          (append
           (map pretty-binding bs)
           (list (then ")" cparen) (collapse cparen cparen)))) a)]))
+  (define (label-type a)
+    (lw-e (cadr (lw-e a))))
   (with-atomic-rewriter 'Top "⊤"
   (with-atomic-rewriter 'Bottom "⊥"
   (with-compound-rewriters
@@ -128,7 +130,7 @@
             (list-ref lws 2)
             (add (list-ref lws 2) ":")
             (list-ref lws 3)
-            (then ".." (list-ref lws 4))
+            (then (if (eq? 'label-method (label-type (list-ref lws 2))) "→" "..") (list-ref lws 4))
             (list-ref lws 4)
             (collapse (list-ref lws 5) (last lws)))))]
     ['refinement
