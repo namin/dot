@@ -3,11 +3,20 @@
 (require "dotf.ss")
 (require (only-in mzlib/struct copy-struct))
 (require (only-in slideshow/pict text))
+(require (only-in racket/match match))
 
 (define (with-dot-writers thunk)
   (define (combine e a)
     ;; Buils the same element as a but with content e
     (copy-struct lw a [lw-e e]))
+  (define (add a e)
+    (build-lw e
+              (+ (lw-line a) (lw-line-span a)) 0
+              (+ (lw-column a) (lw-column-span a)) 0))
+  (define (then e a)
+    (build-lw e
+              (lw-line a) 0
+              (lw-column a) 0))
   (define (collapse a b)
     ;; Build a zero-width element that takes the same columns
     ;; as a through b
@@ -22,15 +31,39 @@
   (define (remove-parens a)
     ;; Remove exactly one outer parentheses
     (let* ([lws (lw-e a)]
-           [openParen (first lws)]
-           [closeParen (last lws)]
+           [oparen (first lws)]
+           [cparen (last lws)]
            (meat (rest (drop-right lws 1))))
-      (copy-struct lw a [lw-e
+      (combine
        (cons
-        (collapse openParen openParen)
-        (snoc
+        (collapse oparen oparen)
+        (append
          meat
-         (collapse closeParen closeParen)))])))
+         (list (collapse cparen cparen)))) a)))
+  (define (pretty-binding a)
+    (match (lw-e a)
+      [(list oparen l v cparen)
+       (combine
+        (list
+         (collapse oparen oparen)
+         l (then "=" v) v
+         (collapse cparen cparen)) a)]
+      [(list oparen m x e cparen)
+       (combine
+        (list
+         (collapse oparen oparen)
+         m (then "(" x) x (then ")=" e) e
+         (collapse cparen cparen)) a)]))
+  (define (pretty-constructor a)
+    (match (lw-e a)
+      [(list oparen ty bs ... cparen)
+       (combine
+        (list*
+         (collapse oparen oparen)
+         ty (add ty "(")
+         (append
+          (map pretty-binding bs)
+          (list (then ")" cparen) (collapse cparen cparen)))) a)]))
   (with-atomic-rewriter 'Top "⊤"
   (with-atomic-rewriter 'Bottom "⊥"
   (with-compound-rewriters
@@ -42,7 +75,7 @@
         (list-ref lws 2) ; x
         (list-ref lws 3) ; =
         (list-ref lws 4) ; new
-        (remove-parens (list-ref lws 5)) ; c
+        (pretty-constructor (list-ref lws 5)) ; c
         (combine ";" (list-ref lws 6)) ; in
         (list-ref lws 7) ; e
         (collapse (list-ref lws 8) (last lws))
