@@ -150,26 +150,23 @@
          (helper (list-tail lws 4) null)))])
    (thunk)))))
 
-(with-dot-writers (lambda () (render-term dot
+(define-syntax (render-dot-term stx)
+  (syntax-case stx ()
+    [(_ e)
+     #'(and (typecheck (term (() ())) (term e)) (with-dot-writers (lambda () (render-term dot e))))]))
+
+(render-dot-term
 (val u = new ((refinement Top self (: (label-value l) Top))
               [(label-value l) u]) in
 (sel u (label-value l)))
-)))
+)
 
-(with-dot-writers (lambda () (render-term dot
+(render-dot-term
 (val v = new ((refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A))))))) in
 (app (cast (arrow (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A)))))) Top)
            (fun (x (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top))))) Top
-                (val z = new ((refinement Top z
-                                          (: (label-method l) ((sel x (label-abstract-type L)) ∧ (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top))) Top))
+                (val z = new ((refinement Top z (: (label-method l) ((sel x (label-abstract-type L)) ∧ (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top))) Top))
                               ((label-method l) y (as Top (fun (a (sel y (label-abstract-type A))) Top a)))) in
                 (cast Top z))))
      v))
-)))
-
-(with-dot-writers (lambda () (render-term dot
-(refinement Top z
-                (: (label-method l)
-                   ((sel x (label-abstract-type L)) ∧ (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top))) Top)
-                (: (label-method l) ((sel x (label-abstract-type L)) ∧ (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top))) Top))
-)))
+)
