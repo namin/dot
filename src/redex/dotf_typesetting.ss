@@ -19,6 +19,18 @@
   (define (subtext txt)
     ;; Creates a text element as a subscript
     (text txt `(subscript . ,(default-style)) (default-font-size)))
+  (define (remove-parens a)
+    ;; Remove exactly one outer parentheses
+    (let* ([lws (lw-e a)]
+           [openParen (first lws)]
+           [closeParen (last lws)]
+           (meat (rest (drop-right lws 1))))
+      (copy-struct lw a [lw-e
+       (cons
+        (collapse openParen openParen)
+        (snoc
+         meat
+         (collapse closeParen closeParen)))])))
   (with-atomic-rewriter 'Top "⊤"
   (with-atomic-rewriter 'Bottom "⊥"
   (with-compound-rewriters
@@ -30,7 +42,7 @@
         (list-ref lws 2) ; x
         (list-ref lws 3) ; =
         (list-ref lws 4) ; new
-        (list-ref lws 5) ; c
+        (remove-parens (list-ref lws 5)) ; c
         (combine ";" (list-ref lws 6)) ; in
         (list-ref lws 7) ; e
         (collapse (list-ref lws 8) (last lws))
