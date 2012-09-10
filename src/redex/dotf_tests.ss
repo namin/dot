@@ -2,6 +2,10 @@
 (require redex)
 (require "dotf.ss")
 
+(define-metafunction dot
+  valnew : (x c) e -> e
+  [(valnew (x c) e) (val x = new c in e)])
+
 ;(require rackunit)
 ; redefining these so that redex includes them in the summary
 (define (check-true e)
@@ -80,8 +84,7 @@
             (term (refinement Top f (: (label-method apply) Top Top))))
 (test-equal (typecheck (term (() ())) (term (valnew (d (Top)) (app (fun (x Top) Top x) d))))
             'Top)
-
-;(typecheck (term (() ())) (dotExample))
+;(test-equal (typecheck (term (() ())) (dotExample)) 'Top)
 
 ;; soundness
 (test-predicate preservation (term (valnew (u (Top)) u)))
@@ -119,12 +122,12 @@
 (typecheck (term (() ())) (term (valnew (u ((refinement Top self 
                                                         (: (label-abstract-type L1) Bottom (sel self (label-abstract-type L1)))
                                                         (: (label-abstract-type L2) Bottom (refinement Top z (: (label-abstract-type L3) Bottom Top)))
-                                                        (: (label-abstract-type L4) (intersection (sel self (label-abstract-type L2)) (sel self (label-abstract-type L1))) (sel self (label-abstract-type L2))))))
+                                                        (: (label-abstract-type L4) ((sel self (label-abstract-type L2)) ∧ (sel self (label-abstract-type L1))) (sel self (label-abstract-type L2))))))
                                         (cast Top
-(cast (arrow (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1))) (refinement Top z (: (label-abstract-type L3) Bottom Top)))
-      (cast (arrow (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1))) (sel u (label-abstract-type L4)))
-            (fun (x (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1))))
-                 (intersection (sel u (label-abstract-type L2)) (sel u (label-abstract-type L1)))
+(cast (arrow ((sel u (label-abstract-type L2)) ∧ (sel u (label-abstract-type L1))) (refinement Top z (: (label-abstract-type L3) Bottom Top)))
+      (cast (arrow ((sel u (label-abstract-type L2)) ∧ (sel u (label-abstract-type L1))) (sel u (label-abstract-type L4)))
+            (fun (x ((sel u (label-abstract-type L2)) ∧ (sel u (label-abstract-type L1))))
+                 ((sel u (label-abstract-type L2)) ∧ (sel u (label-abstract-type L1)))
                  x)))
 ))))
 )
@@ -145,11 +148,11 @@
 (let ([env (term (([u (refinement Top self
                                   (: (label-class Bad) Bottom (sel self (label-class Bad)))
                                   (: (label-class Good) (refinement Top z (: (label-class L) Bottom Top)) (refinement Top z (: (label-class L) Bottom Top)))
-                                  (: (label-class Lower) (intersection (sel self (label-class Bad)) (sel self (label-class Good))) (sel self (label-class Good)))
-                                  (: (label-class Upper) (sel self (label-class Good)) (union (sel self (label-class Bad)) (sel self (label-class Good))))
+                                  (: (label-class Lower) ((sel self (label-class Bad)) ∧ (sel self (label-class Good))) (sel self (label-class Good)))
+                                  (: (label-class Upper) (sel self (label-class Good)) ((sel self (label-class Bad)) ∨ (sel self (label-class Good))))
                                   (: (label-class X) (sel self (label-class Lower)) (sel self (label-class Upper))))])
                   ()))]
-      [s (term (intersection (sel u (label-class Bad)) (sel u (label-class Good))))]
+      [s (term ((sel u (label-class Bad)) ∧ (sel u (label-class Good))))]
       [t (term (sel u (label-class Lower)))]
       [u (term (refinement (sel u (label-class X)) z (: (label-class L) Bottom Top)))])
   (subtyping-transitive env s t u))
@@ -159,10 +162,10 @@
 (let ([Tc (term (refinement Top self
                             (: (label-class Bad) Bottom (sel self (label-class Bad)))
                             (: (label-class Good) (refinement Top z (: (label-class L) Bottom Top)) (refinement Top z (: (label-class L) Bottom Top)))
-                            (: (label-class Lower) (intersection (sel self (label-class Bad)) (sel self (label-class Good))) (sel self (label-class Good)))
-                            (: (label-class Upper) (sel self (label-class Good)) (union (sel self (label-class Bad)) (sel self (label-class Good))))
+                            (: (label-class Lower) ((sel self (label-class Bad)) ∧ (sel self (label-class Good))) (sel self (label-class Good)))
+                            (: (label-class Upper) (sel self (label-class Good)) ((sel self (label-class Bad)) ∨ (sel self (label-class Good))))
                             (: (label-class X) (sel self (label-class Lower)) (sel self (label-class Upper)))))]
-      [s (term (intersection (sel u (label-class Bad)) (sel u (label-class Good))))]
+      [s (term ((sel u (label-class Bad)) ∧ (sel u (label-class Good))))]
       [t (term (sel u (label-class Lower)))]
       [u (term (refinement (sel u (label-class X)) z (: (label-class L) Bottom Top)))])
   (preservation (term (valnew (u (,Tc)) (cast Top
@@ -338,8 +341,8 @@
   (valnew (v ((refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A))))))))
   (app (fun (x (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top))))) Top
             (valnew (z ((refinement Top z (: (label-method l)
-                                             (intersection
-                                              (sel x (label-abstract-type L))
+                                             ((sel x (label-abstract-type L))
+                                              ∧
                                               (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top)))
                                              Top))
                         ((label-method l) y
@@ -362,7 +365,7 @@
                                                            (refinement (sel x00 (label-abstract-type L)) self 
                                                                        (: (label-abstract-type B) Bottom (sel self (label-abstract-type A))))))))
   (app (fun (x (sel x0 (label-class Lc1))) Top
-            (fun (z0 (intersection (sel x (label-abstract-type L)) (sel x2 (label-abstract-type L)))) Top
+            (fun (z0 ((sel x (label-abstract-type L)) ∧ (sel x2 (label-abstract-type L)))) Top
                  (valnew (z ((sel z0 (label-class Lc2))))
                          (cast Top z))))
        (as (sel x0 (label-class Lc1)) x1))))))))
@@ -372,8 +375,8 @@
   (valnew (v ((refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) (sel z (label-abstract-type A)) Top))))))
   (app (fun (x (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top))))) Top
             (valnew (z ((refinement Top z (: (label-method l)
-                                             (intersection
-                                              (sel x (label-abstract-type L))
+                                             ((sel x (label-abstract-type L))
+                                              ∧
                                               (refinement Top z (: (label-abstract-type A) (sel z (label-abstract-type B)) Top) (: (label-abstract-type B) Bottom Top)))
                                              Top))
                         ((label-method l) y
@@ -426,8 +429,8 @@
   (app (as (arrow (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A)))))) Top)
            (fun (x (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top))))) Top
                 (valnew (z ((refinement Top z (: (label-method l)
-                                                 (intersection
-                                                  (sel x (label-abstract-type L))
+                                                 ((sel x (label-abstract-type L))
+                                                  ∧
                                                   (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top)))
                                                  Top))
                             ((label-method l) y (as Top (fun (a (sel y (label-abstract-type A))) Top a)))))
