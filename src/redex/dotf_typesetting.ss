@@ -132,6 +132,7 @@
          (helper (list-tail lws 4) null)))])
    (thunk)))))
 
+(default-style 'swiss)
 ;; we are only typesetting concrete values
 (non-terminal-style (default-style))
 
