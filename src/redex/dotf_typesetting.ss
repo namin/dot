@@ -80,19 +80,19 @@
         "."
         (list-ref lws 3)
         (collapse (list-ref lws 4) (last lws))))]
-    ['label-value
+    ['cv
      (λ (lws)
        (list
         (combine (lw-e (list-ref lws 2)) (collapse-all lws))))]
-    ['label-method
+    ['cm
      (λ (lws)
        (list
         (combine (lw-e (list-ref lws 2)) (collapse-all lws))))]
-    ['label-abstract-type
+    ['ca
      (λ (lws)
        (list
         (combine (lw-e (list-ref lws 2)) (collapse-all lws))))]
-    ['label-class
+    ['cc
      (λ (lws)
        (list
         (combine (lw-e (list-ref lws 2)) (collapse (first lws) (list-ref lws 2)))
@@ -112,7 +112,7 @@
             (list-ref lws 2)
             (add (list-ref lws 2) ":")
             (list-ref lws 3)
-            (then (if (eq? 'label-method (label-type (list-ref lws 2))) "→" "..") (list-ref lws 4))
+            (then (if (eq? 'cm (label-type (list-ref lws 2))) "→" "..") (list-ref lws 4))
             (list-ref lws 4)
             (collapse (list-ref lws 5) (last lws)))))]
     ['refinement
@@ -147,27 +147,27 @@
             (with-dot-writers (lambda () (render-term dot e))))]))
 
 (with-dot-writers (lambda () (render-term dot
-(sel (sel (sel x (label-value a)) (label-value b)) (label-value c))
+(sel (sel (sel x (cv a)) (cv b)) (cv c))
 )))
 
 (render-dot-term "simple" #t
-(val u = new ((refinement Top self (: (label-value l) Top))
-              [(label-value l) u]) in
-(sel u (label-value l)))
+(val u = new ((refinement Top self (: (cv l) Top))
+              [(cv l) u]) in
+(sel u (cv l)))
 )
 
 (render-dot-term "simple2" #t
-(val u = new ((refinement Top self  (: (label-class X) Top Top) (: (label-value l) Top))
-              [(label-value l) u]) in
-(cast Top (cast (sel u (label-class X)) (sel u (label-value l)))))
+(val u = new ((refinement Top self  (: (cc X) Top Top) (: (cv l) Top))
+              [(cv l) u]) in
+(cast Top (cast (sel u (cc X)) (sel u (cv l)))))
 )
 
 (render-dot-term "foo" #f
-(val v = new ((refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A))))))) in
-(app (cast (arrow (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A)))))) Top)
-           (fun (x (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top))))) Top
-                (val z = new ((refinement Top z (: (label-method l) ((sel x (label-abstract-type L)) ∧ (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top))) Top))
-                              ((label-method l) y (as Top (fun (a (sel y (label-abstract-type A))) Top a)))) in
+(val v = new ((refinement Top z (: (ca L) Bottom (refinement Top z (: (ca A) Bottom Top) (: (ca B) Bottom (sel z (ca A))))))) in
+(app (cast (arrow (refinement Top z (: (ca L) Bottom (refinement Top z (: (ca A) Bottom Top) (: (ca B) Bottom (sel z (ca A)))))) Top)
+           (fun (x (refinement Top z (: (ca L) Bottom (refinement Top z (: (ca A) Bottom Top) (: (ca B) Bottom Top))))) Top
+                (val z = new ((refinement Top z (: (cm l) ((sel x (ca L)) ∧ (refinement Top z (: (ca A) Bottom (sel z (ca B))) (: (ca B) Bottom Top))) Top))
+                              ((cm l) y (as Top (fun (a (sel y (ca A))) Top a)))) in
                 (cast Top z))))
      v))
 )
