@@ -57,7 +57,7 @@
   (define (label-type a)
     (lw-e (cadr (lw-e a))))
   (with-atomic-rewriter 'Top "⊤"
-  (with-atomic-rewriter 'Bottom "⊥"
+  (with-atomic-rewriter 'Bot "⊥"
   (with-compound-rewriters
    (['val
      (λ (lws)
@@ -163,10 +163,10 @@
 )
 
 (render-dot-term "foo" #f
-(val v = new ((rfn Top z (: (ca L) Bottom (rfn Top z (: (ca A) Bottom Top) (: (ca B) Bottom (sel z (ca A))))))) in
-(app (cast (arrow (rfn Top z (: (ca L) Bottom (rfn Top z (: (ca A) Bottom Top) (: (ca B) Bottom (sel z (ca A)))))) Top)
-           (fun (x (rfn Top z (: (ca L) Bottom (rfn Top z (: (ca A) Bottom Top) (: (ca B) Bottom Top))))) Top
-                (val z = new ((rfn Top z (: (cm l) ((sel x (ca L)) ∧ (rfn Top z (: (ca A) Bottom (sel z (ca B))) (: (ca B) Bottom Top))) Top))
+(val v = new ((rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot (sel z (ca A))))))) in
+(app (cast (arrow (rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot (sel z (ca A)))))) Top)
+           (fun (x (rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot Top))))) Top
+                (val z = new ((rfn Top z (: (cm l) ((sel x (ca L)) ∧ (rfn Top z (: (ca A) Bot (sel z (ca B))) (: (ca B) Bot Top))) Top))
                               ((cm l) y (as Top (fun (a (sel y (ca A))) Top a)))) in
                 (cast Top z))))
      v))

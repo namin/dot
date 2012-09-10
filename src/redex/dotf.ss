@@ -19,7 +19,7 @@
   (Lt Lc La)
   (Lc (cc variable-not-otherwise-mentioned))
   (La (ca variable-not-otherwise-mentioned))
-  ((S T U V W) (sel p Lt) (rfn T z DLt ... Dl ... Dm ...) (T ∧ T) (T ∨ T) Top Bottom)
+  ((S T U V W) (sel p Lt) (rfn T z DLt ... Dl ... Dm ...) (T ∧ T) (T ∨ T) Top Bot)
   ((Sc Tc) (sel p Lc) (rfn Tc z DLt ... Dl ... Dm ...) (Tc ∧ Tc) Top)
   (DLt (: Lt S U))
   (Dl (: l T))
@@ -245,7 +245,7 @@
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))
    (where (S U) any_bound)
-   (judgment-holds (subtype env S Bottom))]
+   (judgment-holds (subtype env S Bot))]
   [(is_wf-type (T_p ...) env (sel p Lt)) #t
    (side-condition (not (member (term (sel p Lt)) (term (T_p ...)))))
    (where any_bound (membership-type-lookup env p Lt))
@@ -259,7 +259,7 @@
   [(is_wf-type (T_p ...) env (T_1 ∨ T_2)) #t
    (side-condition (term (is_wf-type (T_p ...) env T_1)))
    (side-condition (term (is_wf-type (T_p ...) env T_2)))]
-  [(is_wf-type (T_p ...) env Bottom) #t]
+  [(is_wf-type (T_p ...) env Bot) #t]
   [(is_wf-type (T_p ...) env T) #f])
 
 (define-judgment-form dot
@@ -347,9 +347,9 @@
    (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...) (Dm ...))))
    (judgment-holds (found (fn (S_1 U_1) z_1) #f))]
   [(membership-type-lookup env_1 e_1 Lt_1)
-   (Top Bottom)
+   (Top Bot)
    (judgment-holds (typeof env_1 e_1 T_e))
-   (judgment-holds (subtype env_1 T_e Bottom))]  
+   (judgment-holds (subtype env_1 T_e Bot))]  
   [(membership-type-lookup env_1 e_1 Lt_1)
    #f])
 
@@ -367,9 +367,9 @@
    (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...) (Dm ...))))
    (judgment-holds (found (fn T_1 z_1) #f))]
   [(membership-value-lookup env_1 e_1 l_1)
-   Bottom
+   Bot
    (judgment-holds (typeof env_1 e_1 T_e))
-   (judgment-holds (subtype env_1 T_e Bottom))]
+   (judgment-holds (subtype env_1 T_e Bot))]
   [(membership-value-lookup env_1 e_1 l_1)
    #f])
 
@@ -387,9 +387,9 @@
    (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (Dl ...) (D_before ... (: m_1 S_1 U_1) D_after ...))))
    (judgment-holds (found (fn (S_1 U_1) z_1) #f))]
   [(membership-method-lookup env_1 e_1 m_1)
-   (Top Bottom)
+   (Top Bot)
    (judgment-holds (typeof env_1 e_1 T_e))
-   (judgment-holds (subtype env_1 T_e Bottom))]
+   (judgment-holds (subtype env_1 T_e Bot))]
   [(membership-method-lookup env_1 e_1 m_1)
    #f])
 
@@ -424,7 +424,7 @@
                                         (< (length (term (T_p ...))) max-iter))))
           any_bound)
    (expansion-iter (T_p ... (sel p Lt)) env z U_p ((DLt_u ...) (Dl_u ...) (Dm_u ...)))]
-  [(expansion-iter (T_p ...) env z Bottom (((: (ca kludge) Top Bottom)) () ()))]) ;; kludge
+  [(expansion-iter (T_p ...) env z Bot (((: (ca kludge) Top Bot)) () ()))]) ;; kludge
 
 (define-judgment-form dot
   #:mode (expansion I I I O)
@@ -459,7 +459,7 @@
    (judgment-holds (wfe-type env T))]
   [(is_subtype ((T_a T_b) ...) env T Top) #t
    (judgment-holds (wfe-type env T))]
-  [(is_subtype ((T_a T_b) ...) env Bottom T) #t
+  [(is_subtype ((T_a T_b) ...) env Bot T) #t
    (judgment-holds (wfe-type env T))]
   [(is_subtype ((T_a T_b) ...) env S (rfn T z DLt ... Dl ... Dm ...)) #t
    (judgment-holds (wfe-type env (rfn T z DLt ... Dl ... Dm ...)))
@@ -592,14 +592,14 @@
   (term (val dummy = new (Top) in
         (val root = new ((rfn
                         Top rootThis
-                        (: (cc UnitClass) Bottom Top)
-                        (: (cc BooleanClass) Bottom (rfn
+                        (: (cc UnitClass) Bot Top)
+                        (: (cc BooleanClass) Bot (rfn
                                                               Top this
                                                               (: (cm ifNat) Top
                                                                  (arrow (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc NatClass)))
                                                                         (arrow (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc NatClass)))
                                                                                (sel rootThis (cc NatClass)))))))
-                        (: (cc NatClass) Bottom (rfn
+                        (: (cc NatClass) Bot (rfn
                                                           Top this
                                                           (: (cm isZero) Top
                                                              (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc BooleanClass))))
