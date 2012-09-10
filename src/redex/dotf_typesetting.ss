@@ -142,7 +142,7 @@
             (if p (preservation (term e)) (not (preservation (term e))))
             (type-safety (term e))
             (if name
-                (with-dot-writers (lambda () (render-term dot e (build-path (string-append name ".pdf")))))
+                (with-dot-writers (lambda () (render-term dot e (build-path (string-append name ".ps")))))
                 #t)
             (with-dot-writers (lambda () (render-term dot e))))]))
 
