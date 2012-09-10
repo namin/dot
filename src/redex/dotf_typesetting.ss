@@ -19,6 +19,8 @@
   (define (subtext txt)
     ;; Creates a text element as a subscript
     (text txt `(subscript.,(default-style)) (default-font-size)))
+  (with-atomic-rewriter 'Top "⊤"
+  (with-atomic-rewriter 'Bottom "⊥"
   (with-compound-rewriters
    (['val
      (λ (lws)
@@ -33,6 +35,14 @@
         (list-ref lws 7) ; e
         (collapse (list-ref lws 8) (last lws))
        ))]
+    ['sel
+     (λ (lws)
+       (list
+        (collapse (first lws) (list-ref lws 1))
+        (list-ref lws 2)
+        "."
+        (list-ref lws 3)
+        (collapse (list-ref lws 4) (last lws))))]
     ['label-value
      (λ (lws)
        (list
@@ -82,4 +92,10 @@
          (list-ref lws 3)
          " ⇒ "
          (helper (list-tail lws 4) #t)))])
-   (thunk)))
+   (thunk)))))
+
+(with-dot-writers (lambda () (render-term dot
+(val u = new ((refinement Top self (: (label-value l) Top))
+              [(label-value l) u]) in
+(sel u (label-value l)))
+)))
