@@ -236,25 +236,7 @@ end
 
 \subsection{Tribe Calculus}
 
-\begin{frame}{Tribe Calculus: Virtual Classes}
-\begin{itemize}
-\item {\it families} of classes inherited together
-\item classes are lexically nested inside other classes: when a class
-  is inherited, its nested inner classes are inherited along with
-  their methods and fields
-\item two form of inheritance: subclassing and further binding
-\item {\it family polymorphism}: code written for one family
-  also works for extensions of that family
-\item in Tribe:\begin{itemize}
-\item path types can depend simultaneously on both classes and objects
-\item paths can use an {\tt out} field to move from an object to the
-  object which surrounds it; enables ubiquitous access to an object's
-  family without the need to drag around family arguments
-\end{itemize}
-\end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]{Tribe: Example}
+\begin{frame}[fragile]{Tribe: Example (Virtual Classes)}
 \begin{minted}{java}
 class Graph {
   class Node {
@@ -276,7 +258,7 @@ class ColouredGraph extends Graph { // subclassing
 \end{minted}
 \end{frame}
 
-\begin{frame}[fragile]{Tribe: Example (continued)}
+\begin{frame}[fragile]{Tribe: Example (Object Family and Family Polymorphism)}
 \begin{minted}{java}
 final ColouredGraph cg1, cg2;
 cg1.Node cn1, cn3;
@@ -321,12 +303,41 @@ final Car karr;
 \end{minted}
 \end{frame}
 
-%maybe one slide on implementation?
+\begin{frame}{Tribe Calculus: Recap}
+\begin{itemize}
+\item {\it families} of classes inherited together
+\item classes are lexically nested inside other classes: when a class
+  is inherited, its nested inner classes are inherited along with
+  their methods and fields
+\item two form of inheritance: subclassing and further binding
+\item {\it family polymorphism}: code written for one family
+  also works for extensions of that family
+\item in Tribe:\begin{itemize}
+\item path types can depend simultaneously on both classes and objects
+\item paths can use an {\tt out} field to move from an object to the
+  object which surrounds it; enables ubiquitous access to an object's
+  family without the need to drag around family arguments
+\end{itemize}
+\end{itemize}
+\end{frame}
 
-\begin{frame}{Tribe: Discussion}
+\begin{frame}[fragile]{Tribe: Discussion}
 \begin{itemize}
 \item no virtual classes in Scala; its virtual types can emulate some (but not all) of the benefits
 \item because of {\tt out} field, Tribe has limited cross-family inheritance %example?
+\begin{minted}[fontsize=\footnotesize]{java}
+class A {
+  class D { ... }
+  class B {
+    class C {
+      this.out.out.D foo;
+    }
+  }
+}
+class E {
+  class F extends A.B.C { ... }
+}
+\end{minted}
 \item soundness? substitution lemma seems wrong when {\tt null} is
   substituted for a variable in an expression whose type contains
   that variable %details?
