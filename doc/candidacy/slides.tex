@@ -198,6 +198,8 @@ grounded in type theory; based on Girard's $F_\omega$, adding:
 \end{frame}
 
 \begin{frame}[fragile]{``Translucent'' ML: Example}
+\begin{columns}
+\begin{column}[t]{5cm}
 \begin{minted}{sml}
 structure XInt = struct
   type T = int
@@ -209,14 +211,21 @@ structure XBool = struct
   val v = true
   val f = not
 end
+
 structure X =
   if flip() then XInt else XBool
+\end{minted}
+\end{column}
+\begin{column}[t]{5cm}
+\begin{minted}{sml}
 signature XType = sig
   type T
   val v: T
   val f: T -> T
 end
 \end{minted}
+\end{column}
+\end{columns}
 \end{frame}
 
 \begin{frame}{``Translucent'' ML: Path-Dependent Types}
