@@ -86,7 +86,65 @@ It does not model
 
 \subsection{``Translucent'' ML}
 
-\begin{frame}{SML modules}
+\begin{frame}[fragile]{SML modules: Structures and Signatures}
+\begin{columns}
+\begin{column}[t]{5cm}
+\begin{minted}{sml}
+structure A = struct
+  type T = int
+  val v = 0
+  val f = fn x => x + 1
+end
+
+signature X = sig
+  type T
+  val v: T
+  val f: T -> T
+end
+
+structure B :> X = A
+\end{minted}
+\end{column}
+\begin{column}[t]{5cm}
+\begin{minted}{sml}
+(* A.T transparent *)
+val vA: int = A.v
+
+
+
+
+
+
+
+
+
+
+(* B.T opaque *)
+val vB: B.T = B.v
+\end{minted}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{SML modules: Functions and Type Sharing}
+\begin{minted}{sml}
+functor mkDoubler(arg: X) :> X where type T = arg.T = struct
+  type T = arg.T
+  val v = arg.v
+  val f = arg.f o arg.f
+end
+
+(* A2.T = A.T = int *)
+structure A2 = mkDoubler(A);
+val a: int = A2.f(A.v);
+
+(* B2.T = B.T *)
+structure B2 = mkDoubler(B);
+val b: B.T = B2.f(B.v);
+\end{minted}
+\end{frame}
+
+\begin{frame}{SML modules: Recap}
 \begin{description}[type-sharing]
 \item[structure] a module\\a collection of types, values and
   (sub)structures packaged as a program unit.
@@ -97,10 +155,6 @@ It does not model
 \item[type-sharing] enables stating that types specified in separate
   modules are actually equal
 \end{description}
-\end{frame}
-
-\begin{frame}[fragile]{SML modules: Example}
-\inputminted[fontsize=\footnotesize]{sml}{intro.sml}
 \end{frame}
 
 \begin{frame}[fragile]{Limitations of SML modules}
@@ -122,7 +176,7 @@ end
 \end{itemize}
 \end{frame}
 
-\begin{frame}{ML-Like: Calculus}
+\begin{frame}{``Translucent'' ML: Calculus}
 grounded in type theory; based on Girard's $F_\omega$, adding:
 \begin{itemize}
 \item {\it translucent sums} to model modules
@@ -131,7 +185,7 @@ grounded in type theory; based on Girard's $F_\omega$, adding:
 \end{itemize}
 \end{frame}
 
-\begin{frame}{ML-Like: Translucent Sums}
+\begin{frame}{``Translucent'' ML: Translucent Sums}
 \begin{itemize}
 \item translucent sums are values representing modules
 \item translucent sum: sequence of bindings
@@ -143,7 +197,7 @@ grounded in type theory; based on Girard's $F_\omega$, adding:
 \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{ML-Like: Example}
+\begin{frame}[fragile]{``Translucent'' ML: Example}
 \begin{minted}{sml}
 structure XInt = struct
   type T = int
@@ -165,9 +219,7 @@ end
 \end{minted}
 \end{frame}
 
-% Maintaing Soundness?
-
-\begin{frame}{ML-Like: Path-Dependent Types}
+\begin{frame}{``Translucent'' ML: Path-Dependent Types}
 \begin{itemize}
 \item Scala's abstract types  $\approx$ ML's abstract types of signatures; limitations:
 \begin{itemize}
