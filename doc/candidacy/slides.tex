@@ -393,8 +393,8 @@ A basis for unifying concepts  in advanced object and module systems. Connection
 \item[singleton types] $p.\type$
 \item[type selections] $T\Tsel L$
 \item[record types] $\obj{x \sep \tup D}$ % explain difference between record and class types?
-\item[compound types] $T \with U$
 \item[class types] $\cls{x: S \sep \tup D}$
+\item[compound types] $T \with U$
 \end{description}
 \end{itemize}
 \end{frame}
@@ -421,28 +421,21 @@ A basis for unifying concepts  in advanced object and module systems. Connection
 \end{itemize}
 \end{frame}
 
-% can you make this slide less cluttered?
 \begin{frame}[fragile]{${\nu}Obj$: Example (encoding of monomorphic functions)}
-A $\lambda$-abstraction $\lambda ( x : T )\; t$ is represented as a
-class with an abstract member \code!arg! for the function argument:
-\begin{lstlisting}
+\begin{itemize}
+\item Encoding for a $\lambda$-abstraction $\lambda ( x : T )\; t$:
+\begin{lstlisting}[basicstyle=\large]
 [x: {arg: T}| fun = [res = $t'$]]
 \end{lstlisting}
-$t'$ corresponds to term $t$ in which all occurrences of $x$ are
-replaced by \code!$x$.arg!. We cannot directly access \code!arg! on
-the right-hand side of \code!fun!: this wouldn't be ``contractive'',
-because \code!arg! might not be initialized before \code!fun!. Hence,
-we pack $t'$ in another class to ensure contractiveness. Now, an
-application $g(e)$ gets decomposed into three subsequent steps:
-\begin{lstlisting}
+($t'$ = $t$ with \code{$x$.arg} substituted for $x$)
+
+\item Encoding for an application $g(e)$:
+\begin{lstlisting}[basicstyle=\large]
 $\nu\,$g$_{app}$  <- g & [arg = e];
 $\nu\,$g$_{eval}$ <- g$_{app}$.fun;
 g$_{eval}$.res
 \end{lstlisting}
-First we instantiate function \code!g! with a concrete argument
-yielding a thunk \code!g$_{app}$!. Then we evaluate this thunk by
-creating an instance \code!g$_{eval}$! of it. Finally we extract the
-result by querying field \code!res! of \code!g$_{eval}$!.
+\end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]{${\nu}Obj$: Discussion}
@@ -457,7 +450,7 @@ result by querying field \code!res! of \code!g$_{eval}$!.
 \begin{minted}{scala}
   trait A { type T <: A }
   trait B { type T <: B }
-  // glb is approximated by an infinite sequence
+  // glb is an infinite sequence
   A with B { type T <: A with B { type T <: A with B {
     type T <: ...
   }}}
