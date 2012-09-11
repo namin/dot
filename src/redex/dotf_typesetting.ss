@@ -57,7 +57,7 @@
   (define (label-type a)
     (lw-e (cadr (lw-e a))))
   (with-atomic-rewriter 'Top "⊤"
-  (with-atomic-rewriter 'Bottom "⊥"
+  (with-atomic-rewriter 'Bot "⊥"
   (with-compound-rewriters
    (['val
      (λ (lws)
@@ -80,19 +80,19 @@
         "."
         (list-ref lws 3)
         (collapse (list-ref lws 4) (last lws))))]
-    ['label-value
+    ['cv
      (λ (lws)
        (list
         (combine (lw-e (list-ref lws 2)) (collapse-all lws))))]
-    ['label-method
+    ['cm
      (λ (lws)
        (list
         (combine (lw-e (list-ref lws 2)) (collapse-all lws))))]
-    ['label-abstract-type
+    ['ca
      (λ (lws)
        (list
         (combine (lw-e (list-ref lws 2)) (collapse-all lws))))]
-    ['label-class
+    ['cc
      (λ (lws)
        (list
         (combine (lw-e (list-ref lws 2)) (collapse (first lws) (list-ref lws 2)))
@@ -112,10 +112,10 @@
             (list-ref lws 2)
             (add (list-ref lws 2) ":")
             (list-ref lws 3)
-            (then (if (eq? 'label-method (label-type (list-ref lws 2))) "→" "..") (list-ref lws 4))
+            (then (if (eq? 'cm (label-type (list-ref lws 2))) "→" "..") (list-ref lws 4))
             (list-ref lws 4)
             (collapse (list-ref lws 5) (last lws)))))]
-    ['refinement
+    ['rfn
      (λ (lws)
        (define (helper lws prev)
          (if (null? (cdr lws))
@@ -132,6 +132,7 @@
          (helper (list-tail lws 4) null)))])
    (thunk)))))
 
+(default-style 'swiss)
 ;; we are only typesetting concrete values
 (non-terminal-style (default-style))
 
@@ -142,32 +143,15 @@
             (if p (preservation (term e)) (not (preservation (term e))))
             (type-safety (term e))
             (if name
-                (with-dot-writers (lambda () (render-term dot e (build-path (string-append name ".pdf")))))
+                (with-dot-writers (lambda () (render-term dot e (build-path (string-append name ".ps")))))
                 #t)
             (with-dot-writers (lambda () (render-term dot e))))]))
 
-(with-dot-writers (lambda () (render-term dot
-(sel (sel (sel x (label-value a)) (label-value b)) (label-value c))
-)))
-
-(render-dot-term "simple" #t
-(val u = new ((refinement Top self (: (label-value l) Top))
-              [(label-value l) u]) in
-(sel u (label-value l)))
-)
-
-(render-dot-term "simple2" #t
-(val u = new ((refinement Top self  (: (label-class X) Top Top) (: (label-value l) Top))
-              [(label-value l) u]) in
-(cast Top (cast (sel u (label-class X)) (sel u (label-value l)))))
-)
-
-(render-dot-term "foo" #f
-(val v = new ((refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A))))))) in
-(app (cast (arrow (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom (sel z (label-abstract-type A)))))) Top)
-           (fun (x (refinement Top z (: (label-abstract-type L) Bottom (refinement Top z (: (label-abstract-type A) Bottom Top) (: (label-abstract-type B) Bottom Top))))) Top
-                (val z = new ((refinement Top z (: (label-method l) ((sel x (label-abstract-type L)) ∧ (refinement Top z (: (label-abstract-type A) Bottom (sel z (label-abstract-type B))) (: (label-abstract-type B) Bottom Top))) Top))
-                              ((label-method l) y (as Top (fun (a (sel y (label-abstract-type A))) Top a)))) in
-                (cast Top z))))
-     v))
+(render-dot-term "ex_glb" #t
+(val u = new ((rfn Top z
+              (: (cc A) Bot (rfn Top y (: (ca T) Bot (sel z (cc A)))))
+              (: (cc B) Bot (rfn Top y (: (ca T) Bot (sel z (cc B))))))) in
+(cast Top
+      (fun x ((sel u (cc A)) ∧ (sel u (cc B))) Top
+           (fun y (sel x (ca T)) Top y))))
 )
