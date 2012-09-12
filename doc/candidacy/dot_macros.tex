@@ -1,0 +1,80 @@
+%% Relations
+% Subtype 
+\newcommand{\sub}{<:}
+% Type assignment
+\newcommand{\typ}{:}
+% reduction
+\newcommand{\reduces}{\;\rightarrow\;}
+% well-formedness
+%\newcommand{\wf}{\;\mbox{\textbf{wf}}}
+\newcommand{\wfe}{\;\mbox{\textbf{wfe}}}
+\newcommand{\nswfe}{\mbox{\textbf{wfe}}}
+
+%% Operators
+% Type selection
+\newcommand{\tsel}{\#}
+% Function type
+\newcommand{\tfun}{\rightarrow}
+\newcommand{\dfun}[3]{(#1\!:\!#2) \Rightarrow #3}
+% Conjunction
+\newcommand{\tand}{\wedge}
+% Disjunction
+\newcommand{\tor}{\vee}
+% Singleton type suffix
+\newcommand{\sing}{.\textbf{type}}
+
+%% Syntax
+% Header for typing rules
+\newcommand{\judgement}[2]{{\bf #1} \hfill #2}
+% Refinement
+\newcommand{\refine}[2]{\left\{#1 \Rightarrow #2 \right\}}
+\newcommand{\mlrefine}[2]{\{#1 \Rightarrow #2 \}}
+% Field definitions
+\newcommand{\ldefs}[1]{\left\{#1\right\}}
+\newcommand{\mlldefs}[1]{\{#1\}}
+% Member sequences
+\newcommand{\seq}[1]{\overline{#1}}
+% Lambda
+\newcommand{\dabs}[3]{(#1\!:\!#2)\Rightarrow #3}
+\newcommand{\dotabs}[3]{\lambda #1\!:\!#2.#3}
+% Method Application
+\newcommand{\mapp}[3]{#1.#2(#3)}
+% Substitution
+\newcommand{\subst}[3]{[#1/#2]#3}
+% Object creation
+\newcommand{\new}[3]{\textbf{val }#1 = \textbf{new }#2 ;\; #3}
+\newcommand{\mlnew}[3]{\textbf{val }#1 = \textbf{new }#2 ;\;\\&#3}
+%\renewcommand{\new}[3]{#1 \leftarrow #2 \,\textbf{in}\, #3}
+% Field declaration
+\newcommand{\Ldecl}[3]{#1 : #2..#3}%{#1 \operatorname{>:} #2 \operatorname{<:} #3}
+\newcommand{\ldecl}[2]{#1 : #2}
+\newcommand{\mdecl}[3]{#1 : #2 \tfun #3}
+% Top and Bottom
+\newcommand{\Top}{\top}%{\textbf{Top}}
+\newcommand{\Bot}{\bot}%\textbf{Bot}}
+% Environment extension
+%\newcommand{\envplus}[1]{\uplus \{ #1 \}}
+\newcommand{\envplus}[1]{, #1}
+% Reduction
+\newcommand{\reduction}[4]{#1 \operatorname{|} #2 \reduces #3 \operatorname{|} #4}
+
+% Sugar
+%\newcommand{\arrow}[2]{#1\rightarrow_s#2}
+\newcommand{\fun}[4]{\textbf{fun } (#1:#2)\;#3\;#4}
+\newcommand{\app}[2]{(\textbf{app }#1\;#2)}
+\newcommand{\mlapp}[2]{(\textbf{app }#1\;\\&#2)}
+\newcommand{\cast}[2]{(\textbf{cast }#1\;#2)}
+
+\newcommand{\lindent}{\hspace{-4mm}}
+
+% Logical relations
+\newcommand{\relv}[4]{\mathcal{V}_{#1;#2;#3}\llbracket#4\rrbracket}
+\newcommand{\rele}[4]{\mathcal{E}_{#1;#2;#3}\llbracket#4\rrbracket}
+\newcommand{\rels}[3]{\mathcal{\supseteq}_{#1}\llbracket#2;#3\rrbracket}
+\newcommand{\relg}[3]{\mathcal{\supseteq^!}_{#1;#2}\llbracket#3\rrbracket}
+\newcommand{\irred}[2]{\text{irred }(#1,#2)}
+\newcommand{\andl}{\;\wedge\;}
+\newcommand{\orl}{\vee}
+\newcommand{\impliesl}{\rightarrow}
+\newcommand{\reductionl}[5]{#1 \operatorname{|} #2 \;\rightarrow^{#5}\; #3 \operatorname{|} #4}
+\newcommand{\ds}{\,\vDash\,}

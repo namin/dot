@@ -2,6 +2,7 @@
 
 \input{macros}
 \input{nuobj}
+\input{dot_macros}
 
 \usepackage{minted}
 \usemintedstyle{eclipse}
@@ -515,7 +516,60 @@ g$_{eval}$.res
 \end{itemize}
 \end{frame}
 
+\begin{frame}{DOT: Status}
+\begin{itemize}
+\item basic calculus
+\item type safety
+\begin{itemize}
+\item showed by counterexamples that subject reduction doesn't hold
+\item sketch of plausible proof via logical relations
+\end{itemize}
+\item submission about this work-in-progress accepted to Foundations
+  of Object-Oriented Languages (FOOL '12)
+\item future work
+\begin{itemize}
+\item confirm proof of type safety and/or refine calculus
+\item investigate translations of Scala features into DOT
+\item implement a compiler front-end which uses DOT for typechecking
+\end{itemize}
+\end{itemize}
+\end{frame}
+
 \section{Backup Slides}
+
+\begin{frame}[fragile]{DOT: Syntax}
+\begin{itemize}
+\item terms
+\begin{description}[method invocations]
+\item[variables] $x$, $y$, $z$
+\item[selections] $t.l$
+\item[method invocations] $t.m(t)$
+\item[object creations] $\new y c {t'}$\\
+$c$ is a constructor $T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}$
+\end{description}
+\item types
+\begin{description}[type intersections]
+\item[type selections] $p.L$
+\item[refinement types] $T \refine z {\seq D}$
+\item[type intersections] $T \tand T'$
+\item[type unions] $T \tor T'$
+\item[a top type] $\Top$
+\item[a bottom type] $\Bot$
+\end{description}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{DOT: Preservation Counterex. (Well-Formedness Lost)}
+\center{// $y.A$ is not well-formed after $v$ is substituted for $x$.}
+\begin{align*}
+&\mlnew v {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B {z.A} {z.A}}}} \ldefs{}}{
+\mlapp {\dotabs x {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B \Bot \Top}}}} {\\&\gap
+\mlnew z {\Top \refine z {\ldecl l {\Bot \tfun \Top}}\mlldefs{\\&\gap\gap l = \dotabs y {x.L \tand {\Top \refine z {\Ldecl A {z.B} {z.B}, \Ldecl B \Bot \Top}}} {\\&\gap\gap\gap\dotabs a {y.A} {\app {(\dotabs x \Top x)} a}}}}{
+\ \app {(\dotabs x \Top x)} z
+}}}{\ v}}
+\end{align*}
+\end{frame}
 
 \begin{frame}[fragile]{System $F_\omega$: Higher-order polymorphic lambda-calculus}
 \begin{description}[1234567890]
