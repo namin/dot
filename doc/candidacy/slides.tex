@@ -126,7 +126,7 @@ val vB: B.T = B.v
 \end{columns}
 \end{frame}
 
-\begin{frame}[fragile]{SML modules: Functions and Type Sharing}
+\begin{frame}[fragile]{SML modules: Functors and Type Sharing}
 \begin{minted}{sml}
 functor mkDoubler(arg: X) :> X where type T = arg.T = struct
   type T = arg.T
