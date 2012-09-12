@@ -57,7 +57,37 @@ It does not model
 \item[path] a chain of immutable fields or stable values
 \end{description}
 
-\inputminted[fontsize=\footnotesize]{scala}{intro.scala}
+\begin{columns}
+\begin{column}[t]{5cm}
+\begin{minted}[fontsize=\footnotesize]{scala}
+abstract class AbsCell {
+  type T
+  val init: T
+  private var value: T = init
+  def get = value
+  def set(x: T) { value = x }
+}
+
+object Library {
+  def update(c: AbsCell)(oldval: c.T, newval: c.T) =
+    if (oldval == c.get) { c.set(newval); true }
+    else false
+}
+\end{minted}
+\end{column}
+\begin{column}[t]{5cm}
+\begin{minted}[fontsize=\footnotesize]{scala}
+val c = new AbsCell {
+  type T = Int
+  val init = 1
+}
+c.set(2)
+val a: AbsCell = c
+// a.T is opaque
+a.set(a.init)
+\end{minted}
+\end{column}
+\end{columns}
 \end{frame}
 
 \begin{frame}{Selected Papers}
