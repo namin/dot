@@ -26,12 +26,12 @@
 
 
 (check-dot
- ([u (rfn Top u
-          (: (cc Pet) Bot Top)
-          (: (cc Dog) Bot (sel u (cc Pet)))
-          (: (cc Cat) Bot (sel u (cc Pet)))
-          (: (cc Poodle) Bot (sel u (cc Dog))))])
- (cast Top u)
- (e-subtype (sel u (cc Dog)) (sel u (cc Pet)))
- (e-subtype (sel u (cc Poodle)) (sel u (cc Dog)))
+ ([pets (rfn Top z
+             (: (cc Pet) Bot Top)
+             (: (cc Dog) Bot (sel z (cc Pet)))
+             (: (cc Cat) Bot (sel z (cc Pet)))
+             (: (cc Poodle) Bot (sel z (cc Dog))))])
+ (cast Top pets)
+ (e-subtype (sel pets (cc Dog)) (sel pets (cc Pet)))
+ (e-subtype (sel pets (cc Poodle)) (sel pets (cc Dog)))
 )
