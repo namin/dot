@@ -1,0 +1,290 @@
+\section{Type Safety via Logical Relations}\label{dot-type-safety}
+We sketch a proof of type-safety of the DOT calculus via step-indexed
+logical relations~\cite{ahmed04,ahmed06,step_indexed_obj}.
+
+\subsection{Type Safety}
+Type-safety states that a well-typed program doesn't get stuck. More
+formally: If $\emptyset \ts t \typ T$ and $\reductionl t \emptyset {t'} {s'} *$ then
+either $t'$ is a value or $\exists t'', s''. \reduction {t'} {s'}
+{t''} {s''}$.
+
+Our strategy is to define a logical relation $\Gamma \ds t : T$, such
+that $\Gamma \ts t : T$ implies $\Gamma \ds t : T$ implies
+type-safety.
+
+\subsection{Step-Indexed Logical Relations}
+
+In order to ensure that our logical relation is well-founded, we use a
+step index. For each step index $k$, we define the set of values and
+the set of terms that appear to belong to a given type, when taking at
+most $k$ steps. $\Gamma \ds t : T$ is then defined in terms of the
+step-indexed logical relation by requiring it to hold $\forall k$.
+
+\subsubsection{Set of Values}
+$\relv k \Gamma s T$ defines the set of values that appear to have
+type $T$ when taking at most $k$ steps. $\Gamma$ and $s$ must agree:
+$\dom(\Gamma) = \dom(s)$ (ordered) and $\forall (x : T) \in \Gamma, x
+\in \relv k \Gamma s T$. A variable $y$ belongs to $\relv 0 \Gamma s
+T$ simply by being in the store. In addition, it belongs to $\relv k
+\Gamma s T$ for $k > 0$, if it defines all type, method and value labels in
+the expansion of $T$ appropriately for $j < k$ steps.
+\begin{align*}
+&\relv k \Gamma s T = \{ y \ | y \in \dom(s) \andl (\\
+& (\Gamma \ts T \wfe \andl\\
+&\gap \forall j < k,\\
+&\gap y \mapsto T_c \ldefs{\seq{l = v}\;\seq{m(x)=t}} \in s,\\
+&\gap \Gamma \ts T \expand_y \seq{D},\\
+&\gap (\forall L_i : S \rightarrow U \in \seq{D},\\
+&\gap\gap \Gamma \ts y \ni L_i \typ {S'..U'}) \andl\\
+&\gap (\forall m_i : S \rightarrow U \in \seq{D},\\
+&\gap\gap t_i \in \rele j {\Gamma \envplus{x_i : S}} s U) \andl\\
+&\gap (\forall l_i : V \in \seq{D},\\
+&\gap\gap v_i \in \relv j \Gamma s V)) \orl\\
+& (T = T_1 \tand T_2 \andl y \in \relv k \Gamma s {T_1} \andl y \in \relv k \Gamma s {T_2}) \orl\\
+& (T = T_1 \tor T_2 \andl  (y \in \relv k \Gamma s {T_1} \orl y \in \relv k \Gamma s {T_2}))\\
+&)\}
+\end{align*}
+
+This relation captures the observation that the only ways for a term
+to get stuck is to have a field selection on an uninitialized field or
+a method invocation on an uninitialized method. However, a {\it potential
+  pitfall} is that the value itself might occur in the types $S$, $U$,
+$V$, because we substitute it for the ``self'' occurrences in the
+expansion, so the relation makes sure that the required type labels exist.
+
+\subsubsection{Set of Terms}
+$\rele k \Gamma s T$ defines the set of terms that appear to have type
+$T$ when taking at most $k$ steps. $s$ must agree with a {\it prefix}
+of $\Gamma$, so $\Gamma$ can additionally contain variables not in
+$s$. This is needed for checking methods in $\mathcal{V}$ above, and
+for relating open terms. If $k > 0$, $\mathcal{E}$ extends $\Gamma$
+and $s$ so that they agree. It then states that if it can reduce $t$
+in the extended store to an irreducible term in $j < k$ steps, then
+this term must be in a corresponding $\mathcal{V}$ set with $\Gamma$
+now extended to agree with the store resulting from the reduction
+steps.
+
+$\irred {t} {s}$ is a shorthand for $\neg\exists t', s'. \reduction t s
+{t'} {s'}$. $\mathcal{\supseteq}$ is used initially for the possibly
+shorter store to agree with the environment, and can extend both in
+many different ways. $\mathcal{\supseteq}^!$ is used finally for the
+possibly shorter environment to agree with the store, and just extends
+the environment in one straightforward way: hence, it defines
+singleton sets.
+
+\begin{align*}
+&\rele k \Gamma s T = \{ t \ |\\
+&\gap k = 0 \orl (\forall j < k,\\
+&\gap\gap \forall (\Gamma'; s') \in \rels k \Gamma s ,\\
+&\gap\gap \reductionl t {s'} {t'} {s''} j \andl\\
+&\gap\gap \irred {t'} {s''} \impliesl\\
+&\gap\gap \forall \Gamma'' \in \relg k {s''} {\Gamma'} ,\\
+&\gap\gap {t'} \in \relv {k-j-1} {\Gamma''} {s''} T)\\
+&\}
+\end{align*}
+
+\subsubsection{Extending the environment and the store}
+$\rels k \Gamma s$ for $k > 0$ defines the set of completed
+environment and stores that agree on $k-1$ steps, and that extend
+$\Gamma$ and $s$. $s$ must agree with a {\it prefix} of $\Gamma$.
+Both $\Gamma$ and $s$ are ordered maps. For $s$, $s'$ extends $s$ if
+$s$ is a prefix of $s'$. For $\Gamma$, $\Gamma'$ extends $\Gamma$ if
+we get back $\Gamma$ by keeping only the elements of $\Gamma'$ that
+belong to $\Gamma$. Furthermore, a prefix of $\Gamma'$ agrees with
+$s$.
+\begin{align*}
+&\rels k \Gamma s = \{\\
+&\ (\seq{x : T}^m, \seq{x_{ij} : T_{ij}}^{m \leq i < n; 0 \leq j < i_n}; s, \seq{x_{ij} \mapsto c_{ij}}^{m \leq i < n; 0 \leq j < i_n}) |\\
+&\ s = \seq{x \mapsto c}^m \andl \Gamma = \seq{x : T}^n \andl \\
+&\ m\leq n \andl \forall i, m \leq i < n, \forall {i_n}, j, 0 \leq j < i_n,\\
+&\ \forall T_{ij}, c_{ij}, T_{i{(i_n-1)}} = T_i, \forall n' \leq n, i_n' \leq i_n,\\
+&\ c_{ij} \in \relv {k-1} {\seq{x : T}^m, \seq{x_{ij} : T_{ij}}^{m \leq i' < n; 0 \leq j < i_n'}} {s, \seq{x_{ij} \mapsto c_{ij}}^{m \leq i < n'; 0 \leq j < i_n'}} {T_{ij}}\\
+&\}
+\end{align*}
+
+\subsubsection{Completing the environment to agree with the store}
+$\relg k s \Gamma$ defines a singleton set of a completed environment
+that agrees with a store $s$ by simply copying the constructor type
+from the store for each missing variable.
+\begin{align*}
+&\relg k s \Gamma = \{ \Gamma, \seq{x_i : T_{c_i}}^{m \leq i < n} \ |\\
+&\gap \Gamma = \seq{x : T}^m \andl s = \seq{x \mapsto c}^n\\
+&\}
+\end{align*}
+
+\subsubsection{Terms in the Logical Relation}
+
+$\Gamma \ds t : T$ is simply defined as $t \in \rele k \Gamma \emptyset T,
+\forall k$.
+
+\subsection{Statements and Proofs}
+
+\subsubsection{Fundamental Theorem}
+
+The fundamental theorem is the implication from $\Gamma \ts t : T$ to
+$\Gamma \ds t : T$. Type safety is a straightforward corollary of this
+theorem.
+
+\begin{myproof}
+The proof is on induction on the derivation of $\Gamma \ts t : T$. For
+each case, we need to show $t \in \rele k \Gamma \emptyset T, \forall
+k$. The non-trivial case is when $k > 0$ and for $(\Gamma'; s') \in
+\rels k \Gamma s$ and some $j < k$, $\reductionl {t} s {t'} {s'} j
+\andl \irred {t'} {s'}$. Then, we need to show ${t'} \in \relv {k-j-1}
+      {\Gamma''} {s'} T$ for ${\Gamma''} \in \relg \Gamma k {s'}
+      {\Gamma'}$.
+
+\ \\
+
+\Case \textsc{var}: $\Gamma \ts x : T$ knowing $(x : T) \in
+\Gamma$. $x \in \relv {k-1} {\Gamma'} s T$ follows from the definition of
+$\rels k \Gamma \emptyset$.
+
+\ \\
+
+\Case \textsc{sel}: $\Gamma \ts t_1.l_i : T$ knowing $\Gamma \ts t_1 :
+T_1$, $\Gamma \ts T_1 \expand_z \seq{D}$, $\ldecl {l_i} {V_i} \in
+\seq{D}$ and knowing either that $t_1 = p_1 \andl T = \subst p z
+    {V_i}$ or that $z \not\in \fn(V_i) \andl T = V_i$.
+
+By operational semantics and induction hypothesis, $\reductionl {t_1}
+s {t_1'} {s'} {j-1}$ and $\irred {t_1'} {s'}$ and ${t_1'} \in \relv
+{k-j+1-1} {\Gamma'} {s'} {T_1}$.
+
+By operational semantics and the above, $\reductionl {t_1'.l_i} {s'}
+{t'} {s'} 1$, and we can conclude $t' \in \relv {k-j-1} {\Gamma''} {s'}
+T$ from the clause for value labels of ${t_1'} \in \relv {k-j}
+{\Gamma''} {s'} {T_1}$.
+
+\ \\
+
+\Case \textsc{msel}: $\Gamma \ts t_1.m_i(t_2) : T$ knowing $\Gamma \ts
+t_1 : T_1$, $\Gamma \ts t_2 : T_2$, $\Gamma \ts T_1 \expand_z
+\seq{D}$, $\mdecl {m_i} {S_i} {U_i} \in \seq{D}$ and knowing either
+that $t_1 = p_1 \andl S = \subst p z {S_i} \andl T = \subst p z {U_i}$
+or that $z \not\in \fn(S_i) \andl z \not\in \fn(U_i) \andl S = S_i \andl
+T = U_i$, and knowing that $\Gamma \ts T_2 \sub S$.
+
+By operational semantics and induction hypotheses, $\reductionl {t_1}
+s {t_1'} {s_1} {j_1}$ and $\irred {t_1'} {s_1}$ and $\reductionl {t_2}
+{s} {t_2'} {s_2} {j_2}$ and $\irred {t_2'} {s_2}$ and ${t_1'} \in
+\relv {k-j_1-1} {\Gamma_1} {s_1} {T_1}$ and ${t_2'} \in \relv
+{k-j_2-1} {\Gamma_2} {s_2} {T_2}$.
+
+Because $t_2$ reduces to a value $t_2'$ starting in store $s$, it
+should also reduce to a value $v_2$ in the same number of steps
+starting in store $s_1$, since $s_1$ extends $s$. So let $\reductionl
+{t_2} {s_1} {v_2} {s_{12}} {j_2}$ with $v_2 \in \relv {k-j_2-1}
+{\Gamma_{12}} {s_{12}} {T_2}$.
+
+By the above and operational semantics, $\reductionl {t_1'.m_i(v_2)}
+{s_{12}} {\subst {v_2} {x_i} {t_i}} {s_{12}} 1$.
+
+By the substitution lemma, ${\subst {v_2} {x_i} {t_i}} \in \rele
+{k-\max(j_1,j_2)-1} {\Gamma_{12}} {s_{12}} {T}$. Supposing,
+$\reductionl {\subst {v_2} {x_i} {t_i}} {s_{12}} {t'} {s'} {j_3}$,
+with $j_1 + j_2 + j_3 + 1 = j$, this completes the case, by
+monotonicity of $\mathcal{V}$.
+
+\ \\
+
+\Case \textsc{new}: $\Gamma \ts \new y c {t_b} : T$ knowing ...
+
+By operational semantics, $\reductionl {\new y c {t_b}} s {t_b} {s_b} 1$
+where $s_b = s \envplus{y \mapsto c}$. So $\reductionl {t_b} {s_b} {t'}
+{s'} {j-1}$.
+
+By induction hypotheses, $y \in \relv k {\Gamma_b} {s_b} {T_c}$ and $t_b \in
+\rele k {\Gamma_b} {s_b} {T}$.
+
+Result follows by monotonicity of $\mathcal{V}$.
+
+\end{myproof}
+
+\subsubsection{Substitution Lemma}
+
+The substitution lemma states that if (1) $v \in \relv {k_2}
+{\Gamma_{12}} {s_{12}} {T_2}$ and (2) $t \in \rele {k_1} {\Gamma_1
+  \envplus{{x} : S}} {s_1} T$ and (3) $\Gamma \ts {T_2} \sub S$ with
+(4) $x \not\in \fn(T)$ and $\Gamma_1$ extends $\Gamma$ and
+$\Gamma_{12}$ extends $\Gamma_1$ and $s_{12}$ extends $s_1$ and
+$\Gamma_1$ agrees with $s_1$ and $\Gamma_{12}$ agrees with $s_{12}$
+and a prefix of $\Gamma_{12}$ agrees with $s_1$, then $\subst {v} {x}
+{t} \in \rele {\min(k_1,k_2)} {\Gamma_{12}} {s_{12}} T$.
+
+\begin{proofsketch}
+By (1) and (3), it should hold that (5) $v \in \relv {k_2}
+{\Gamma_{12}} {s_{12}} {S}$ by the subset semantics lemma.  Since (2)
+holds, it should also hold that ${t} \in \rele {\min(k_1,k_2)}
+{\Gamma_{12} \envplus{{x} : S}} {s_{12}} T$ by the extended
+monotonicity lemma. Then, we can instantiate $x$ in the complete store
+to map to what $v$ maps to. This should be fine by (5) and
+monotonicity. Thus, ${t} \in \rele {\min(k_1,k_2)} {\Gamma_{12}
+  \envplus{{x} : S}} {s_{12} \envplus{{x} \mapsto s_{12}(v)}}
+T$. Thanks to (4), we don't actually need $x$ to be held abstract in
+the environment, because it won't occur in $T$ or its expansion (a
+{\it potential pitfall} is whether its occurrences in $t_i$ could
+still cause a check to fail through narrowing issues), so we can use
+the type of $v$ in the environment instead of $S$ for $x$: ${t} \in
+\rele {\min(k_1,k_2)} {\Gamma_{12} \envplus{{x} : {\Gamma_{12}(v)}}}
+      {s_{12} \envplus{{x} \mapsto s_{12}(v)}} T$. This implies what
+      needs to be shown.
+\end{proofsketch}
+
+\subsubsection{Subset Semantics Lemma}
+
+The subset semantics lemma states that if $v \in \relv k \Gamma s S$
+and $\Gamma \ts S <: U$, then $v \in \relv k \Gamma s U$.
+
+\begin{proofsketch}
+Because $S$ is a subtype of $U$, it should hold that the expansion of
+$S$ subsumes the expansion of $U$, when the ``self'' occurrences are
+of type $S$. Therefore, for $v \in \relv k \Gamma s U$, we have fewer
+declarations to check than for $v \in \relv k \Gamma s S$.
+
+A {\it potential pitfall} is whether some types of the expansion of
+$U$ can become non-expanding when the ``self'' occurrences are
+actually $v$ instead of just abstractly of type $S$, causing a check
+to fail. Another worry is that such a non-expanding type results from
+narrowing of a parameter type.
+%However, we believe this is fine by
+%subtyping regularity wtr to $\nswfe$ and $v \in \relv k \Gamma s S$
+%which cheks bounds and $\nswfe$ of the type labels.
+\end{proofsketch}
+
+\subsubsection{Extended Monotonicity Lemma}
+
+The extended monotonicity lemma states that if $t \in \rele k {\Gamma
+  \envplus{x : S}} s T$ then $t \in \rele j {\Gamma' \envplus{x : S}}
+{s'} T$ for $j \leq k$, $\Gamma'$ extends $\Gamma$, $s'$
+extends $s$, and $\Gamma$ agrees with $s$ and a prefix of $\Gamma'$
+agrees with $s$.
+
+\begin{proofsketch}
+For the monotonicity with regards to the step index, this follows
+directly from the definitions of $\mathcal{E}$ and $\mathcal{V}$. For
+the environment and the store, this follows by design from the
+definition of $\rels k {\Gamma \envplus{x : S}} s$. To extend the
+environment and the store for $x : S$, we can append as much as we
+want to $\Gamma$ and $s$, to get $\Gamma'$ and $s'$, and then ignore
+the last element which is for $x : S$.
+\end{proofsketch}
+
+\section{Discussion}\label{discussion}
+
+\subsection{Why No Inheritance?}\label{why-no-inheritance}
+
+In the calculus we made the deliberate choice not to model any form of
+inheritance. This is, first and foremost, to keep the calculus simple.
+Secondly, there are many different approaches to inheritance and
+mixin composition, so that it looks advantageous not to tie the basic
+calculus to a specific one. Finally, it seems that the modelization of
+inheritance lends itself to a different approach than the basic
+calculus. For the latter, we need to prove type safety of the calculus.
+One might try to do this also for a calculus with inheritance, but our
+experience suggests that this complicates the proofs considerably.  An
+alternative approach that might work better is to model inheritance
+as a form of code-reuse. Starting with an enriched type system with
+inheritance, and a translation to the basic calculus, one needs to
+show type safety wrt the translation. This might be easier than
+to prove type safety wrt reduction.
