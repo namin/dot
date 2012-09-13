@@ -155,3 +155,17 @@
       (fun x ((sel u (cc A)) ∧ (sel u (cc B))) Top
            (fun y (sel x (ca T)) Top y))))
 )
+
+(render-dot-term "ex_inf_tsel" #t
+(val u = new ((rfn Top u
+              (: (cc A) Bot (rfn Top a
+                             (: (ca B) Top Top)
+                             (: (cv l) (sel u (cc A)))))
+              )) in
+(val a = new ((sel u (cc A))
+              [(cv l) a]) in
+(cast Top
+(cast (sel (sel (sel (sel a (cv l)) (cv l)) (cv l)) (ca B))
+a
+))))
+)
