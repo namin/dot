@@ -587,12 +587,12 @@ y \notin \fn(T') \\
 
 \infrule[\textsc{vdecl}]
 {\Gamma \ts v \typ {V'} \spcomma {V'} \sub V}
-{\Gamma \ts l = v \typ \ldecl l V}
+{\Gamma \ts (l = v) \typ (\ldecl l V)}
 
 \infrule[\textsc{mdecl}]
 {\Gamma \ts S \wfe\\
  \Gamma \envplus{x : S} \ts t \typ {T'} \spcomma {T'} \sub T}
-{\Gamma \ts m(x) = t \typ \mdecl m S T }
+{\Gamma \ts (m(x) = t) \typ (\mdecl m S T) }
 
 \end{multicols}
 
@@ -638,8 +638,8 @@ $\seq v$ and methods $\seq m$ initialized to methods of one parameter
 $\seq{x}$ and body $\seq{t}$.  The scope of $y$ extends through the term
 ${t'}$.
 
-Two sub-sorts of terms are values $v$, which consist of just
-variables, and paths $p$ which consist of just variables and field
+Two sub-sorts of terms are values and paths. Values $v$ consist of
+just variables. Paths $p$ consist of just variables and field
 selections.
 
 The types in DOT are denoted by letters $S$, $T$, $U$, $V$, or $W$. They consist of the following:
@@ -922,7 +922,7 @@ subtype of type $T$. Subtyping is regular wrt $\nswfe$: if
 type $S$ is a subtype of type $T$, then $S$ and $T$ are well-formed
 and expanding. Though this regularity limits our calculus to
 $\nswfe$-types, this limitation allows us to show that subtyping is
-transitive, as discussed in section~\ref{dot-preservation}.
+transitive, as discussed in section~\ref{dot-variants-why-wfe}.
 
 \subsection{Declaration Subsumption}
 
@@ -1522,7 +1522,7 @@ to prove type safety wrt reduction.
 
 \subsection{Variants of the DOT Calculus}\label{dot-variants}
 
-\subsubsection{Why limit the calculus to $\nswfe$-types?}
+\subsubsection{Why limit the calculus to $\nswfe$-types?}\label{dot-variants-why-wfe}
 
 Currently, the proof of type-safety via logical relations
 fundamentally relies on types having an expansion. However, this was
