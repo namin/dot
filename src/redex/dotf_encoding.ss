@@ -1,6 +1,7 @@
 #lang racket
 (require redex)
 (require "dotf.ss")
+(require "dotf_typesetting.ss")
 
 ;; helper functions to make it nicer to write larger programs
 (define-metafunction dot
@@ -14,15 +15,39 @@
   [(e-vals () e) e]
   [(e-vals ((x_1 c_1) (x_r c_r) ...) e) (val x_1 = new c_1 in (e-vals ((x_r c_r) ...) e))])
 
+
+(define-syntax (check-render-dot stx)
+  (syntax-case stx ()
+    [(_ prefix topvals (suffix tp e) ...)
+     #'(begin
+         ;(check-dot topvals (tp e) ...)
+         (when suffix
+           (with-dot-writers (lambda () (render-term dot e (build-path (string-append prefix "_" suffix ".ps"))))))
+         ...
+         (render-topvals prefix topvals)
+         )]))
+
+(define-syntax (render-topvals stx)
+  (syntax-case stx ()
+    [(_ prefix (valtop ...))
+     #'(begin
+         ;(with-dot-writers-top (lambda () (render-term dot topvals (build-path (string-append prefix ".ps")))))
+         (with-dot-writers (lambda () (render-term dot valtop)) (car 'valtop)) ...)]))
+
 (define-syntax (check-dot stx)
   (syntax-case stx ()
-    [(_ ([valname valtype valbind ...] ...) e ...)
+    [(_ ([valname valtype valbind ...] ...) (tp e) ...)
      #'(and (if
-             (typecheck
-              (term (() ()))
-              (term (e-vals ((valname (valtype valbind ...)) ... ) e)))
+             (eq? (not tp)
+                  (not
+                   (typecheck
+                    (term (() ()))
+                    (term (e-vals ((valname (valtype valbind ...)) ... ) e)))))
              #t
-             (begin (display 'e)
+             (begin (display "expected ")
+                    (display tp)
+                    (display "\n")
+                    (display 'e)
                     (display "\n\n")
                     (display (term e))
                     (display "\n")
@@ -39,15 +64,15 @@
     e)                                                                          
    (where T_alt (rfn (sel choices (cc Alt)) x_alt (: (ca C) T_C T_C) (: (ca A) T_A T_A) (: (ca B) T_B T_B)))])
 
-(check-dot
+(check-render-dot "encoding"
  ([pets (rfn Top z
              (: (cc Pet) Bot Top)
              (: (cc Dog) Bot (sel z (cc Pet)))
              (: (cc Cat) Bot (sel z (cc Pet)))
              (: (cc Poodle) Bot (sel z (cc Dog)))
              (: (cc Dalmatian) Bot (sel z (cc Dog))))]
-  [cat (sel pets (cc Cat))]
-  [dog (sel pets (cc Dog))]
+  [kitty (sel pets (cc Cat))]
+  [pif (sel pets (cc Dog))]
   [potty (sel pets (cc Poodle))]
   [dotty (sel pets (cc Dalmatian))]
   [choices (rfn Top z
@@ -55,20 +80,31 @@
                                      (: (ca C) Bot Top)
                                      (: (ca A) Bot (sel alt (ca C)))
                                      (: (ca B) Bot (sel alt (ca C)))
-                                     (: (cm choose) (sel alt (ca A)) (arrow (sel alt (ca B)) ((sel alt (ca A)) ∨ (sel alt (ca B))))))))])
- (cast Top pets)
- (e-subtype (sel pets (cc Dog)) (sel pets (cc Pet)))
- (e-subtype (sel pets (cc Poodle)) (sel pets (cc Dog)))
- (e-subtype (rfn (sel choices (cc Alt)) alt (: (ca C) (sel pets (cc Dog)) (sel pets (cc Dog)))) (sel choices (cc Alt)))
- (e-subtype (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Dog)))) (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Pet)))))
- ;; false, as expected:
- ;; (e-subtype (rfn (sel choices (cc Alt)) alt (: (ca C) (sel pets (cc Dog)) (sel pets (cc Dog)))) (rfn (sel choices (cc Alt)) alt (: (ca C) (sel pets (cc Pet)) (sel pets (cc Pet)))))
- (e-subtype (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Dog))) (: (ca A) (sel alt (ca C)) (sel alt (ca C))) (: (ca B) (sel alt (ca C)) (sel alt (ca C))))
-            (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Pet))) (: (ca A) (sel alt (ca C)) (sel alt (ca C))) (: (ca B) (sel alt (ca C)) (sel alt (ca C)))))
- (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian))
-               (cast Top
-               (cast (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Dog))))
-                alt)))
- (cast Top (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian))
-                         (cast (sel pets (cc Dalmatian)) (app (sel alt (cm choose) potty) dotty))))
+                                     (: (cm choose) (sel alt (ca A)) (arrow (sel alt (ca B)) ((sel alt (ca A)) ∨ (sel alt (ca B))))))))]
+  [favorites (rfn Top z
+                  (: (cv dog) (sel pets (cc Dog)))
+                  (: (cv cat) (sel pets (cc Cat))))
+             [(cv dog) dotty]
+             [(cv cat) kitty]])
+ [#f #t (cast Top pets)]
+ [#f #t (e-subtype (sel pets (cc Dog)) (sel pets (cc Pet)))]
+ [#f #t (e-subtype (sel pets (cc Poodle)) (sel pets (cc Dog)))]
+ [#f #t (e-subtype (rfn (sel choices (cc Alt)) alt (: (ca C) (sel pets (cc Dog)) (sel pets (cc Dog)))) (sel choices (cc Alt)))]
+ [#f #t (e-subtype (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Dog)))) (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Pet)))))]
+ ["leafs_no_subtp" #f
+  (e-subtype
+   (rfn (sel choices (cc Alt)) alt (: (ca C) (sel pets (cc Dog)) (sel pets (cc Dog))))
+   (rfn (sel choices (cc Alt)) alt (: (ca C) (sel pets (cc Pet)) (sel pets (cc Pet)))))]
+ ["abs_c_subtp" #t
+  (e-subtype
+   (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Dog))) (: (ca A) (sel alt (ca C)) (sel alt (ca C))) (: (ca B) (sel alt (ca C)) (sel alt (ca C))))
+   (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Pet))) (: (ca A) (sel alt (ca C)) (sel alt (ca C))) (: (ca B) (sel alt (ca C)) (sel alt (ca C)))))]
+ ["alt_covariant" #t
+  (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian))
+                (cast Top
+                (cast (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Dog))))
+                      alt)))]
+ ["dotty" #t
+  (cast Top (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian))
+                          (cast (sel pets (cc Dalmatian)) (app (sel alt (cm choose) potty) dotty))))]
 )

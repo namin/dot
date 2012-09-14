@@ -4,8 +4,9 @@
 (require (only-in mzlib/struct copy-struct))
 (require (only-in slideshow/pict text))
 (require (only-in racket/match match))
+(provide (all-defined-out))
 
-(define (with-dot-writers thunk)
+(define with-dot-writers (lambda (thunk [topval #f])
   (define (combine e a)
     ;; Buils the same element as a but with content e
     (copy-struct lw a [lw-e e]))
@@ -59,7 +60,15 @@
   (with-atomic-rewriter 'Top "⊤"
   (with-atomic-rewriter 'Bot "⊥"
   (with-compound-rewriters
-   (['val
+   ([topval
+     (lambda (lws)
+       (list* (string-append "val " (symbol->string topval) " = new ")
+              (third lws)
+              (add (third lws) "(")
+              (append
+               (map pretty-binding (cdddr (drop-right lws 1)))
+               (list ")"))))]
+    ['val
      (λ (lws)
        (list
         (collapse (first lws) (list-ref lws 0))
@@ -130,7 +139,7 @@
          (list-ref lws 3)
          (add (list-ref lws 3) " ⇒ ")
          (helper (list-tail lws 4) null)))])
-   (thunk)))))
+   (thunk))))))
 
 (default-style 'swiss)
 ;; we are only typesetting concrete values
@@ -147,6 +156,7 @@
                 #t)
             (with-dot-writers (lambda () (render-term dot e))))]))
 
+#;
 (render-dot-term "ex_glb" #t
 (val u = new ((rfn Top z
               (: (cc A) Bot (rfn Top y (: (ca T) Bot (sel z (cc A)))))
@@ -156,6 +166,7 @@
            (fun y (sel x (ca T)) Top y))))
 )
 
+#;
 (render-dot-term "ex_inf_tsel" #t
 (val u = new ((rfn Top u
               (: (cc A) Bot (rfn Top a
