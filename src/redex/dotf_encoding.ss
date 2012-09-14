@@ -3,57 +3,6 @@
 (require "dotf.ss")
 (require "dotf_typesetting.ss")
 
-;; helper functions to make it nicer to write larger programs
-(define-metafunction dot
-  e-subtype : S U -> e
-  [(e-subtype S U) 
-   (cast Top (fun x S U x))
-   (where x ,(variable-not-in (term (S U)) 'x))])
-
-(define-metafunction dot
-  e-vals : ((x c) ...) e -> e
-  [(e-vals () e) e]
-  [(e-vals ((x_1 c_1) (x_r c_r) ...) e) (val x_1 = new c_1 in (e-vals ((x_r c_r) ...) e))])
-
-
-(define-syntax (check-render-dot stx)
-  (syntax-case stx ()
-    [(_ prefix topvals (suffix tp e) ...)
-     #'(begin
-         ;(check-dot topvals (tp e) ...)
-         (when suffix
-           (with-dot-writers (lambda () (render-term dot e (build-path (string-append prefix "_" suffix ".ps"))))))
-         ...
-         (render-topvals prefix topvals)
-         )]))
-
-(define-syntax (render-topvals stx)
-  (syntax-case stx ()
-    [(_ prefix (valtop ...))
-     #'(begin
-         ;(with-dot-writers-top (lambda () (render-term dot topvals (build-path (string-append prefix ".ps")))))
-         (with-dot-writers (lambda () (render-term dot valtop)) (car 'valtop)) ...)]))
-
-(define-syntax (check-dot stx)
-  (syntax-case stx ()
-    [(_ ([valname valtype valbind ...] ...) (tp e) ...)
-     #'(and (if
-             (eq? (not tp)
-                  (not
-                   (typecheck
-                    (term (() ()))
-                    (term (e-vals ((valname (valtype valbind ...)) ... ) e)))))
-             #t
-             (begin (display "expected ")
-                    (display tp)
-                    (display "\n")
-                    (display 'e)
-                    (display "\n\n")
-                    (display (term e))
-                    (display "\n")
-                    #f))
-            ...)]))
-
 ;; encoding specific polymorphic methods
 
 (define-metafunction dot
