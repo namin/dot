@@ -380,16 +380,19 @@
 \begin{abstract}
 We propose a new type-theoretic foundation of Scala and languages like
 it: the Dependent Object Types calculus (DOT). DOT models Scala's
-path-dependent types and abstract type members, as well as its mixture
-of nominal and structural typing through the use of refinement
-types. It makes no attempt to model inheritance or mixin
-composition. The calculus does not model what's currently in Scala: it
-is more normative than descriptive.
+path-dependent types, abstract type members and its mixture of nominal
+and structural typing through the use of refinement types.
 
-We show that DOT and its patched-up variants are not syntactically
-sound, by exhibiting counterexamples to preservation. Nevertheless, we
-sketch a proof of type-safety of the calculus via step-indexed logical
-relations.
+DOT does not precisely describe what's currently in Scala: it is more
+normative than descriptive, since our goal is to explore
+simplifications and unifications of concepts in the type system. In
+particular, DOT unifies Scala's constructs for type members, and
+provides classical intersection and union types, which simplify
+Scala's compound types and glb/lub computations.
+
+In this paper, we present and motivate the DOT calculus, our core
+calculus for path-dependent types, both formally and informally. We
+also discuss our work-in-progress to prove type-safety of the calculus.
 \end{abstract}
 
 \category{D.3.3}{Language Constructs and Features}{Abstract data types, Classes and objects, polymorphism}
@@ -441,12 +444,13 @@ complement this by classical union types. Intersections and unions
 form a lattice wrt subtyping. This addresses another problematic
 feature of Scala: In Scala's current type system, least upper bounds
 and greatest lower bounds do not always exist. Here is an example:
-given two traits
+given two traits \code{A} and \code{B}, where each declares an
+abstract upper-bounded type member \code{T},
 \begin{lstlisting}
   trait A { type T <: A }
   trait B { type T <: B }
 \end{lstlisting}
-The greatest lower bound of \code@A@ and \code@B@ is approximated by the
+the greatest lower bound of \code{A} and \code{B} is approximated by the
 infinite sequence
 \begin{lstlisting}
   A with B { type T <: A with B { type T <: A with B {
@@ -456,8 +460,13 @@ infinite sequence
 The limit of this sequence does not exist as a type in Scala.
 
 This is problematic because glbs and lubs play a central role in
-Scala's type inference. The absence of universal glbs and lubs makes
-type inference more brittle and more unpredictable.
+Scala's type inference. For example, in to infer the type \code{if} expression such as
+\begin{lstlisting}
+  if (cond) ((a: A) => c: C) else ((b: B) => d: D)
+\end{lstlisting}
+type inference tries to compute the glb of \code{A} and \code{B} and
+the lub of \code{C} and \code{D} The absence of universal glbs and
+lubs makes type inference more brittle and more unpredictable.
 
 %The primary contributions of this paper are:
 %\begin{itemize}
@@ -472,15 +481,19 @@ type inference more brittle and more unpredictable.
 %  section~\ref{dot-type-safety}.
 %\end{itemize}
 
-We propose DOT as a core calculus for path-dependent types. We present
-the calculus formally in section \ref{dot-calculus} and through examples in
-section~\ref{dot-examples}. Though we show that the calculus does not
-satisfy the standard theorem of preservation in
+We propose DOT as a core calculus for path-dependent types. We first
+motivate the calculus informally in section~\ref{dot-motiv}. We
+present the calculus formally in section \ref{dot-calculus} and
+through examples in section~\ref{dot-examples}. Though we show that
+the calculus does not satisfy the standard theorem of preservation in
 section~\ref{dot-preservation}, we contribute a proof sketch of type
 safety using logical relations in section~\ref{dot-type-safety}. In
 section~\ref{discussion}, we discuss choices and variants of the
 calculus, as well as related work, and conclude in
 section~\ref{conclusion}.
+
+\section{Motivation}\label{dot-motiv}
+%TODO
 
 \section{The DOT Calculus}\label{dot-calculus}
 
