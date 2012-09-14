@@ -88,12 +88,21 @@
        ))]
     ['sel
      (λ (lws)
-       (list
-        (collapse (first lws) (list-ref lws 1))
-        (list-ref lws 2)
-        "."
-        (list-ref lws 3)
-        (collapse (list-ref lws 4) (last lws))))]
+       (if (= 5 (length lws))
+           (list
+            (collapse (first lws) (list-ref lws 1))
+            (list-ref lws 2)
+            "."
+            (list-ref lws 3)
+            (collapse (list-ref lws 4) (last lws)))
+           (list
+            (collapse (first lws) (list-ref lws 1))
+            (list-ref lws 2)
+            "."
+            (list-ref lws 3)
+            "("
+            (list-ref lws 4)
+            (combine ")" (collapse (list-ref lws 5) (last lws))))))]
     ['cv
      (λ (lws)
        (list
