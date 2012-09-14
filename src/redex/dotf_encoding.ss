@@ -53,7 +53,13 @@
                 (cast Top
                 (cast (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Dog))))
                       alt)))]
+ ["potty" #t
+  (cast Top (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian))
+                          (cast (sel alt (ca A)) potty)))]
  ["dotty" #t
   (cast Top (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian))
                           (cast (sel pets (cc Dalmatian)) (app (sel alt (cm choose) potty) dotty))))]
+ ["mismatch" #f
+  (cast Top (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian))
+                          (app (sel alt (cm choose) dotty) potty)))]
 )
