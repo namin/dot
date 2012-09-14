@@ -12,7 +12,9 @@
                      [(cm choose) a (fun b (sel x_alt (ca B)) (sel x_alt (ca B)) b)]) in
     e)                                                                          
    (where T_alt (rfn (sel choices (cc Alt)) x_alt (: (ca C) T_C T_C) (: (ca A) T_A T_A) (: (ca B) T_B T_B)))])
+(with-dot-writers (lambda () (render-metafunction val-pickLast (build-path "encoding_metafunction_val-pickLast.ps"))))
 
+(typeset-just-terms-from-now-on)
 (check-render-dot "encoding"
  ([pets (rfn Top z
              (: (cc Pet) Bot Top)
@@ -36,18 +38,16 @@
              [(cv dog) dotty]
              [(cv cat) kitty]])
  [#f #t (cast Top pets)]
- [#f #t (e-subtype (sel pets (cc Dog)) (sel pets (cc Pet)))]
- [#f #t (e-subtype (sel pets (cc Poodle)) (sel pets (cc Dog)))]
+ ["pets_sub1" #t (e-subtype (sel pets (cc Dog)) (sel pets (cc Pet)))]
+ ["pets_sub2" #t (e-subtype (sel pets (cc Poodle)) (sel pets (cc Dog)))]
  [#f #t (e-subtype (rfn (sel choices (cc Alt)) alt (: (ca C) (sel pets (cc Dog)) (sel pets (cc Dog)))) (sel choices (cc Alt)))]
  [#f #t (e-subtype (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Dog)))) (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Pet)))))]
  ["leafs_no_subtp" #f
-  (e-subtype
-   (rfn (sel choices (cc Alt)) alt (: (ca C) (sel pets (cc Dog)) (sel pets (cc Dog))))
-   (rfn (sel choices (cc Alt)) alt (: (ca C) (sel pets (cc Pet)) (sel pets (cc Pet)))))]
+  (e-subtype (rfn (sel choices (cc Alt)) alt (: (ca C) (sel pets (cc Dog)) (sel pets (cc Dog))))
+             (rfn (sel choices (cc Alt)) alt (: (ca C) (sel pets (cc Pet)) (sel pets (cc Pet)))))]
  ["abs_c_subtp" #t
-  (e-subtype
-   (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Dog))) (: (ca A) (sel alt (ca C)) (sel alt (ca C))) (: (ca B) (sel alt (ca C)) (sel alt (ca C))))
-   (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Pet))) (: (ca A) (sel alt (ca C)) (sel alt (ca C))) (: (ca B) (sel alt (ca C)) (sel alt (ca C)))))]
+  (e-subtype (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Dog))) (: (ca A) (sel alt (ca C)) (sel alt (ca C))) (: (ca B) (sel alt (ca C)) (sel alt (ca C))))
+             (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Pet))) (: (ca A) (sel alt (ca C)) (sel alt (ca C))) (: (ca B) (sel alt (ca C)) (sel alt (ca C)))))]
  ["alt_covariant" #t
   (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian))
                 (cast Top

@@ -6,6 +6,11 @@
 (require (only-in racket/match match))
 (provide (all-defined-out))
 
+(default-style 'swiss)
+
+(define (typeset-just-terms-from-now-on)
+  (non-terminal-style (default-style)))
+
 (define with-dot-writers (lambda (thunk [topval #f])
   (define (combine e a)
     ;; Buils the same element as a but with content e
@@ -141,10 +146,6 @@
          (helper (list-tail lws 4) null)))])
    (thunk))))))
 
-(default-style 'swiss)
-;; we are only typesetting concrete values
-(non-terminal-style (default-style))
-
 (define-syntax (render-dot-term stx)
   (syntax-case stx ()
     [(_ name p e)
@@ -186,7 +187,7 @@
     [(_ prefix (valtop ...))
      #'(begin
          (let ([valname (car 'valtop)])
-           (with-dot-writers (lambda () (render-term dot topvals (build-path (string-append prefix "_valtop_" (symbol->string valname) ".ps")))) valname)
+           (with-dot-writers (lambda () (render-term dot valtop (build-path (string-append prefix "_valtop_" (symbol->string valname) ".ps")))) valname)
            (with-dot-writers (lambda () (render-term dot valtop)) valname)) ...)]))
 
 (define-syntax (check-dot stx)
