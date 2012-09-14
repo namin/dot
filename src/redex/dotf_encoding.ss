@@ -65,7 +65,10 @@
  ;; (e-subtype (rfn (sel choices (cc Alt)) alt (: (ca C) (sel pets (cc Dog)) (sel pets (cc Dog)))) (rfn (sel choices (cc Alt)) alt (: (ca C) (sel pets (cc Pet)) (sel pets (cc Pet)))))
  (e-subtype (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Dog))) (: (ca A) (sel alt (ca C)) (sel alt (ca C))) (: (ca B) (sel alt (ca C)) (sel alt (ca C))))
             (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Pet))) (: (ca A) (sel alt (ca C)) (sel alt (ca C))) (: (ca B) (sel alt (ca C)) (sel alt (ca C)))))
- (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian)) (cast Top alt))
+ (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian))
+               (cast Top
+               (cast (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Dog))))
+                alt)))
  (cast Top (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian))
                          (cast (sel pets (cc Dalmatian)) (app (sel alt (cm choose) potty) dotty))))
 )
