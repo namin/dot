@@ -174,7 +174,7 @@
   (syntax-case stx ()
     [(_ prefix topvals (suffix tp e) ...)
      #'(begin
-         ;(check-dot topvals (tp e) ...)
+         (check-dot topvals (tp e) ...)
          (when suffix
            (with-dot-writers (lambda () (render-term dot e (build-path (string-append prefix "_" suffix ".ps"))))))
          ...
@@ -185,8 +185,9 @@
   (syntax-case stx ()
     [(_ prefix (valtop ...))
      #'(begin
-         ;(with-dot-writers-top (lambda () (render-term dot topvals (build-path (string-append prefix ".ps")))))
-         (with-dot-writers (lambda () (render-term dot valtop)) (car 'valtop)) ...)]))
+         (let ([valname (car 'valtop)])
+           (with-dot-writers (lambda () (render-term dot topvals (build-path (string-append prefix "_valtop_" (symbol->string valname) ".ps")))) valname)
+           (with-dot-writers (lambda () (render-term dot valtop)) valname)) ...)]))
 
 (define-syntax (check-dot stx)
   (syntax-case stx ()
