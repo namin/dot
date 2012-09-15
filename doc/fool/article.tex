@@ -379,7 +379,7 @@
 
 \begin{abstract}
 We propose a new type-theoretic foundation of Scala and languages like
-it: the Dependent Object Types calculus (DOT). DOT models Scala's
+it: the Dependent Object Types (DOT) calculus. DOT models Scala's
 path-dependent types, abstract type members and its mixture of nominal
 and structural typing through the use of refinement types.
 
@@ -408,17 +408,28 @@ Languages, Theory, Verification
 calculus, objects, dependent types, step-indexed logical relations
 
 \section{Introduction}
+A scalable programming language is one in which the same concepts can
+describe small as well as large parts. Towards this goal, Scala
+unifies concepts from object and module systems. An essential
+ingredient of this unification is objects with type members. Given a
+stable path to an object, its type members can be accessed as types,
+called path-dependent types.
 
-This paper presents a proposal for a new type-theoretic foundation of
-Scala and languages like it. The properties we are interested in
-modeling are Scala's path-dependent types and abstract type members,
-as well as its mixture of nominal and structural typing through the
-use of refinement types. Compared to previous approaches~\cite{nuObj,FS},
-we make no attempt to model inheritance or mixin composition. Indeed
-we will argue that such concepts are better modeled in a different
-setting.
+This paper presents Dependent Object Types (DOT), a small object
+calculus with path-dependent types. In addition to path-dependent
+types, types in DOT are built from refinements, intersections and
+unions. A refinement extends a type by (re-)declaring members, which
+can be types, values or methods.
 
-The calculus does not precisely describe what's currently in Scala. It
+We propose DOT as a new type-theoretic foundation of Scala and
+languages like it. The properties we are interested in modeling are
+Scala's path-dependent types and abstract type members, as well as its
+mixture of nominal and structural typing. Compared to previous
+approaches~\cite{nuObj,FS}, we make no attempt to model inheritance or
+mixin composition. Indeed we will argue that such concepts are better
+modeled in a different setting.
+
+The DOT calculus does not precisely describe what's currently in Scala. It
 is more normative than descriptive. The main point of deviation
 concerns the difference between Scala's compound type formation using
 {\bf with} and classical type intersection, as it is modeled in the
@@ -460,40 +471,66 @@ infinite sequence
 The limit of this sequence does not exist as a type in Scala.
 
 This is problematic because glbs and lubs play a central role in
-Scala's type inference. For example, in to infer the type \code{if} expression such as
+Scala's type inference. For example, in order to infer the type of an
+\code{if} expression such as
 \begin{lstlisting}
   if (cond) ((a: A) => c: C) else ((b: B) => d: D)
 \end{lstlisting}
 type inference tries to compute the glb of \code{A} and \code{B} and
-the lub of \code{C} and \code{D} The absence of universal glbs and
+the lub of \code{C} and \code{D}. The absence of universal glbs and
 lubs makes type inference more brittle and more unpredictable.
 
-%The primary contributions of this paper are:
-%\begin{itemize}
-%\item Development of DOT -- a core calculus which models
-%  path-dependent types. We formally specify a small-step operational
-%  semantics and a static typing assignment in
-%  section~\ref{dot-calculus} and show some examples in
-%  section~\ref{dot-examples}.
-%\item Counterexamples to the standard theorem of preservation --
-%  section~\ref{dot-preservation}.
-%\item A sketch of a type-safety proof based on logical relations --
-%  section~\ref{dot-type-safety}.
-%\end{itemize}
+Compared to Scala, DOT also simplifies type members. In DOT, a type
+member is declared by its lower and upper bounds. Furthermore, unlike
+Scala, there is no notion of uninstiated type member. Here is an
+example inspired by~\cite{vt}:
+\begin{lstlisting}
+trait Food
+trait Animal {
+  type Meal <: Food
+  def eat(meal: Meal) {}
+}
+\end{lstlisting}
+In Scala, \code{Meal} is an uninstiated type member of \code{Animal}:
+it is not possible to instantiate an \code{Animal} without providing a
+concrete binding for \code{Meal}. In DOT, \code{Meal} is a type member
+with a lower bound of $\Bot$ and an upper bound of \code{Food}. It is
+possible to instantiate an \code{Animal} without further specifying
+\code{Meal}, though it would be not possible to feed it. Now,
+we define \code{Cow} by refining \code{Animal}.
+\begin{lstlisting}
+trait Grass extends Food
+trait Cow extends Animal {
+  type Meal = Grass
+}
+\end{lstlisting}
+In Scala, the type alias \code{type Meal = Grass} defines a concrete
+binding for \code{Meal}. Now, we can instantiate \code{Cow}s and feed
+them \code{Grass}. In DOT, such a type alias is declared by giving it
+identical lower and upper bounds.
 
-We propose DOT as a core calculus for path-dependent types. We first
-motivate the calculus informally in section~\ref{dot-motiv}. We
-present the calculus formally in section \ref{dot-calculus} and
-through examples in section~\ref{dot-examples}. Though we show that
-the calculus does not satisfy the standard theorem of preservation in
+DOT has a notion of concrete vs abstract type members, but it used to
+distinguish which types members are instantiable as opposed to
+instantiated. In the example above, all types introduced by
+\code{trait} would be concrete type members in DOT with lower bounds
+of $\Bot$ and upper bounds describing the \code{extends} clause:
+$\Top$ for \code{Food}, a refinement of $\Top$ with type member
+\code{Meal} and method member \code{eat} for \code{Animal},
+\code{Food} for \code{Grass} and a refinement of \code{Animal} with
+type member \code{Meal} for \code{Cow}. Concrete type members
+typically have a lower bound of $\Bot$ so that they are purely
+nominal: e.g. one needs to directly or indirectly instantiate a
+\code{Cow} to have an object of type \code{Cow}.
+
+We propose DOT as a core calculus for path-dependent types. We present
+the calculus formally in section \ref{dot-calculus} and through
+examples in section~\ref{dot-examples}. Though we show that the
+calculus does not satisfy the standard theorem of preservation in
 section~\ref{dot-preservation}, we contribute a proof sketch of type
 safety using logical relations in section~\ref{dot-type-safety}. In
 section~\ref{discussion}, we discuss choices and variants of the
 calculus, as well as related work, and conclude in
 section~\ref{conclusion}.
-
-\section{Motivation}\label{dot-motiv}
-%TODO
 
 \section{The DOT Calculus}\label{dot-calculus}
 
@@ -1049,6 +1086,9 @@ judgement $\Gamma \ts D \wf$. All declarations are well-formed if
 their constituent types are well-formed.
 
 \section{Examples}\label{dot-examples}
+
+\subsection{Scala to DOT}\label{dot-examples-scala-sugar}
+// TODO
 
 \subsection{Sugar: Functions}
 Like in Scala, we can encode functions as objects with a special
