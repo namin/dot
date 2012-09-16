@@ -51,8 +51,9 @@
  ["alt_covariant" #t
   (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian))
                 (cast Top
+                (cast (sel choices (cc Alt))
                 (cast (rfn (sel choices (cc Alt)) alt (: (ca C) Bot (sel pets (cc Dog))))
-                      alt)))]
+                      alt))))]
  ["potty" #t
   (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian))
                 (cast Top (cast (sel alt (ca A)) potty)))]

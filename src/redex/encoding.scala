@@ -23,7 +23,7 @@ object choices {
     type C = Cp
     type A = Ap
     type B = Bp
-    val choose = (a: A) => (b: B) => b
+    val choose: A => B => B = a => b => b
   }
 }
 
