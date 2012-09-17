@@ -1,0 +1,124 @@
+\title{Encoding Scala in DOT}
+\author{Nada Amin}
+\date{\today}
+
+\documentclass{article}
+\usepackage{minted}
+\usemintedstyle{eclipse}
+\usepackage[pdftex]{graphicx}
+\usepackage{multicol}
+\setlength\parindent{0pt}
+
+\begin{document}
+\footnotesize
+\section{Hierarchy of Classes}
+\begin{minted}{scala}
+object pets {
+  trait Pet
+  trait Dog extends Pet
+  trait Cat extends Pet
+  trait Poodle extends Dog
+  trait Dalmatian extends Dog
+}
+\end{minted}
+\includegraphics[scale=0.7]{encoding_valtop_pets}
+
+\subsection{Typechecking Properties}
+true\\ \includegraphics[scale=0.7]{encoding_pets_sub1}\\
+true\\ \includegraphics[scale=0.7]{encoding_pets_sub2}
+
+\section{Type Members}
+\begin{minted}{scala}
+object choices {
+  trait Alt {
+    type C
+    type A <: C
+    type B <: C
+    val choose : A => B => C
+  }
+}
+\end{minted}
+\includegraphics[scale=0.7]{encoding_valtop_choices}
+
+\subsection{Typechecking Properties}
+
+false\\ \includegraphics[scale=0.7]{encoding_leafs_no_subtp}
+
+true\\ \includegraphics[scale=0.7]{encoding_abs_c_subtp}
+
+\section{Polymorphic Operators}
+\begin{minted}{scala}
+object Main extends App {
+  import pets._
+  import choices._
+
+  def pickLast[Cp,Ap<:Cp,Bp<:Cp] = new Alt {
+    type C = Cp
+    type A = Ap
+    type B = Bp
+    val choose: A => B => B = a => b => b
+  }
+
+  val potty = new Poodle { override def toString = "potty" }
+  val dotty = new Dalmatian { override def toString = "dotty" }
+
+  val picker = pickLast[Dog,Poodle,Dalmatian]
+  val p: picker.A = potty
+  val r: picker.B = picker.choose(potty)(dotty)
+  println(r) // dotty
+  //type error: println(picker.choose(dotty)(potty))
+}
+\end{minted}
+
+We implement {\tt pickLast} as a {\it meta}-function that explicitly binds a
+given name. It is not convenient to just return a complex term because
+then invoking {\tt choose} falls under the term-mem restriction.\\
+\includegraphics[scale=0.7]{encoding_metafunction_val-pickLast}
+
+\subsection{Typechecking Properties}
+Given\\
+\includegraphics[scale=0.7]{encoding_valtop_potty}\\
+\includegraphics[scale=0.7]{encoding_valtop_dotty}\\
+
+true\\ \includegraphics[scale=0.7]{encoding_alt_covariant}\\
+true\\ \includegraphics[scale=0.7]{encoding_potty}\\
+true\\ \includegraphics[scale=0.7]{encoding_dotty}\\
+false\\ \includegraphics[scale=0.7]{encoding_mismatch}\\
+
+\section{F-bounded Abstraction}
+\begin{minted}{scala}
+object metachoices {
+  trait MetaAlt extends choices.Alt {
+    type C = MetaAlt
+    type A = C
+    type B = C
+  }
+  val first = new MetaAlt {
+    val choose: C => C => C = a => b => a
+    override def toString = "<first>"
+  }
+  val last = new MetaAlt {
+    val choose: C => C => C = a => b => b
+    override def toString = "<last>"
+  }
+  val recfirst = new MetaAlt {
+    val choose: C => C => C = a => b => a.choose(a)(b)
+    override def toString = "<recfirst>"
+  }
+  val reclast = new MetaAlt {
+    val choose: C => C => C = a => b => b.choose(a)(b)
+    override def toString = "<reclast>"
+  }
+}
+\end{minted}
+\includegraphics[scale=0.7]{encoding_valtop_metachoices}\\
+\includegraphics[scale=0.7]{encoding_valtop_mcfirst}\\
+\includegraphics[scale=0.7]{encoding_valtop_mclast}\\
+\includegraphics[scale=0.7]{encoding_valtop_mcrecfirst}\\
+\includegraphics[scale=0.7]{encoding_valtop_mcreclast}
+
+\subsection{Typechecking Properties}
+
+true\\ \includegraphics[scale=0.7]{encoding_fbounded}
+
+\end{document}
