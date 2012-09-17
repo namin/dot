@@ -184,12 +184,13 @@
   (syntax-case stx ()
     [(_ prefix mode (topvals ...) ((suffix tp e) ...) ...)
      #'(begin
+         (render-topvals prefix topvals) ...
          (begin
            (when suffix
-             (with-dot-writers (lambda () (render-term dot e (build-path (string-append prefix "_" suffix ".ps"))))))
+             (with-dot-writers (lambda () (render-term dot e (build-path (string-append prefix "_" suffix ".ps")))))
+             (with-dot-writers (lambda () (render-term dot e))))
            ...) ...
          (check-dot-groups mode (topvals ...) ((tp e) ...) ...)
-         (render-topvals prefix topvals) ...
          )]))
 
 (define-syntax (render-topvals stx)
