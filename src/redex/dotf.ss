@@ -32,6 +32,22 @@
   (Lany Lt l m))
 
 (define-metafunction dot
+  intersection : T T -> T
+  [(intersection T_1 Bot) Bot]
+  [(intersection Bot T_2) Bot]
+  [(intersection T_1 Top) T_1]
+  [(intersection Top T_2) T_2]
+  [(intersection T_1 T_2) (T_1 ∧ T_2)])
+
+(define-metafunction dot
+  union : T T -> T
+  [(union T_1 Bot) T_1]
+  [(union Bot T_2) T_2]
+  [(union T_1 Top) Top]
+  [(union Top T_2) Top]
+  [(union T_1 T_2) (T_1 ∨ T_2)])
+
+(define-metafunction dot
   subst : any x any -> any
   ;; 1. x_1 bound
   [(subst (m_1 x_1 any_1) x_1 any_2)
@@ -244,8 +260,7 @@
   [(is_wf-type (T_p ...) env (sel p Lt)) #t
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))
-   (where (S U) any_bound)
-   (judgment-holds (subtype env S Bot))]
+   (where (Bot U) any_bound)]
   [(is_wf-type (T_p ...) env (sel p Lt)) #t
    (side-condition (not (member (term (sel p Lt)) (term (T_p ...)))))
    (where any_bound (membership-type-lookup env p Lt))
@@ -299,7 +314,7 @@
    ,(append (term (Dl_before ...))
             (term (decl-intersection ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))))]
   [(decl-intersection ((: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))
-   ,(cons (term (: Lm (S_1 ∨ S_2) (U_1 ∧ U_2)))
+   ,(cons (term (: Lm (union S_1 S_2) (intersection U_1 U_2)))
           (term (decl-intersection (DLm_1 ...) (DLm_2 ...))))]
   [(decl-intersection ((: Lm S_1 U_1) DLm_1 ...) (DLm_before ... (: Lm S_2 U_2) DLm_2 ...))
    ,(append (term (DLm_before ...))
@@ -322,7 +337,7 @@
   [(decl-union (Dl_before ... (: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))
    (decl-union ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))]
   [(decl-union ((: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))
-   ,(cons (term (: Lm (S_1 ∧ S_2) (U_1 ∨ U_2)))
+   ,(cons (term (: Lm (intersection S_1 S_2) (union U_1 U_2)))
           (term (decl-union (DLm_1 ...) (DLm_2 ...))))]
   [(decl-union ((: Lm S_1 U_1) DLm_1 ...) (DLm_before ... (: Lm S_2 U_2) DLm_2 ...))
    (decl-union ((: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))]
@@ -337,13 +352,13 @@
   membership-type-lookup : env e Lt -> (S U) or #f
   [(membership-type-lookup env_1 p_1 Lt_1)
    (subst (S_1 U_1) z_1 p_1)
-   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
    (judgment-holds (typeof env_1 p_1 T_e))
+   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
    (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...) (Dm ...))))]
   [(membership-type-lookup env_1 e_1 Lt_1)
    (S_1 U_1)
-   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
    (judgment-holds (typeof env_1 e_1 T_e))
+   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
    (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...) (Dm ...))))
    (judgment-holds (found (fn (S_1 U_1) z_1) #f))]
   [(membership-type-lookup env_1 e_1 Lt_1)

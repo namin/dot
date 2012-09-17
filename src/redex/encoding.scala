@@ -27,6 +27,30 @@ object choices {
   }
 }
 
+object metachoices {
+  trait MetaAlt extends choices.Alt {
+    type C = MetaAlt
+    type A = C
+    type B = C
+  }
+  val first = new MetaAlt {
+    val choose: C => C => C = a => b => a
+    override def toString = "<first>"
+  }
+  val last = new MetaAlt {
+    val choose: C => C => C = a => b => b
+    override def toString = "<last>"
+  }
+  val recfirst = new MetaAlt {
+    val choose: C => C => C = a => b => a.choose(a)(b)
+    override def toString = "<recfirst>"
+  }
+  val reclast = new MetaAlt {
+    val choose: C => C => C = a => b => b.choose(a)(b)
+    override def toString = "<reclast>"
+  }
+}
+
 object Main extends App {
   import pets._
   import choices._
@@ -38,5 +62,6 @@ object Main extends App {
   val p: picker.A = potty
   val r: picker.B = picker.choose(potty)(dotty)
   println(r)
+  println(metachoices.recfirst.choose(metachoices.first)(metachoices.reclast))
   //type error: println(picker.choose(dotty)(potty))
 }

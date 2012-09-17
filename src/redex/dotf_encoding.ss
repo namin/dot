@@ -15,7 +15,7 @@
 (with-dot-writers (lambda () (render-metafunction val-pickLast (build-path "encoding_metafunction_val-pickLast.ps"))))
 
 (typeset-just-terms-from-now-on)
-(check-render-dot "encoding"
+(check-render-dot "encoding" #t
  ([pets (rfn Top z
              (: (cc Pet) Bot Top)
              (: (cc Dog) Bot (sel z (cc Pet)))
@@ -32,6 +32,21 @@
                                      (: (ca A) Bot (sel alt (ca C)))
                                      (: (ca B) Bot (sel alt (ca C)))
                                      (: (cm choose) (sel alt (ca A)) (arrow (sel alt (ca B)) ((sel alt (ca A)) ∨ (sel alt (ca B))))))))]
+  [metachoices (rfn Top z
+                    (: (cc MetaAlt) Bot (rfn (sel choices (cc Alt)) alt
+                                             (: (ca C) (sel z (cc MetaAlt)) (sel z (cc MetaAlt)))
+                                             (: (ca A) (sel alt (ca C)) (sel alt (ca C)))
+                                             (: (ca B) (sel alt (ca C)) (sel alt (ca C))))))]
+  [mc_first (sel metachoices (cc MetaAlt))
+            [(cm choose) a (fun b (sel metachoices (cc MetaAlt)) (sel metachoices (cc MetaAlt)) a)]]
+  [mc_last (sel metachoices (cc MetaAlt))
+           [(cm choose) a (fun b (sel metachoices (cc MetaAlt)) (sel metachoices (cc MetaAlt)) b)]]
+  [mc_recfirst (sel metachoices (cc MetaAlt))
+               [(cm choose) a (fun b (sel metachoices (cc MetaAlt)) (sel metachoices (cc MetaAlt))
+                                   (app (sel a (cm choose) a) b))]]
+  [mc_reclast (sel metachoices (cc MetaAlt))
+              [(cm choose) a (fun b (sel metachoices (cc MetaAlt)) (sel metachoices (cc MetaAlt))
+                                  (app (sel b (cm choose) a) b))]]
   [favorites (rfn Top z
                   (: (cv dog) (sel pets (cc Dog)))
                   (: (cv cat) (sel pets (cc Cat))))
@@ -63,4 +78,6 @@
  ["mismatch" #f
   (cast Top (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian))
                           (app (sel alt (cm choose) dotty) potty)))]
+ ["fbounded" #t
+  (cast Top (app (sel mc_recfirst (cm choose) mc_first) mc_reclast))]
 )

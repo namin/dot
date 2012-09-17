@@ -182,12 +182,16 @@
 
 (define-syntax (check-render-dot stx)
   (syntax-case stx ()
-    [(_ prefix topvals (suffix tp e) ...)
+    [(_ prefix last-only topvals (suffix tp e) ... (suffix-last tp-last e-last))
      #'(begin
-         (check-dot topvals (tp e) ...)
-         (when suffix
-           (with-dot-writers (lambda () (render-term dot e (build-path (string-append prefix "_" suffix ".ps"))))))
-         ...
+         (unless last-only
+           (check-dot topvals (tp e) ...)
+           (when suffix
+             (with-dot-writers (lambda () (render-term dot e (build-path (string-append prefix "_" suffix ".ps"))))))
+           ...)
+         (check-dot topvals (tp-last e-last))
+         (when suffix-last
+           (with-dot-writers (lambda () (render-term dot e-last (build-path (string-append prefix "_" suffix-last ".ps"))))))
          (render-topvals prefix topvals)
          )]))
 
