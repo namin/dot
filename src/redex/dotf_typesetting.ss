@@ -182,17 +182,14 @@
 
 (define-syntax (check-render-dot stx)
   (syntax-case stx ()
-    [(_ prefix last-only topvals (suffix tp e) ... (suffix-last tp-last e-last))
+    [(_ prefix mode (topvals ...) ((suffix tp e) ...) ...)
      #'(begin
-         (unless last-only
-           (check-dot topvals (tp e) ...)
+         (begin
            (when suffix
              (with-dot-writers (lambda () (render-term dot e (build-path (string-append prefix "_" suffix ".ps"))))))
-           ...)
-         (check-dot topvals (tp-last e-last))
-         (when suffix-last
-           (with-dot-writers (lambda () (render-term dot e-last (build-path (string-append prefix "_" suffix-last ".ps"))))))
-         (render-topvals prefix topvals)
+           ...) ...
+         (check-dot-groups mode (topvals ...) ((tp e) ...) ...)
+         (render-topvals prefix topvals) ...
          )]))
 
 (define-syntax (render-topvals stx)
@@ -203,15 +200,26 @@
            (with-dot-writers (lambda () (render-term dot valtop (build-path (string-append prefix "_valtop_" (symbol->string valname) ".ps")))) valname)
            (with-dot-writers (lambda () (render-term dot valtop)) valname)) ...)]))
 
+(define-syntax (check-dot-groups stx)
+  (syntax-case stx ()
+    [(_ mode (topvals ... topvals-last) group ... ((tp e) ...))
+     #'(begin
+         (printf "#~a..." (length '(topvals ... topvals-last)))
+         (check-dot (topvals ... topvals-last) (tp e) ...)
+         (unless (eq? (quote mode) 'last-only)
+           (check-dot-groups mode (topvals ...) group ...)))]
+    [(_ mode ())
+     #'(and #t)]))
+
 (define-syntax (check-dot stx)
   (syntax-case stx ()
-    [(_ ([valname valtype valbind ...] ...) (tp e) ...)
+    [(_ (([valname valtype valbind ...] ...) ...) (tp e) ...)
      #'(and (if
              (eq? (not tp)
                   (not
                    (typecheck
                     (term (() ()))
-                    (term (e-vals ((valname (valtype valbind ...)) ... ) e)))))
+                    (term (e-vals ((valname (valtype valbind ...)) ... ...) e)))))
              #t
              (begin (display "expected ")
                     (display tp)
