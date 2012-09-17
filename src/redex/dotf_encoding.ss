@@ -42,16 +42,16 @@
                                                (: (ca C) (sel z (cc MetaAlt)) (sel z (cc MetaAlt)))
                                                (: (ca A) (sel alt (ca C)) (sel alt (ca C)))
                                                (: (ca B) (sel alt (ca C)) (sel alt (ca C))))))]
-    [mc_first (sel metachoices (cc MetaAlt))
-              [(cm choose) a (fun b (sel metachoices (cc MetaAlt)) (sel metachoices (cc MetaAlt)) a)]]
-    [mc_last (sel metachoices (cc MetaAlt))
+    [mcfirst (sel metachoices (cc MetaAlt))
+             [(cm choose) a (fun b (sel metachoices (cc MetaAlt)) (sel metachoices (cc MetaAlt)) a)]]
+    [mclast (sel metachoices (cc MetaAlt))
              [(cm choose) a (fun b (sel metachoices (cc MetaAlt)) (sel metachoices (cc MetaAlt)) b)]]
-    [mc_recfirst (sel metachoices (cc MetaAlt))
-                 [(cm choose) a (fun b (sel metachoices (cc MetaAlt)) (sel metachoices (cc MetaAlt))
-                                     (app (sel a (cm choose) a) b))]]
-    [mc_reclast (sel metachoices (cc MetaAlt))
-                [(cm choose) a (fun b (sel metachoices (cc MetaAlt)) (sel metachoices (cc MetaAlt))
-                                    (app (sel b (cm choose) a) b))]]])
+    [mcrecfirst (sel metachoices (cc MetaAlt))
+             [(cm choose) a (fun b (sel metachoices (cc MetaAlt)) (sel metachoices (cc MetaAlt))
+                                 (app (sel a (cm choose) a) b))]]
+    [mcreclast (sel metachoices (cc MetaAlt))
+             [(cm choose) a (fun b (sel metachoices (cc MetaAlt)) (sel metachoices (cc MetaAlt))
+                                 (app (sel b (cm choose) a) b))]]])
  ([#f #t (cast Top pets)]
   ["pets_sub1" #t (e-subtype (sel pets (cc Dog)) (sel pets (cc Pet)))]
   ["pets_sub2" #t (e-subtype (sel pets (cc Poodle)) (sel pets (cc Dog)))]
@@ -79,5 +79,5 @@
    (cast Top (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian))
                            (app (sel alt (cm choose) dotty) potty)))])
  (["fbounded" #t
-       (cast Top (app (sel mc_recfirst (cm choose) mc_first) mc_reclast))])
+       (cast Top (app (sel mcrecfirst (cm choose) mcfirst) mcreclast))])
 )
