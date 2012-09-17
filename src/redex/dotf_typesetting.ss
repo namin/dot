@@ -4,8 +4,14 @@
 (require (only-in mzlib/struct copy-struct))
 (require (only-in slideshow/pict text))
 (require (only-in racket/match match))
+(provide (all-defined-out))
 
-(define (with-dot-writers thunk)
+(default-style 'swiss)
+
+(define (typeset-just-terms-from-now-on)
+  (non-terminal-style (default-style)))
+
+(define with-dot-writers (lambda (thunk [topval #f])
   (define (combine e a)
     ;; Buils the same element as a but with content e
     (copy-struct lw a [lw-e e]))
@@ -59,7 +65,15 @@
   (with-atomic-rewriter 'Top "⊤"
   (with-atomic-rewriter 'Bot "⊥"
   (with-compound-rewriters
-   (['val
+   ([topval
+     (lambda (lws)
+       (list* (string-append "val " (symbol->string topval) " = new ")
+              (third lws)
+              (add (third lws) "(")
+              (append
+               (map pretty-binding (cdddr (drop-right lws 1)))
+               (list ")"))))]
+    ['val
      (λ (lws)
        (list
         (collapse (first lws) (list-ref lws 0))
@@ -74,12 +88,21 @@
        ))]
     ['sel
      (λ (lws)
-       (list
-        (collapse (first lws) (list-ref lws 1))
-        (list-ref lws 2)
-        "."
-        (list-ref lws 3)
-        (collapse (list-ref lws 4) (last lws))))]
+       (if (= 5 (length lws))
+           (list
+            (collapse (first lws) (list-ref lws 1))
+            (list-ref lws 2)
+            "."
+            (list-ref lws 3)
+            (collapse (list-ref lws 4) (last lws)))
+           (list
+            (collapse (first lws) (list-ref lws 1))
+            (list-ref lws 2)
+            "."
+            (list-ref lws 3)
+            "("
+            (list-ref lws 4)
+            (combine ")" (collapse (list-ref lws 5) (last lws))))))]
     ['cv
      (λ (lws)
        (list
@@ -130,11 +153,7 @@
          (list-ref lws 3)
          (add (list-ref lws 3) " ⇒ ")
          (helper (list-tail lws 4) null)))])
-   (thunk)))))
-
-(default-style 'swiss)
-;; we are only typesetting concrete values
-(non-terminal-style (default-style))
+   (thunk))))))
 
 (define-syntax (render-dot-term stx)
   (syntax-case stx ()
@@ -147,6 +166,60 @@
                 #t)
             (with-dot-writers (lambda () (render-term dot e))))]))
 
+
+;; helper functions to make it nicer to write larger programs
+(define-metafunction dot
+  e-subtype : S U -> e
+  [(e-subtype S U) 
+   (cast Top (fun x S U x))
+   (where x ,(variable-not-in (term (S U)) 'x))])
+
+(define-metafunction dot
+  e-vals : ((x c) ...) e -> e
+  [(e-vals () e) e]
+  [(e-vals ((x_1 c_1) (x_r c_r) ...) e) (val x_1 = new c_1 in (e-vals ((x_r c_r) ...) e))])
+
+
+(define-syntax (check-render-dot stx)
+  (syntax-case stx ()
+    [(_ prefix topvals (suffix tp e) ...)
+     #'(begin
+         (check-dot topvals (tp e) ...)
+         (when suffix
+           (with-dot-writers (lambda () (render-term dot e (build-path (string-append prefix "_" suffix ".ps"))))))
+         ...
+         (render-topvals prefix topvals)
+         )]))
+
+(define-syntax (render-topvals stx)
+  (syntax-case stx ()
+    [(_ prefix (valtop ...))
+     #'(begin
+         (let ([valname (car 'valtop)])
+           (with-dot-writers (lambda () (render-term dot valtop (build-path (string-append prefix "_valtop_" (symbol->string valname) ".ps")))) valname)
+           (with-dot-writers (lambda () (render-term dot valtop)) valname)) ...)]))
+
+(define-syntax (check-dot stx)
+  (syntax-case stx ()
+    [(_ ([valname valtype valbind ...] ...) (tp e) ...)
+     #'(and (if
+             (eq? (not tp)
+                  (not
+                   (typecheck
+                    (term (() ()))
+                    (term (e-vals ((valname (valtype valbind ...)) ... ) e)))))
+             #t
+             (begin (display "expected ")
+                    (display tp)
+                    (display "\n")
+                    (display 'e)
+                    (display "\n\n")
+                    (display (term e))
+                    (display "\n")
+                    #f))
+            ...)]))
+
+#;
 (render-dot-term "ex_glb" #t
 (val u = new ((rfn Top z
               (: (cc A) Bot (rfn Top y (: (ca T) Bot (sel z (cc A)))))
@@ -156,6 +229,7 @@
            (fun y (sel x (ca T)) Top y))))
 )
 
+#;
 (render-dot-term "ex_inf_tsel" #t
 (val u = new ((rfn Top u
               (: (cc A) Bot (rfn Top a

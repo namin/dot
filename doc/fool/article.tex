@@ -379,17 +379,20 @@
 
 \begin{abstract}
 We propose a new type-theoretic foundation of Scala and languages like
-it: the Dependent Object Types calculus (DOT). DOT models Scala's
-path-dependent types and abstract type members, as well as its mixture
-of nominal and structural typing through the use of refinement
-types. It makes no attempt to model inheritance or mixin
-composition. The calculus does not model what's currently in Scala: it
-is more normative than descriptive.
+it: the Dependent Object Types (DOT) calculus. DOT models Scala's
+path-dependent types, abstract type members and its mixture of nominal
+and structural typing through the use of refinement types.
 
-We show that DOT and its patched-up variants are not syntactically
-sound, by exhibiting counterexamples to preservation. Nevertheless, we
-sketch a proof of type-safety of the calculus via step-indexed logical
-relations.
+DOT does not precisely describe what's currently in Scala: it is more
+normative than descriptive, since our goal is to explore
+simplifications and unifications of concepts in the type system. In
+particular, DOT unifies Scala's constructs for type members, and
+provides classical intersection and union types, which simplify
+Scala's compound types and glb/lub computations.
+
+In this paper, we present the DOT calculus, both formally and
+informally. We also discuss our work-in-progress to prove type-safety
+of the calculus.
 \end{abstract}
 
 \category{D.3.3}{Language Constructs and Features}{Abstract data types, Classes and objects, polymorphism}
@@ -405,17 +408,28 @@ Languages, Theory, Verification
 calculus, objects, dependent types, step-indexed logical relations
 
 \section{Introduction}
+A scalable programming language is one in which the same concepts can
+describe small as well as large parts. Towards this goal, Scala
+unifies concepts from object and module systems. An essential
+ingredient of this unification is objects with type members. Given a
+stable path to an object, its type members can be accessed as types,
+called path-dependent types.
 
-This paper presents a proposal for a new type-theoretic foundation of
-Scala and languages like it. The properties we are interested in
-modeling are Scala's path-dependent types and abstract type members,
-as well as its mixture of nominal and structural typing through the
-use of refinement types. Compared to previous approaches~\cite{nuObj,FS},
-we make no attempt to model inheritance or mixin composition. Indeed
-we will argue that such concepts are better modeled in a different
-setting.
+This paper presents Dependent Object Types (DOT), a small object
+calculus with path-dependent types. In addition to path-dependent
+types, types in DOT are built from refinements, intersections and
+unions. A refinement extends a type by (re-)declaring members, which
+can be types, values or methods.
 
-The calculus does not precisely describe what's currently in Scala. It
+We propose DOT as a new type-theoretic foundation of Scala and
+languages like it. The properties we are interested in modeling are
+Scala's path-dependent types and abstract type members, as well as its
+mixture of nominal and structural typing. Compared to previous
+approaches~\cite{nuObj,FS}, we make no attempt to model inheritance or
+mixin composition. Indeed we will argue that such concepts are better
+modeled in a different setting.
+
+The DOT calculus does not precisely describe what's currently in Scala. It
 is more normative than descriptive. The main point of deviation
 concerns the difference between Scala's compound type formation using
 {\bf with} and classical type intersection, as it is modeled in the
@@ -441,12 +455,13 @@ complement this by classical union types. Intersections and unions
 form a lattice wrt subtyping. This addresses another problematic
 feature of Scala: In Scala's current type system, least upper bounds
 and greatest lower bounds do not always exist. Here is an example:
-given two traits
+given two traits \code{A} and \code{B}, where each declares an
+abstract upper-bounded type member \code{T},
 \begin{lstlisting}
   trait A { type T <: A }
   trait B { type T <: B }
 \end{lstlisting}
-The greatest lower bound of \code@A@ and \code@B@ is approximated by the
+the greatest lower bound of \code{A} and \code{B} is approximated by the
 infinite sequence
 \begin{lstlisting}
   A with B { type T <: A with B { type T <: A with B {
@@ -456,26 +471,61 @@ infinite sequence
 The limit of this sequence does not exist as a type in Scala.
 
 This is problematic because glbs and lubs play a central role in
-Scala's type inference. The absence of universal glbs and lubs makes
-type inference more brittle and more unpredictable.
+Scala's type inference. For example, in order to infer the type of an
+\code{if} expression such as
+\begin{lstlisting}
+  if (cond) ((a: A) => c: C) else ((b: B) => d: D)
+\end{lstlisting}
+type inference tries to compute the glb of \code{A} and \code{B} and
+the lub of \code{C} and \code{D}. The absence of universal glbs and
+lubs makes type inference more brittle and more unpredictable.
 
-%The primary contributions of this paper are:
-%\begin{itemize}
-%\item Development of DOT -- a core calculus which models
-%  path-dependent types. We formally specify a small-step operational
-%  semantics and a static typing assignment in
-%  section~\ref{dot-calculus} and show some examples in
-%  section~\ref{dot-examples}.
-%\item Counterexamples to the standard theorem of preservation --
-%  section~\ref{dot-preservation}.
-%\item A sketch of a type-safety proof based on logical relations --
-%  section~\ref{dot-type-safety}.
-%\end{itemize}
+Compared to Scala, DOT also simplifies type members. In DOT, a type
+member is declared by its lower and upper bounds. Furthermore, unlike
+Scala, there is no notion of uninstantiated type member. Here is an
+example inspired by~\cite{vt}:
+\begin{lstlisting}
+trait Food
+trait Animal {
+  type Meal <: Food
+  def eat(meal: Meal) {}
+}
+\end{lstlisting}
+In Scala, \code{Meal} is an uninstantiated type member of \code{Animal}:
+it is not possible to instantiate an \code{Animal} without providing a
+concrete binding for \code{Meal}. In DOT, \code{Meal} is a type member
+with a lower bound of $\Bot$ and an upper bound of \code{Food}. It is
+possible to instantiate an \code{Animal} without further specifying
+\code{Meal}, though it would be not possible to feed it. Now,
+we define \code{Cow} by refining \code{Animal}.
+\begin{lstlisting}
+trait Grass extends Food
+trait Cow extends Animal {
+  type Meal = Grass
+}
+\end{lstlisting}
+In Scala, the type alias \code{type Meal = Grass} defines a concrete
+binding for \code{Meal}. Now, we can instantiate \code{Cow}s and feed
+them \code{Grass}. In DOT, such a type alias is declared by giving it
+identical lower and upper bounds.
+
+DOT has a notion of concrete vs abstract type members, but it used to
+distinguish which types members are instantiable as opposed to
+instantiated. In the example above, all types introduced by
+\code{trait} would be concrete type members in DOT with lower bounds
+of $\Bot$ and upper bounds describing the \code{extends} clause:
+$\Top$ for \code{Food}, a refinement of $\Top$ with type member
+\code{Meal} and method member \code{eat} for \code{Animal},
+\code{Food} for \code{Grass} and a refinement of \code{Animal} with
+type member \code{Meal} for \code{Cow}. Concrete type members
+typically have a lower bound of $\Bot$ so that they are purely
+nominal: e.g. one needs to directly or indirectly instantiate a
+\code{Cow} to have an object of type \code{Cow}.
 
 We propose DOT as a core calculus for path-dependent types. We present
-the calculus formally in section \ref{dot-calculus} and through examples in
-section~\ref{dot-examples}. Though we show that the calculus does not
-satisfy the standard theorem of preservation in
+the calculus formally in section \ref{dot-calculus} and through
+examples in section~\ref{dot-examples}. Though we show that the
+calculus does not satisfy the standard theorem of preservation in
 section~\ref{dot-preservation}, we contribute a proof sketch of type
 safety using logical relations in section~\ref{dot-type-safety}. In
 section~\ref{discussion}, we discuss choices and variants of the
@@ -1037,10 +1087,9 @@ their constituent types are well-formed.
 
 \section{Examples}\label{dot-examples}
 
-\subsection{Sugar: Functions}
+\subsection{Functions as Sugar}
 Like in Scala, we can encode functions as objects with a special
-method. We will freely use the following sugar in the remaining of
-this paper. Note that the variable $z$ must be fresh.
+method. Note that the variable $z$ must be fresh.
 \begin{align*}
 \arrow S T &\iff {\Top \refine z {\mdecl {\mi{apply}} S T}}\\
 \fun x S T t &\iff \new z {{\arrow S T}\ldefs{\mi{apply}(x) = t}} z\\
@@ -1048,67 +1097,151 @@ this paper. Note that the variable $z$ must be fresh.
 \cast T t&\iff \app {(\fun x T T x)} t
 \end{align*}
 
-In the remaining examples, for brevity, we will also use $\abs x S t$
-for $\fun x S \_ t$ where the return type can be somewhat inferred
-from the context.
+We will freely use the following sugar in the remaining of this
+paper. We will also sometimes use $\abs x S t$ for $\fun x S \_ t$,
+omitting the return type for convenience and brevity.
 
-\subsection{Basics: Booleans, Error, \ldots}
-This program defines a $\mi{root}$ object with basic types
-($\mi{Unit}$, $\mi{Boolean}$, $\mi{Nat}$) and methods ($\mi{true}$,
-$\mi{false}$, $\mi{error}$, $\mi{zero}$). For brevity, we've omitted
-the code related to natural numbers. During the object creation, the
-method labels such as $\mi{false}$ are all initialized.
-\begin{align*}
-&\mlnew {\mi{root}} {\Top \mlrefine r {\\\displaybreak[3]
-&\ \Ldecl {\mi{Unit}} \Bot \Top\\\displaybreak[3]
-&\ \mdecl {\mi{unit}} \Top {r.\mi{Unit}}\\\displaybreak[3]
-&\ \Ldecl {\mi{Boolean}} \Bot {\Top \mlrefine z {\\\displaybreak[3]
-&\ \gap \ldecl {\mi{ifNat}} \arrow {(\arrow {r.\mi{Unit}} {r.\mi{Nat}})} {\arrow {(\arrow {r.\mi{Unit}} {r.\mi{Nat}})} {r.\mi{Nat}}}\\\displaybreak[3]
-&\gap}}\\\displaybreak[3]
-&\ \mdecl {\mi{false}} {r.\mi{Unit}} {r.\mi{Boolean}}\\\displaybreak[3]
-&\ \mdecl {\mi{true}} {r.\mi{Unit}} {r.\mi{Boolean}}\\\displaybreak[3]
-&\ \mdecl {\mi{error}} {r.\mi{Unit}} \Bot\\\displaybreak[3]
-& \ \ldots\\\displaybreak[3]
-&}\mlldefs{\\\displaybreak[3]
-&\ \mi{unit}(x) = {\new u {\mi{root}.\mi{Unit}} u}\\\displaybreak[3]
-%
-&\ \mi{false}(u) =\\\displaybreak[3]
-&\ \gap \mlnew {\mi{ff}} {\mi{root}.\mi{Boolean} \mlldefs{\\\displaybreak[3]
-&\ \gap\gap {\mi{ifNat}} = \abs t {\arrow {\mi{root}.\mi{Unit}} {\mi{root}.\mi{Nat}}} {\\&\gap\gap\gap\abs e {\arrow {\mi{root}.\mi{Unit}} {\mi{root}.\mi{Nat}}}\\&\gap\gap\gap\app e {\mi{root}.\mi{unit}}}\\\displaybreak[3]
-&\ \gap}}{
-\ \gap \mi{ff}}\\\displaybreak[3]
-%
-&\ \mi{true}(u) = \ldots\\\displaybreak[3]
-%
-&\ \mi{error}(u) = {\app {\mi{root}.\mi{error}} u}\\\displaybreak[3]
-&\ \ldots\\\displaybreak[3]
-&}}{
-\ldots
+\subsection{Class Hierarchies}
+A class hierarchy such as
+\begin{lstlisting}
+object pets {
+  trait Pet
+  trait Cat extends Pet
+  trait Dog extends Pet
+  trait Poodle extends Dog
+  trait Dalmatian extends Dog
 }
+\end{lstlisting}
+can be easily represented by concrete type members, setting the upper
+bounds appropriately:
+\begin{align*}
+\mlnew {\mi{pets}} {&\Top \mlrefine z {\\
+&\ \Ldecl {\mi{Pet_c}} \Bot \Top\\
+&\ \Ldecl {\mi{Cat_c}} \Bot {z.{\mi{Pet_c}}}\\
+&\ \Ldecl {\mi{Dog_c}} \Bot {z.{\mi{Pet_c}}}\\
+&\ \Ldecl {\mi{Poodle_c}} \Bot {z.{\mi{Dog_c}}}\\
+&\ \Ldecl {\mi{Dalmatian_c}} \Bot {z.{\mi{Dog_c}}}\\
+} \ldefs{}}{}
 \end{align*}
 
-\subsection{Lists}
-Polymorphic lists can be expressed using an abstract type member for
-the element type ($\mi{Elem}$). We can instantiate a refinement of the
-list package to manipulate lists with a particular element type.
-\begin{align*}
-&\mlnew {\mi{genLists}} {\Top \mlrefine g {\Ldecl {\mi{ListPackage}} \Bot {\Top \mlrefine p {\\\displaybreak[3]
-&\ \Ldecl {\mi{Elem}} \Bot \Top\\\displaybreak[3]
-&\ \Ldecl {\mi{List}} \Bot {\Top \mlrefine z {\\\displaybreak[3]
-&\ \gap \mdecl {\mi{isEmpty}} {\mi{root}.\mi{Unit}} {\mi{root}.\mi{Boolean}}\\\displaybreak[3]
-&\ \gap \mdecl {\mi{head}} {\mi{root}.\mi{Unit}} {p.\mi{Elem}}\\\displaybreak[3]
-&\ \gap \mdecl {\mi{tail}} {\mi{root}.\mi{Unit}} {p.\mi{List}}\\\displaybreak[3]
-&\gap}}\\\displaybreak[3]
-&\ \mdecl {\mi{nil}} {\mi{root}.\mi{Unit}} {p.\mi{List}}\\\displaybreak[3]
-&\ \mdecl {\mi{cons}} {p.\mi{Elem}} {\arrow {p.\mi{List}} {p.\mi{List}}}\\\displaybreak[3]
-&}}}}{
-\mlnew {\mi{natLists}} {{\mi{genLists}.\mi{ListPackage}} \mlrefine p {\\\displaybreak[3]
-&\gap \Ldecl {\mi{Elem}} {\mi{root}.\mi{Nat}} {\mi{root}.\mi{Nat}} }\mlldefs{\\\displaybreak[3]
-&\ {\mi{nil}}(u) = \ldots\\\displaybreak[3]
-&\ {\mi{cons}}(hd) = \ldots\\\displaybreak[3]
-&}}}{
-\ldots
+The lower of bounds of $\Bot$ ensures that these concrete types are
+nominal as the \textsc{$\sub$-tsel} rule cannot be meaningfully
+applied.
+
+\subsection{Abstract Type Members}
+The \code{choices.Alt} trait takes three abstract type members:
+\code{C}, \code{A}, \code{B}. \code{A} and \code{B} are upper bounded
+by \code{C}. The intention is that the \code{choose} function takes an
+\code{A} and a \code{B} and returns one or the other.
+\begin{lstlisting}
+object choices {
+  trait Alt {
+    type C
+    type A <: C
+    type B <: C
+    val choose : A => B => C
+  }
 }
+\end{lstlisting}
+In DOT, we can state more precisely the return type of $\mi{choose}$,
+thanks to union types:
+\begin{align*}
+&\new {\mi{choices}} {\Top \mlrefine z {\\
+&\gap\Ldecl {\mi{Alt_c}} {\Bot} {\Top \mlrefine a {\\
+&\gap\gap\Ldecl C \Bot \Top\\
+&\gap\gap\Ldecl A \Bot {a.C}\\
+&\gap\gap\Ldecl B \Bot {a.C}\\
+&\gap\gap\mdecl {\mi{choose}} {a.A} {\arrow {a.B} {a.A \tor a.B}}\\
+&\gap}}\\
+&}\ldefs{}}
+\end{align*}
+
+Using lower bounds of $\Bot$ for the abstract type members ensures
+they can vary covariantly. On the other hand, $\mi{choose}$ cannot be
+called meaningfully, unless $A$ and $B$ have realizable lower bounds.
+
+As expected, 
+\begin{align*}
+&{\mi{choices.Alt_c} \refine a {\Ldecl C \Bot {\mi{pets.Dog_c}}}}\\
+\sub\gap&{\mi{choices.Alt_c} \refine a {\Ldecl C \Bot {\mi{pets.Pet_c}}}}
+\end{align*}
+but
+\begin{align*}
+&{\mi{choices.Alt_c} \refine a {\Ldecl C {\mi{pets.Dog_c}} {\mi{pets.Dog_c}}}}\\
+\not\sub\gap&{\mi{choices.Alt_c} \refine a {\Ldecl C {\mi{pets.Pet_c}} {\mi{pets.Pet_c}}}}
+\end{align*}
+
+\subsection{Polymorphic Operators as Sugar}
+In Scala, we can implement a polymorphic operator \code{pickLast}
+which takes concrete types for \code{C}, \code{A} and \code{B} and
+implements a \code{choices.Alt} instance where the \code{choose}
+function picks the \code{B} element -- note the precision of the
+\code{choose} function which has been refined to return an element of
+exactly type \code{B}.
+\begin{lstlisting}
+def pickLast[Cp,Ap <: Cp,Bp <: Cp] = new Alt {
+  type C = Cp
+  type A = Ap
+  type B = Bp
+  val choose: A => B => B = a => b => b
+}
+
+val potty = new Poodle {}
+val dotty = new Dalmatian {}
+val picker = pickLast[Dog,Poodle,Dalmatian]
+val p: picker.A = potty
+val r: picker.B = picker.choose(potty)(dotty)
+\end{lstlisting}
+
+In DOT, we can implement such a polymorphic operator as sugar. Here,
+it is not convenient to just return a complex term like we did for
+functions as sugar because then invoking $\mi{choose}$ falls under the
+$\textsc{term-$\ni$}$ restriction, which doesn't allow the ``self''
+type to occur in the result of the method invocation. So the
+translation involves explicitly binding an object to the result of the
+polymorphic operator. We translate
+\begin{align*}
+\textbf{val } x^a = \textbf{pickLast}(T^C, T^A, T^B); e^a
+\end{align*}
+to
+\begin{align*}
+&\mlnew {x^a} {\mi{choices.Alt_c} \mlrefine {x^a} {\\
+&\gap\Ldecl C {T^C} {T^C}\\
+&\gap\Ldecl A {T^A} {T^A}\\
+&\gap\Ldecl B {T^B} {T^B}\\
+&\gap\mdecl {\mi{choose}} {x^a.A} {\arrow {x^a.B} {x^a.B}}\\
+&}\ldefs{\mi{choose}(a)=\fun b {x^a.B} {x^a.B} b}}
+{e^a}
+\end{align*}
+
+Now, given
+\begin{align*}
+&\mlnew p {\mi{pets.Poodle_c}}
+{\mlnew d {\mi{pets.Dalmatian_c}}
+{\textbf{val } a = \textbf{pickLast}({\mi{pets.Dog_c}}, {\mi{pets.Poodle_c}}, {\mi{pets.Dalmatian_c}});}}
+\end{align*}
+
+The type of $a$ is a subtype of ${\mi{choices.Alt_c}}$:
+\begin{align*}
+&\cast \Top {\\
+&\cast {\mi{choices.Alt_c}} {\\
+&\cast {{\mi{choices.Alt_c}} \refine a {\Ldecl C \Bot {\mi{pets.Dog_c}}}} {\\
+&a}}}
+\end{align*}
+
+The type of $p$ is a subtype of $a.A$:
+\begin{align*}
+\cast \Top {\cast {a.A} {p}}
+\end{align*}
+
+$a$ chooses a $\mi{pets.Dalmatian_c}$:
+\begin{align*}
+\cast \Top {\cast {\mi{pets.Dalmatian_c}} {\app {a.choose(p)} d}}
+\end{align*}
+
+$a$ enforces that it's first argument be a $\mi{pets.Poodle_c}$ and it's second a $\mi{pets.Dalmatian_c}$. The following does not typecheck for this reason:
+\begin{align*}
+\cast \Top {\app {a.choose(d)} p}
 \end{align*}
 
 \section{Counterexamples to Preservation}\label{dot-preservation}
