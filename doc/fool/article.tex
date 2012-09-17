@@ -479,9 +479,8 @@ the lub of \code{C} and \code{D}. The absence of universal glbs and
 lubs makes type inference more brittle and more unpredictable.
 
 Compared to Scala, DOT also simplifies type members. In DOT, a type
-member is declared by its lower and upper bounds. Furthermore, unlike
-Scala, there is no notion of uninstantiated type member. Here is an
-example inspired by~\cite{vt}:
+member is declared by its lower and upper bounds. Here is an example
+inspired by~\cite{vt}:
 \begin{lstlisting}
 trait Food
 trait Animal {
@@ -489,13 +488,11 @@ trait Animal {
   def eat(meal: Meal) {}
 }
 \end{lstlisting}
-In Scala, \code{Meal} is an uninstantiated type member of \code{Animal}:
-it is not possible to instantiate an \code{Animal} without providing a
-concrete binding for \code{Meal}. In DOT, \code{Meal} is a type member
-with a lower bound of $\Bot$ and an upper bound of \code{Food}. It is
-possible to instantiate an \code{Animal} without further specifying
-\code{Meal}, though it would not be possible to feed it. Now,
-we define \code{Cow} by refining \code{Animal}.
+\code{Meal} is a type member with a lower bound of $\Bot$ and an upper
+bound of \code{Food}. It is possible to instantiate an \code{Animal}
+without further specifying \code{Meal}, though it would not be
+possible to feed it. Now, we define \code{Cow} by refining
+\code{Animal}.
 \begin{lstlisting}
 trait Grass extends Food
 trait Cow extends Animal {
@@ -503,21 +500,20 @@ trait Cow extends Animal {
 }
 \end{lstlisting}
 In Scala, the type alias \code{type Meal = Grass} defines a concrete
-binding for \code{Meal}. Now, we can instantiate \code{Cow}s and feed
-them \code{Grass}. In DOT, such a type alias is declared by giving it
-identical lower and upper bounds.
+binding for \code{Meal}. In DOT, such a type alias is declared by
+giving it identical lower and upper bounds. Now, we can instantiate
+\code{Cow}s and feed them \code{Grass}.
 
-DOT has a notion of concrete vs abstract type members, but it used to
-distinguish which types members are instantiable as opposed to
-instantiated. In the example above, all types introduced by
-\code{trait} would be concrete type members in DOT with lower bounds
-of $\Bot$ and upper bounds describing the \code{extends} clause:
-$\Top$ for \code{Food}, a refinement of $\Top$ with type member
-\code{Meal} and method member \code{eat} for \code{Animal},
-\code{Food} for \code{Grass} and a refinement of \code{Animal} with
-type member \code{Meal} for \code{Cow}. Concrete type members
-typically have a lower bound of $\Bot$ so that they are purely
-nominal: e.g. one needs to directly or indirectly instantiate a
+DOT has a notion of concrete vs abstract type members, which is used
+to distinguish which types members are instantiable. In the example
+above, all types introduced by \code{trait} would be concrete type
+members in DOT with lower bounds of $\Bot$ and upper bounds describing
+the \code{extends} clause: $\Top$ for \code{Food}, a refinement of
+$\Top$ with type member \code{Meal} and method member \code{eat} for
+\code{Animal}, \code{Food} for \code{Grass} and a refinement of
+\code{Animal} with type member \code{Meal} for \code{Cow}. Concrete
+type members typically have a lower bound of $\Bot$ so that they are
+purely nominal: e.g. one needs to directly or indirectly instantiate a
 \code{Cow} to have an object of type \code{Cow}.
 
 We propose DOT as a core calculus for path-dependent types. We present
