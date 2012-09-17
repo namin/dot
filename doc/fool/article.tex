@@ -745,7 +745,7 @@ $\ldecl l \Bot$, for every type label $L$ the declaration $\Ldecl L
 \Top \Bot$.
 }
 
-Every field or type label can be declared only once in a set of
+Every value, method or type label can be declared only once in a set of
 declarations $\seq D$. A set of declarations can hence be seen as a map from
 labels to their declarations.  Meets $\wedge$ and joins $\vee$ on sets of
 declarations are defined in ~\figref{dot-decls}.
@@ -1732,7 +1732,9 @@ Scala, functions are then just sugar for objects with a special
 method.
 
 An alternative design would have been to change the expansion of the
-function type to have a declaration for a special marker value label.
+function type to have a declaration for a special label that either
+prevents instantiation or requires an implementation for the
+function.
 
 \subsubsection{Why not patch the DOT calculus for preservation to hold?}\label{pres-patch}
 
