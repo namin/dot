@@ -1150,11 +1150,10 @@ thanks to union types:
 &}\ldefs{}}
 \end{align*}
 
-Using lower bounds of $\Bot$ for the abstract type members ensures
-they can vary covariantly. On the other hand, $\mi{choose}$ cannot be
-called meaningfully, unless $A$ and $B$ have realizable lower bounds.
-
-As expected, 
+Using lower bounds of $\Bot$ for the abstract type members means they
+can vary covariantly. However, we wouldn't want to pass in any
+${\mi{pets.Pet_c}}$ to a $\mi{choose}$ method that expects only a
+${\mi{pets.Dog_c}}$. Therefore,
 \begin{align*}
 &{\mi{choices.Alt_c} \refine a {\Ldecl C \Bot {\mi{pets.Dog_c}}}}\\
 \sub\gap&{\mi{choices.Alt_c} \refine a {\Ldecl C \Bot {\mi{pets.Pet_c}}}}
@@ -1164,6 +1163,12 @@ but
 &{\mi{choices.Alt_c} \refine a {\Ldecl C {\mi{pets.Dog_c}} {\mi{pets.Dog_c}}}}\\
 \not\sub\gap&{\mi{choices.Alt_c} \refine a {\Ldecl C {\mi{pets.Pet_c}} {\mi{pets.Pet_c}}}}
 \end{align*}
+
+As expected, we cannot invoke $\mi{choose}$ meaningfully, unless $A$
+and $B$ have realizable lower bounds. For example, assuming we refine
+the types above so that $\Ldecl A C C$ and $\Ldecl B C C$, we cannot
+invoke $\mi{choose}$ when $C$ has a lower bound of $\Bot$ but only
+when it has a realizable lower bound such as $\mi{pets.Dog_c}$.
 
 \subsection{Polymorphic Operators as Sugar}
 In Scala, we can implement a polymorphic operator \code{pickLast}
