@@ -422,10 +422,10 @@ can be types, values or methods.
 We propose DOT as a new type-theoretic foundation of Scala and
 languages like it. The properties we are interested in modeling are
 Scala's path-dependent types and abstract type members, as well as its
-mixture of nominal and structural typing. Compared to previous
-approaches~\cite{nuObj,FS}, we make no attempt to model inheritance or
-mixin composition. Indeed we will argue that such concepts are better
-modeled in a different setting.
+mixture of nominal and structural typing through the use of refinement
+types. Compared to previous approaches~\cite{nuObj,FS}, we make no
+attempt to model inheritance or mixin composition. Indeed we will
+argue that such concepts are better modeled in a different setting.
 
 The DOT calculus does not precisely describe what's currently in Scala. It
 is more normative than descriptive. The main point of deviation
@@ -494,7 +494,7 @@ it is not possible to instantiate an \code{Animal} without providing a
 concrete binding for \code{Meal}. In DOT, \code{Meal} is a type member
 with a lower bound of $\Bot$ and an upper bound of \code{Food}. It is
 possible to instantiate an \code{Animal} without further specifying
-\code{Meal}, though it would be not possible to feed it. Now,
+\code{Meal}, though it would not be possible to feed it. Now,
 we define \code{Cow} by refining \code{Animal}.
 \begin{lstlisting}
 trait Grass extends Food
