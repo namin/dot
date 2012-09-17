@@ -79,5 +79,5 @@
    (cast Top (val-pickLast alt (sel pets (cc Dog)) (sel pets (cc Poodle)) (sel pets (cc Dalmatian))
                            (app (sel alt (cm choose) dotty) potty)))])
  (["fbounded" #t
-       (cast Top (app (sel mcrecfirst (cm choose) mcfirst) mcreclast))])
+   (cast Top (app (sel mcrecfirst (cm choose) mcfirst) mcreclast))])
 )
