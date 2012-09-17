@@ -381,14 +381,12 @@
 We propose a new type-theoretic foundation of Scala and languages like
 it: the Dependent Object Types (DOT) calculus. DOT models Scala's
 path-dependent types, abstract type members and its mixture of nominal
-and structural typing through the use of refinement types.
-
-DOT does not precisely describe what's currently in Scala: it is more
-normative than descriptive, since our goal is to explore
-simplifications and unifications of concepts in the type system. In
-particular, DOT unifies Scala's constructs for type members, and
-provides classical intersection and union types, which simplify
-Scala's compound types and glb/lub computations.
+and structural typing through the use of refinement types. The core
+formalism makes no attempt to model inheritance and mixin
+composition. DOT normalizes Scala's type system by unifying the
+constructs for type members and by providing classical intersection
+and union types which simplify Scala's compound types and glb/lub
+computations.
 
 In this paper, we present the DOT calculus, both formally and
 informally. We also discuss our work-in-progress to prove type-safety
