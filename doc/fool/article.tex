@@ -1087,6 +1087,30 @@ their constituent types are well-formed.
 
 \section{Examples}\label{dot-examples}
 
+\subsection{Glbs and Lubs}
+
+In DOT, the glb of two types is their intersection and their lub,
+their union. Recall the introductory example which was problematic in
+Scala:
+\begin{lstlisting}
+  trait A { type T <: A }
+  trait B { type T <: B }
+\end{lstlisting}
+
+We represent it as follows in DOT:
+\begin{align*}
+\mlnew p {&\Top \mlrefine p {\\
+&\ \Ldecl {A_c} \Bot {\Top \refine z {\Ldecl T \Bot {z.A_c}}}\\
+&\ \Ldecl {B_c} \Bot {\Top \refine z {\Ldecl T \Bot {z.B_c}}}\\
+&}\ldefs{}}{}
+\end{align*}
+
+The glb is of $p.A_c$ and $p.B_c$ is $p.A_c \tand p.B_c$ by
+definition.
+
+What is the expansion of $p.A_c \tand p.B_c$? It is the set ${\Ldecl T
+  \Bot {p.A_c \tand p.B_c}}$.
+
 \subsection{Functions as Sugar}
 Like in Scala, we can encode functions as objects with a special
 method. Note that the variable $z$ must be fresh.
