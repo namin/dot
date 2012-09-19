@@ -1108,8 +1108,19 @@ We represent it as follows in DOT:
 The glb is of $p.A_c$ and $p.B_c$ is $p.A_c \tand p.B_c$ by
 definition.
 
-What is the expansion of $p.A_c \tand p.B_c$? It is the set ${\Ldecl T
-  \Bot {p.A_c \tand p.B_c}}$.
+The expansion of $p.A_c \tand p.B_c$ is the set $\{\Ldecl T \Bot
+{p.A_c \tand p.B_c}\}$ according to this derivation:
+
+\prooftree
+     p.A_c \expand_z \{\Ldecl T \Bot {p.A_c}\},
+     p.B_c \expand_z \{\Ldecl T \Bot {p.B_c}\}
+\justifies
+     p.A_c \tand p.B_c \expand_z \{\Ldecl T \Bot {p.A_c \tand p.B_c}\}
+%\thickness=0.08em
+%\shiftright 2em
+\using
+     \textsc{$\tand$-$\expand$}
+\endprooftree
 
 \subsection{Functions as Sugar}
 Like in Scala, we can encode functions as objects with a special
