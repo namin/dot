@@ -853,6 +853,12 @@ guarantee syntactic validity, we can only substitute a path for the
 ``self''-reference.
 
 \subsection{Expansion}
+
+The expansion judgement $\Gamma \ts T \expand_z {\seq {D}}$
+``flattens'' all the declarations of a type: it relates a type $T$ to
+a set of declarations that describe the type structurally. Expansion
+is precise and unique, though it doesn't always
+exist.
       
 The expansion relation $\expand$ is needed to typecheck the complete
 set of declarations carried by a concrete type that is used in a
