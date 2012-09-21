@@ -1225,7 +1225,7 @@ thanks to union types:
 &\gap\gap\Ldecl B \Bot {a.C}\\
 &\gap\gap\mdecl {\mi{choose}} {a.A} {\arrow {a.B} {a.A \tor a.B}}\\
 &\gap}}\\
-&}\ldefs{}}
+&}\ldefs{}}{}
 \end{align*}
 
 Using lower bounds of $\Bot$ for the abstract type members means they
@@ -1320,6 +1320,68 @@ $a$ enforces that its first argument be a $\mi{pets.Poodle_c}$ and its second a 
 \begin{align*}
 \cast \Top {\app {a.choose(d)} p}
 \end{align*}
+
+\subsection{F-bounded Quantification}
+
+F-bounded quantification describes an upper bound that itself contains
+the type being constrained: for example, \code{Int extends Ordered[Int]}.
+Here, we define \code{MetaAlt} to extend
+\code{choices.Alt} with \code{C} as an alias for \code{MetaAlt}.
+
+\begin{lstlisting}
+trait MetaAlt extends choices.Alt {
+  type C = MetaAlt
+  type A = C
+  type B = C
+}
+\end{lstlisting}
+
+Now, we can define some \code{MetaAlt} instances:
+\begin{lstlisting}
+val first = new MetaAlt {
+  val choose: C => C => C = a => b => a
+}
+val last = new MetaAlt {
+  val choose: C => C => C = a => b => b
+}
+val recfirst = new MetaAlt {
+  val choose: C => C => C = a => b => a.choose(a)(b)
+}
+val reclast = new MetaAlt {
+  val choose: C => C => C = a => b => b.choose(a)(b)
+}
+\end{lstlisting}
+
+The equivalent in DOT is straightforward. We wrap $\mi{MetaAlt}$ in a
+namespace, so that we can refer to it.
+\begin{align*}
+&\mlnew m {\Top \mlrefine m {\\
+&\gap\Ldecl {\mi{MetaAlt_c}} {\Bot} {{\mi{choices.Alt_c}} \mlrefine a {\\
+&\gap\gap\Ldecl C {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}}\\
+&\gap\gap\Ldecl A {\mi{a.C}} {\mi{a.C}}\\
+&\gap\gap\Ldecl B {\mi{a.C}} {\mi{a.C}}\\
+&\gap}}\\
+&}\ldefs{}}{}
+\end{align*}
+
+Now, we can create the equivalent of \code{first} ($f$), \code{last}
+($l$), \code{recfirst} ($\mi{rf}$) and \code{reclast} ($\mi{rl}$):
+\begin{align*}
+&\mlnew f {{\mi{m.MetaAlt_c}}\mlldefs{\\
+&\gap\gap\mi{choose}(a)=\fun b {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}} a}}{
+\mlnew l {{\mi{m.MetaAlt_c}}\mlldefs{\\
+&\gap\gap\mi{choose}(a)=\fun b {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}} b}}{
+\mlnew {\mi{rf}} {{\mi{m.MetaAlt_c}}\mlldefs{\\
+&\gap\gap\mi{choose}(a)=\fun b {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}} {\\
+&\gap\gap\gap \app {{\mi{a.choose}}(a)} b}}}{
+\mlnew {\mi{rf}} {{\mi{m.MetaAlt_c}}\mlldefs{\\
+&\gap\gap\mi{choose}(a)=\fun b {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}} {\\
+&\gap\gap\gap \app {{\mi{b.choose}}(a)} b}}}{
+}}}}
+\end{align*}
+
+Given these definitions, here is a valid expression, which evaluates to $f$:
+$\cast \Top \app {{\mi{rf.choose}}(f)} l$.
 
 \section{Counterexamples to Preservation}\label{dot-preservation}
 
