@@ -857,8 +857,8 @@ guarantee syntactic validity, we can only substitute a path for the
 The expansion judgement $\Gamma \ts T \expand_z {\seq {D}}$
 ``flattens'' all the declarations of a type: it relates a type $T$ to
 a set of declarations that describe the type structurally. Expansion
-is precise and unique, though it doesn't always
-exist.
+is precise and unique, though it doesn't always exist. See
+section~\ref{ex-exp} for examples.
       
 The expansion relation $\expand$ is needed to typecheck the complete
 set of declarations carried by a concrete type that is used in a
@@ -1087,7 +1087,7 @@ their constituent types are well-formed.
 
 \section{Examples}\label{dot-examples}
 
-\subsection{Glbs and Lubs}
+\subsection{Glbs and Lubs}\label{ex-exp}
 
 In DOT, the glb of two types is their intersection and their lub,
 their union. Recall the introductory example which was problematic in
@@ -1097,7 +1097,7 @@ Scala:
   trait B { type T <: B }
 \end{lstlisting}
 
-We represent it as follows in DOT:
+We represent it as follows in DOT, wrapping the types in a namespace $p$:
 \begin{align*}
 \mlnew p {&\Top \mlrefine p {\\
 &\ \Ldecl {A_c} \Bot {\Top \refine z {\Ldecl T \Bot {p.A_c}}}\\
@@ -1133,8 +1133,25 @@ follows:
 
 {\tiny
 \prooftree
+   \[
+   \ldots
+   \justifies
    p \ni {\Ldecl {A_c} \Bot {\Top \refine z {\Ldecl T \Bot {p.A_c}}}}\quad
+   \using
+   \textsc{path-$\ni$}
+   \]
+   \[
+   \[
+   \justifies
+   \Top \expand_z \{\}
+   \using
+   \textsc{$\Top$-$\expand$}
+   \]
+   \justifies
    {\Top \refine z {\Ldecl T \Bot {p.A_c}}} \expand_z \{\Ldecl T \Bot {p.A_c}\}
+   \using
+   \textsc{rfn-$\expand$}
+   \]
 \justifies
    p.A_c \expand_z \{\Ldecl T \Bot {p.A_c}\}
 \using
