@@ -1100,8 +1100,8 @@ Scala:
 We represent it as follows in DOT:
 \begin{align*}
 \mlnew p {&\Top \mlrefine p {\\
-&\ \Ldecl {A_c} \Bot {\Top \refine z {\Ldecl T \Bot {z.A_c}}}\\
-&\ \Ldecl {B_c} \Bot {\Top \refine z {\Ldecl T \Bot {z.B_c}}}\\
+&\ \Ldecl {A_c} \Bot {\Top \refine z {\Ldecl T \Bot {p.A_c}}}\\
+&\ \Ldecl {B_c} \Bot {\Top \refine z {\Ldecl T \Bot {p.B_c}}}\\
 &}\ldefs{}}{}
 \end{align*}
 
@@ -1109,18 +1109,38 @@ The glb is of $p.A_c$ and $p.B_c$ is $p.A_c \tand p.B_c$ by
 definition.
 
 The expansion of $p.A_c \tand p.B_c$ is the set $\{\Ldecl T \Bot
-{p.A_c \tand p.B_c}\}$ according to this derivation:
+{p.A_c \tand p.B_c}\}$ by \textsc{$\tand$-$\expand$} rule:
 
+\
+
+{\tiny
 \prooftree
-     p.A_c \expand_z \{\Ldecl T \Bot {p.A_c}\},
+     p.A_c \expand_z \{\Ldecl T \Bot {p.A_c}\}\quad
      p.B_c \expand_z \{\Ldecl T \Bot {p.B_c}\}
 \justifies
      p.A_c \tand p.B_c \expand_z \{\Ldecl T \Bot {p.A_c \tand p.B_c}\}
-%\thickness=0.08em
-%\shiftright 2em
 \using
      \textsc{$\tand$-$\expand$}
 \endprooftree
+}
+
+\
+
+In turn, $p.A_c \expand_z \{\Ldecl T \Bot {p.A_c}\}$ is derived as
+follows:
+
+\
+
+{\tiny
+\prooftree
+   p \ni {\Ldecl {A_c} \Bot {\Top \refine z {\Ldecl T \Bot {p.A_c}}}}\quad
+   {\Top \refine z {\Ldecl T \Bot {p.A_c}}} \expand_z \{\Ldecl T \Bot {p.A_c}\}
+\justifies
+   p.A_c \expand_z \{\Ldecl T \Bot {p.A_c}\}
+\using
+     \textsc{tsel-$\expand$}
+\endprooftree
+}
 
 \subsection{Functions as Sugar}
 Like in Scala, we can encode functions as objects with a special
