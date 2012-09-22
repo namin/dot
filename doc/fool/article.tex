@@ -1160,8 +1160,8 @@ follows:
 \endprooftree
 }
 
-Note that expansions do not always exist. %TODO
-
+Note that expansions do not always exist; see
+section~\ref{narrowing_exp} for illustration.
 
 \subsection{Functions as Sugar}
 Like in Scala, we can encode functions as objects with a special
@@ -1397,6 +1397,27 @@ the calculus as presented, and any of its variants that we devised,
 preservation doesn't hold. In this section, we review some of the most
 salient counterexamples to preservation that we found. These
 counterexamples have been checked with PLT Redex~\cite{plt_redex}.
+
+Most of these counterexamples are related to narrowing, the phenomenon
+that a type can become more precise after substitution: if a method
+takes a parameter $x$ of type $U$, then when it is invoked, any
+argument $v$ of type $S \sub U$ can be substituted -- this is the
+narrowing effect: it is as if the context was changed from $x : U$ to
+$x : S$. Sections~\ref{term_mem},~\ref{narrowing_exp}~and~\ref{narrowing_wf} each
+present a counterexample related to narrowing.
+
+The last counterexample, presented in section~\ref{patheq},
+illustrates the need to relate path-dependent types after
+reduction. This need for path-equality provisions in order for
+preservation to hold is well-known from other calculi such as
+Tribe~\cite{tribe} with path-dependent types and a small-step
+operational semantics.
+
+More generally, these counterexamples illustrate that preservation
+doesn't hold because a term that typechecks can step to a term that
+does not typecheck. However, these counterexamples to preservation are
+not counterexamples to type-safety: i.e. these programs don't get
+stuck -- they eventually step to a value.
 
 \subsection{\texorpdfstring{\textsc{term-$\ni$}}{Term-Mem} Restriction}\label{term_mem}
 
