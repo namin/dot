@@ -290,6 +290,7 @@
 \newcommand{\reduces}{\;\rightarrow\;}
 % well-formedness
 \newcommand{\wf}{\;\mbox{\textbf{wf}}}
+\newcommand{\nswf}{\mbox{\textbf{wf}}}
 \newcommand{\wfe}{\;\mbox{\textbf{wfe}}}
 \newcommand{\nswfe}{\mbox{\textbf{wfe}}}
 
@@ -1459,6 +1460,45 @@ so we cannot apply $\textsc{term-$\ni$}$ for $l$ because of the
 self-reference ($z.L_a$).
 
 \subsection{Expansion Lost}\label{narrowing_exp}
+
+First, let's illustrate why expansion does not always exist.
+
+Here is the simplest such example:
+\begin{align*}
+&\mlnew z {\Top \mlrefine z {\\
+&\gap \Ldecl {L} \Bot {z.L}\\
+&}\ldefs{}}{}
+\end{align*}
+The type $z.L$ is $\nswf$ but not $\nswfe$. Indeed, there is no finite
+derivation of an expansion for $z.L$, because by the
+$\textsc{tsel-$\expand$}$ rule, in order to expand $z.L$, we need to
+expand its upper bound, which is $z.L$! However, not that the object
+creation expression for $z$ would not typecheck because subtyping is
+regular wrt $\nswfe$, and so the type of a constructor in an object
+creation expression must have $\nswfe$ type members, since we check
+that the lower bound is a subtype of the upper bound for each type
+member.
+
+The example above relies on the $\textsc{tsel-wf$_2$}$, in order for
+the upper bound to refer to the type member being declared. Here is an
+example that does not rely on this rule, and that we will use below to
+create a counterexample to preservation. Let
+\begin{align*}
+T_1 = \Top &\mlrefine z {&\\
+&\gap\Ldecl A \Bot {z.B}&\\
+&\gap\Ldecl B \Bot \Top&}\\
+T_2 = \Top &\mlrefine z {&\\
+&\gap\Ldecl A \Bot \Top&\\
+&\gap\Ldecl B \Bot {z.A}&}
+\end{align*}
+
+Now, consider $T_1 \tand T_2$. The type is $\nswf$ and $\nswfe$, but
+its members $A$ and $B$ are not $\nswfe$, because the expansion of
+$T_1 \tand T_2$ with self-type $z$ has the set of declarations
+$\{\Ldecl A \Bot {z.B},\;\Ldecl B \Bot {z.A}\}$ -- thus, to expand
+$z.A$, we need to expand $z.B$, and to expand $z.B$, we need to expand
+$z.A$! There is no finite derivation of expansions for the type
+members $A$ and $B$.
 
 Expansion is not preserved by narrowing. Here, we create two type
 selections that are mutually recursive in their upper bounds after

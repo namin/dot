@@ -49,4 +49,13 @@
   z (rfn Top z (: (ca T) Bot (sel p (cc A)))) ((DLt ...) () ()))
  (DLt ...))
 
-
+(typecheck (term (()())) (term
+(val z = new (((rfn Top z
+                   (: (ca A) Bot (sel z (ca B)))
+                   (: (ca B) Bot Top))
+               ∧
+               (rfn Top z
+                    (: (ca A) Bot Top)
+                    (: (ca B) Bot (sel z (ca A)))))) in
+(cast Top z))
+))
