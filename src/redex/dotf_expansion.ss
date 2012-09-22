@@ -48,3 +48,5 @@
                     (: (cc B) Bot (rfn Top z (: (ca T) Bot (sel p (cc B)))))))))
   z (rfn Top z (: (ca T) Bot (sel p (cc A)))) ((DLt ...) () ()))
  (DLt ...))
+
+

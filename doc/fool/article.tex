@@ -385,8 +385,7 @@ and structural typing through the use of refinement types. The core
 formalism makes no attempt to model inheritance and mixin
 composition. DOT normalizes Scala's type system by unifying the
 constructs for type members and by providing classical intersection
-and union types which simplify Scala's compound types and glb/lub
-computations.
+and union types which simplify glb/lub computations.
 
 In this paper, we present the DOT calculus, both formally and
 informally. We also discuss our work-in-progress to prove type-safety
@@ -1087,7 +1086,7 @@ their constituent types are well-formed.
 
 \section{Examples}\label{dot-examples}
 
-\subsection{Glbs and Lubs}\label{ex-exp}
+\subsection{Glbs and Lubs}
 
 In DOT, the glb of two types is their intersection and their lub,
 their union. Recall the introductory example which was problematic in
@@ -1107,6 +1106,8 @@ We represent it as follows in DOT, wrapping the types in a namespace $p$:
 
 The glb is of $p.A_c$ and $p.B_c$ is $p.A_c \tand p.B_c$ by
 definition.
+
+\subsection{Expansion}
 
 The expansion of $p.A_c \tand p.B_c$ is the set $\{\Ldecl T \Bot
 {p.A_c \tand p.B_c}\}$ by \textsc{$\tand$-$\expand$} rule:
@@ -1158,6 +1159,9 @@ follows:
      \textsc{tsel-$\expand$}
 \endprooftree
 }
+
+Note that expansions do not always exist. %TODO
+
 
 \subsection{Functions as Sugar}
 Like in Scala, we can encode functions as objects with a special
