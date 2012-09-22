@@ -1437,7 +1437,7 @@ some provision for path equality, we cannot widen $b.l$ to $(\wid b
 We add the path equality provisions to the subtyping rules.
 
 Let's first ignore the extension of the calculus requiring explicit
-widenings introduced in~\ref{widening}. Then, we need to add one
+widenings. Then, we need to add one
 intuitive rule to the subtyping judgment: $\textsc{$\sub$-path}$. If
 $p$ (path-)reduces to $q$, and $T \sub q.L$, then $T \sub p.L$. Path
 reduction is a simplified form of reduction involving only
@@ -1450,8 +1450,7 @@ Now, let's see how path equality provisions and explicit widening can
 fit together.
 
 First, path reduction is not isomorphic to reduction anymore, since we
-want to actually skip over widenings, as motivated by the last example
-in~\ref{widening}.
+want to actually skip over widenings, as motivated by the example above.
 
 In addition, we now also need a dual rule, $\textsc{path-$\sub$}$: if
 $p$ (path-dually)-reduces to $q$, and $q.L \sub T$ then $p.L \sub
@@ -1547,11 +1546,12 @@ types, and abstract type members.
 Proving the DOT calculus type-safe has been an interesting
 adventure. We have shown that DOT does not satisfy preservation (also
 known as subject-reduction), because a well-typed term can step to an
-intermediate term that is not well-typed. We're open to ideas on how
-to resolve this. In any case, the standard theorems of preservation
-and progress are just one way to prove type safety, which simply
-states that a well-typed term cannot be stuck. We are developing a
-proof of type safety using logical relations.
+intermediate term that is not well-typed. In any case, the standard
+theorems of preservation and progress are just one way to prove type
+safety, which states that a well-typed term cannot be stuck -- a
+weaker statement that does not require typechecking intermediate
+steps. We are developing a proof of type safety using logical
+relations.
 
 %\section{Examples}
 %TODO: WIP
