@@ -155,10 +155,11 @@ purely nominal: e.g. one needs to directly or indirectly instantiate a
 
 We propose DOT as a core calculus for path-dependent types. We present
 the calculus formally in section \ref{dot-calculus} and through
-examples in section~\ref{dot-examples}. Though we show that the
-calculus does not satisfy the standard theorem of preservation in
-section~\ref{dot-preservation}, we contribute a proof sketch of type
-safety using logical relations in section~\ref{dot-type-safety}. In
+examples in section~\ref{dot-examples}. In
+section~\ref{dot-preservation}, we show that the calculus does not
+satisfy the standard theorem of preservation, also known as subject
+reduction. However, we still believe that the calculus is type-safe,
+as discussed in section~\ref{dot-type-safety}. In
 section~\ref{discussion}, we discuss choices and variants of the
 calculus, as well as related work, and conclude in
 section~\ref{conclusion}.
@@ -1027,14 +1028,13 @@ $\cast \Top {\app {{\mi{rf.choose}}(f)} l}$.
 
 \section{Counterexamples to Preservation}\label{dot-preservation}
 
-We sketch a proof that the DOT calculus is type-safe using logical
-relations in section~\ref{dot-type-safety}. However, we first tried to
-prove the calculus type-safe using the standard theorems of
-preservation and progress~\cite{soundness,tapl}. Unfortunately, for
-the calculus as presented, and any of its variants that we devised,
-preservation doesn't hold. In this section, we review some of the most
-salient counterexamples to preservation that we found. These
-counterexamples have been checked with PLT Redex~\cite{plt_redex}.
+We first tried to prove the calculus type-safe using the standard
+theorems of preservation and
+progress~\cite{soundness,tapl}. Unfortunately, for the calculus as
+presented, and any of its variants that we devised, preservation
+doesn't hold. In this section, we review some of the most salient
+counterexamples to preservation that we found. These counterexamples
+have been checked with PLT Redex~\cite{plt_redex}.
 
 Most of these counterexamples are related to narrowing, the phenomenon
 that a type can become more precise after substitution: if a method
@@ -1198,6 +1198,57 @@ we need to acknowledge path equality for preservation to hold.
 
 In section~\ref{pres-patch}, we discuss our failure to patch the
 calculus for preservation to hold.
+
+\section{Type Safety via Logical Relations}\label{dot-type-safety}
+
+We believe that the DOT calculus is type-safe, and are developing a
+proof of type safety using step-indexed logical
+relations~\cite{ahmed04,ahmed06,step_indexed_obj}. In this section, we
+briefly summarize the main theorem of type safety, and the strategy
+based on step-indexed logical relations that we are using to prove
+it. All our development, including models in Coq and PLT Redex, is
+available from \url{http://dot.namin.net}.
+
+\subsection{Type Safety}
+Type safety states that a well-typed program doesn't get stuck. More
+formally: If $\emptyset \ts t \typ T$ and $\reductionl t \emptyset
+{t'} {s'} *$ then either $t'$ is a value or $\exists t'',
+s''. \reduction {t'} {s'} {t''} {s''}$. Note that this is stronger
+than the standard theorem of progress, which states that a well-type
+term can take \emph{a} step or is a value.
+
+\subsection{Strategy based on Logical Relations}
+Our strategy follows the standard technique of proving type safety
+using logical relations. We define a logical relation $\Gamma \ds t
+: T$, such that $\Gamma \ts t : T$ implies $\Gamma \ds t : T$ implies
+type safety.
+
+The main logical relation $\Gamma \ds t : T$ is based on a set of
+mutually recursive logical relations that are step-indexed in order to
+ensure their well-foundedness: $\rele k \Gamma s T$ defines the set of
+terms that appear to have type $T$ when taking at most $k$ steps, and
+$\relv k \Gamma s T$ defines the set of \emph{values} that appear to
+have type $T$ when taking at most $k$ steps. There are also two other
+logical relations, one for completing the store to match the context,
+and one for completing the context to match the store resulting from
+taking some number of steps.
+
+$\Gamma \ds t : T$ is defined as $t \in \rele k \Gamma \emptyset T,
+\forall k$. $t \in \rele k \Gamma s T$ roughly as follows: after
+reducing $t$ a number of steps $<k$, if the resulting term is
+irreducible, then it must be in $\relv {j'} {\Gamma'} {s'} T$ for
+appropriate $j', \Gamma',s'$. By definition, $\Gamma \ds t : T$
+implies that $t$ cannot be stuck.
+
+Then, to prove type safety, all that needs to be proved is the
+fundamental theorem -- or completeness -- of the logical relation:
+$\Gamma \ts t : T$ to $\Gamma \ds t : T$. Type safety is a
+straightforward corollary of this theorem, since $\Gamma \ds t : T$
+implies by definition that $t$ cannot be stuck. The proof of the
+fundamental theorem is on induction on the derivation of $\Gamma \ts t
+: T$. The logical relation approach enables us to have strong enough
+induction hypotheses to carry the proof through, without requiring us
+to strictly relate intermediate terms by types like preservation.
 
 \section{Discussion}\label{discussion}
 
