@@ -746,7 +746,7 @@ We represent it as follows in DOT, wrapping the types in a namespace $p$:
 The glb is of $p.A_c$ and $p.B_c$ is $p.A_c \tand p.B_c$ by
 definition.
 
-\subsection{Expansion}
+\subsection{Expansion}\label{ex-exp}
 
 The expansion of $p.A_c \tand p.B_c$ is the set $\{\Ldecl T \Bot
 {p.A_c \tand p.B_c}\}$ by \textsc{$\tand$-$\expand$} rule:
@@ -1206,7 +1206,7 @@ proof of type safety using step-indexed logical
 relations~\cite{ahmed04,ahmed06,step_indexed_obj}. In this section, we
 briefly summarize the main theorem of type safety, and the strategy
 based on step-indexed logical relations that we are using to prove
-it. All our development, including models in Coq and PLT Redex, is
+it. All our development, including models in Coq~\cite{coq} and PLT Redex~\cite{plt_redex}, is
 available from \url{http://dot.namin.net}.
 
 \subsection{Type Safety}
@@ -1362,7 +1362,7 @@ function.
 We tried! However, the resulting calculi were not elegant, and
 furthermore, we still found issues with preservation. Below, we give a
 brief summary of one failed attempt to patch the calculus for
-preservation to hold.
+preservation to hold. We're open to ideas!
 
 Because many of the counterexamples to preservation are related to
 narrowing, we tried to make widening an explicit operation and change
