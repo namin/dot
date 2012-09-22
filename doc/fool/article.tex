@@ -498,7 +498,7 @@ a set of declarations that describe the type structurally. Expansion
 is precise and unique, though it doesn't always exist. See
 section~\ref{ex-exp} for examples.
       
-The expansion relation $\expand$ is needed to typecheck the complete
+The expansion relation $\expand$ is needed to type-check the complete
 set of declarations carried by a concrete type that is used in a
 \textbf{new}-expression. Expansion is also used by the membership
 rules and in subtyping refinements on the right (see
@@ -959,7 +959,7 @@ $a$ chooses a $\mi{pets.Dalmatian_c}$:
 \cast \Top {\cast {\mi{pets.Dalmatian_c}} {\app {a.choose(p)} d}}
 \end{align*}
 
-$a$ enforces that its first argument be a $\mi{pets.Poodle_c}$ and its second a $\mi{pets.Dalmatian_c}$. The following does not typecheck for this reason:
+$a$ enforces that its first argument be a $\mi{pets.Poodle_c}$ and its second a $\mi{pets.Dalmatian_c}$. The following does not type-check for this reason:
 \begin{align*}
 \cast \Top {\app {a.choose(d)} p}
 \end{align*}
@@ -1052,8 +1052,8 @@ Tribe~\cite{tribe} with path-dependent types and a small-step
 operational semantics.
 
 More generally, these counterexamples illustrate that preservation
-doesn't hold because a term that typechecks can step to a term that
-does not typecheck. However, these counterexamples to preservation are
+doesn't hold because a term that type-checks can step to a term that
+does not type-check. However, these counterexamples to preservation are
 not counterexamples to type-safety: i.e. these programs don't get
 stuck -- they eventually step to a value.
 
@@ -1110,7 +1110,7 @@ The type $z.L$ is $\nswf$ but not $\nswfe$. Indeed, there is no finite
 derivation of an expansion for $z.L$, because by the
 $\textsc{tsel-$\expand$}$ rule, in order to expand $z.L$, we need to
 expand its upper bound, which is $z.L$! However, not that the object
-creation expression for $z$ would not typecheck because subtyping is
+creation expression for $z$ would not type-check because subtyping is
 regular wrt $\nswfe$, and so the type of a constructor in an object
 creation expression must have $\nswfe$ type members, since we check
 that the lower bound is a subtype of the upper bound for each type
@@ -1199,18 +1199,18 @@ we need to acknowledge path equality for preservation to hold.
 In section~\ref{pres-patch}, we discuss our failure to patch the
 calculus for preservation to hold.
 
-\section{Type Safety via Logical Relations}\label{dot-type-safety}
+\section{Type-Safety via Logical Relations}\label{dot-type-safety}
 
 We believe that the DOT calculus is type-safe, and are developing a
-proof of type safety using step-indexed logical
+proof of type-safety using step-indexed logical
 relations~\cite{ahmed04,ahmed06,step_indexed_obj}. In this section, we
-briefly summarize the main theorem of type safety, and the strategy
+briefly summarize the main theorem of type-safety, and the strategy
 based on step-indexed logical relations that we are using to prove
 it. All our development, including models in Coq~\cite{coq} and PLT Redex~\cite{plt_redex}, is
 available from \url{http://dot.namin.net}.
 
-\subsection{Type Safety}
-Type safety states that a well-typed program doesn't get stuck. More
+\subsection{Type-Safety}
+Type-safety states that a well-typed program doesn't get stuck. More
 formally: If $\emptyset \ts t \typ T$ and $\reductionl t \emptyset
 {t'} {s'} *$ then either $t'$ is a value or $\exists t'',
 s''. \reduction {t'} {s'} {t''} {s''}$. Note that this is stronger
@@ -1218,10 +1218,10 @@ than the standard theorem of progress, which states that a well-type
 term can take \emph{a} step or is a value.
 
 \subsection{Strategy based on Logical Relations}
-Our strategy follows the standard technique of proving type safety
+Our strategy follows the standard technique of proving type-safety
 using logical relations. We define a logical relation $\Gamma \ds t
 : T$, such that $\Gamma \ts t : T$ implies $\Gamma \ds t : T$ implies
-type safety.
+type-safety.
 
 The main logical relation $\Gamma \ds t : T$ is based on a set of
 mutually recursive logical relations that are step-indexed in order to
@@ -1240,9 +1240,9 @@ irreducible, then it must be in $\relv {j'} {\Gamma'} {s'} T$ for
 appropriate $j', \Gamma',s'$. By definition, $\Gamma \ds t : T$
 implies that $t$ cannot be stuck.
 
-Then, to prove type safety, all that needs to be proved is the
+Then, to prove type-safety, all that needs to be proved is the
 fundamental theorem -- or completeness -- of the logical relation:
-$\Gamma \ts t : T$ to $\Gamma \ds t : T$. Type safety is a
+$\Gamma \ts t : T$ to $\Gamma \ds t : T$. Type-safety is a
 straightforward corollary of this theorem, since $\Gamma \ds t : T$
 implies by definition that $t$ cannot be stuck. The proof of the
 fundamental theorem is on induction on the derivation of $\Gamma \ts t
@@ -1260,14 +1260,14 @@ Secondly, there are many different approaches to inheritance and
 mixin composition, so that it looks advantageous not to tie the basic
 calculus to a specific one. Finally, it seems that the modelization of
 inheritance lends itself to a different approach than the basic
-calculus. For the latter, we need to prove type safety of the calculus.
+calculus. For the latter, we need to prove type-safety of the calculus.
 One might try to do this also for a calculus with inheritance, but our
 experience suggests that this complicates the proofs considerably.  An
 alternative approach that might work better is to model inheritance
 as a form of code-reuse. Starting with an enriched type system with
 inheritance, and a translation to the basic calculus, one needs to
-show type safety wrt the translation. This might be easier than
-to prove type safety wrt reduction.
+show type-safety wrt the translation. This might be easier than
+to prove type-safety wrt reduction.
 
 \subsection{Variants of the DOT Calculus}\label{dot-variants}
 
@@ -1319,7 +1319,7 @@ to subtyping transitivity into a counterexample to preservation:
 \end{align*}
 
 The idea is to start with a function from $S \tfun S$ and cast it
-successively to $S \tfun T$ then $S \tfun U$. To typecheck the
+successively to $S \tfun T$ then $S \tfun U$. To type-check the
 expression initially, we need to check $S \sub T$ and $T \sub
 U$. After some reduction steps, the first few casts vanish, and the
 reduced expression casts directly from $S \tfun S$ to $S \tfun U$, so
@@ -1343,8 +1343,8 @@ function ever being defined. Consider:
 \end{align*}
 
 Now, $f$ was a subtype of $\Top \tfun \Top$, but $\app f {(\abs x \Top
-  x)}$ was stuck (and, rightfully, didn't typecheck). But we could use
-narrowing to create a counterexample to type safety: $\app {(\abs g
+  x)}$ was stuck (and, rightfully, didn't type-check). But we could use
+narrowing to create a counterexample to type-safety: $\app {(\abs g
   {\Top \tfun \Top} {\app g (\abs x \Top x)})} f$.
 
 Because of this complication, we decided to drop the lambda-calculus
@@ -1372,7 +1372,7 @@ type information in widenings needed to be propagated correctly.  We
 added path equality provisions in the subtyping rules, in the same
 spirit as the Tribe calculus~\cite{tribe}.  Unfortunately, these two
 patches interacted badly, and we were left with a disturbing
-counterexample to type safety.
+counterexample to type-safety.
 
 In any case, this attempt resulted in a patched calculus that was not
 as elegant as the original one, in addition to being unsound. We're
@@ -1506,7 +1506,7 @@ mentioned once.)
 \end{align*}
 
 Notice that $d$ has type $\Bot$ if you ignore the cast on $b$. This
-example doesn't typecheck initially because $\textsc{path-$\sub$}$
+example doesn't type-check initially because $\textsc{path-$\sub$}$
 only applies when objects are in the store, so the application is not
 well-typed. But if we start preservation in a store which has $a$,
 $b$, $c$ and $d$ then the application type-checks, because, through
@@ -1549,8 +1549,8 @@ known as subject-reduction), because a well-typed term can step to an
 intermediate term that is not well-typed. In any case, the standard
 theorems of preservation and progress are just one way to prove type
 safety, which states that a well-typed term cannot be stuck -- a
-weaker statement that does not require typechecking intermediate
-steps. We are developing a proof of type safety using logical
+weaker statement that does not require type-checking intermediate
+steps. We are developing a proof of type-safety using logical
 relations.
 
 %\section{Examples}
