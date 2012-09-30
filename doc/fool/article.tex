@@ -23,7 +23,7 @@ and structural typing through the use of refinement types. The core
 formalism makes no attempt to model inheritance and mixin
 composition. DOT normalizes Scala's type system by unifying the
 constructs for type members and by providing classical intersection
-and union types which simplify glb/lub computations.
+and union types which simplify greatest lower bound and least upper bound computations.
 
 In this paper, we present the DOT calculus, both formally and
 informally. We also discuss our work-in-progress to prove type-safety
@@ -105,15 +105,15 @@ infinite sequence
 \end{lstlisting}
 The limit of this sequence does not exist as a type in Scala.
 
-This is problematic because glbs and lubs play a central role in
+This is problematic because greatest lower bounds and least upper bounds play a central role in
 Scala's type inference. For example, in order to infer the type of an
 \code{if} expression such as
 \begin{lstlisting}
   if (cond) ((a: A) => c: C) else ((b: B) => d: D)
 \end{lstlisting}
-type inference tries to compute the glb of \code{A} and \code{B} and
-the lub of \code{C} and \code{D}. The absence of universal glbs and
-lubs makes type inference more brittle and more unpredictable.
+type inference tries to compute the greatest lower bound of \code{A} and \code{B} and
+the least upper bound of \code{C} and \code{D}. The absence of universal greatest lower bounds and
+least upper bounds makes type inference more brittle and more unpredictable.
 
 Compared to Scala, DOT also simplifies type members. In DOT, a type
 member is declared by its lower and upper bounds. Here is an example
@@ -725,9 +725,9 @@ their constituent types are well-formed.
 
 \section{Examples}\label{dot-examples}
 
-\subsection{Glbs and Lubs}
+\subsection{Greatest Lower Bounds and Least Upper Bounds}
 
-In DOT, the glb of two types is their intersection and their lub,
+In DOT, the greatest lower bound of two types is their intersection and their least upper bound,
 their union. Recall the introductory example which was problematic in
 Scala:
 \begin{lstlisting}
@@ -743,7 +743,7 @@ We represent it as follows in DOT, wrapping the types in a namespace $p$:
 &}\ldefs{}}{}
 \end{align*}
 
-The glb is of $p.A_c$ and $p.B_c$ is $p.A_c \tand p.B_c$ by
+The greatest lower bound of $p.A_c$ and $p.B_c$ is $p.A_c \tand p.B_c$ by
 definition.
 
 \subsection{Expansion}\label{ex-exp}
@@ -1552,11 +1552,6 @@ safety, which states that a well-typed term cannot be stuck -- a
 weaker statement that does not require type-checking intermediate
 steps. We are developing a proof of type-safety using logical
 relations.
-
-%\section{Examples}
-%TODO: WIP
-%
-%\includegraphics[scale=0.7]{../../src/redex/ex_glb}
 
 %\appendix
 %\section{Appendix Title}
