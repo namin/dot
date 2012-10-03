@@ -1,0 +1,278 @@
+
+% The following \documentclass options may be useful:
+%
+% 10pt          To set in 10-point type instead of 9-point.
+% 11pt          To set in 11-point type instead of 9-point.
+% authoryear    To obtain author/year citation style instead of numeric.
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{fleqn}
+\usepackage{listings}
+\usepackage{math}
+\usepackage{amsmath}
+\usepackage{latexsym}
+\usepackage{bcprules}
+\usepackage[scaled=0.848971]{luximono} % This is for 11 pt Default font
+\usepackage[T1]{fontenc}
+
+% Prooftree formatting
+\usepackage{prooftree}
+
+\usepackage{multicol}
+\usepackage{framed}
+
+\usepackage{stmaryrd}
+
+%\usepackage{float}
+%\floatstyle{boxed} 
+%\restylefloat{figure}
+
+% support for generating PDF files
+%\newif\ifpdf
+%    \ifx\pdfoutput\undefined
+%    \pdffalse
+%\else
+%    \pdftrue
+%    \pdfoutput=1
+%\fi
+
+%versions
+% Use dependent function types
+\newif\ifdep\depfalse
+
+\lstset{
+  literate=
+  {=>}{$\Rightarrow\;$}{2}
+  {<:}{$<:\;$}{1}
+}
+
+\lstdefinelanguage{scala}{% 
+       morekeywords={% 
+                try, catch, throw, private, public, protected, import, package, implicit, final, package, trait, type, class, val, def, var, if, for, this, else, extends, with, while, new, abstract, object, case, match, sealed,override},
+         sensitive=t, % 
+   morecomment=[s]{/*}{*/},morecomment=[l]{\//},% 
+   mathescape,
+%   escapeinside={/*\%}{*/},%
+   rangeprefix= /*< ,rangesuffix= >*/,%
+   morestring=[d]{"}% 
+ }
+ 
+\lstset{breaklines=true,language=scala} 
+
+\def\code{\lstinline}  % shorter version so you can write \code|String[Foo]|
+                       % -- \def must be in same file as uses for this to
+                       % work...
+\newcommand{\lstref}[1]{Listing~\ref{#1}}
+\newcommand{\Lstref}[1]{Listing~\ref{#1}} % only capitalise at beginning of sentence?
+\newcommand{\secref}[1]{Section~\ref{#1}}
+\newcommand{\Secref}[1]{Section~\ref{#1}} % only capitalise at beginning of sentence?
+
+
+
+% \lstset{basicstyle=\footnotesize\ttfamily, breaklines=true, language=scala, tabsize=2, columns=fixed, mathescape=false,includerangemarker=false}
+% thank you, Burak 
+% (lstset tweaking stolen from
+% http://lampsvn.epfl.ch/svn-repos/scala/scala/branches/typestate/docs/tstate-report/datasway.tex)
+\lstset{
+    xleftmargin=2em,%
+    framesep=5pt,%
+    frame=none,%
+    captionpos=b,%
+    fontadjust=true,%
+    columns=[c]fixed,%
+    keepspaces=false,%
+    basewidth={0.56em, 0.52em},%
+    tabsize=2,%
+    basicstyle=\small\tt,% \small\tt
+    commentstyle=\textit,%
+    keywordstyle=\bfseries,%
+    escapechar=\%,%
+}
+
+%% set latex/pdflatex specific stuff
+%\ifpdf
+    \usepackage[pdftex,
+                hyperindex,
+                plainpages=false,
+                breaklinks,
+                colorlinks,
+                citecolor=black,
+                filecolor=black,
+                linkcolor=black,
+                pagecolor=black,
+                urlcolor=black]{hyperref}
+    \usepackage[pdftex]{graphicx}
+    \DeclareGraphicsExtensions{.jpg,.pdf}
+    \pdfcatalog {
+        /PageMode (/UseNone)
+    }
+    \usepackage{thumbpdf}
+    \usepackage[pdftex]{color}
+%\else
+%    \usepackage[ps2pdf]{hyperref}
+%    \usepackage{graphicx}
+%    \DeclareGraphicsExtensions{.eps,.jpg}
+%    \usepackage{color}
+%\fi
+
+%\setlength{\parindent}{0pt}
+%\setlength{\parskip}{5pt}
+
+% verbfilter stuff
+\newcommand{\prog}[1]{{\sl #1}}
+\newenvironment{program}[1][10.5]
+  {\fontsize{#1}{13.6}\tt\begin{tabbing}\hspace*{0.5\parindent}\=\+\kill}
+  {\end{tabbing}\noindent}
+\newcommand{\blockcomment}[1]{{\color{grayPoint3}#1}}
+\newcommand{\linecomment}{\color{grayPoint3}}
+\newcommand{\grey}{\color{grey}}
+
+%\newenvironment{program}{\ \ \ \ \begin{minipage}{\textwidth}\renewcommand{\baselinestretch}{1.0}\sl\begin{tabbing}}{\end{tabbing}\end{minipage}}
+\newcommand{\vem}{\bfseries}
+\newcommand{\quotedstring}[1]{{#1}}
+\newcommand{\typename}[1]{{#1}}
+\newcommand{\literal}[1]{{#1}}
+\newcommand{\mi}[1]{\mathit{#1}}
+
+% comments and notes
+\newcommand{\comment}[1]{}
+%\newcommand{\note}[1]{{\bf $\clubsuit$ #1 $\spadesuit$}}
+
+% figures
+\newcommand{\figurebox}[1]
+        {\fbox{\begin{minipage}{\textwidth} #1 \medskip\end{minipage}}}
+%        {\fbox{\begin{minipage}{\textwidth}\begin{center} #1 \end{center}\medskip\end{minipage}}}
+\newcommand{\boxfig}[3]
+        {\begin{figure*}\figurebox{#3\caption{\label{fig:#1}#2}}\end{figure*}}
+\newcommand{\figref}[1]
+        {Figure~\ref{fig:#1}}
+
+% typing rules (not used here)
+\newcommand{\ttag}[1]{\mbox{\textsc{\small(#1)}}}
+\newcommand{\infer}[3]{\mbox{#1 }\ba{c} #2 \\ \hline #3 \ea}
+\newcommand{\irule}[2]{{\renewcommand{\arraystretch}{1.2}\ba{c} #1 
+                        \\ \hline #2 \ea}}
+\newlength{\trulemargin}
+\newlength{\trulewidth}
+\newlength{\srulewidth}
+\setlength{\trulemargin}{0.80cm}
+\setlength{\trulewidth}{40.0mm}
+\setlength{\srulewidth}{3.0cm}
+\newenvironment{trules}{$\vspace{0.5em}\ba{p{\trulemargin}@{~}p{\trulewidth}@{~}p{\trulemargin}}}{\ea$}
+\newenvironment{srules}{$\vspace{0.5em}\ba{p{\trulemargin}@{~}p{\srulewidth}}}{\ea$}
+\newcommand{\laxiom}[2]{\ttag{#1} & $ #2 \hfill\ }
+\newcommand{\raxiom}[2]{\hfill #2 $& \hfill \ttag{#1}}
+\newcommand{\caxiom}[2]{\ttag{#1} & $\hfill #2 \hfill $& \ }
+\newcommand{\lrule}[3]{\laxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\rrule}[3]{\raxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\crule}[3]{\caxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\lsrule}[3]{\lsaxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\rsrule}[3]{\rsaxiom{#1}{\irule{#2}{#3}}}
+\newcommand{\nl}{\end{trules}\\[0.5em] \begin{trules}}
+\newcommand{\snl}{\end{srules}\\[0.5em] \begin{srules}}
+
+% commas and semicolons
+\newcommand{\comma}{,\,}
+\newcommand{\commadots}{\comma \ldots \comma}
+\newcommand{\semi}{;\mbox{;};}
+\newcommand{\semidots}{\semi \ldots \semi}
+
+% spacing
+\newcommand{\gap}{\quad\quad}
+\newcommand{\biggap}{\quad\quad\quad}
+\newcommand{\nextline}{\\ \\}
+\newcommand{\htabwidth}{0.5cm}
+\newcommand{\tabwidth}{1cm}
+\newcommand{\htab}{\hspace{\htabwidth}}
+\newcommand{\tab}{\hspace{\tabwidth}}
+\newcommand{\linesep}{\ \hrulefill \ \smallskip}
+
+% math stuff
+\newenvironment{myproof}{{\em Proof:}}{$\Box$}
+\newenvironment{proofsketch}{{\em Proof Sketch:}}{$\Box$}
+\newcommand{\Case}{{\em Case\ }}
+
+% make ; a delimiter in math mode
+% \mathcode`\;="8000 % Makes ; active in math mode
+% {\catcode`\;=\active \gdef;{\;}}
+% \mathchardef\semicolon="003B
+
+% reserved words
+\newcommand{\mathem}{\bf}
+
+% brackets
+\newcommand{\set}[1]{\{#1\}}
+\newcommand{\sbs}[1]{\lquote #1 \rquote}
+
+% arrays
+\newcommand{\ba}{\begin{array}}
+\newcommand{\ea}{\end{array}}
+\newcommand{\bda}{\[\ba}
+\newcommand{\eda}{\ea\]}
+\newcommand{\ei}{\end{array}}
+\newcommand{\bcases}{\left\{\begin{array}{ll}}
+\newcommand{\ecases}{\end{array}\right.}
+
+% \cal ids
+\renewcommand{\AA}{{\cal A}}
+\newcommand{\BB}{{\cal B}}
+\newcommand{\CC}{{\cal C}}
+\newcommand{\DD}{{\cal D}}
+\newcommand{\EE}{{\cal E}}
+\newcommand{\FF}{{\cal F}}
+\newcommand{\GG}{{\cal G}}
+\newcommand{\HH}{{\cal H}}
+\newcommand{\II}{{\cal I}}
+\newcommand{\JJ}{{\cal J}}
+\newcommand{\KK}{{\cal K}}
+\newcommand{\LL}{{\cal L}}
+\newcommand{\MM}{{\cal M}}
+\newcommand{\NN}{{\cal N}}
+\newcommand{\OO}{{\cal O}}
+\newcommand{\PP}{{\cal P}}
+\newcommand{\QQ}{{\cal Q}}
+\newcommand{\RR}{{\cal R}}
+\newcommand{\TT}{{\cal T}}
+\newcommand{\UU}{{\cal U}}
+\newcommand{\VV}{{\cal V}}
+\newcommand{\WW}{{\cal W}}
+\newcommand{\XX}{{\cal X}}
+\newcommand{\YY}{{\cal Y}}
+\newcommand{\ZZ}{{\cal Z}}
+
+% misc symbols
+\newcommand{\dhd}{\!\!\!\!\!\rightarrow}
+\newcommand{\Dhd}{\!\!\!\!\!\Rightarrow}
+\newcommand{\ts}{\,\vdash\,}
+\newcommand{\la}{\langle}
+\newcommand{\ra}{\rangle}
+\newcommand{\eg}{{\em e.g.}}
+
+% misc identifiers
+\newcommand{\dom}{\mbox{\sl dom}}
+\newcommand{\fn}{\mbox{\sl fn}}
+\newcommand{\bn}{\mbox{\sl bn}}
+\newcommand{\sig}{\mbox{\sl sig}}
+\newcommand{\IF}{\mbox{\mathem if}}
+\newcommand{\OTHERWISE}{\mbox{\mathem otherwise}}
+\newcommand{\expand}{\prec}
+\newcommand{\weakexpand}{\prec^W}
+\newcommand{\spcomma}{~,~}
+
+%\newcommand{\inst}{\mbox{\mathem inst}}
+\newcommand{\trans}[1]{\la\!\la#1\ra\!\ra}
+\newcommand{\remark}[1]{{\bf $\clubsuit$ #1 $\spadesuit$}}
+\newcommand{\todo}[1]{\remark{to do: #1}}
+%\newcommand{\J}{\justifies}
+%\newcommand{\U}{\using}
+
+% names
+\newcommand{\Scala}{\mbox{\textsc{Scala}}}
+\newcommand{\Java}{\mbox{\textsc{Java}}}
+
+%\renewcommand\textfraction{.05}
+%\renewcommand\floatpagefraction{.9}
+%\renewcommand\topfraction{.8}
+
