@@ -216,4 +216,36 @@ trait MetaAlt extends choices.Alt {
 \end{align*}
 \end{frame}
 
+\begin{frame}[fragile]
+\frametitle{Counterexample: \texorpdfstring{\textsc{term-$\ni$}}{Term-Mem} Restriction}
+Let $X$ be a shorthand for the type:
+\begin{align*}
+\Top \mlrefine z {
+\ \Ldecl {L_a} \Top \Top
+\ \ldecl l {z.L_a}
+}
+\end{align*}
+
+Let $Y$ be a shorthand for the type:
+\begin{align*}
+\Top \mlrefine z {
+\ \ldecl l \Top
+}
+\end{align*}
+
+Now, consider the term
+\begin{align*}
+&\mlnew u {X \ldefs{ l = u }}{
+\app {(\abs y {\Top \tfun Y} {\app y u})} {(\abs d \Top {\cast X u})}.l
+}
+\end{align*}
+
+The term type-checks because the term $t=\app {(\abs y {\Top \tfun Y}
+  {\app y u})} {(\abs d \Top {\cast X u})}$ has type
+$Y$, so we can apply $\textsc{term-$\ni$}$ for $l$. However, the term
+$t$ eventually steps to ${\cast X u}$ which has type $X$,
+so we cannot apply $\textsc{term-$\ni$}$ for $l$ because of the
+self-reference ($z.L_a$).
+\end{frame}
+
 \end{document}
