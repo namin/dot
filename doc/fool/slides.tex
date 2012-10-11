@@ -196,4 +196,24 @@ object choices {
 \end{align*}
 \end{frame}
 
+\begin{frame}[fragile]
+\frametitle{Example: F-bounded Quantification}
+\begin{minted}[fontsize=\footnotesize]{scala}
+trait MetaAlt extends choices.Alt {
+  type C = MetaAlt
+  type A = C
+  type B = C
+}
+\end{minted}
+\begin{align*}
+&\mlnew m {\Top \mlrefine m {\\
+&\gap\Ldecl {\mi{MetaAlt_c}} {\Bot} {{\mi{choices.Alt_c}} \mlrefine a {\\
+&\gap\gap\Ldecl C {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}}\\
+&\gap\gap\Ldecl A {\mi{a.C}} {\mi{a.C}}\\
+&\gap\gap\Ldecl B {\mi{a.C}} {\mi{a.C}}\\
+&\gap}}\\
+&}\ldefs{}}{}
+\end{align*}
+\end{frame}
+
 \end{document}
