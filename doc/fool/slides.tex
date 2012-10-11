@@ -91,4 +91,29 @@ trait Cow extends Animal {
 \end{minted}
 \end{frame}
 
+\section{Formalities}
+
+\begin{frame}[fragile]{DOT: Syntax}
+\begin{itemize}
+\item terms
+\begin{description}[method invocations]
+\item[variables] $x$, $y$, $z$
+\item[selections] $t.l$
+\item[method invocations] $t.m(t)$
+\item[object creations] $\new y c {t'}$\\
+$c$ is a constructor $T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}$
+\end{description}
+\item types
+\begin{description}[type intersections]
+\item[type selections] $p.L$
+\item[refinement types] $T \refine z {\seq D}$
+\item[type intersections] $T \tand T'$
+\item[type unions] $T \tor T'$
+\item[a top type] $\Top$
+\item[a bottom type] $\Bot$
+\end{description}
+\end{itemize}
+\end{frame}
+
+
 \end{document}
