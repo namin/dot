@@ -161,4 +161,28 @@ object pets {
 \end{align*}
 \end{frame}
 
+\begin{frame}[fragile]
+\frametitle{Example: Abstract Type Members}
+\begin{minted}[fontsize=\footnotesize]{scala}
+object choices {
+  trait Alt {
+    type C
+    type A <: C
+    type B <: C
+    val choose : A => B => C
+  }
+}
+\end{minted}
+\begin{align*}
+&\new {\mi{choices}} {\Top \mlrefine z {\\
+&\gap\Ldecl {\mi{Alt_c}} {\Bot} {\Top \mlrefine a {\\
+&\gap\gap\Ldecl C \Bot \Top\\
+&\gap\gap\Ldecl A \Bot {a.C}\\
+&\gap\gap\Ldecl B \Bot {a.C}\\
+&\gap\gap\mdecl {\mi{choose}} {a.A} {\arrow {a.B} {a.A \tor a.B}}\\
+&\gap}}\\
+&}\ldefs{}}{}
+\end{align*}
+\end{frame}
+
 \end{document}
