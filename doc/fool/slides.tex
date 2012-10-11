@@ -139,5 +139,26 @@ $c$ is a constructor $T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}$
 \end{columns}
 \end{frame}
 
+\begin{frame}[fragile]
+\frametitle{Example: Class Hierarchies}
+\begin{minted}[fontsize=\footnotesize]{scala}
+object pets {
+  trait Pet
+  trait Cat extends Pet
+  trait Dog extends Pet
+  trait Poodle extends Dog
+  trait Dalmatian extends Dog
+}
+\end{minted}
+\begin{align*}
+\mlnew {&\mi{pets}} {\Top \mlrefine z {\\
+&\ \Ldecl {\mi{Pet_c}} \Bot \Top\\
+&\ \Ldecl {\mi{Cat_c}} \Bot {z.{\mi{Pet_c}}}\\
+&\ \Ldecl {\mi{Dog_c}} \Bot {z.{\mi{Pet_c}}}\\
+&\ \Ldecl {\mi{Poodle_c}} \Bot {z.{\mi{Dog_c}}}\\
+&\ \Ldecl {\mi{Dalmatian_c}} \Bot {z.{\mi{Dog_c}}}\\
+} \ldefs{}}{}
+\end{align*}
+\end{frame}
 
 \end{document}
