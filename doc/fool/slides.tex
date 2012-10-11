@@ -248,4 +248,31 @@ so we cannot apply $\textsc{term-$\ni$}$ for $l$ because of the
 self-reference ($z.L_a$).
 \end{frame}
 
+\begin{frame}[fragile]{Counterexample: (Expansion and) Well-Formedness Lost}
+\begin{align*}
+&\mlnew v {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B {z.A} {z.A}}}} \ldefs{}}{
+\mlapp {(\abs x {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B \Bot \Top}}}} {\\&\gap
+\mlnew z {\Top \mlrefine z {\\&\gap\gap\gap
+\mdecl l {x.L \tand {\Top \refine z {\Ldecl A {z.B} {z.B}, \Ldecl B \Bot \Top}}} \Top}\mlldefs{\\&\gap\gap\gap
+l(y) = \fun a {y.A} \Top a}}{
+\gap \cast {\top} z
+}})}{\ v}}
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]{Counterexample: Path Equality}
+\begin{align*}
+&\mlnew b {\Top \mlrefine z {&&\Ldecl X \Top \Top&\\
+&&&\ \ldecl l {z.X}&}\ldefs{l = b}}{
+\mlnew a {\Top \mlrefine z {\ldecl i {\Top \mlrefine z {&&&\\
+&&&\Ldecl X \Bot \Top\\
+&&&\ldecl l {z.X}}}&}\ldefs{i = b}}}{
+\app {(\abs x \Top x)} {\app {(\abs x {a.i.X} x)} {a.i.l}}}
+\end{align*}
+
+$a.i.l$ reduces to $b.l$. $b.l$ has type $b.X$, so we need $b.X <:
+a.i.X$. This cannot be established with the current rules: it is not
+true in general, but true here because $a.i$ reduces to $b$.
+\end{frame}
+
 \end{document}
