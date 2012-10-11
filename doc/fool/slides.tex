@@ -52,4 +52,43 @@ DOT normalizes Scala's type system by
 
 \end{frame}
 
+\section{Differences with Scala}
+
+\begin{frame}[fragile]{Classicial Intersection and Union Types}
+\begin{itemize}
+\item form a lattice wrt subtyping
+\item simplify glb and lub computations
+\end{itemize}
+\begin{minted}{scala}
+  trait A { type T <: A }
+  trait B { type T <: B }
+  // in Scala, glb is an infinite sequence
+  A with B { type T <: A with B { type T <: A with B {
+    type T <: ...
+  }}}
+  // in DOT, glb is simply A /\ B
+  // type inference needs to compute glbs and lubs
+  if (cond) ((a: A) => c: C) else ((b: B) => d: D)
+  // glb(A, B) => lub(C, D)
+\end{minted}
+
+\end{frame}
+
+\begin{frame}[fragile]{Constructs for Type Memers}
+\begin{minted}{scala}
+trait Food
+trait Animal {
+  // in DOT, Meal: Bot .. Food
+  type Meal <: Food
+  def eat(meal: Meal) {}
+}
+
+trait Grass extends Food
+trait Cow extends Animal {
+  // in DOT, Meal: Grass .. Grass
+  type Meal = Grass
+}
+\end{minted}
+\end{frame}
+
 \end{document}
