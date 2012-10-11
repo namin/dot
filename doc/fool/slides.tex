@@ -115,5 +115,29 @@ $c$ is a constructor $T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}$
 \end{itemize}
 \end{frame}
 
+\begin{frame}[fragile]
+\frametitle{DOT: Judgments}
+\begin{columns}
+\begin{column}[t]{5cm}
+\begin{block}{Typing Judgments}
+\begin{itemize}
+\item type assignment\\$\Gamma \ts t \typ T$
+\item subtyping\\$\Gamma \ts S \sub T$
+\item well-formedness\\$\Gamma \ts T \wf$
+\item membership\\$\Gamma \ts t \ni D$
+\item expansion\\$\Gamma \ts T \expand_z \seq{D}$
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}[t]{5cm}
+\begin{block}{Small-Step Operational Semantics}
+\begin{itemize}
+\item reduction\\$\reduction t s {t'} {s'}$
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
 
 \end{document}
