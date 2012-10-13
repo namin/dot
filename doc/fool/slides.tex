@@ -356,4 +356,42 @@ a.i.X$. This cannot be established with the current rules: it is not
 true in general, but true here because $a.i$ reduces to $b$.
 \end{frame}
 
+\begin{frame}[fragile]{Type-Safety}
+A well-typed term doesn't get stuck:
+\begin{itemize}
+\item If
+\begin{itemize}
+  \item $\emptyset \ts t \typ T$ \ \ \ \ \ \ \ \ \ \ \ \ and
+  \item $\reductionl t \emptyset {t'} {s'} *$
+\end{itemize}
+\item then
+\begin{itemize}
+  \item $t'$ is a value \ \ \ \ \ \ \ \ \ \ \ or
+  \item $\exists t'', s''. \reduction {t'} {s'} {t''} {s''}$.
+\end{itemize}
+\end{itemize}
+
+Observations:
+\begin{itemize}
+\item Type-safety is stronger than progress, which states that a
+  well-typed term can take \emph{a} step or is a value.
+\item But progress + preservation is stronger than type-safety. In
+  particular, we don't need to type-check intermediary terms for
+  type-safety!
+\item But how to get a strong enough induction hypothesis without
+  preservation? Use logical relations.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{DOT: Dependent Object Types}
+\begin{itemize}
+\item DOT is a core calculus for path-dependent types.
+\item DOT aims to normalize Scala's type system.
+\item DOT does not satisfy the standard theorem of preservation. Can and should we live with that?
+\item See the paper for the entire formalism, examples,
+  counterexamples, and discussion of type-safety, design decisions and
+  variants.
+\end{itemize}
+\end{frame}
+
 \end{document}
