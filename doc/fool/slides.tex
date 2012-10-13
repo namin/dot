@@ -215,6 +215,23 @@ but
 \end{align*}
 \end{frame}
 
+\begin{frame}[fragile]{Example: Polymorphic Operators as Sugar}
+We translate
+\begin{align*}
+\textbf{val } x^a = \textbf{pickLast}(T^C, T^A, T^B); e^a
+\end{align*}
+to
+\begin{align*}
+&\mlnew {x^a} {\mi{choices.Alt_c} \mlrefine {x^a} {\\
+&\gap\Ldecl C {T^C} {T^C}\\
+&\gap\Ldecl A {T^A} {T^A}\\
+&\gap\Ldecl B {T^B} {T^B}\\
+&\gap\mdecl {\mi{choose}} {x^a.A} {\arrow {x^a.B} {x^a.B}}\\
+&}\ldefs{\mi{choose}(a)=\fun b {x^a.B} {x^a.B} b}}
+{e^a}
+\end{align*}
+\end{frame}
+
 \begin{frame}[fragile]
 \frametitle{Example: F-bounded Quantification}
 \begin{minted}[fontsize=\footnotesize]{scala}
