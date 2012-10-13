@@ -1,6 +1,7 @@
 \documentclass{beamer}
 
 \input{dot_macros}
+\usepackage{bcprules}
 
 \usepackage{minted}
 \usemintedstyle{eclipse}
@@ -272,6 +273,29 @@ val rl = new MetaAlt {
 \end{frame}
 
 \section{Counterexamples to Preservation}
+
+\begin{frame}[fragile]{Some DOT Rules}
+
+      \infrule[\textsc{path-$\ni$}]
+      {\Gamma \ts p \typ T \spcomma T \expand_z \seq D}
+      {\Gamma \ts p \ni \subst p z {D_i}}
+
+      \infrule[\textsc{term-$\ni$}]
+      {z \not\in \fn(D_i) \andalso \Gamma \ts t \typ T \spcomma T \expand_z \seq D}
+      {\Gamma \ts t \ni D_i}
+
+      \infrule[\textsc{tsel-$\expand$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma U \expand_z \seq D}
+      {\Gamma \ts p.L \expand_z \seq D}
+
+      \infrule[\textsc{tsel-wf$_1$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \wf \spcomma U \wf}
+      {\Gamma \ts p.L \wf}
+
+      \infrule[\textsc{tsel-wf$_2$}]
+      {\Gamma \ts p \ni \Ldecl L \Bot U}
+      {\Gamma \ts p.L \wf}
+\end{frame}
 
 \begin{frame}[fragile]
 \frametitle{Counterexample: \texorpdfstring{\textsc{term-$\ni$}}{Term-Mem} Restriction}
