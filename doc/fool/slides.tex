@@ -203,6 +203,18 @@ object choices {
 \end{align*}
 \end{frame}
 
+\begin{frame}[fragile]{Subtyping of $\mi{choices}$}
+\begin{align*}
+&{\mi{choices.Alt_c} \refine a {\Ldecl C \Bot {\mi{pets.Dog_c}}}}\\
+\sub\gap&{\mi{choices.Alt_c} \refine a {\Ldecl C \Bot {\mi{pets.Pet_c}}}}
+\end{align*}
+but
+\begin{align*}
+&{\mi{choices.Alt_c} \refine a {\Ldecl C {\mi{pets.Dog_c}} {\mi{pets.Dog_c}}}}\\
+\not\sub\gap&{\mi{choices.Alt_c} \refine a {\Ldecl C {\mi{pets.Pet_c}} {\mi{pets.Pet_c}}}}
+\end{align*}
+\end{frame}
+
 \begin{frame}[fragile]
 \frametitle{Example: F-bounded Quantification}
 \begin{minted}[fontsize=\footnotesize]{scala}
@@ -220,6 +232,25 @@ trait MetaAlt extends choices.Alt {
 &\gap\gap\Ldecl B {\mi{a.C}} {\mi{a.C}}\\
 &\gap}}\\
 &}\ldefs{}}{}
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]{Some ${\mi{MetaAlt_c}}$ instances}
+\begin{minted}[fontsize=\footnotesize]{scala}
+val f = new MetaAlt {
+  val choose: C => C => C = a => b => a
+}
+val rl = new MetaAlt {
+  val choose: C => C => C = a => b => b.choose(a)(b)
+}
+\end{minted}
+\begin{align*}
+&\mlnew f {{\mi{m.MetaAlt_c}}\mlldefs{\\
+&\gap\gap\mi{choose}(a)=\fun b {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}} a}}{
+\mlnew {\mi{rl}} {{\mi{m.MetaAlt_c}}\mlldefs{\\
+&\gap\gap\mi{choose}(a)=\fun b {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}} {\\
+&\gap\gap\gap \app {{\mi{b.choose}}(a)} b}}}{
+}}
 \end{align*}
 \end{frame}
 
