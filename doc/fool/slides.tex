@@ -82,12 +82,17 @@ trait Animal {
   type Meal <: Food
   def eat(meal: Meal) {}
 }
-
 trait Grass extends Food
 trait Cow extends Animal {
   // in DOT, Meal: Grass .. Grass
   type Meal = Grass
 }
+
+val a = new Animal {}
+val c = new Cow {}
+val g = new Grass {}
+a.eat(???) // ??? <: a.Meal so ??? <: Bot
+c.eat(g) // g <: c.Meal so g <: Grass
 \end{minted}
 \end{frame}
 
