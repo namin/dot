@@ -317,12 +317,12 @@ Let $Y$ be a shorthand for the type:
 Now, consider the term
 \begin{align*}
 &\mlnew u {X \ldefs{ l = u }}{
-\app {(\abs y {\Top \tfun Y} {\app y u})} {(\abs d \Top {\cast X u})}.l
+\app {(\fun y {\arrow \Top Y} {Y} {\app y u})} {(\fun d \Top Y {\cast X u})}.l
 }
 \end{align*}
 
-The term type-checks because the term $t=\app {(\abs y {\Top \tfun Y}
-  {\app y u})} {(\abs d \Top {\cast X u})}$ has type
+The term type-checks because the term $t=\app {(\fun y {\arrow \Top Y} Y
+  {\app y u})} {(\fun d \Top Y {\cast X u})}$ has type
 $Y$, so we can apply $\textsc{term-$\ni$}$ for $l$. However, the term
 $t$ eventually steps to ${\cast X u}$ which has type $X$,
 so we cannot apply $\textsc{term-$\ni$}$ for $l$ because of the
@@ -332,7 +332,7 @@ self-reference ($z.L_a$).
 \begin{frame}[fragile]{Counterexample: (Expansion and) Well-Formedness Lost}
 \begin{align*}
 &\mlnew v {\Top \refine z {\Ldecl L \Bot {{\color{red}{\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B {z.A} {z.A}}}}\ }} \ldefs{}}{
-\mlapp {(\abs x {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B \Bot \Top}}}} {\\&\gap
+\mlapp {(\fun x {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B \Bot \Top}}}} \Top {\\&\gap
 \mlnew z {\Top \mlrefine z {\\&\gap\gap\gap
 \mdecl l {x.L \tand {\color{red}{\Top \refine z {\Ldecl A {z.B} {z.B}, \Ldecl B \Bot \Top}}}} \Top}\mlldefs{\\&\gap\gap\gap
 l(y) = \fun a {y.A} \Top a}}{
@@ -348,7 +348,7 @@ l(y) = \fun a {y.A} \Top a}}{
 \mlnew a {\Top \mlrefine z {\ldecl i {\Top \mlrefine z {&&&\\
 &&&\Ldecl X \Bot \Top\\
 &&&\ldecl l {z.X}}}&}\ldefs{i = b}}}{
-\app {(\abs x \Top x)} {\app {(\abs x {a.i.X} x)} {a.i.l}}}
+{\cast \Top {\cast {a.i.X} {a.i.l}}}}
 \end{align*}
 
 $a.i.l$ reduces to $b.l$. $b.l$ has type $b.X$, so we need $b.X <:
