@@ -216,23 +216,6 @@ but
 \end{align*}
 \end{frame}
 
-\begin{frame}[fragile]{Example: Polymorphic Operators as Sugar}
-We translate
-\begin{align*}
-\textbf{val } x^a = \textbf{pickLast}(T^C, T^A, T^B); e^a
-\end{align*}
-to
-\begin{align*}
-&\mlnew {x^a} {\mi{choices.Alt_c} \mlrefine {x^a} {\\
-&\gap\Ldecl C {T^C} {T^C}\\
-&\gap\Ldecl A {T^A} {T^A}\\
-&\gap\Ldecl B {T^B} {T^B}\\
-&\gap\mdecl {\mi{choose}} {x^a.A} {\arrow {x^a.B} {x^a.B}}\\
-&}\ldefs{\mi{choose}(a)=\fun b {x^a.B} {x^a.B} b}}
-{e^a}
-\end{align*}
-\end{frame}
-
 \begin{frame}[fragile]
 \frametitle{Example: F-bounded Quantification}
 \begin{minted}[fontsize=\footnotesize]{scala}
@@ -250,25 +233,6 @@ trait MetaAlt extends choices.Alt {
 &\gap\gap\Ldecl B {\mi{a.C}} {\mi{a.C}}\\
 &\gap}}\\
 &}\ldefs{}}{}
-\end{align*}
-\end{frame}
-
-\begin{frame}[fragile]{Some ${\mi{MetaAlt_c}}$ instances}
-\begin{minted}[fontsize=\footnotesize]{scala}
-val f = new MetaAlt {
-  val choose: C => C => C = a => b => a
-}
-val rl = new MetaAlt {
-  val choose: C => C => C = a => b => b.choose(a)(b)
-}
-\end{minted}
-\begin{align*}
-&\mlnew f {{\mi{m.MetaAlt_c}}\mlldefs{\\
-&\gap\gap\mi{choose}(a)=\fun b {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}} a}}{
-\mlnew {\mi{rl}} {{\mi{m.MetaAlt_c}}\mlldefs{\\
-&\gap\gap\mi{choose}(a)=\fun b {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}} {\\
-&\gap\gap\gap \app {{\mi{b.choose}}(a)} b}}}{
-}}
 \end{align*}
 \end{frame}
 
@@ -392,6 +356,45 @@ Observations:
   counterexamples to preservation, and discussion of type-safety,
   design decisions and variants.
 \end{itemize}
+\end{frame}
+
+\section{Extra Slides}
+
+
+\begin{frame}[fragile]{Example: Polymorphic Operators as Sugar}
+We translate
+\begin{align*}
+\textbf{val } x^a = \textbf{pickLast}(T^C, T^A, T^B); e^a
+\end{align*}
+to
+\begin{align*}
+&\mlnew {x^a} {\mi{choices.Alt_c} \mlrefine {x^a} {\\
+&\gap\Ldecl C {T^C} {T^C}\\
+&\gap\Ldecl A {T^A} {T^A}\\
+&\gap\Ldecl B {T^B} {T^B}\\
+&\gap\mdecl {\mi{choose}} {x^a.A} {\arrow {x^a.B} {x^a.B}}\\
+&}\ldefs{\mi{choose}(a)=\fun b {x^a.B} {x^a.B} b}}
+{e^a}
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]{Some ${\mi{MetaAlt_c}}$ instances}
+\begin{minted}[fontsize=\footnotesize]{scala}
+val f = new MetaAlt {
+  val choose: C => C => C = a => b => a
+}
+val rl = new MetaAlt {
+  val choose: C => C => C = a => b => b.choose(a)(b)
+}
+\end{minted}
+\begin{align*}
+&\mlnew f {{\mi{m.MetaAlt_c}}\mlldefs{\\
+&\gap\gap\mi{choose}(a)=\fun b {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}} a}}{
+\mlnew {\mi{rl}} {{\mi{m.MetaAlt_c}}\mlldefs{\\
+&\gap\gap\mi{choose}(a)=\fun b {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}} {\\
+&\gap\gap\gap \app {{\mi{b.choose}}(a)} b}}}{
+}}
+\end{align*}
 \end{frame}
 
 \end{document}
