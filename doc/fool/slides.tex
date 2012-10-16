@@ -306,12 +306,9 @@ Now, consider the term
 }
 \end{align*}
 
-The term type-checks because the term $t=\app {(\fun y {\arrow \Top Y} Y
-  {\app y u})} {(\fun d \Top Y {\cast X u})}$ has type
-$Y$, so we can apply $\textsc{term-$\ni$}$ for $l$. However, the term
-$t$ eventually steps to ${\cast X u}$ which has type $X$,
-so we cannot apply $\textsc{term-$\ni$}$ for $l$ because of the
-self-reference ($z.L_a$).
+\begin{itemize}
+\item How to type ${\cast X u}$.l?
+\end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]{Counterexample: (Expansion and) Well-Formedness Lost}
@@ -336,9 +333,10 @@ l(y) = \fun a {y.A} \Top a}}{
 {\cast \Top {\cast {a.i.X} {a.i.l}}}}
 \end{align*}
 
-$a.i.l$ reduces to $b.l$. $b.l$ has type $b.X$, so we need $b.X <:
-a.i.X$. This cannot be established with the current rules: it is not
-true in general, but true here because $a.i$ reduces to $b$.
+\begin{itemize}
+\item $a.i.l$ reduces to $b.l$.
+\item $b.l$ has type $b.X$, so we need $b.X <: a.i.X$.
+\end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]{Type-Safety}
