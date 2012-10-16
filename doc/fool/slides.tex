@@ -145,6 +145,27 @@ $c$ is a constructor $T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}$
 \end{columns}
 \end{frame}
 
+\begin{frame}[fragile]{Some DOT Rules}
+      \infrule[\textsc{$\sub$-tsel}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma S' \sub S }
+      {\Gamma \ts S' \sub p.L}
+
+      \infrule[\textsc{tsel-$\sub$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma U \sub U'}
+      {\Gamma \ts p.L \sub U'}
+
+      \infrule[\textsc{rfn-$\expand$}]
+      {\Gamma \ts T \expand_z {\seq {D'}}}
+      {\Gamma \ts T \refine z {\seq D} \expand_z \seq {D'} \tand \seq D}
+
+      \begin{align*}
+      (D \tand D')(L) =&
+        \Ldecl L {(S \tor S')} {(U \tand U')} \\&\mbox{if~} (\Ldecl L S U) \in \seq{D} \;\mbox{and}\; (\Ldecl L {S'} {U'}) \in \seq{D'} \\
+        =& D(L) \mbox{if~} L \notin \dom(\seq{D'}) \\
+        =& D'(L)\mbox{if~} L \notin \dom(\seq{D}) \\
+      \end{align*}
+\end{frame}
+
 \section{Examples}
 
 \begin{frame}[fragile]
@@ -238,7 +259,7 @@ trait MetaAlt extends choices.Alt {
 
 \section{Counterexamples to Preservation}
 
-\begin{frame}[fragile]{Some DOT Rules}
+\begin{frame}[fragile]{Some more DOT Rules}
 
       \infrule[\textsc{path-$\ni$}]
       {\Gamma \ts p \typ T \spcomma T \expand_z \seq D}
