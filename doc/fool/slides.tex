@@ -148,7 +148,7 @@ $c$ is a constructor $T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}$
 \section{Revisiting glbs and lubs}
 
 \begin{frame}[fragile]
-\frametitle{Example: Functions as Sugar}
+\frametitle{Functions as Sugar}
 \begin{align*}
 \arrow S T &\iff {\Top \refine z {\mdecl {\mi{apply}} S T}}\\
 \fun x S T t &\iff \new z {{\arrow S T}\ldefs{\mi{apply}(x) = t}} z\\
@@ -157,154 +157,64 @@ $c$ is a constructor $T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}$
 \end{align*}
 \end{frame}
 
-\begin{frame}[fragile]{Example: Expansion}
+\begin{frame}[fragile]{Revisiting LUB Computation}
 \begin{itemize}
 \item Suppose $f$ has type ${T_f} = {\arrow {A} {C}} \tor {\arrow {B} {D}}$
 \item $T_f = {\Top \refine z {\mdecl {\mi{apply}} A C}} \tor {\Top \refine z {\mdecl {\mi{apply}} A C}}$
 \item Let's type-check $y = \app f x = \mapp f {\mi{apply}} x$
-\item $T_f \expand_f \Top \refine f {\mdecl {\mi{apply}} {A \tand B} {C \tor D}}$
+\item $T_f \expand_f \{\mdecl {\mi{apply}} {A \tand B} {C \tor D}\}$
 \item $f \ni {\mdecl {\mi{apply}} {A \tand B} {C \tor D}}$
 \item $T_x \sub A \tand B$
 \item $T_y = C \tor D$
 \end{itemize}
 \end{frame}
 
-%\begin{frame}[fragile]{Some DOT Rules}
-%      \infrule[\textsc{$\sub$-tsel}]
-%      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma S' \sub S }
-%      {\Gamma \ts S' \sub p.L}
-%
-%      \infrule[\textsc{tsel-$\sub$}]
-%      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma U \sub U'}
-%      {\Gamma \ts p.L \sub U'}
-%
-%      \infrule[\textsc{rfn-$\expand$}]
-%      {\Gamma \ts T \expand_z {\seq {D'}}}
-%      {\Gamma \ts T \refine z {\seq D} \expand_z \seq {D'} \tand \seq D}
-%
-%      \begin{align*}
-%      (D \tand D')(L) =&
-%        \Ldecl L {(S \tor S')} {(U \tand U')} \\& \ \mbox{if~} (\Ldecl L S U) \in \seq{D} \;\mbox{and}\; (\Ldecl L {S'} {U'}) \in \seq{D'} \\
-%        =& D(L) \ \mbox{if~} L \notin \dom(\seq{D'}) \\
-%        =& D'(L) \ \mbox{if~} L \notin \dom(\seq{D}) \\
-%      \end{align*}
-%\end{frame}
+\section{Revisiting refined type members}
 
-\section{Examples}
-
-\begin{frame}[fragile]
-\frametitle{Example: Functions}
-\begin{align*}
-\arrow S T &\iff {\Top \refine z {\mdecl {\mi{apply}} S T}}\\
-\fun x S T t &\iff \new z {{\arrow S T}\ldefs{\mi{apply}(x) = t}} z\\
-\app f x &\iff \mapp f {\mi{apply}} x\\
-\cast T t&\iff \app {(\fun x T T x)} t
-\end{align*}
-\end{frame}
-
-
-\begin{frame}[fragile]
-\frametitle{Example: Class Hierarchies}
-\begin{minted}[fontsize=\footnotesize]{scala}
-object pets {
-  trait Pet
-  trait Cat extends Pet
-  trait Dog extends Pet
-  trait Poodle extends Dog
-  trait Dalmatian extends Dog
+\begin{frame}[fragile]{Revisiting Refined Type Members}
+\begin{minted}{scala}
+trait Food
+trait Animal {
+  // in DOT, abstract Meal: Bot .. Food
+  type Meal <: Food
+  def eat(meal: Meal) {}
+}
+// in Dot, concrete Grass: Bot .. Food
+trait Grass extends Food
+trait Cow extends Animal {
+  // in DOT, abstract Meal: Grass .. Grass
+  type Meal = Grass
 }
 \end{minted}
 \begin{align*}
-\mlnew {&\mi{pets}} {\Top \mlrefine z {\\
-&\ \Ldecl {\mi{Pet_c}} \Bot \Top\\
-&\ \Ldecl {\mi{Cat_c}} \Bot {z.{\mi{Pet_c}}}\\
-&\ \Ldecl {\mi{Dog_c}} \Bot {z.{\mi{Pet_c}}}\\
-&\ \Ldecl {\mi{Poodle_c}} \Bot {z.{\mi{Dog_c}}}\\
-&\ \Ldecl {\mi{Dalmatian_c}} \Bot {z.{\mi{Dog_c}}}\\
-} \ldefs{}}{}
+{\mi{Cow}} &\expand_c \{{\Ldecl {\mi{Meal}} {{\mi{Grass}} \tor {\mi{Bot}}} {{\mi{Grass}} \tand {\mi{Food}}}}, {\mdecl {\mi{eat}} {c.\mi{Meal}} {\mi{Unit}}}\}\\
+{\mi{Cow}} &\expand_c \{{\Ldecl {\mi{Meal}} {{\mi{Grass}}} {{\mi{Grass}}}}, {\mdecl {\mi{eat}} {c.\mi{Meal}} {\mi{Unit}}}\}
 \end{align*}
 \end{frame}
 
-\begin{frame}[fragile]
-\frametitle{Example: Abstract Type Members}
-\begin{minted}[fontsize=\footnotesize]{scala}
-object choices {
-  trait Alt {
-    type C
-    type A <: C
-    type B <: C
-    val choose : A => B => C
-  }
+\begin{frame}[fragile]{Why not alias Meal to Food in Animal?}
+\begin{minted}{scala}
+trait Food
+trait Animal {
+  // in DOT, abstract Meal: Food .. Food
+  type Meal = Food
+  def eat(meal: Meal) {}
+}
+
+trait Grass extends Food
+trait Cow extends Animal {
+  // in DOT, abstract Meal: Grass .. Grass
+  type Meal = Grass
 }
 \end{minted}
 \begin{align*}
-&\new {\mi{choices}} {\Top \mlrefine z {\\
-&\gap\Ldecl {\mi{Alt_c}} {\Bot} {\Top \mlrefine a {\\
-&\gap\gap\Ldecl C \Bot \Top\\
-&\gap\gap\Ldecl A \Bot {a.C}\\
-&\gap\gap\Ldecl B \Bot {a.C}\\
-&\gap\gap\mdecl {\mi{choose}} {a.A} {\arrow {a.B} {a.A \tor a.B}}\\
-&\gap}}\\
-&}\ldefs{}}{}
+{\mi{Cow}} &\expand_c \{{\Ldecl {\mi{Meal}} {{\mi{Grass}} \tor {\mi{Food}}} {{\mi{Grass}} \tand {\mi{Food}}}}, {\mdecl {\mi{eat}} {c.\mi{Meal}} {\mi{Unit}}}\}\\
+{\mi{Cow}} &\expand_c \{{\color{red}{\Ldecl {\mi{Meal}} {{\mi{Food}}} {{\mi{Grass}}}}}, {\mdecl {\mi{eat}} {c.\mi{Meal}} {\mi{Unit}}}\}
 \end{align*}
 \end{frame}
 
-\begin{frame}[fragile]{Subtyping of $\mi{choices}$}
-\begin{align*}
-&{\mi{choices.Alt_c} \refine a {\Ldecl C \Bot {\mi{pets.Dog_c}}}}\\
-\sub\gap&{\mi{choices.Alt_c} \refine a {\Ldecl C \Bot {\mi{pets.Pet_c}}}}
-\end{align*}
-but
-\begin{align*}
-&{\mi{choices.Alt_c} \refine a {\Ldecl C {\mi{pets.Dog_c}} {\mi{pets.Dog_c}}}}\\
-\not\sub\gap&{\mi{choices.Alt_c} \refine a {\Ldecl C {\mi{pets.Pet_c}} {\mi{pets.Pet_c}}}}
-\end{align*}
-\end{frame}
-
-\begin{frame}[fragile]
-\frametitle{Example: F-bounded Quantification}
-\begin{minted}[fontsize=\footnotesize]{scala}
-trait MetaAlt extends choices.Alt {
-  type C = MetaAlt
-  type A = C
-  type B = C
-}
-\end{minted}
-\begin{align*}
-&\mlnew m {\Top \mlrefine m {\\
-&\gap\Ldecl {\mi{MetaAlt_c}} {\Bot} {{\mi{choices.Alt_c}} \mlrefine a {\\
-&\gap\gap\Ldecl C {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}}\\
-&\gap\gap\Ldecl A {\mi{a.C}} {\mi{a.C}}\\
-&\gap\gap\Ldecl B {\mi{a.C}} {\mi{a.C}}\\
-&\gap}}\\
-&}\ldefs{}}{}
-\end{align*}
-\end{frame}
 
 \section{Counterexamples to Preservation}
-
-\begin{frame}[fragile]{Some more DOT Rules}
-
-      \infrule[\textsc{path-$\ni$}]
-      {\Gamma \ts p \typ T \spcomma T \expand_z \seq D}
-      {\Gamma \ts p \ni \subst p z {D_i}}
-
-      \infrule[\textsc{term-$\ni$}]
-      {z \not\in \fn(D_i) \andalso \Gamma \ts t \typ T \spcomma T \expand_z \seq D}
-      {\Gamma \ts t \ni D_i}
-
-      \infrule[\textsc{tsel-$\expand$}]
-      {\Gamma \ts p \ni \Ldecl L S U \spcomma U \expand_z \seq D}
-      {\Gamma \ts p.L \expand_z \seq D}
-
-      \infrule[\textsc{tsel-wf$_1$}]
-      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \wf \spcomma U \wf}
-      {\Gamma \ts p.L \wf}
-
-      \infrule[\textsc{tsel-wf$_2$}]
-      {\Gamma \ts p \ni \Ldecl L \Bot U}
-      {\Gamma \ts p.L \wf}
-\end{frame}
 
 \begin{frame}[fragile]
 \frametitle{Counterexample: \texorpdfstring{\textsc{term-$\ni$}}{Term-Mem} Restriction}
@@ -405,6 +315,127 @@ Observations:
 
 \section{Extra Slides}
 
+\begin{frame}[fragile]{Some DOT Rules}
+      \infrule[\textsc{$\sub$-tsel}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma S' \sub S }
+      {\Gamma \ts S' \sub p.L}
+
+      \infrule[\textsc{tsel-$\sub$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma U \sub U'}
+      {\Gamma \ts p.L \sub U'}
+
+      \infrule[\textsc{rfn-$\expand$}]
+      {\Gamma \ts T \expand_z {\seq {D'}}}
+      {\Gamma \ts T \refine z {\seq D} \expand_z \seq {D'} \tand \seq D}
+
+      \begin{align*}
+      (D \tand D')(L) =&
+        \Ldecl L {(S \tor S')} {(U \tand U')} \\& \ \mbox{if~} (\Ldecl L S U) \in \seq{D} \;\mbox{and}\; (\Ldecl L {S'} {U'}) \in \seq{D'} \\
+        =& D(L) \ \mbox{if~} L \notin \dom(\seq{D'}) \\
+        =& D'(L) \ \mbox{if~} L \notin \dom(\seq{D}) \\
+      \end{align*}
+\end{frame}
+
+\begin{frame}[fragile]{Some more DOT Rules}
+
+      \infrule[\textsc{path-$\ni$}]
+      {\Gamma \ts p \typ T \spcomma T \expand_z \seq D}
+      {\Gamma \ts p \ni \subst p z {D_i}}
+
+      \infrule[\textsc{term-$\ni$}]
+      {z \not\in \fn(D_i) \andalso \Gamma \ts t \typ T \spcomma T \expand_z \seq D}
+      {\Gamma \ts t \ni D_i}
+
+      \infrule[\textsc{tsel-$\expand$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma U \expand_z \seq D}
+      {\Gamma \ts p.L \expand_z \seq D}
+
+      \infrule[\textsc{tsel-wf$_1$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \wf \spcomma U \wf}
+      {\Gamma \ts p.L \wf}
+
+      \infrule[\textsc{tsel-wf$_2$}]
+      {\Gamma \ts p \ni \Ldecl L \Bot U}
+      {\Gamma \ts p.L \wf}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example: Class Hierarchies}
+\begin{minted}[fontsize=\footnotesize]{scala}
+object pets {
+  trait Pet
+  trait Cat extends Pet
+  trait Dog extends Pet
+  trait Poodle extends Dog
+  trait Dalmatian extends Dog
+}
+\end{minted}
+\begin{align*}
+\mlnew {&\mi{pets}} {\Top \mlrefine z {\\
+&\ \Ldecl {\mi{Pet_c}} \Bot \Top\\
+&\ \Ldecl {\mi{Cat_c}} \Bot {z.{\mi{Pet_c}}}\\
+&\ \Ldecl {\mi{Dog_c}} \Bot {z.{\mi{Pet_c}}}\\
+&\ \Ldecl {\mi{Poodle_c}} \Bot {z.{\mi{Dog_c}}}\\
+&\ \Ldecl {\mi{Dalmatian_c}} \Bot {z.{\mi{Dog_c}}}\\
+} \ldefs{}}{}
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example: Abstract Type Members}
+\begin{minted}[fontsize=\footnotesize]{scala}
+object choices {
+  trait Alt {
+    type C
+    type A <: C
+    type B <: C
+    val choose : A => B => C
+  }
+}
+\end{minted}
+\begin{align*}
+&\new {\mi{choices}} {\Top \mlrefine z {\\
+&\gap\Ldecl {\mi{Alt_c}} {\Bot} {\Top \mlrefine a {\\
+&\gap\gap\Ldecl C \Bot \Top\\
+&\gap\gap\Ldecl A \Bot {a.C}\\
+&\gap\gap\Ldecl B \Bot {a.C}\\
+&\gap\gap\mdecl {\mi{choose}} {a.A} {\arrow {a.B} {a.A \tor a.B}}\\
+&\gap}}\\
+&}\ldefs{}}{}
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]{Subtyping of $\mi{choices}$}
+\begin{align*}
+&{\mi{choices.Alt_c} \refine a {\Ldecl C \Bot {\mi{pets.Dog_c}}}}\\
+\sub\gap&{\mi{choices.Alt_c} \refine a {\Ldecl C \Bot {\mi{pets.Pet_c}}}}
+\end{align*}
+but
+\begin{align*}
+&{\mi{choices.Alt_c} \refine a {\Ldecl C {\mi{pets.Dog_c}} {\mi{pets.Dog_c}}}}\\
+\not\sub\gap&{\mi{choices.Alt_c} \refine a {\Ldecl C {\mi{pets.Pet_c}} {\mi{pets.Pet_c}}}}
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example: F-bounded Quantification}
+\begin{minted}[fontsize=\footnotesize]{scala}
+trait MetaAlt extends choices.Alt {
+  type C = MetaAlt
+  type A = C
+  type B = C
+}
+\end{minted}
+\begin{align*}
+&\mlnew m {\Top \mlrefine m {\\
+&\gap\Ldecl {\mi{MetaAlt_c}} {\Bot} {{\mi{choices.Alt_c}} \mlrefine a {\\
+&\gap\gap\Ldecl C {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}}\\
+&\gap\gap\Ldecl A {\mi{a.C}} {\mi{a.C}}\\
+&\gap\gap\Ldecl B {\mi{a.C}} {\mi{a.C}}\\
+&\gap}}\\
+&}\ldefs{}}{}
+\end{align*}
+\end{frame}
 
 \begin{frame}[fragile]{Example: Polymorphic Operators as Sugar}
 We translate
