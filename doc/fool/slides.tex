@@ -92,8 +92,8 @@ trait Cow extends Animal {
 val a = new Animal {}
 val c = new Cow {}
 val g = new Grass {}
-a.eat(???) // ??? <: a.Meal so ??? <: Bot
-c.eat(g) // g <: c.Meal so g <: Grass
+a.eat(???) // ???.type <: a.Meal so ???.type <: Bot
+c.eat(g) // g.type <: c.Meal so g.type <: Grass
 \end{minted}
 \end{frame}
 
