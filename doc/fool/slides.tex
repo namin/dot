@@ -61,18 +61,18 @@ DOT normalizes Scala's type system by
 \item simplify glb and lub computations
 \end{itemize}
 \begin{minted}{scala}
-  trait A { type T <: A }
-  trait B { type T <: B }
-  // in Scala, glb is an infinite sequence
-  A with B { type T <: A with B { type T <: A with B {
-    type T <: ...
-  }}}
-  // in DOT, glb is simply A /\ B
-  // type inference needs to compute glbs and lubs
-  if (cond) ((a: A) => c: C) else ((b: B) => d: D)
-  // glb(A, B) => lub(C, D)
+trait A { type T <: A }
+trait B { type T <: B }
+trait C extends A with B { type T <: C }
+trait D extends A with B { type T <: D }
+// in Scala, lub(C, D) is an infinite sequence
+A with B { type T <: A with B { type T <: A with B {
+  type T <: ...
+}}}
+// type inference needs to compute glbs and lubs
+if (cond) ((a: A) => c: C) else ((b: B) => d: D)
+// lub(A => C, B => D) <: glb(A, B) => lub(C, D)
 \end{minted}
-
 \end{frame}
 
 \begin{frame}[fragile]{Constructs for Type Members}
