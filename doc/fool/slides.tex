@@ -79,16 +79,16 @@ if (cond) ((a: A) => c: C) else ((b: B) => d: D)
 \begin{minted}{scala}
 trait Food
 trait Animal {
-  // in DOT, Meal: Bot .. Food
+  // in DOT, abstract Meal: Bot .. Food
   type Meal <: Food
   def eat(meal: Meal) {}
 }
+// in Dot, concrete Grass: Bot .. Food
 trait Grass extends Food
 trait Cow extends Animal {
-  // in DOT, Meal: Grass .. Grass
+  // in DOT, abstract Meal: Grass .. Grass
   type Meal = Grass
 }
-
 val a = new Animal {}
 val c = new Cow {}
 val g = new Grass {}
