@@ -214,6 +214,19 @@ trait Cow extends Animal {
 \end{frame}
 
 
+\section{Type-Safety?}
+
+\begin{frame}{Type-Safety?}
+\begin{itemize}
+\item Type safety usually proven as a corollary of the standard theorems of preservation and progress.
+\item In DOT, preservation (also known as subject reduction) doesn't hold, because of
+\begin{itemize}
+\item narrowing: after substitution, a term can have a more precise type
+\item need for path-equality provisitions
+\end{itemize}
+\end{itemize}
+\end{frame}
+
 \section{Counterexamples to Preservation}
 
 \begin{frame}[fragile]
