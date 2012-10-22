@@ -159,8 +159,8 @@ $c$ is a constructor $T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}$
 
 \begin{frame}[fragile]{Revisiting LUB Computation}
 \begin{itemize}
-\item Suppose $f$ has type ${T_f} = {\arrow {A} {C}} \tor {\arrow {B} {D}}$
-\item $T_f = {\Top \refine z {\mdecl {\mi{apply}} A C}} \tor {\Top \refine z {\mdecl {\mi{apply}} A C}}$
+\item Suppose $f$ has type ${T_f} = {(\arrow {A} {C})} \tor {(\arrow {B} {D})}$
+\item $T_f = {\Top \refine z {\mdecl {\mi{apply}} A C}} \tor {\Top \refine z {\mdecl {\mi{apply}} B D}}$
 \item Let's type-check $y = \app f x = \mapp f {\mi{apply}} x$
 \item $T_f \expand_f \{\mdecl {\mi{apply}} {A \tand B} {C \tor D}\}$
 \item $f \ni {\mdecl {\mi{apply}} {A \tand B} {C \tor D}}$
