@@ -22,12 +22,6 @@ function snoc<A>(lst: list<A>, x: A): list<A>
   case Nil => Cons(x, Nil)
   case Cons(head, tail) => Cons(head, snoc(tail, x))
 }
-function replace<A>(n: nat, x: A, lst: list<A>): list<A>
-{
-  match lst
-  case Nil => Nil
-  case Cons(head, tail) => if (n==0) then Cons(x, tail) else Cons(head, replace(n-1, x, tail))
-}
 
 // Pair
 datatype pair<A, B> = P(fst: A, snd: B);
