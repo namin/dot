@@ -2,7 +2,6 @@
 
 // List
 datatype list<A> = Nil | Cons(head: A, tail: list<A>);
-// list functions
 function length<A>(lst: list<A>): nat
   ensures length(lst)==0 ==> lst.Nil?;
   ensures length(lst)>0 ==> lst.Cons?;
@@ -29,17 +28,20 @@ datatype pair<A, B> = P(fst: A, snd: B);
 // Option
 datatype option<A> = None | Some(get: A);
 
-// Syntax
-datatype tp_label = lc(lc: nat) | la(la: nat);
-datatype tp = tp_sel(p: tm, L: tp_label) | tp_rfn(base_tp: tp, self: nat, decls: list<decl>) | tp_and(and1: tp, and2: tp) | tp_or(or1: tp, or2: tp) | tp_top | tp_bot;
-datatype tm = tm_loc(loc: nat) | tm_var(x: nat) | tm_new(y: nat, T: tp, init: list<def>, t': tm) | tm_sel(t: tm, l: nat) | tm_msel(o: tm, m: nat, a: tm);
-datatype decl = decl_tp(L: tp_label, S: tp, U: tp) | decl_tm(l: nat, T: tp) | decl_mt(m: nat, P: tp, R: tp);
-datatype def = def_tm(l: nat, t: tm) | def_mt(m: nat, param: nat, body: tm);
-
-predicate concrete_label(l: tp_label)
+// Partial Maps
+datatype partial_map<A> = Empty | Extend(x: nat, v: A, rest: partial_map<A>);
+function find<A>(m: partial_map<A>, x: nat): option<A>
 {
-  l.lc?
+  match m
+  case Empty => None
+  case Extend(x', v, rest) => if x==x' then Some(v) else find(rest, x)
 }
+
+// Syntax
+datatype tp = tp_sel_c(pc: tm, Lc: nat) | tp_sel_a(pa: tm, La: nat) | tp_rfn(base_tp: tp, self: nat, decls: list<decl>) | tp_and(and1: tp, and2: tp) | tp_or(or1: tp, or2: tp) | tp_top | tp_bot;
+datatype tm = tm_loc(loc: nat) | tm_var(x: nat) | tm_new(y: nat, Tc: tp, init: list<def>, t': tm) | tm_sel(t: tm, l: nat) | tm_msel(o: tm, m: nat, a: tm);
+datatype decl = decl_tp_c(Lc: nat, Sc: tp, Uc: tp) | decl_tp_a(La: nat, Sa: tp, Ua: tp) | decl_tm(l: nat, T: tp) | decl_mt(m: nat, P: tp, R: tp);
+datatype def = def_tm(l: nat, t: tm) | def_mt(m: nat, param: nat, body: tm);
 
 predicate path(t: tm)
 {
@@ -48,7 +50,7 @@ predicate path(t: tm)
 
 predicate concrete(T: tp)
 {
-  (T.tp_sel? && path(T.p) && concrete_label(T.L)) ||
+  (T.tp_sel_c? && path(T.pc)) ||
   (T.tp_rfn? && concrete(T.base_tp)) ||
   (T.tp_and? && concrete(T.and1) && concrete(T.and2)) ||
   T.tp_top?
@@ -93,14 +95,15 @@ function tm_subst(x: nat, v: tm, t: tm): tm
   match t
   case tm_loc(loc) => t
   case tm_var(x') => if x'==x then v else t
-  case tm_new(y, T, init, t') => tm_new(y, tp_subst(x, v, T), if y==x then init else defs_subst(x, v, init), if y==x then t' else tm_subst(x, v, t'))
+  case tm_new(y, Tc, init, t') => tm_new(y, tp_subst(x, v, Tc), if y==x then init else defs_subst(x, v, init), if y==x then t' else tm_subst(x, v, t'))
   case tm_sel(t1, l) => tm_sel(tm_subst(x, v, t1), l)
   case tm_msel(o, m, a) => tm_msel(tm_subst(x, v, o), m, tm_subst(x, v, a))
 }
 function tp_subst(x: nat, v: tm, T: tp): tp
 {
   match T
-  case tp_sel(p, L) => tp_sel(tm_subst(x, v, p), L)
+  case tp_sel_c(pc, Lc) => tp_sel_c(tm_subst(x, v, pc), Lc)
+  case tp_sel_a(pa, La) => tp_sel_a(tm_subst(x, v, pa), La)
   case tp_rfn(base_tp, self, decls) => tp_rfn(tp_subst(x, v, base_tp), self, if self==x then decls else decls_subst(x, v, decls))
   case tp_and(and1, and2) => tp_and(tp_subst(x, v, and1), tp_subst(x, v, and2))
   case tp_or(or1, or2) => tp_or(tp_subst(x, v, or1), tp_subst(x, v, or2))
@@ -116,7 +119,8 @@ function def_subst(x: nat, v: tm, d: def): def
 function decl_subst(x: nat, v: tm, d: decl): decl
 {
   match d
-  case decl_tp(L, S, U) => decl_tp(L, tp_subst(x, v, S), tp_subst(x, v, U))
+  case decl_tp_c(Lc, Sc, Uc) => decl_tp_c(Lc, tp_subst(x, v, Sc), tp_subst(x, v, Uc))
+  case decl_tp_a(La, Sa, Ua) => decl_tp_a(La, tp_subst(x, v, Sa), tp_subst(x, v, Ua))
   case decl_tm(l, T) => decl_tm(l, tp_subst(x, v, T))
   case decl_mt(m, P, R) => decl_mt(m, tp_subst(x, v, P), tp_subst(x, v, R))
 }
@@ -132,6 +136,55 @@ function decls_subst(x: nat, v: tm, decls: list<decl>): list<decl>
   case Nil => Nil
   case Cons(head, tail) => Cons(decl_subst(x, v, head), decls_subst(x, v, tail))
 }
+// Free variables
+// fn(x, A) <==> x appears free in A
+predicate tm_fn(x: nat, t: tm)
+{
+  match t
+  case tm_loc(loc) => false
+  case tm_var(x') => x'==x
+  case tm_new(y, Tc, init, t') => tp_fn(x, Tc) || (y!=x && (defs_fn(x, init) || tm_fn(x, t')))
+  case tm_sel(t1, l) => tm_fn(x, t1)
+  case tm_msel(o, m, a) => tm_fn(x, o) || tm_fn(x, a)
+}
+predicate tp_fn(x: nat, T: tp)
+{
+  match T
+  case tp_sel_c(pc, Lc) => tm_fn(x, pc)
+  case tp_sel_a(pa, La) => tm_fn(x, pa)
+  case tp_rfn(base_tp, self, decls) => tp_fn(x, base_tp) || (self!=x && decls_fn(x, decls))
+  case tp_and(and1, and2) => tp_fn(x, and1) || tp_fn(x, and2)
+  case tp_or(or1, or2) => tp_fn(x, or1) || tp_fn(x, or2)
+  case tp_top => false
+  case tp_bot => false
+}
+predicate def_fn(x: nat, d: def)
+{
+  match d
+  case def_tm(l, t1) => tm_fn(x, t1)
+  case def_mt(m, param, body) => param!=x && tm_fn(x, body)
+}
+predicate decl_fn(x: nat, d: decl)
+{
+  match d
+  case decl_tp_c(Lc, Sc, Uc) => tp_fn(x, Sc) || tp_fn(x, Uc)
+  case decl_tp_a(La, Sa, Ua) => tp_fn(x, Sa) || tp_fn(x, Ua)
+  case decl_tm(l, T) => tp_fn(x, T)
+  case decl_mt(m, P, R) => tp_fn(x, P) || tp_fn(x, R)
+}
+predicate defs_fn(x: nat, defs: list<def>)
+{
+  match defs
+  case Nil => false
+  case Cons(head, tail) => def_fn(x, head) || defs_fn(x, tail)
+}
+predicate decls_fn(x: nat, decls: list<decl>)
+{
+  match decls
+  case Nil => false
+  case Cons(head, tail) => decl_fn(x, head) || decls_fn(x, tail)
+}
+
 
 // Reduction
 function step(t: tm, s: store): option<pair<tm, store>>
@@ -159,6 +212,86 @@ function step(t: tm, s: store): option<pair<tm, store>>
   /* new */
   else if (t.tm_new?)
   then Some(P(tm_subst(t.y, tm_loc(length(s.lst)), t.t'),
-              Store(snoc(s.lst, P(t.T, defs_subst(t.y, tm_loc(length(s.lst)), t.init))))))
+              Store(snoc(s.lst, P(t.Tc, defs_subst(t.y, tm_loc(length(s.lst)), t.init))))))
   else None
+}
+
+// Type System
+
+// Context
+datatype context = Context(m: partial_map<tp>);
+
+// Typing-Related Judgments
+
+function typeof(ctx: context, t: tm): option<tp>
+  decreases t;
+{
+  match t
+  case tm_loc(loc) => None // locations are not part of user programs
+  case tm_var(x) => find(ctx.m, x)
+  case tm_new(y, Tc, init, t') =>
+    var T' := typeof(Context(Extend(y, Tc, ctx.m)), t');
+    if (wfe_type(ctx, Tc) && wf_init(expansion(ctx, y, Tc).get, init) &&
+        T'.Some? && !tp_fn(y, T'.get))
+    then Some(T'.get)
+    else None
+  case tm_sel(t, l) =>
+    field_membership(ctx, t, l)
+  case tm_msel(o, m, a) =>
+    var S2T := method_membership(ctx, o, m);
+    var T' := typeof(ctx, a);
+    if (S2T.Some? && T'.Some? && subtype(ctx, T'.get, S2T.get.fst))
+    then Some(S2T.get.snd)
+    else None
+}
+predicate wf_init(decls: list<decl>, defs: list<def>)
+{
+  true // TODO
+}
+predicate wf_decl(ctx: context, d: decl)
+{
+  true // TODO
+}
+predicate wf_type(ctx: context, T: tp)
+{
+  true // TODO
+}
+predicate wfe_type(ctx: context, T: tp)
+{
+  wf_type(ctx, T) && expansion(ctx, 0, T).Some?
+}
+function membership(ctx: context, t: tm, l: nat): option<decl>
+{
+  None // TODO
+}
+function field_membership(ctx: context, t: tm, l: nat): option<tp>
+{
+  var d := membership(ctx, t, l);
+  if (d.Some? && d.get.decl_tm? && d.get.l==l)
+  then Some(d.get.T)
+  else None
+}
+function method_membership(ctx: context, t: tm, m: nat): option<pair<tp,tp>>
+{
+  var d := membership(ctx, t, m);
+  if (d.Some? && d.get.decl_mt? && d.get.m==m)
+  then Some(P(d.get.P, d.get.R))
+  else None
+}
+function type_membership(ctx: context, t: tm, L: nat): option<pair<tp,tp>>
+{
+  var d := membership(ctx, t, L);
+  if (d.Some?)
+  then (     if (d.get.decl_tp_c? && d.get.Lc==L) then Some(P(d.get.Sc, d.get.Uc))
+        else if (d.get.decl_tp_a? && d.get.La==L) then Some(P(d.get.Sa, d.get.Ua))
+        else None)
+  else None
+}
+function expansion(ctx: context, z: nat, T: tp): option<list<decl>>
+{
+  None // TODO
+}
+predicate subtype(ctx: context, S: tp, T: tp)
+{
+  true // TODO
 }
