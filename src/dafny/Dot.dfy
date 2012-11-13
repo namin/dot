@@ -22,6 +22,7 @@ function snoc<A>(lst: list<A>, x: A): list<A>
   case Cons(head, tail) => Cons(head, snoc(tail, x))
 }
 
+
 // Pair
 datatype pair<A, B> = P(fst: A, snd: B);
 
@@ -30,11 +31,11 @@ datatype option<A> = None | Some(get: A);
 
 // Partial Maps
 datatype partial_map<A> = Empty | Extend(x: nat, v: A, rest: partial_map<A>);
-function find<A>(m: partial_map<A>, x: nat): option<A>
+function lookup<A>(x: nat, m: partial_map<A>): option<A>
 {
   match m
   case Empty => None
-  case Extend(x', v, rest) => if x==x' then Some(v) else find(rest, x)
+  case Extend(x', v, rest) => if x==x' then Some(v) else lookup(x, rest)
 }
 
 // Syntax
@@ -228,7 +229,7 @@ function typeof(ctx: context, t: tm): option<tp>
 {
   match t
   case tm_loc(loc) => None // locations are not part of user programs
-  case tm_var(x) => find(ctx.m, x)
+  case tm_var(x) => lookup(x, ctx.m)
   case tm_new(y, Tc, init, t') =>
     var T' := typeof(Context(Extend(y, Tc, ctx.m)), t');
     if (wfe_type(ctx, Tc) && wf_init(expansion(ctx, y, Tc).get, init) &&
@@ -248,23 +249,51 @@ predicate wf_init(decls: list<decl>, defs: list<def>)
 {
   true // TODO
 }
-predicate wf_decl(ctx: context, d: decl)
+copredicate wf_decl(ctx: context, d: decl)
 {
-  true // TODO
+  match d
+  case decl_tp_c(L, S, U) => wf_type(ctx, S) && wf_type(ctx, U)
+  case decl_tp_a(L, S, U) => wf_type(ctx, S) && wf_type(ctx, U)
+  case decl_tm(l, T) => wf_type(ctx, T)
+  case decl_mt(m, S, T) => wf_type(ctx, S) && wf_type(ctx, T)
 }
-predicate wf_type(ctx: context, T: tp)
+copredicate wf_decls(ctx: context, Ds: list<decl>)
 {
-  true // TODO
+  match Ds
+  case Nil => true
+  case Cons(head, tail) => wf_decl(ctx, head) && wf_decls(ctx, tail)
+}
+copredicate wf_type_sel(ctx: context, p: tm, L: nat)
+{
+  var SU := type_membership(ctx, p, L);
+  path(p) &&
+  SU.Some? &&
+  (SU.get.fst==tp_bot ||
+  (wf_type(ctx, SU.get.fst) && wf_type(ctx, SU.get.snd)))
+}
+copredicate wf_type(ctx: context, T: tp)
+{
+  match T
+  case tp_rfn(T', z, Ds) =>
+    wf_type(ctx, T') && wf_decls(Context(Extend(z, T, ctx.m)), Ds)
+  case tp_sel_c(p, L) => wf_type_sel(ctx, p, L)
+  case tp_sel_a(p, L) => wf_type_sel(ctx, p, L)
+  case tp_and(T1, T2) => wf_type(ctx, T1) && wf_type(ctx, T2)
+  case tp_or(T1, T2) => wf_type(ctx, T1) && wf_type(ctx, T2)
+  case tp_top => true
+  case tp_bot => true
 }
 predicate wfe_type(ctx: context, T: tp)
 {
   wf_type(ctx, T) && expansion(ctx, 0, T).Some?
 }
 function membership(ctx: context, t: tm, l: nat): option<decl>
+  decreases t;
 {
   None // TODO
 }
 function field_membership(ctx: context, t: tm, l: nat): option<tp>
+  decreases t;
 {
   var d := membership(ctx, t, l);
   if (d.Some? && d.get.decl_tm? && d.get.l==l)
@@ -272,6 +301,7 @@ function field_membership(ctx: context, t: tm, l: nat): option<tp>
   else None
 }
 function method_membership(ctx: context, t: tm, m: nat): option<pair<tp,tp>>
+  decreases t;
 {
   var d := membership(ctx, t, m);
   if (d.Some? && d.get.decl_mt? && d.get.m==m)
@@ -279,6 +309,7 @@ function method_membership(ctx: context, t: tm, m: nat): option<pair<tp,tp>>
   else None
 }
 function type_membership(ctx: context, t: tm, L: nat): option<pair<tp,tp>>
+  decreases t;
 {
   var d := membership(ctx, t, L);
   if (d.Some?)
