@@ -21,7 +21,17 @@ function snoc<A>(lst: list<A>, x: A): list<A>
   case Nil => Cons(x, Nil)
   case Cons(head, tail) => Cons(head, snoc(tail, x))
 }
-
+function seq2lst<A>(s: seq<A>): list<A>
+{
+  if (s == []) then Nil
+  else Cons(s[0], seq2lst(s[1..]))
+}
+function lst2seq<A>(lst: list<A>): seq<A>
+{
+  match lst
+  case Nil => []
+  case Cons(head, tail) => [head] + lst2seq(tail)
+}
 
 // Pair
 datatype pair<A, B> = P(fst: A, snd: B);
@@ -56,6 +66,93 @@ predicate concrete(T: tp)
   (T.tp_and? && concrete(T.and1) && concrete(T.and2)) ||
   T.tp_top?
 }
+
+// Sorting-related functions
+predicate decl_lt(d1: decl, d2: decl)
+{
+  match d1
+  case decl_tp_c(Lc1, Sc1, Uc1) =>
+    (match d2
+     case decl_tp_c(Lc2, Sc2, Uc2) => Lc1<Lc2
+     case decl_tp_a(La2, Sa2, Ua2) => true
+     case decl_tm(l2, T2) => true
+     case decl_mt(m2, P2, R2) => true)
+  case decl_tp_a(La1, Sa1, Ua1) =>
+    (match d2
+     case decl_tp_c(Lc2, Sc2, Uc2) => false
+     case decl_tp_a(La2, Sa2, Ua2) => La1<La2
+     case decl_tm(l2, T2) => true
+     case decl_mt(m2, P2, R2) => true)
+  case decl_tm(l1, T1) =>
+    (match d2
+     case decl_tp_c(Lc2, Sc2, Uc2) => false
+     case decl_tp_a(La2, Sa2, Ua2) => false
+     case decl_tm(l2, T2) => l1<l2
+     case decl_mt(m2, P2, R2) => true)
+  case decl_mt(m1, P1, R1) =>
+    (match d2
+     case decl_tp_c(Lc2, Sc2, Uc2) => false
+     case decl_tp_a(La2, Sa2, Ua2) => false
+     case decl_tm(l2, T2) => false
+     case decl_mt(m2, P2, R2) => m1<m2)    
+}
+predicate decl_eq(d1: decl, d2: decl)
+{
+  match d1
+  case decl_tp_c(Lc1, Sc1, Uc1) => d2.decl_tp_c? && d2.Lc==Lc1
+  case decl_tp_a(La1, Sa1, Ua1) => d2.decl_tp_a? && d2.La==La1
+  case decl_tm(l1, T1) => d2.decl_tm? && d2.l==l1
+  case decl_mt(m1, P1, R1) => d2.decl_mt? && d2.m==m1
+}
+predicate decl_le(d1: decl, d2: decl)
+{
+  decl_lt(d1, d2) || decl_eq(d1, d2)
+}
+predicate def_lt(d1: def, d2: def)
+{
+  match d1
+  case def_tm(l1, t1) =>
+    (match d2
+     case def_tm(l2, t2) => l1<l2
+     case def_mt(m2, param2, body2) => true)
+  case def_mt(m1, param1, body1) =>
+    (match d2
+     case def_tm(l2, t2) => false
+     case def_mt(m2, param2, body2) => m1<m2)
+}
+predicate def_eq(d1: def, d2: def)
+{
+  match d1
+  case def_tm(l1, t1) => d2.def_tm? && d2.l==l1
+  case def_mt(m1, param1, body1) => d2.def_mt? && d2.m==m1
+}
+predicate def_le(d1: def, d2: def)
+{
+  def_lt(d1, d2) || def_eq(d1, d2)
+}
+predicate decl_seq_sorted(s: seq<decl>)
+{
+  forall m,n :: 0 <= m < n < |s| ==> decl_le(s[m], s[n])
+}
+function decl_seq_merge(s1: seq<decl>, s2: seq<decl>): seq<decl>
+  //requires decl_seq_sorted(s1) && decl_seq_sorted(s2);
+  //ensures decl_seq_sorted(decl_seq_merge(s1, s2));
+  //ensures multiset((s1+s2)[..]) == multiset(decl_seq_merge(s1,s2)[..]);
+{
+  if (s1 == []) then s2
+  else if (s2 == []) then s1
+  else if (decl_le(s1[0], s2[0])) then [s1[0]]+decl_seq_merge(s1[1..], s2)
+  else [s2[0]]+decl_seq_merge(s1, s2[1..])
+}
+function decl_seq_sort(s: seq<decl>): seq<decl>
+  //ensures decl_seq_sorted(s);
+  //ensures multiset(s[..]) == multiset(decl_seq_sort(s)[..]);
+{
+  if (s == []) then s else
+    var i: nat := (|s|-1)/2;
+    decl_seq_merge(decl_seq_sort(s[..i]), decl_seq_sort(s[i+1..]))
+}
+
 
 // Operational Semantics
 
@@ -137,6 +234,7 @@ function decls_subst(x: nat, v: tm, decls: list<decl>): list<decl>
   case Nil => Nil
   case Cons(head, tail) => Cons(decl_subst(x, v, head), decls_subst(x, v, tail))
 }
+
 // Free variables
 // fn(x, A) <==> x appears free in A
 predicate tm_fn(x: nat, t: tm)
@@ -175,15 +273,11 @@ predicate decl_fn(x: nat, d: decl)
 }
 predicate defs_fn(x: nat, defs: list<def>)
 {
-  match defs
-  case Nil => false
-  case Cons(head, tail) => def_fn(x, head) || defs_fn(x, tail)
+  defs.Cons? && (def_fn(x, defs.head) || defs_fn(x, defs.tail))
 }
 predicate decls_fn(x: nat, decls: list<decl>)
 {
-  match decls
-  case Nil => false
-  case Cons(head, tail) => decl_fn(x, head) || decls_fn(x, tail)
+  decls.Cons? && (decl_fn(x, decls.head) || decls_fn(x, decls.tail))
 }
 
 
