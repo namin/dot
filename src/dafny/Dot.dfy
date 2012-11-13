@@ -224,26 +224,24 @@ datatype context = Context(m: partial_map<tp>);
 
 // Typing-Related Judgments
 
-function typeof(ctx: context, t: tm): option<tp>
-  decreases t;
+copredicate typing(ctx: context, t: tm, T: tp)
 {
   match t
-  case tm_loc(loc) => None // locations are not part of user programs
-  case tm_var(x) => lookup(x, ctx.m)
+  case tm_loc(loc) => false // locations are not part of user programs
+  case tm_var(x) => lookup(x, ctx.m) == Some(T)
   case tm_new(y, Tc, init, t') =>
-    var T' := typeof(Context(Extend(y, Tc, ctx.m)), t');
-    if (wfe_type(ctx, Tc) && wf_init(expansion(ctx, y, Tc).get, init) &&
-        T'.Some? && !tp_fn(y, T'.get))
-    then Some(T'.get)
-    else None
+    exists Ds ::
+    typing(Context(Extend(y, Tc, ctx.m)), t', T) &&
+    wfe_type(ctx, Tc) &&
+    expansion(ctx, y, Tc, Ds) && 
+    wf_init(Ds, init) &&
+    !tp_fn(y, T)
   case tm_sel(t, l) =>
-    field_membership(ctx, t, l)
+    field_membership(ctx, t, l, T)
   case tm_msel(o, m, a) =>
-    var S2T := method_membership(ctx, o, m);
-    var T' := typeof(ctx, a);
-    if (S2T.Some? && T'.Some? && subtype(ctx, T'.get, S2T.get.fst))
-    then Some(S2T.get.snd)
-    else None
+    exists S, T' :: method_membership(ctx, o, m, S, T) &&
+    typing(ctx, a, T') &&
+    subtype(ctx, T', S)
 }
 predicate wf_init(decls: list<decl>, defs: list<def>)
 {
@@ -265,11 +263,10 @@ copredicate wf_decls(ctx: context, Ds: list<decl>)
 }
 copredicate wf_type_sel(ctx: context, p: tm, L: nat)
 {
-  var SU := type_membership(ctx, p, L);
   path(p) &&
-  SU.Some? &&
-  (SU.get.fst==tp_bot ||
-  (wf_type(ctx, SU.get.fst) && wf_type(ctx, SU.get.snd)))
+  exists S, U :: type_membership(ctx, p, L, S, U) &&
+  (S==tp_bot ||
+  (wf_type(ctx, S) && wf_type(ctx, U)))
 }
 copredicate wf_type(ctx: context, T: tp)
 {
@@ -285,42 +282,31 @@ copredicate wf_type(ctx: context, T: tp)
 }
 predicate wfe_type(ctx: context, T: tp)
 {
-  wf_type(ctx, T) && expansion(ctx, 0, T).Some?
+  wf_type(ctx, T) && exists Ds :: expansion(ctx, 0, T, Ds)
 }
-function membership(ctx: context, t: tm, l: nat): option<decl>
-  decreases t;
+predicate membership(ctx: context, t: tm, l: nat, d: decl)
 {
-  None // TODO
+  false
 }
-function field_membership(ctx: context, t: tm, l: nat): option<tp>
-  decreases t;
+predicate field_membership(ctx: context, t: tm, l: nat, T: tp)
 {
-  var d := membership(ctx, t, l);
-  if (d.Some? && d.get.decl_tm? && d.get.l==l)
-  then Some(d.get.T)
-  else None
+  exists d :: membership(ctx, t, l, d) &&
+  d.decl_tm? && d.l==l && d.T==T
 }
-function method_membership(ctx: context, t: tm, m: nat): option<pair<tp,tp>>
-  decreases t;
+predicate method_membership(ctx: context, t: tm, m: nat, P: tp, R: tp)
 {
-  var d := membership(ctx, t, m);
-  if (d.Some? && d.get.decl_mt? && d.get.m==m)
-  then Some(P(d.get.P, d.get.R))
-  else None
+  exists d :: membership(ctx, t, m, d) &&
+  d.decl_mt? && d.m==m && d.P==P && d.R==R
 }
-function type_membership(ctx: context, t: tm, L: nat): option<pair<tp,tp>>
-  decreases t;
+predicate type_membership(ctx: context, t: tm, L: nat, S: tp, U: tp)
 {
-  var d := membership(ctx, t, L);
-  if (d.Some?)
-  then (     if (d.get.decl_tp_c? && d.get.Lc==L) then Some(P(d.get.Sc, d.get.Uc))
-        else if (d.get.decl_tp_a? && d.get.La==L) then Some(P(d.get.Sa, d.get.Ua))
-        else None)
-  else None
+  exists d :: membership(ctx, t, L, d) &&
+  ((d.decl_tp_c? && d.Lc==L && d.Sc==S && d.Uc==U) ||
+   (d.decl_tp_a? && d.La==L && d.Sa==S && d.Ua==U))
 }
-function expansion(ctx: context, z: nat, T: tp): option<list<decl>>
+copredicate expansion(ctx: context, z: nat, T: tp, Ds: list<decl>)
 {
-  None // TODO
+  true // TODO
 }
 predicate subtype(ctx: context, S: tp, T: tp)
 {
