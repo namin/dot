@@ -1,6 +1,12 @@
-// Utilities
+// ============================
+// Dependent Object Types (DOT)
+// ============================
 
-// List
+// ---------
+// Utilities
+// ---------
+
+// ### List ###
 datatype list<A> = Nil | Cons(head: A, tail: list<A>);
 function length<A>(lst: list<A>): nat
   ensures length(lst)==0 ==> lst.Nil?;
@@ -64,13 +70,13 @@ ghost method lemma_same_lst_seq_forall<A>(lst: list<A>, s: seq<A>)
   }
 }
 
-// Pair
+// ### Pair ###
 datatype pair<A, B> = P(fst: A, snd: B);
 
-// Option
+// ### Option ###
 datatype option<A> = None | Some(get: A);
 
-// Partial Maps
+// ### Partial Maps ###
 datatype partial_map<A> = Empty | Extend(x: nat, v: A, rest: partial_map<A>);
 function lookup<A>(x: nat, m: partial_map<A>): option<A>
 {
@@ -86,7 +92,10 @@ function dom<A>(m: partial_map<A>): seq<int>
   case Extend(x, v, rest) => [x]+dom(rest)
 }
 
+// ------
 // Syntax
+// ------
+
 datatype tp = tp_sel_c(pc: tm, Lc: nat) | tp_sel_a(pa: tm, La: nat) | tp_rfn(base_tp: tp, self: nat, decls: list<decl>) | tp_and(and1: tp, and2: tp) | tp_or(or1: tp, or2: tp) | tp_top | tp_bot;
 datatype tm = tm_loc(loc: nat) | tm_var(x: nat) | tm_new(y: nat, Tc: tp, init: list<def>, t': tm) | tm_sel(t: tm, l: nat) | tm_msel(o: tm, m: nat, a: tm);
 datatype decl = decl_tp_c(Lc: nat, Sc: tp, Uc: tp) | decl_tp_a(La: nat, Sa: tp, Ua: tp) | decl_tm(l: nat, T: tp) | decl_mt(m: nat, P: tp, R: tp);
@@ -115,7 +124,10 @@ function decl_label(d: decl): nat
   case decl_mt(m, P, R) => m
 }
 
+// -------------------------
 // Sorting-related functions
+// -------------------------
+
 predicate decl_lt(d1: decl, d2: decl)
 {
   match d1
@@ -386,15 +398,17 @@ ghost method lemma_def_seq_sorting(s: seq<def>)
   }
 }
 
+// ---------------------
 // Operational Semantics
+// ---------------------
 
-// Values
+// ### Values ###
 predicate value(t: tm)
 {
   t.tm_loc?
 }
 
-// Store
+// ### Store ###
 datatype store = Store(lst: list<pair<tp, list<def>>>);
 function store_lookup(n: nat, s: store): list<def>
   requires n < length(s.lst);
@@ -419,7 +433,7 @@ function def_field_lookup(l: nat, defs: list<def>): option<tm>
     else def_field_lookup(l, tail)
 }
 
-// Substitution
+// ### Substitution ###
 function tm_subst(x: nat, v: tm, t: tm): tm
 {
   match t
@@ -467,8 +481,9 @@ function decls_subst(x: nat, v: tm, decls: list<decl>): list<decl>
   case Cons(head, tail) => Cons(decl_subst(x, v, head), decls_subst(x, v, tail))
 }
 
-// Free variables
+// ### Free variables ###
 // fn(x, A) <==> x appears free in A
+
 predicate tm_fn(x: nat, t: tm)
 {
   match t
@@ -513,7 +528,7 @@ predicate decls_fn(x: nat, decls: list<decl>)
 }
 
 
-// Reduction
+// ### Reduction ###
 function step(t: tm, s: store): option<pair<tm, store>>
 {
   /* msel */
@@ -543,12 +558,14 @@ function step(t: tm, s: store): option<pair<tm, store>>
   else None
 }
 
+// -----------
 // Type System
+// -----------
 
-// Context
+// ### Context ###
 datatype context = Context(m: partial_map<tp>);
 
-// Declaration Lattice
+// ### Declaration Lattice ###
 predicate decl_bot(d: decl)
 {
   match d
@@ -626,7 +643,7 @@ function decls_or(Ds1: decls, Ds2: decls): decls
      case decls_fin(s2) => decls_fin(decls_fin_or(s1, s2)))
 }
 
-// Typing-Related Judgments
+// ### Typing-Related Judgments ###
 
 copredicate typing(ctx: context, t: tm, T: tp)
 {
