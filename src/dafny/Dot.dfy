@@ -545,10 +545,11 @@ function tm_subst(x: nat, v: tm, t: tm): tm
   match t
   case tm_var(x') => if x'==x then v else t
   case tm_new(y, Tc, init, t1) =>
+    if y==x then tm_new(y, tp_subst(x, v, Tc), init, t1) else
     var y' := if (tm_fn(y, v)) then other([x]+tm_vars(v)+tm_vars(t)) else y;
     var init' := if (y==y') then init else defs_subst(y, tm_var(y'), init);
     var t1' := if (y==y') then t1 else tm_subst(y, tm_var(y'), t1);
-    tm_new(y', tp_subst(x, v, Tc), if y'==x then init' else defs_subst(x, v, init'), if y'==x then t1' else tm_subst(x, v, t1'))
+    tm_new(y', tp_subst(x, v, Tc), defs_subst(x, v, init'), tm_subst(x, v, t1'))
   case tm_sel(t1, l) => tm_sel(tm_subst(x, v, t1), l)
   case tm_msel(o, m, a) => tm_msel(tm_subst(x, v, o), m, tm_subst(x, v, a))
 }
@@ -560,9 +561,10 @@ function tp_subst(x: nat, v: tm, T: tp): tp
   case tp_sel_c(pc, Lc) => tp_sel_c(tm_subst(x, v, pc), Lc)
   case tp_sel_a(pa, La) => tp_sel_a(tm_subst(x, v, pa), La)
   case tp_rfn(base_tp, self, decls) =>
+    if self==x then tp_rfn(tp_subst(x, v, base_tp), self, decls) else
     var self' := if (tm_fn(self, v)) then other([x]+tm_vars(v)+tp_vars(T)) else self;
     var decls' := if (self==self') then decls else decls_subst(self, tm_var(self'), decls);
-    tp_rfn(tp_subst(x, v, base_tp), self', if self'==x then decls' else decls_subst(x, v, decls'))
+    tp_rfn(tp_subst(x, v, base_tp), self', decls_subst(x, v, decls'))
   case tp_and(and1, and2) => tp_and(tp_subst(x, v, and1), tp_subst(x, v, and2))
   case tp_or(or1, or2) => tp_or(tp_subst(x, v, or1), tp_subst(x, v, or2))
   case tp_top => T
@@ -575,9 +577,10 @@ function def_subst(x: nat, v: tm, d: def): def
   match d
   case def_tm(l, t1) => def_tm(l, tm_subst(x, v, t1))
   case def_mt(m, param, body) =>
+    if param==x then d else
     var param' := if (tm_fn(param, v)) then other([x]+tm_vars(v)+def_vars(d)) else param;
     var body' := if (param==param') then body else tm_subst(param, tm_var(param'), body);
-    if param'==x then d else def_mt(m, param', tm_subst(x, v, body'))
+    def_mt(m, param', tm_subst(x, v, body'))
 }
 function decl_subst(x: nat, v: tm, d: decl): decl
   decreases decl_size(d), d;
