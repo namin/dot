@@ -429,7 +429,11 @@ function store_lookup(n: nat, s: store): list<def>
 function alloc(s: store): nat
   ensures alloc(s) !in dom(s.m);
 {
-  max(dom(s.m), -1) + 1
+  other(dom(s.m))
+}
+function other(xs: seq<int>): nat
+{
+  max(xs, -1) + 1
 }
 function def_method_lookup(m: nat, defs: list<def>): option<pair<int, tm>>
   ensures def_method_lookup(m, defs).Some? ==> def_method_lookup(m, defs).get.fst>=0;
@@ -449,33 +453,135 @@ function def_field_lookup(l: nat, defs: list<def>): option<tm>
     else def_field_lookup(l, tail)
 }
 
+// ### Size ###
+function tm_size(t: tm): nat
+  ensures t.tm_new? ==> tm_size(t)==1+tp_size(t.Tc)+defs_size(t.init)+tm_size(t.t');
+  ensures t.tm_new? ==> tm_size(t)>tp_size(t.Tc);
+  ensures t.tm_new? ==> tm_size(t)>defs_size(t.init);
+  ensures t.tm_new? ==> tm_size(t)>tm_size(t.t');
+  ensures t.tm_sel? ==> tm_size(t)==1+tm_size(t.t);
+  ensures t.tm_msel? ==> tm_size(t)==1+tm_size(t.o)+tm_size(t.a);
+  ensures t.tm_msel? ==> tm_size(t)>tm_size(t.o);
+{
+  match t
+  case tm_var(x') => 1
+  case tm_new(y, Tc, init, t1) => 1+tp_size(Tc)+defs_size(init)+tm_size(t1)
+  case tm_sel(t1, l) => 1+tm_size(t1)
+  case tm_msel(o, m, a) => 1+tm_size(o)+tm_size(a)
+}
+function tp_size(T: tp): nat
+  ensures T.tp_sel_c? ==> tp_size(T)==1+tm_size(T.pc);
+  ensures T.tp_sel_c? ==> tp_size(T)>tm_size(T.pc);
+  ensures T.tp_sel_a? ==> tp_size(T)==1+tm_size(T.pa);
+  ensures T.tp_sel_a? ==> tp_size(T)>tm_size(T.pa);
+  ensures T.tp_rfn? ==> tp_size(T)==1+tp_size(T.base_tp)+decls_size(T.decls);
+  ensures T.tp_rfn? ==> tp_size(T)>tp_size(T.base_tp);
+  ensures T.tp_rfn? ==> tp_size(T)>decls_size(T.decls);
+  ensures T.tp_and? ==> tp_size(T)==1+tp_size(T.and1)+tp_size(T.and2);
+  ensures T.tp_and? ==> tp_size(T)>tp_size(T.and1);
+  ensures T.tp_or? ==> tp_size(T)==1+tp_size(T.or1)+tp_size(T.or2);
+  ensures T.tp_or? ==> tp_size(T)>tp_size(T.or1);
+{
+  match T
+  case tp_sel_c(pc, Lc) => 1+tm_size(pc)
+  case tp_sel_a(pa, La) => 1+tm_size(pa)
+  case tp_rfn(base_tp, self, decls) => 1+tp_size(base_tp)+decls_size(decls)
+  case tp_and(and1, and2) => 1+tp_size(and1)+tp_size(and2)
+  case tp_or(or1, or2) => 1+tp_size(or1)+tp_size(or2)
+  case tp_top => 1
+  case tp_bot => 1
+}
+function def_size(d: def): nat
+  ensures d.def_tm? ==> def_size(d)==1+tm_size(d.t);
+  ensures d.def_tm? ==> def_size(d)>tm_size(d.t);
+  ensures d.def_mt? ==> def_size(d)==1+tm_size(d.body);
+  ensures d.def_mt? ==> def_size(d)>tm_size(d.body);
+{
+  match d
+  case def_tm(l, t1) => 1+tm_size(t1)
+  case def_mt(m, param, body) => 1+tm_size(body)
+}
+function decl_size(d: decl): nat
+  ensures d.decl_tp_c? ==> decl_size(d)==1+tp_size(d.Sc)+tp_size(d.Uc);
+  ensures d.decl_tp_c? ==> decl_size(d)>tp_size(d.Sc);
+  ensures d.decl_tp_c? ==> decl_size(d)>tp_size(d.Uc);
+  ensures d.decl_tp_a? ==> decl_size(d)==1+tp_size(d.Sa)+tp_size(d.Ua);
+  ensures d.decl_tp_a? ==> decl_size(d)>tp_size(d.Sa);
+  ensures d.decl_tp_a? ==> decl_size(d)>tp_size(d.Ua);
+  ensures d.decl_tm? ==> decl_size(d)==1+tp_size(d.T);
+  ensures d.decl_tm? ==> decl_size(d)>tp_size(d.T);
+  ensures d.decl_mt? ==> decl_size(d)==1+tp_size(d.P)+tp_size(d.R);
+  ensures d.decl_mt? ==> decl_size(d)>tp_size(d.P);
+  ensures d.decl_mt? ==> decl_size(d)>tp_size(d.R);
+{
+  match d
+  case decl_tp_c(Lc, Sc, Uc) => 1+tp_size(Sc)+tp_size(Uc)
+  case decl_tp_a(La, Sa, Ua) => 1+tp_size(Sa)+tp_size(Ua)
+  case decl_tm(l, T) => 1+tp_size(T)
+  case decl_mt(m, P, R) => 1+tp_size(P)+tp_size(R)
+}
+function defs_size(defs: list<def>): nat
+  ensures defs.Cons? ==> defs_size(defs)==1+def_size(defs.head)+defs_size(defs.tail);
+  ensures defs.Cons? ==> defs_size(defs)>def_size(defs.head);
+{
+  match defs
+  case Nil => 1
+  case Cons(head, tail) => 1+def_size(head)+defs_size(tail)
+}
+function decls_size(decls: list<decl>): nat
+  ensures decls.Cons? ==> decls_size(decls)==1+decl_size(decls.head)+decls_size(decls.tail);
+  ensures decls.Cons? ==> decls_size(decls)>decl_size(decls.head);
+{
+  match decls
+  case Nil => 1
+  case Cons(head, tail) => 1+decl_size(head)+decls_size(tail)
+}
+
 // ### Substitution ###
 function tm_subst(x: nat, v: tm, t: tm): tm
+  decreases tm_size(t), t;
+  ensures v.tm_var? ==> tm_size(t)==tm_size(tm_subst(x, v, t));
 {
   match t
   case tm_var(x') => if x'==x then v else t
-  case tm_new(y, Tc, init, t') => tm_new(y, tp_subst(x, v, Tc), if y==x then init else defs_subst(x, v, init), if y==x then t' else tm_subst(x, v, t'))
+  case tm_new(y, Tc, init, t1) =>
+    var y' := if (tm_fn(y, v)) then other([x]+tm_vars(v)+tm_vars(t)) else y;
+    var init' := if (y==y') then init else defs_subst(y, tm_var(y'), init);
+    var t1' := if (y==y') then t1 else tm_subst(y, tm_var(y'), t1);
+    tm_new(y', tp_subst(x, v, Tc), if y'==x then init' else defs_subst(x, v, init'), if y'==x then t1' else tm_subst(x, v, t1'))
   case tm_sel(t1, l) => tm_sel(tm_subst(x, v, t1), l)
   case tm_msel(o, m, a) => tm_msel(tm_subst(x, v, o), m, tm_subst(x, v, a))
 }
 function tp_subst(x: nat, v: tm, T: tp): tp
+  decreases tp_size(T), T;
+  ensures v.tm_var? ==> tp_size(T)==tp_size(tp_subst(x, v, T));
 {
   match T
   case tp_sel_c(pc, Lc) => tp_sel_c(tm_subst(x, v, pc), Lc)
   case tp_sel_a(pa, La) => tp_sel_a(tm_subst(x, v, pa), La)
-  case tp_rfn(base_tp, self, decls) => tp_rfn(tp_subst(x, v, base_tp), self, if self==x then decls else decls_subst(x, v, decls))
+  case tp_rfn(base_tp, self, decls) =>
+    var self' := if (tm_fn(self, v)) then other([x]+tm_vars(v)+tp_vars(T)) else self;
+    var decls' := if (self==self') then decls else decls_subst(self, tm_var(self'), decls);
+    tp_rfn(tp_subst(x, v, base_tp), self', if self'==x then decls' else decls_subst(x, v, decls'))
   case tp_and(and1, and2) => tp_and(tp_subst(x, v, and1), tp_subst(x, v, and2))
   case tp_or(or1, or2) => tp_or(tp_subst(x, v, or1), tp_subst(x, v, or2))
   case tp_top => T
   case tp_bot => T
 }
 function def_subst(x: nat, v: tm, d: def): def
+  decreases def_size(d), d;
+  ensures v.tm_var? ==> def_size(d)==def_size(def_subst(x, v, d));
 {
   match d
   case def_tm(l, t1) => def_tm(l, tm_subst(x, v, t1))
-  case def_mt(m, param, body) => if param==x then d else def_mt(m, param, tm_subst(x, v, body))
+  case def_mt(m, param, body) =>
+    var param' := if (tm_fn(param, v)) then other([x]+tm_vars(v)+def_vars(d)) else param;
+    var body' := if (param==param') then body else tm_subst(param, tm_var(param'), body);
+    if param'==x then d else def_mt(m, param', tm_subst(x, v, body'))
 }
 function decl_subst(x: nat, v: tm, d: decl): decl
+  decreases decl_size(d), d;
+  ensures v.tm_var? ==> decl_size(d)==decl_size(decl_subst(x, v, d));
 {
   match d
   case decl_tp_c(Lc, Sc, Uc) => decl_tp_c(Lc, tp_subst(x, v, Sc), tp_subst(x, v, Uc))
@@ -484,12 +590,16 @@ function decl_subst(x: nat, v: tm, d: decl): decl
   case decl_mt(m, P, R) => decl_mt(m, tp_subst(x, v, P), tp_subst(x, v, R))
 }
 function defs_subst(x: nat, v: tm, defs: list<def>): list<def>
+  decreases defs_size(defs), defs;
+  ensures v.tm_var? ==> defs_size(defs)==defs_size(defs_subst(x, v, defs));
 {
   match defs
   case Nil => Nil
   case Cons(head, tail) => Cons(def_subst(x, v, head), defs_subst(x, v, tail))
 }
 function decls_subst(x: nat, v: tm, decls: list<decl>): list<decl>
+  decreases decls_size(decls), decls;
+  ensures v.tm_var? ==> decls_size(decls)==decls_size(decls_subst(x, v, decls));
 {
   match decls
   case Nil => Nil
@@ -545,6 +655,58 @@ predicate decls_fn(x: nat, decls: list<decl>)
   decls.Cons? && (decl_fn(x, decls.head) || decls_fn(x, decls.tail))
 }
 
+// ### Variables ###
+function tm_vars(t: tm): seq<int>
+  ensures forall x :: x in tm_vars(t) ==> x>=0;
+{
+  match t
+  case tm_var(x') => [x']
+  case tm_new(y, Tc, init, t') => [y]+tp_vars(Tc)+defs_vars(init)+tm_vars(t')
+  case tm_sel(t1, l) => tm_vars(t1)
+  case tm_msel(o, m, a) => tm_vars(o)+tm_vars(a)
+}
+function tp_vars(T: tp): seq<int>
+  ensures forall x :: x in tp_vars(T) ==> x>=0;
+{
+  match T
+  case tp_sel_c(pc, Lc) => tm_vars(pc)
+  case tp_sel_a(pa, La) => tm_vars(pa)
+  case tp_rfn(base_tp, self, decls) => tp_vars(base_tp)+[self]+decls_vars(decls)
+  case tp_and(and1, and2) => tp_vars(and1)+tp_vars(and2)
+  case tp_or(or1, or2) => tp_vars(or1)+tp_vars(or2)
+  case tp_top => []
+  case tp_bot => []
+}
+function def_vars(d: def): seq<int>
+  ensures forall x :: x in def_vars(d) ==> x>=0;
+{
+  match d
+  case def_tm(l, t1) => tm_vars(t1)
+  case def_mt(m, param, body) => [param]+tm_vars(body)
+}
+function decl_vars(d: decl): seq<int>
+  ensures forall x :: x in decl_vars(d) ==> x>=0;
+{
+  match d
+  case decl_tp_c(Lc, Sc, Uc) => tp_vars(Sc)+tp_vars(Uc)
+  case decl_tp_a(La, Sa, Ua) => tp_vars(Sa)+tp_vars(Ua)
+  case decl_tm(l, T) => tp_vars(T)
+  case decl_mt(m, P, R) => tp_vars(P)+tp_vars(R)
+}
+function defs_vars(defs: list<def>): seq<int>
+  ensures forall x :: x in defs_vars(defs) ==> x>=0;
+{
+  match defs
+  case Nil => []
+  case Cons(head, tail) => def_vars(head)+defs_vars(tail)
+}
+function decls_vars(decls: list<decl>): seq<int>
+  ensures forall x :: x in decls_vars(decls) ==> x>=0;
+{
+  match decls
+  case Nil => []
+  case Cons(head, tail) => decl_vars(head)+decls_vars(tail)
+}
 
 // ### Reduction ###
 function step(t: tm, s: store): option<pair<tm, store>>
