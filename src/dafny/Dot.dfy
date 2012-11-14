@@ -696,20 +696,21 @@ copredicate wf_decls(ctx: context, Ds: list<decl>)
   case Nil => true
   case Cons(head, tail) => wf_decl(ctx, head) && wf_decls(ctx, tail)
 }
-copredicate wf_type_sel(ctx: context, p: tm, L: nat)
-{
-  path(p) &&
-  exists S, U :: type_membership(ctx, p, L, S, U) &&
-  (S==tp_bot ||
-  (wf_type(ctx, S) && wf_type(ctx, U)))
-}
 copredicate wf_type(ctx: context, T: tp)
 {
   match T
   case tp_rfn(T', z, Ds) =>
     wf_type(ctx, T') && wf_decls(Context(Extend(z, T, ctx.m)), Ds)
-  case tp_sel_c(p, L) => wf_type_sel(ctx, p, L)
-  case tp_sel_a(p, L) => wf_type_sel(ctx, p, L)
+  case tp_sel_c(p, L) =>
+    path(p) &&
+    exists S, U :: concrete_type_membership(ctx, p, L, S, U) &&
+    (S==tp_bot ||
+    (wf_type(ctx, S) && wf_type(ctx, U)))
+  case tp_sel_a(p, L) =>
+    path(p) &&
+    exists S, U :: abstract_type_membership(ctx, p, L, S, U) &&
+    (S==tp_bot ||
+    (wf_type(ctx, S) && wf_type(ctx, U)))
   case tp_and(T1, T2) => wf_type(ctx, T1) && wf_type(ctx, T2)
   case tp_or(T1, T2) => wf_type(ctx, T1) && wf_type(ctx, T2)
   case tp_top => true
@@ -742,11 +743,15 @@ copredicate method_membership(ctx: context, t: tm, m: nat, P: tp, R: tp)
   exists d :: membership(ctx, t, m, d) &&
   d.decl_mt? && d.m==m && d.P==P && d.R==R
 }
-copredicate type_membership(ctx: context, t: tm, L: nat, S: tp, U: tp)
+copredicate concrete_type_membership(ctx: context, t: tm, L: nat, S: tp, U: tp)
 {
   exists d :: membership(ctx, t, L, d) &&
-  ((d.decl_tp_c? && d.Lc==L && d.Sc==S && d.Uc==U) ||
-   (d.decl_tp_a? && d.La==L && d.Sa==S && d.Ua==U))
+  d.decl_tp_c? && d.Lc==L && d.Sc==S && d.Uc==U
+}
+copredicate abstract_type_membership(ctx: context, t: tm, L: nat, S: tp, U: tp)
+{
+  exists d :: membership(ctx, t, L, d) &&
+  d.decl_tp_a? && d.La==L && d.Sa==S && d.Ua==U
 }
 copredicate expansion(ctx: context, z: nat, T: tp, Ds: decls)
   ensures expansion(ctx, z, T, Ds) && Ds.decls_fin? ==> decl_seq_sorted(Ds.decls);
@@ -759,9 +764,9 @@ copredicate expansion(ctx: context, z: nat, T: tp, Ds: decls)
     Ds==decls_and(decls_fin(rfn_decls), DsT) &&
     (Ds.decls_fin? ==> decl_seq_sorted(Ds.decls))
   case tp_sel_c(p, L) =>
-    exists S, U :: type_membership(ctx, p, L, S, U) && expansion(ctx, z, U, Ds)
+    exists S, U :: concrete_type_membership(ctx, p, L, S, U) && expansion(ctx, z, U, Ds)
   case tp_sel_a(p, L) =>
-    exists S, U :: type_membership(ctx, p, L, S, U) && expansion(ctx, z, U, Ds)
+    exists S, U :: abstract_type_membership(ctx, p, L, S, U) && expansion(ctx, z, U, Ds)
   case tp_and(T1, T2) =>
     exists Ds1, Ds2 :: expansion(ctx, z, T1, Ds1) && expansion(ctx, z, T2, Ds2) &&
     Ds==decls_and(Ds1, Ds2) &&
@@ -814,15 +819,17 @@ copredicate subtype(ctx: context, S: tp, T: tp)
                  decl_seq_sorted(rfn_decls) &&
                  decls_sub(Context(Extend(T.self, S, ctx.m)), decls_fin(rfn_decls), Ds')) ||
   /* rfn-<: */  (S.tp_rfn? && wfe_type(ctx, S) && subtype(ctx, S.base_tp, T)) ||
-  /* <:-tsel */ ((T.tp_sel_c? || T.tp_sel_a?) &&
-                 exists L :: L==(if (T.tp_sel_c?) then T.Lc else T.La) &&
-                 exists p :: p==(if (T.tp_sel_c?) then T.pc else T.pa) &&
-                 exists S', U' :: type_membership(ctx, p, L, S', U') &&
+  /* <:-selc */ (T.tp_sel_c? &&
+                 exists S', U' :: concrete_type_membership(ctx, T.pc, T.Lc, S', U') &&
                  subtype(ctx, S', U') && subtype(ctx, S, S')) ||
-  /* tsel-<: */ ((S.tp_sel_c? || S.tp_sel_a?) &&
-                 exists L :: L==(if (S.tp_sel_c?) then S.Lc else S.La) &&
-                 exists p :: p==(if (S.tp_sel_c?) then S.pc else S.pa) &&
-                 exists S', U' :: type_membership(ctx, p, L, S', U') &&
+  /* selc-<: */ (S.tp_sel_c? &&
+                 exists S', U' :: concrete_type_membership(ctx, S.pc, S.Lc, S', U') &&
+                 subtype(ctx, S', U') && subtype(ctx, U', T)) ||
+  /* <:-sela */ (T.tp_sel_a? &&
+                 exists S', U' :: abstract_type_membership(ctx, T.pa, T.La, S', U') &&
+                 subtype(ctx, S', U') && subtype(ctx, S, S')) ||
+  /* sela-<: */ (S.tp_sel_a? &&
+                 exists S', U' :: abstract_type_membership(ctx, S.pa, S.La, S', U') &&
                  subtype(ctx, S', U') && subtype(ctx, U', T)) ||
   /* <:-and */  (T.tp_and? && subtype(ctx, S, T.and1) && subtype(ctx, S, T.and2)) ||
   /* and1-<: */ (S.tp_and? && wfe_type(ctx, S.and2) && subtype(ctx, S.and1, T)) ||
