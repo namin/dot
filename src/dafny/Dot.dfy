@@ -91,6 +91,7 @@ datatype tp = tp_sel_c(pc: tm, Lc: nat) | tp_sel_a(pa: tm, La: nat) | tp_rfn(bas
 datatype tm = tm_loc(loc: nat) | tm_var(x: nat) | tm_new(y: nat, Tc: tp, init: list<def>, t': tm) | tm_sel(t: tm, l: nat) | tm_msel(o: tm, m: nat, a: tm);
 datatype decl = decl_tp_c(Lc: nat, Sc: tp, Uc: tp) | decl_tp_a(La: nat, Sa: tp, Ua: tp) | decl_tm(l: nat, T: tp) | decl_mt(m: nat, P: tp, R: tp);
 datatype def = def_tm(l: nat, t: tm) | def_mt(m: nat, param: nat, body: tm);
+datatype decls = decls_fin(decls: seq<decl>) | decls_bot;
 
 predicate path(t: tm)
 {
@@ -145,6 +146,12 @@ predicate decl_lt(d1: decl, d2: decl)
 }
 predicate decl_eq(d1: decl, d2: decl)
   ensures d1==d2 ==> decl_eq(d1, d2);
+  ensures decl_eq(d1, d2) ==> decl_label(d1)==decl_label(d2);
+  ensures decl_eq(d1, d2) ==> d1.decl_tp_c?==d2.decl_tp_c?;
+  ensures decl_eq(d1, d2) ==> d1.decl_tp_a?==d2.decl_tp_a?;
+  ensures decl_eq(d1, d2) ==> d1.decl_tm?==d2.decl_tm?;
+  ensures decl_eq(d1, d2) ==> d1.decl_mt?==d2.decl_mt?;
+  ensures decl_eq(d1, d2) ==> !decl_lt(d1, d2) && !decl_lt(d2, d1);
 {
   match d1
   case decl_tp_c(Lc1, Sc1, Uc1) => d2.decl_tp_c? && d2.Lc==Lc1
@@ -541,6 +548,84 @@ function step(t: tm, s: store): option<pair<tm, store>>
 // Context
 datatype context = Context(m: partial_map<tp>);
 
+// Declaration Lattice
+predicate decl_bot(d: decl)
+{
+  match d
+  case decl_tp_c(L, S, U) => S==tp_top && U==tp_bot
+  case decl_tp_a(L, S, U) => S==tp_top && U==tp_bot
+  case decl_tm(l, T) => T==tp_bot
+  case decl_mt(m, S, U) => S==tp_top && U==tp_bot
+}
+function decl_and(d1: decl, d2: decl): decl
+  requires decl_eq(d1, d2);
+  ensures decl_eq(d1, decl_and(d1, d2));
+  ensures decl_eq(d2, decl_and(d1, d2));
+{
+  match d1
+  case decl_tp_c(L, S, U) => decl_tp_c(L, tp_or(S, d2.Sc), tp_and(U, d2.Uc))
+  case decl_tp_a(L, S, U) => decl_tp_a(L, tp_or(S, d2.Sa), tp_and(U, d2.Ua))
+  case decl_tm(l, U) => decl_tm(l, tp_and(U, d2.T))
+  case decl_mt(m, S, U) => decl_mt(m, tp_or(S, d2.P), tp_and(U, d2.R))
+}
+function decl_or(d1: decl, d2: decl): decl
+  requires decl_eq(d1, d2);
+  ensures decl_eq(d1, decl_or(d1, d2));
+  ensures decl_eq(d2, decl_or(d1, d2));
+{
+  match d1
+  case decl_tp_c(L, S, U) => decl_tp_c(L, tp_and(S, d2.Sc), tp_or(U, d2.Uc))
+  case decl_tp_a(L, S, U) => decl_tp_a(L, tp_and(S, d2.Sa), tp_or(U, d2.Ua))
+  case decl_tm(l, U) => decl_tm(l, tp_or(U, d2.T))
+  case decl_mt(m, S, U) => decl_mt(m, tp_and(S, d2.P), tp_or(U, d2.R))
+}
+function decls_fin_and(s1: seq<decl>, s2: seq<decl>): seq<decl>
+  requires decl_seq_sorted(s1);
+  requires decl_seq_sorted(s2);
+  //ensures decl_seq_sorted(decls_fin_and(s1, s2));
+{
+        if (s1 == []) then s2
+  else  if (s2 == []) then s1
+  else  if (decl_eq(s1[0], s2[0])) then   [decl_and(s1[0], s2[0])]+decls_fin_and(s1[1..], s2[1..])
+  else  if (decl_lt(s1[0], s2[0])) then   [s1[0]]+decls_fin_and(s1[1..], s2)
+  else/*if (decl_lt(s2[0], s1[0])) then*/ [s2[0]]+decls_fin_and(s1, s2[1..])
+}
+function decls_and(Ds1: decls, Ds2: decls): decls
+  requires Ds1.decls_fin? ==> decl_seq_sorted(Ds1.decls);
+  requires Ds2.decls_fin? ==> decl_seq_sorted(Ds2.decls);
+  //ensures decls_and(Ds1, Ds2).decls_fin? ==> decl_seq_sorted(decls_and(Ds1, Ds2).decls); 
+{
+  match Ds1
+  case decls_bot => decls_bot
+  case decls_fin(s1) =>
+    (match Ds2
+     case decls_bot => decls_bot
+     case decls_fin(s2) => decls_fin(decls_fin_and(s1, s2)))
+}
+function decls_fin_or(s1: seq<decl>, s2: seq<decl>): seq<decl>
+  requires decl_seq_sorted(s1);
+  requires decl_seq_sorted(s2);
+  //ensures decl_seq_sorted(decls_fin_or(s1, s2));
+{
+        if (s1 == []) then []
+  else  if (s2 == []) then []
+  else  if (decl_eq(s1[0], s2[0])) then   [decl_or(s1[0], s2[0])]+decls_fin_and(s1[1..], s2[1..])
+  else  if (decl_lt(s1[0], s2[0])) then   decls_fin_or(s1[1..], s2)
+  else/*if (decl_lt(s2[0], s1[0])) then*/ decls_fin_or(s1, s2[1..])
+}
+function decls_or(Ds1: decls, Ds2: decls): decls
+  requires Ds1.decls_fin? ==> decl_seq_sorted(Ds1.decls);
+  requires Ds2.decls_fin? ==> decl_seq_sorted(Ds2.decls);
+  //ensures decls_or(Ds1, Ds2).decls_fin? ==> decl_seq_sorted(decls_or(Ds1, Ds2).decls); 
+{
+  match Ds1
+  case decls_bot => Ds2
+  case decls_fin(s1) =>
+    (match Ds2
+     case decls_bot => Ds1
+     case decls_fin(s2) => decls_fin(decls_fin_or(s1, s2)))
+}
+
 // Typing-Related Judgments
 
 copredicate typing(ctx: context, t: tm, T: tp)
@@ -549,10 +634,10 @@ copredicate typing(ctx: context, t: tm, T: tp)
   case tm_loc(loc) => false // locations are not part of user programs
   case tm_var(x) => lookup(x, ctx.m) == Some(T)
   case tm_new(y, Tc, init, t') =>
-    exists Ds ::
+    exists Ds:decls :: Ds.decls_fin? &&
     wfe_type(ctx, Tc) &&
     expansion(ctx, y, Tc, Ds) && 
-    wf_init(Context(Extend(y, Tc, ctx.m)), Ds, def_seq_sort(lst2seq(init))) &&
+    wf_init(Context(Extend(y, Tc, ctx.m)), Ds.decls, def_seq_sort(lst2seq(init))) &&
     !tp_fn(y, T) &&
     typing(Context(Extend(y, Tc, ctx.m)), t', T)
   case tm_sel(t, l) =>
@@ -625,8 +710,10 @@ copredicate membership(ctx: context, t: tm, l: nat, d: decl)
   typing(ctx, t, T) &&
   exists Ds ::
   expansion(ctx, z, T, Ds) &&
-  ((path(t) && exists d' :: d' in Ds && d==decl_subst(z, t, d')) ||
-   (!path(t) && d in Ds && !decl_fn(z, d)))
+  ((Ds.decls_fin? &&
+     ((path(t) && exists d' :: d' in Ds.decls && d==decl_subst(z, t, d')) ||
+     (!path(t) && d in Ds.decls && !decl_fn(z, d)))) ||
+   (Ds.decls_bot? && decl_bot(d)))
 }
 copredicate field_membership(ctx: context, t: tm, l: nat, T: tp)
 {
@@ -644,10 +731,30 @@ copredicate type_membership(ctx: context, t: tm, L: nat, S: tp, U: tp)
   ((d.decl_tp_c? && d.Lc==L && d.Sc==S && d.Uc==U) ||
    (d.decl_tp_a? && d.La==L && d.Sa==S && d.Ua==U))
 }
-copredicate expansion(ctx: context, z: nat, T: tp, Ds: seq<decl>)
-  ensures expansion(ctx, z, T, Ds) ==> decl_seq_sorted(Ds);
+copredicate expansion(ctx: context, z: nat, T: tp, Ds: decls)
+  ensures expansion(ctx, z, T, Ds) && Ds.decls_fin? ==> decl_seq_sorted(Ds.decls);
 {
-  false // TODO
+  match T
+  case tp_rfn(T', z', Ds') =>
+    exists DsT :: expansion(ctx, z, T, DsT) &&
+    exists rfn_decls :: rfn_decls==decl_seq_sort(lst2seq(decls_subst(z', tm_var(z), Ds'))) &&
+    decl_seq_sorted(rfn_decls) &&
+    Ds==decls_and(decls_fin(rfn_decls), DsT) &&
+    (Ds.decls_fin? ==> decl_seq_sorted(Ds.decls))
+  case tp_sel_c(p, L) =>
+    exists S, U :: type_membership(ctx, p, L, S, U) && expansion(ctx, z, U, Ds)
+  case tp_sel_a(p, L) =>
+    exists S, U :: type_membership(ctx, p, L, S, U) && expansion(ctx, z, U, Ds)
+  case tp_and(T1, T2) =>
+    exists Ds1, Ds2 :: expansion(ctx, z, T1, Ds1) && expansion(ctx, z, T2, Ds2) &&
+    Ds==decls_and(Ds1, Ds2) &&
+    (Ds.decls_fin? ==> decl_seq_sorted(Ds.decls))
+  case tp_or(T1, T2) =>
+    exists Ds1, Ds2 :: expansion(ctx, z, T1, Ds1) && expansion(ctx, z, T2, Ds2) &&
+    Ds==decls_or(Ds1, Ds2) &&
+    (Ds.decls_fin? ==> decl_seq_sorted(Ds.decls))
+  case tp_top => Ds==decls_fin([])
+  case tp_bot => Ds==decls_bot
 }
 copredicate subtype(ctx: context, S: tp, T: tp)
 {
