@@ -15,6 +15,14 @@ function nth<A>(n: nat, lst: list<A>): A
 {
   if (n==0) then lst.head else nth(n-1, lst.tail)
 }
+function slice<A>(i: nat, j: nat, lst: list<A>): list<A>
+  requires 0 <= i <= j <= length(lst);
+  decreases j-i;
+{
+  if (i==j) then Nil
+  else if (i==0) then Cons(lst.head, slice(i, j-1, lst.tail))
+  else slice(i+1, j, lst)
+}
 function snoc<A>(lst: list<A>, x: A): list<A>
 {
   match lst
@@ -32,6 +40,29 @@ function lst2seq<A>(lst: list<A>): seq<A>
   case Nil => []
   case Cons(head, tail) => [head] + lst2seq(tail)
 }
+predicate same_lst_seq<A>(lst: list<A>, s: seq<A>)
+  ensures same_lst_seq(lst, s) ==> length(lst)==|s|;
+{
+  match lst
+  case Nil => s==[]
+  case Cons(head, tail) => |s|>0 && s[0]==head && same_lst_seq(tail, s[1..])
+}
+ghost method lemma_lst2seq_same<A>(lst: list<A>, s: seq<A>)
+  requires lst2seq(lst)==s;
+  ensures same_lst_seq(lst, s);
+{
+}
+ghost method lemma_same_lst_seq_forall<A>(lst: list<A>, s: seq<A>)
+  requires same_lst_seq(lst, s );
+  ensures forall n :: 0 <= n < |s| ==> s[n]==nth(n, lst);
+{
+  match lst {
+  case Nil =>
+  case Cons(head, tail) =>
+    assert s[0]==head;
+    lemma_same_lst_seq_forall(tail, s[1..]);
+  }
+}
 
 // Pair
 datatype pair<A, B> = P(fst: A, snd: B);
@@ -46,6 +77,13 @@ function lookup<A>(x: nat, m: partial_map<A>): option<A>
   match m
   case Empty => None
   case Extend(x', v, rest) => if x==x' then Some(v) else lookup(x, rest)
+}
+function dom<A>(m: partial_map<A>): seq<int>
+  ensures forall x :: x in dom(m) ==> x>=0;
+{
+  match m
+  case Empty => []
+  case Extend(x, v, rest) => [x]+dom(rest)
 }
 
 // Syntax
@@ -65,6 +103,15 @@ predicate concrete(T: tp)
   (T.tp_rfn? && concrete(T.base_tp)) ||
   (T.tp_and? && concrete(T.and1) && concrete(T.and2)) ||
   T.tp_top?
+}
+
+function decl_label(d: decl): nat
+{
+  match d
+  case decl_tp_c(Lc, Sc, Uc) => Lc
+  case decl_tp_a(La, Sa, Ua) => La
+  case decl_tm(l, T) => l
+  case decl_mt(m, P, R) => m
 }
 
 // Sorting-related functions
@@ -126,6 +173,19 @@ function decl_seq_sort(s: seq<decl>): seq<decl>
   if (s == []) then s else
     var i: nat := (|s|-1)/2;
     decl_seq_merge(decl_seq_sort(s[..i]), decl_seq_sort(s[i+1..]))
+}
+predicate decl_lst_sorted(lst: list<decl>)
+{
+  match lst
+  case Nil => true
+  case Cons(x, tail) =>
+    (match tail
+     case Nil => true
+     case Cons(y, tail') => decl_le(x, y) && decl_lst_sorted(tail))
+}
+function decl_lst_sort(lst: list<decl>): list<decl>
+{
+  seq2lst(decl_seq_sort(lst2seq(lst)))
 }
 ghost method lemma_decl_le_trans(d1: decl, d2: decl, d3: decl)
   requires decl_le(d1, d2);
@@ -490,11 +550,11 @@ copredicate typing(ctx: context, t: tm, T: tp)
   case tm_var(x) => lookup(x, ctx.m) == Some(T)
   case tm_new(y, Tc, init, t') =>
     exists Ds ::
-    typing(Context(Extend(y, Tc, ctx.m)), t', T) &&
     wfe_type(ctx, Tc) &&
     expansion(ctx, y, Tc, Ds) && 
-    wf_init(Ds, init) &&
-    !tp_fn(y, T)
+    wf_init(Context(Extend(y, Tc, ctx.m)), Ds, def_seq_sort(lst2seq(init))) &&
+    !tp_fn(y, T) &&
+    typing(Context(Extend(y, Tc, ctx.m)), t', T)
   case tm_sel(t, l) =>
     field_membership(ctx, t, l, T)
   case tm_msel(o, m, a) =>
@@ -502,9 +562,23 @@ copredicate typing(ctx: context, t: tm, T: tp)
     typing(ctx, a, T') &&
     subtype(ctx, T', S)
 }
-predicate wf_init(decls: list<decl>, defs: list<def>)
+copredicate wf_init(ctx: context, decls: seq<decl>, defs: seq<def>)
+  requires decl_seq_sorted(decls);
+  requires def_seq_sorted(defs);
 {
-  true // TODO
+  (decls==[] && defs==[]) || (|decls|>0 && (
+    (((decls[0].decl_tp_c? && subtype(ctx, decls[0].Sc, decls[0].Uc)) ||
+      (decls[0].decl_tp_a? && subtype(ctx, decls[0].Sa, decls[0].Ua))) &&
+     wf_init(ctx, decls[1..], defs)) || (|defs|>0 && (
+    ((decls[0].decl_tm? && defs[0].def_tm? && decls[0].l==defs[0].l &&
+      value(defs[0].t) &&
+      exists T :: typing(ctx, defs[0].t, T) &&
+      subtype(ctx, T, decls[0].T)) ||
+     (decls[0].decl_mt? && defs[0].def_mt? && decls[0].m==defs[0].m &&
+      wfe_type(ctx, decls[0].P) &&
+      exists T' :: typing(Context(Extend(defs[0].param, decls[0].P, ctx.m)), defs[0].body, T') &&
+      subtype(Context(Extend(defs[0].param, decls[0].P, ctx.m)), T', decls[0].R))) &&
+     wf_init(ctx, decls[1..], defs[1..])))))
 }
 copredicate wf_decl(ctx: context, d: decl)
 {
@@ -539,35 +613,43 @@ copredicate wf_type(ctx: context, T: tp)
   case tp_top => true
   case tp_bot => true
 }
-predicate wfe_type(ctx: context, T: tp)
+copredicate wfe_type(ctx: context, T: tp)
 {
   wf_type(ctx, T) && exists Ds :: expansion(ctx, 0, T, Ds)
 }
-predicate membership(ctx: context, t: tm, l: nat, d: decl)
+copredicate membership(ctx: context, t: tm, l: nat, d: decl)
 {
-  false
+  decl_label(d)==l &&
+  forall z:nat :: z !in dom(ctx.m) &&
+  exists T :: !tp_fn(z, T) && !tm_fn(z, t) &&
+  typing(ctx, t, T) &&
+  exists Ds ::
+  expansion(ctx, z, T, Ds) &&
+  ((path(t) && exists d' :: d' in Ds && d==decl_subst(z, t, d')) ||
+   (!path(t) && d in Ds && !decl_fn(z, d)))
 }
-predicate field_membership(ctx: context, t: tm, l: nat, T: tp)
+copredicate field_membership(ctx: context, t: tm, l: nat, T: tp)
 {
   exists d :: membership(ctx, t, l, d) &&
   d.decl_tm? && d.l==l && d.T==T
 }
-predicate method_membership(ctx: context, t: tm, m: nat, P: tp, R: tp)
+copredicate method_membership(ctx: context, t: tm, m: nat, P: tp, R: tp)
 {
   exists d :: membership(ctx, t, m, d) &&
   d.decl_mt? && d.m==m && d.P==P && d.R==R
 }
-predicate type_membership(ctx: context, t: tm, L: nat, S: tp, U: tp)
+copredicate type_membership(ctx: context, t: tm, L: nat, S: tp, U: tp)
 {
   exists d :: membership(ctx, t, L, d) &&
   ((d.decl_tp_c? && d.Lc==L && d.Sc==S && d.Uc==U) ||
    (d.decl_tp_a? && d.La==L && d.Sa==S && d.Ua==U))
 }
-copredicate expansion(ctx: context, z: nat, T: tp, Ds: list<decl>)
+copredicate expansion(ctx: context, z: nat, T: tp, Ds: seq<decl>)
+  ensures expansion(ctx, z, T, Ds) ==> decl_seq_sorted(Ds);
 {
-  true // TODO
+  false // TODO
 }
-predicate subtype(ctx: context, S: tp, T: tp)
+copredicate subtype(ctx: context, S: tp, T: tp)
 {
   true // TODO
 }
