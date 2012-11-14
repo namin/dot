@@ -86,10 +86,21 @@ function lookup<A>(x: nat, m: partial_map<A>): option<A>
 }
 function dom<A>(m: partial_map<A>): seq<int>
   ensures forall x :: x in dom(m) ==> x>=0;
+  ensures forall x:nat :: x in dom(m) ==> lookup(x, m).Some?;
 {
   match m
   case Empty => []
   case Extend(x, v, rest) => [x]+dom(rest)
+}
+
+// ### Sequences ###
+function max(s: seq<int>, start: int): int
+  ensures max(s, start)>=start;
+  ensures forall x :: x in s ==> x<=max(s, start);
+{
+  if (s == []) then start
+  else if (s[0] <= start) then max(s[1..], start)
+  else max(s[1..], s[0])
 }
 
 // ------
@@ -97,14 +108,14 @@ function dom<A>(m: partial_map<A>): seq<int>
 // ------
 
 datatype tp = tp_sel_c(pc: tm, Lc: nat) | tp_sel_a(pa: tm, La: nat) | tp_rfn(base_tp: tp, self: nat, decls: list<decl>) | tp_and(and1: tp, and2: tp) | tp_or(or1: tp, or2: tp) | tp_top | tp_bot;
-datatype tm = tm_loc(loc: nat) | tm_var(x: nat) | tm_new(y: nat, Tc: tp, init: list<def>, t': tm) | tm_sel(t: tm, l: nat) | tm_msel(o: tm, m: nat, a: tm);
+datatype tm = tm_var(x: nat) | tm_new(y: nat, Tc: tp, init: list<def>, t': tm) | tm_sel(t: tm, l: nat) | tm_msel(o: tm, m: nat, a: tm);
 datatype decl = decl_tp_c(Lc: nat, Sc: tp, Uc: tp) | decl_tp_a(La: nat, Sa: tp, Ua: tp) | decl_tm(l: nat, T: tp) | decl_mt(m: nat, P: tp, R: tp);
 datatype def = def_tm(l: nat, t: tm) | def_mt(m: nat, param: nat, body: tm);
 datatype decls = decls_fin(decls: seq<decl>) | decls_bot;
 
 predicate path(t: tm)
 {
-  t.tm_loc? || t.tm_var? || (t.tm_sel? && path(t.t))
+  t.tm_var? || (t.tm_sel? && path(t.t))
 }
 
 predicate concrete(T: tp)
@@ -405,15 +416,20 @@ ghost method lemma_def_seq_sorting(s: seq<def>)
 // ### Values ###
 predicate value(t: tm)
 {
-  t.tm_loc?
+  t.tm_var?
 }
 
 // ### Store ###
-datatype store = Store(lst: list<pair<tp, list<def>>>);
+datatype store = Store(m: partial_map<pair<tp, list<def>>>);
 function store_lookup(n: nat, s: store): list<def>
-  requires n < length(s.lst);
+  requires n in dom(s.m);
 {
-  nth(n, s.lst).snd
+  lookup(n, s.m).get.snd
+}
+function alloc(s: store): nat
+  ensures alloc(s) !in dom(s.m);
+{
+  max(dom(s.m), -1) + 1
 }
 function def_method_lookup(m: nat, defs: list<def>): option<pair<int, tm>>
   ensures def_method_lookup(m, defs).Some? ==> def_method_lookup(m, defs).get.fst>=0;
@@ -437,7 +453,6 @@ function def_field_lookup(l: nat, defs: list<def>): option<tm>
 function tm_subst(x: nat, v: tm, t: tm): tm
 {
   match t
-  case tm_loc(loc) => t
   case tm_var(x') => if x'==x then v else t
   case tm_new(y, Tc, init, t') => tm_new(y, tp_subst(x, v, Tc), if y==x then init else defs_subst(x, v, init), if y==x then t' else tm_subst(x, v, t'))
   case tm_sel(t1, l) => tm_sel(tm_subst(x, v, t1), l)
@@ -491,7 +506,6 @@ function decls_fin_subst(x: nat, v: tm, decls: seq<decl>): seq<decl>
 predicate tm_fn(x: nat, t: tm)
 {
   match t
-  case tm_loc(loc) => false
   case tm_var(x') => x'==x
   case tm_new(y, Tc, init, t') => tp_fn(x, Tc) || (y!=x && (defs_fn(x, init) || tm_fn(x, t')))
   case tm_sel(t1, l) => tm_fn(x, t1)
@@ -536,11 +550,11 @@ predicate decls_fn(x: nat, decls: list<decl>)
 function step(t: tm, s: store): option<pair<tm, store>>
 {
   /* msel */
-  if (t.tm_msel? && t.o.tm_loc? && value(t.a) && t.o.loc < length(s.lst) &&
-     def_method_lookup(t.m, store_lookup(t.o.loc, s)).Some?)
-  then Some(P(tm_subst(def_method_lookup(t.m, store_lookup(t.o.loc, s)).get.fst,
+  if (t.tm_msel? && t.o.tm_var? && value(t.a) && t.o.x in dom(s.m) &&
+     def_method_lookup(t.m, store_lookup(t.o.x, s)).Some?)
+  then Some(P(tm_subst(def_method_lookup(t.m, store_lookup(t.o.x, s)).get.fst,
                        t.a,
-                       def_method_lookup(t.m, store_lookup(t.o.loc, s)).get.snd),
+                       def_method_lookup(t.m, store_lookup(t.o.x, s)).get.snd),
               s))
   /* msel1 */
   else if (t.tm_msel? && step(t.o, s).Some?)
@@ -549,16 +563,16 @@ function step(t: tm, s: store): option<pair<tm, store>>
   else if (t.tm_msel? && value(t.o) && step(t.a, s).Some?)
   then Some(P(tm_msel(t.o, t.m, step(t.a, s).get.fst), step(t.a, s).get.snd))
   /* sel */
-  else if (t.tm_sel? && t.t.tm_loc? && t.t.loc < length(s.lst) &&
-           def_field_lookup(t.l, store_lookup(t.t.loc, s)).Some?)
-  then Some(P(def_field_lookup(t.l, store_lookup(t.t.loc, s)).get, s))
+  else if (t.tm_sel? && t.t.tm_var? && t.t.x in dom(s.m) &&
+           def_field_lookup(t.l, store_lookup(t.t.x, s)).Some?)
+  then Some(P(def_field_lookup(t.l, store_lookup(t.t.x, s)).get, s))
   /* sel1 */
   else if (t.tm_sel? && step(t.t, s).Some?)
   then Some(P(tm_sel(step(t.t, s).get.fst, t.l), step(t.t, s).get.snd))
   /* new */
   else if (t.tm_new?)
-  then Some(P(tm_subst(t.y, tm_loc(length(s.lst)), t.t'),
-              Store(snoc(s.lst, P(t.Tc, defs_subst(t.y, tm_loc(length(s.lst)), t.init))))))
+  then Some(P(tm_subst(t.y, tm_var(alloc(s)), t.t'),
+              Store(Extend(alloc(s), P(t.Tc, defs_subst(t.y, tm_var(alloc(s)), t.init)), s.m))))
   else None
 }
 
@@ -665,7 +679,6 @@ function decls_or(Ds1: decls, Ds2: decls): decls
 copredicate typing(ctx: context, t: tm, T: tp)
 {
   match t
-  case tm_loc(loc) => false // locations are not part of user programs
   case tm_var(x) => lookup(x, ctx.m) == Some(T)
   case tm_new(y, Tc, init, t') =>
     exists Ds:decls :: Ds.decls_fin? &&
@@ -863,21 +876,19 @@ copredicate subtype(ctx: context, S: tp, T: tp)
 predicate V(T: tp, t: tm, k: nat, ctx: context, s: store)
   decreases k;
 {
-  t.tm_loc? && t.loc < length(s.lst) &&
+  t.tm_var? && t.x in dom(s.m) &&
   wfe_type(ctx, T) &&
   forall j:nat :: j<k ==>
-  forall Tc, init :: P(Tc, seq2lst(init)) == nth(t.loc, s.lst) ==>
-  forall z:nat :: z !in dom(ctx.m) ==>
-  forall Ds :: expansion(ctx, z, T, Ds) ==>
-  Ds.decls_fin? && exists ds :: ds==decls_fin_subst(z, t, Ds.decls) && (
-    (forall Li:nat, S, U :: decl_tp_c(Li, S, U) in ds ==>
+  forall Tc, init :: P(Tc, seq2lst(init)) == lookup(t.x, s.m).get ==>
+  forall Ds :: expansion(ctx, t.x, T, Ds) ==> Ds.decls_fin? && (
+    (forall Li:nat, S, U :: decl_tp_c(Li, S, U) in Ds.decls ==>
      exists S', U' :: concrete_type_membership(ctx, t, Li, S', U')) &&
-    (forall Li:nat, S, U :: decl_tp_a(Li, S, U) in ds ==>
+    (forall Li:nat, S, U :: decl_tp_a(Li, S, U) in Ds.decls ==>
      exists S', U' :: abstract_type_membership(ctx, t, Li, S', U')) &&
-    (forall mi:nat, S, U :: decl_mt(mi, S, U) in ds ==>
+    (forall mi:nat, S, U :: decl_mt(mi, S, U) in Ds.decls ==>
      exists xi:nat, ti :: def_mt(mi, xi, ti) in init &&
      E(U, ti, j, Context(Extend(xi, S, ctx.m)), s)) &&
-    (forall li:nat, U :: decl_tm(li, U) in ds ==>
+    (forall li:nat, U :: decl_tm(li, U) in Ds.decls ==>
      exists vi :: def_tm(li, vi) in init &&
      V(U, vi, j, ctx, s))
   )
