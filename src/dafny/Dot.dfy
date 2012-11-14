@@ -97,6 +97,7 @@ predicate decl_lt(d1: decl, d2: decl)
      case decl_mt(m2, P2, R2) => m1<m2)    
 }
 predicate decl_eq(d1: decl, d2: decl)
+  ensures d1==d2 ==> decl_eq(d1, d2);
 {
   match d1
   case decl_tp_c(Lc1, Sc1, Uc1) => d2.decl_tp_c? && d2.Lc==Lc1
@@ -105,8 +106,101 @@ predicate decl_eq(d1: decl, d2: decl)
   case decl_mt(m1, P1, R1) => d2.decl_mt? && d2.m==m1
 }
 predicate decl_le(d1: decl, d2: decl)
+  ensures d1==d2 ==> decl_le(d1, d2);
 {
   decl_lt(d1, d2) || decl_eq(d1, d2)
+}
+predicate decl_seq_sorted(s: seq<decl>)
+{
+  forall m,n :: 0 <= m < n < |s| ==> decl_le(s[m], s[n])
+}
+function decl_seq_merge(s1: seq<decl>, s2: seq<decl>): seq<decl>
+{
+  if (s1 == []) then s2
+  else if (s2 == []) then s1
+  else if (decl_le(s1[0], s2[0])) then [s1[0]]+decl_seq_merge(s1[1..], s2)
+  else [s2[0]]+decl_seq_merge(s1, s2[1..])
+}
+function decl_seq_sort(s: seq<decl>): seq<decl>
+{
+  if (s == []) then s else
+    var i: nat := (|s|-1)/2;
+    decl_seq_merge(decl_seq_sort(s[..i]), decl_seq_sort(s[i+1..]))
+}
+ghost method lemma_decl_le_trans(d1: decl, d2: decl, d3: decl)
+  requires decl_le(d1, d2);
+  requires decl_le(d2, d3);
+  ensures decl_le(d1, d3);
+{
+}
+ghost method lemma_decl_le_comparable(d1: decl, d2: decl)
+  requires !decl_le(d1, d2);
+  ensures decl_le(d2, d1);
+{
+}
+ghost method lemma_decl_seq_merging(s1: seq<decl>, s2: seq<decl>)
+  requires decl_seq_sorted(s1) && decl_seq_sorted(s2);
+  ensures decl_seq_sorted(decl_seq_merge(s1, s2));
+  ensures multiset((s1+s2)[..]) == multiset(decl_seq_merge(s1,s2)[..]);
+{
+  if (s1 == []) {}
+  else if (s2 == []) {}
+  else if (decl_le(s1[0], s2[0])) {
+    parallel (n | 0 <= n < |s1|)
+      ensures decl_le(s1[0], s1[n]);
+    {
+    }
+    parallel (n | 0 <= n < |s2|)
+      ensures decl_le(s1[0], s2[n]);
+    {
+      lemma_decl_le_trans(s1[0], s2[0], s2[n]);
+    }
+    var sm := decl_seq_merge(s1[1..], s2);
+    lemma_decl_seq_merging(s1[1..], s2);
+    var s := [s1[0]]+sm;
+    assert decl_le(s1[0], sm[0]);
+    parallel (m,n | 0 <= m < n < |s|)
+      ensures decl_le(s[m], s[n]);
+    {
+      if (m==0) {
+        lemma_decl_le_trans(s1[0], sm[0], s[n]);
+      }
+    }
+  } else {
+    lemma_decl_le_comparable(s1[0], s2[0]);
+    parallel (n | 0 <= n < |s2|)
+      ensures decl_le(s2[0], s2[n]);
+    {
+    }
+    parallel (n | 0 <= n < |s1|)
+      ensures decl_le(s2[0], s1[n]);
+    {
+      lemma_decl_le_trans(s2[0], s1[0], s1[n]);
+    }
+    var sm := decl_seq_merge(s1, s2[1..]);
+    lemma_decl_seq_merging(s1, s2[1..]);
+    var s := [s2[0]]+sm;
+    assert decl_le(s2[0], sm[0]);
+    parallel (m,n | 0 <= m < n < |s|)
+      ensures decl_le(s[m], s[n]);
+    {
+      if (m==0) {
+        lemma_decl_le_trans(s2[0], sm[0], s[n]);
+      }
+    }
+  }  
+}
+ghost method lemma_decl_seq_sorting(s: seq<decl>)
+  ensures decl_seq_sorted(decl_seq_sort(s));
+  ensures multiset(s[..]) == multiset(decl_seq_sort(s)[..]);
+{
+  if (s == []) {}
+  else {
+    var i: nat := (|s|-1)/2;
+    lemma_decl_seq_sorting(s[..i]);
+    lemma_decl_seq_sorting(s[i+1..]);
+    lemma_decl_seq_merging(decl_seq_sort(s[..i]), decl_seq_sort(s[i+1..]));    
+  }
 }
 predicate def_lt(d1: def, d2: def)
 {
@@ -121,38 +215,109 @@ predicate def_lt(d1: def, d2: def)
      case def_mt(m2, param2, body2) => m1<m2)
 }
 predicate def_eq(d1: def, d2: def)
+  ensures d1==d2 ==> def_eq(d1, d2);
 {
   match d1
   case def_tm(l1, t1) => d2.def_tm? && d2.l==l1
   case def_mt(m1, param1, body1) => d2.def_mt? && d2.m==m1
 }
 predicate def_le(d1: def, d2: def)
+  ensures d1==d2 ==> def_le(d1, d2);
 {
   def_lt(d1, d2) || def_eq(d1, d2)
 }
-predicate decl_seq_sorted(s: seq<decl>)
+predicate def_seq_sorted(s: seq<def>)
 {
-  forall m,n :: 0 <= m < n < |s| ==> decl_le(s[m], s[n])
+  forall m,n :: 0 <= m < n < |s| ==> def_le(s[m], s[n])
 }
-function decl_seq_merge(s1: seq<decl>, s2: seq<decl>): seq<decl>
-  //requires decl_seq_sorted(s1) && decl_seq_sorted(s2);
-  //ensures decl_seq_sorted(decl_seq_merge(s1, s2));
-  //ensures multiset((s1+s2)[..]) == multiset(decl_seq_merge(s1,s2)[..]);
+function def_seq_merge(s1: seq<def>, s2: seq<def>): seq<def>
 {
   if (s1 == []) then s2
   else if (s2 == []) then s1
-  else if (decl_le(s1[0], s2[0])) then [s1[0]]+decl_seq_merge(s1[1..], s2)
-  else [s2[0]]+decl_seq_merge(s1, s2[1..])
+  else if (def_le(s1[0], s2[0])) then [s1[0]]+def_seq_merge(s1[1..], s2)
+  else [s2[0]]+def_seq_merge(s1, s2[1..])
 }
-function decl_seq_sort(s: seq<decl>): seq<decl>
-  //ensures decl_seq_sorted(s);
-  //ensures multiset(s[..]) == multiset(decl_seq_sort(s)[..]);
+function def_seq_sort(s: seq<def>): seq<def>
 {
   if (s == []) then s else
     var i: nat := (|s|-1)/2;
-    decl_seq_merge(decl_seq_sort(s[..i]), decl_seq_sort(s[i+1..]))
+    def_seq_merge(def_seq_sort(s[..i]), def_seq_sort(s[i+1..]))
 }
-
+ghost method lemma_def_le_trans(d1: def, d2: def, d3: def)
+  requires def_le(d1, d2);
+  requires def_le(d2, d3);
+  ensures def_le(d1, d3);
+{
+}
+ghost method lemma_def_le_comparable(d1: def, d2: def)
+  requires !def_le(d1, d2);
+  ensures def_le(d2, d1);
+{
+}
+ghost method lemma_def_seq_merging(s1: seq<def>, s2: seq<def>)
+  requires def_seq_sorted(s1) && def_seq_sorted(s2);
+  ensures def_seq_sorted(def_seq_merge(s1, s2));
+  ensures multiset((s1+s2)[..]) == multiset(def_seq_merge(s1,s2)[..]);
+{
+  if (s1 == []) {}
+  else if (s2 == []) {}
+  else if (def_le(s1[0], s2[0])) {
+    parallel (n | 0 <= n < |s1|)
+      ensures def_le(s1[0], s1[n]);
+    {
+    }
+    parallel (n | 0 <= n < |s2|)
+      ensures def_le(s1[0], s2[n]);
+    {
+      lemma_def_le_trans(s1[0], s2[0], s2[n]);
+    }
+    var sm := def_seq_merge(s1[1..], s2);
+    lemma_def_seq_merging(s1[1..], s2);
+    var s := [s1[0]]+sm;
+    assert def_le(s1[0], sm[0]);
+    parallel (m,n | 0 <= m < n < |s|)
+      ensures def_le(s[m], s[n]);
+    {
+      if (m==0) {
+        lemma_def_le_trans(s1[0], sm[0], s[n]);
+      }
+    }
+  } else {
+    lemma_def_le_comparable(s1[0], s2[0]);
+    parallel (n | 0 <= n < |s2|)
+      ensures def_le(s2[0], s2[n]);
+    {
+    }
+    parallel (n | 0 <= n < |s1|)
+      ensures def_le(s2[0], s1[n]);
+    {
+      lemma_def_le_trans(s2[0], s1[0], s1[n]);
+    }
+    var sm := def_seq_merge(s1, s2[1..]);
+    lemma_def_seq_merging(s1, s2[1..]);
+    var s := [s2[0]]+sm;
+    assert def_le(s2[0], sm[0]);
+    parallel (m,n | 0 <= m < n < |s|)
+      ensures def_le(s[m], s[n]);
+    {
+      if (m==0) {
+        lemma_def_le_trans(s2[0], sm[0], s[n]);
+      }
+    }
+  }  
+}
+ghost method lemma_def_seq_sorting(s: seq<def>)
+  ensures def_seq_sorted(def_seq_sort(s));
+  ensures multiset(s[..]) == multiset(def_seq_sort(s)[..]);
+{
+  if (s == []) {}
+  else {
+    var i: nat := (|s|-1)/2;
+    lemma_def_seq_sorting(s[..i]);
+    lemma_def_seq_sorting(s[i+1..]);
+    lemma_def_seq_merging(def_seq_sort(s[..i]), def_seq_sort(s[i+1..]));    
+  }
+}
 
 // Operational Semantics
 
