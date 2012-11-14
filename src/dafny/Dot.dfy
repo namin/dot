@@ -480,6 +480,10 @@ function decls_subst(x: nat, v: tm, decls: list<decl>): list<decl>
   case Nil => Nil
   case Cons(head, tail) => Cons(decl_subst(x, v, head), decls_subst(x, v, tail))
 }
+function decls_fin_subst(x: nat, v: tm, decls: seq<decl>): seq<decl>
+{
+  lst2seq(decls_subst(x, v, seq2lst(decls)))
+}
 
 // ### Free variables ###
 // fn(x, A) <==> x appears free in A
@@ -556,6 +560,19 @@ function step(t: tm, s: store): option<pair<tm, store>>
   then Some(P(tm_subst(t.y, tm_loc(length(s.lst)), t.t'),
               Store(snoc(s.lst, P(t.Tc, defs_subst(t.y, tm_loc(length(s.lst)), t.init))))))
   else None
+}
+
+predicate irred(t: tm, s: store)
+{
+  step(t, s).None?
+}
+
+// ### Multi-steps ###
+predicate mstep(t: tm, s: store, t': tm, s': store, n: nat)
+  decreases n;
+{
+  if (n==0) then t==t' && s==s'
+  else step(t, s).Some? && mstep(step(t, s).get.fst, step(t, s).get.snd, t', s', n-1)
 }
 
 // -----------
@@ -837,4 +854,53 @@ copredicate subtype(ctx: context, S: tp, T: tp)
   /* <:-or1 */  (T.tp_or? && wfe_type(ctx, T.or2) && subtype(ctx, S, T.or1)) ||
   /* <:-or2 */  (T.tp_or? && wfe_type(ctx, T.or1) && subtype(ctx, S, T.or2)) ||
   /* or-<: */   (S.tp_or? && subtype(ctx, S.or1, T) && subtype(ctx, S.or2, T))
+}
+
+// -----------------
+// Logical Relations
+// -----------------
+
+predicate V(T: tp, t: tm, k: nat, ctx: context, s: store)
+  decreases k;
+{
+  t.tm_loc? && t.loc < length(s.lst) &&
+  wfe_type(ctx, T) &&
+  forall j:nat :: j<k ==>
+  forall Tc, init :: P(Tc, seq2lst(init)) == nth(t.loc, s.lst) ==>
+  forall z:nat :: z !in dom(ctx.m) ==>
+  forall Ds :: expansion(ctx, z, T, Ds) ==>
+  Ds.decls_fin? && exists ds :: ds==decls_fin_subst(z, t, Ds.decls) && (
+    (forall Li:nat, S, U :: decl_tp_c(Li, S, U) in ds ==>
+     exists S', U' :: concrete_type_membership(ctx, t, Li, S', U')) &&
+    (forall Li:nat, S, U :: decl_tp_a(Li, S, U) in ds ==>
+     exists S', U' :: abstract_type_membership(ctx, t, Li, S', U')) &&
+    (forall mi:nat, S, U :: decl_mt(mi, S, U) in ds ==>
+     exists xi:nat, ti :: def_mt(mi, xi, ti) in init &&
+     E(U, ti, j, Context(Extend(xi, S, ctx.m)), s)) &&
+    (forall li:nat, U :: decl_tm(li, U) in ds ==>
+     exists vi :: def_tm(li, vi) in init &&
+     V(U, vi, j, ctx, s))
+  )
+}
+
+predicate E(T: tp, t: tm, k: nat, ctx: context, s: store)
+  decreases k;
+{
+  k==0 || (
+  forall j:nat :: j<k ==>
+  forall ctx', s' :: Xs(ctx', s', k, ctx, s) ==>
+  forall t', s'' :: mstep(t, s', t', s'', j) && irred(t', s'') ==>
+  forall ctx'' :: Xc(ctx'', k, ctx', s'') ==>
+  V(T, t', k-j-1, ctx'', s'')
+  )
+}
+
+predicate Xs(ctx': context, s': store, k: nat, ctx: context, s: store)
+{
+  true // TODO
+}
+
+predicate Xc(ctx': context, k: nat, ctx: context, s: store)
+{
+  true // TODO
 }
