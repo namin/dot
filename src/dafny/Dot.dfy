@@ -704,9 +704,9 @@ copredicate wfe_type(ctx: context, T: tp)
 }
 copredicate membership(ctx: context, t: tm, l: nat, d: decl)
 {
+  forall z:nat :: z !in dom(ctx.m) && !tm_fn(z, t) ==>
   decl_label(d)==l &&
-  forall z:nat :: z !in dom(ctx.m) &&
-  exists T :: !tp_fn(z, T) && !tm_fn(z, t) &&
+  exists T :: !tp_fn(z, T) &&
   typing(ctx, t, T) &&
   exists Ds ::
   expansion(ctx, z, T, Ds) &&
@@ -756,7 +756,61 @@ copredicate expansion(ctx: context, z: nat, T: tp, Ds: decls)
   case tp_top => Ds==decls_fin([])
   case tp_bot => Ds==decls_bot
 }
+copredicate decl_sub(ctx: context, d1: decl, d2: decl)
+  requires decl_eq(d1, d2);
+{
+  match d1
+  case decl_tp_c(L, S, U) => subtype(ctx, d2.Sc, S) && subtype(ctx, U, d2.Uc)
+  case decl_tp_a(L, S, U) => subtype(ctx, d2.Sa, S) && subtype(ctx, U, d2.Ua)
+  case decl_tm(l, U) => subtype(ctx, U, d2.T)
+  case decl_mt(m, S, U) => subtype(ctx, d2.P, S) && subtype(ctx, U, d2.R)
+}
+copredicate decls_fin_sub(ctx: context, s1: seq<decl>, s2: seq<decl>)
+  requires decl_seq_sorted(s1);
+  requires decl_seq_sorted(s2);
+{
+  (s1 == [] && s2 == []) ||
+  (|s1|>0 && |s2|>0 && (
+  (decl_eq(s1[0], s2[0]) && decl_sub(ctx, s1[0], s2[0]) &&
+   decls_fin_sub(ctx, s1[1..], s2[1..])) ||
+  (decl_lt(s1[0], s2[0]) && decls_fin_sub(ctx, s1[1..], s2))))
+}
+copredicate decls_sub(ctx: context, Ds1: decls, Ds2: decls)
+  requires Ds1.decls_fin? ==> decl_seq_sorted(Ds1.decls);
+  requires Ds2.decls_fin? ==> decl_seq_sorted(Ds2.decls);
+{
+  match Ds1
+  case decls_bot => true
+  case decls_fin(s1) =>
+    (match Ds2
+     case decls_bot => false
+     case decls_fin(s2) => decls_fin_sub(ctx, s1, s2))
+}
 copredicate subtype(ctx: context, S: tp, T: tp)
 {
-  false // TODO
+  /* refl */    (S==T && wfe_type(ctx, T)) ||
+  /* <:-top */  (T.tp_top? && wfe_type(ctx, S)) ||
+  /* bot-<: */  (S.tp_bot? && wfe_type(ctx, T)) ||
+  /* <:-rfn */  (T.tp_rfn? && wfe_type(ctx, T) && subtype(ctx, S, T.base_tp) &&
+                 exists Ds' :: expansion(ctx, T.self, S, Ds') &&
+                 exists rfn_decls :: rfn_decls==decl_seq_sort(lst2seq(T.decls)) &&
+                 decl_seq_sorted(rfn_decls) &&
+                 decls_sub(Context(Extend(T.self, S, ctx.m)), decls_fin(rfn_decls), Ds')) ||
+  /* rfn-<: */  (S.tp_rfn? && wfe_type(ctx, S) && subtype(ctx, S.base_tp, T)) ||
+  /* <:-tsel */ ((T.tp_sel_c? || T.tp_sel_a?) &&
+                 exists L :: L==(if (T.tp_sel_c?) then T.Lc else T.La) &&
+                 exists p :: p==(if (T.tp_sel_c?) then T.pc else T.pa) &&
+                 exists S', U' :: type_membership(ctx, p, L, S', U') &&
+                 subtype(ctx, S', U') && subtype(ctx, S, S')) ||
+  /* tsel-<: */ ((S.tp_sel_c? || S.tp_sel_a?) &&
+                 exists L :: L==(if (S.tp_sel_c?) then S.Lc else S.La) &&
+                 exists p :: p==(if (S.tp_sel_c?) then S.pc else S.pa) &&
+                 exists S', U' :: type_membership(ctx, p, L, S', U') &&
+                 subtype(ctx, S', U') && subtype(ctx, U', T)) ||
+  /* <:-and */  (T.tp_and? && subtype(ctx, S, T.and1) && subtype(ctx, S, T.and2)) ||
+  /* and1-<: */ (S.tp_and? && wfe_type(ctx, S.and2) && subtype(ctx, S.and1, T)) ||
+  /* and2-<: */ (S.tp_and? && wfe_type(ctx, S.and1) && subtype(ctx, S.and2, T)) ||
+  /* <:-or1 */  (T.tp_or? && wfe_type(ctx, T.or2) && subtype(ctx, S, T.or1)) ||
+  /* <:-or2 */  (T.tp_or? && wfe_type(ctx, T.or1) && subtype(ctx, S, T.or2)) ||
+  /* or-<: */   (S.tp_or? && subtype(ctx, S.or1, T) && subtype(ctx, S.or2, T))
 }
