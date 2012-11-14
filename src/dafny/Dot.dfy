@@ -648,8 +648,8 @@ copredicate typing(ctx: context, t: tm, T: tp)
     subtype(ctx, T', S)
 }
 copredicate wf_init(ctx: context, decls: seq<decl>, defs: seq<def>)
-  requires decl_seq_sorted(decls);
-  requires def_seq_sorted(defs);
+  //requires decl_seq_sorted(decls);
+  //requires def_seq_sorted(defs);
 {
   (decls==[] && defs==[]) || (|decls|>0 && (
     (((decls[0].decl_tp_c? && subtype(ctx, decls[0].Sc, decls[0].Uc)) ||
@@ -758,5 +758,5 @@ copredicate expansion(ctx: context, z: nat, T: tp, Ds: decls)
 }
 copredicate subtype(ctx: context, S: tp, T: tp)
 {
-  true // TODO
+  false // TODO
 }
