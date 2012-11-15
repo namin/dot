@@ -97,8 +97,8 @@ $s$.
 &\ (\seq{x : T}^m, \seq{x_{ij} : T_{ij}}^{m \leq i < n; 0 \leq j < i_n}; s, \seq{x_{ij} \mapsto c_{ij}}^{m \leq i < n; 0 \leq j < i_n}) |\\
 &\ s = \seq{x \mapsto c}^m \andl \Gamma = \seq{x : T}^n \andl \\
 &\ m\leq n \andl \forall i, m \leq i < n, \forall {i_n}, j, 0 \leq j < i_n,\\
-&\ \forall T_{ij}, c_{ij}, T_{i{(i_n-1)}} = T_i, \forall n' \leq n, i_n' \leq i_n,\\
-&\ c_{ij} \in \relv {k-1} {\seq{x : T}^m, \seq{x_{ij} : T_{ij}}^{m \leq i' < n; 0 \leq j < i_n'}} {s, \seq{x_{ij} \mapsto c_{ij}}^{m \leq i < n'; 0 \leq j < i_n'}} {T_{ij}}\\
+&\ \forall T_{ij}, c_{ij}, T_{i{(i_n-1)}} = T_i, \forall n' \leq n, i_{n'} \leq i_n,\\
+&\ c_{ij} \in \relv {k-1} {\seq{x : T}^m, \seq{x_{ij} : T_{ij}}^{m \leq i < n'; 0 \leq j < i_{n'}}} {s, \seq{x_{ij} \mapsto c_{ij}}^{m \leq i < n'; 0 \leq j < i_{n'}}} {T_{ij}}\\
 &\}
 \end{align*}
 
@@ -269,4 +269,3 @@ environment and the store for $x : S$, we can append as much as we
 want to $\Gamma$ and $s$, to get $\Gamma'$ and $s'$, and then ignore
 the last element which is for $x : S$.
 \end{proofsketch}
-
