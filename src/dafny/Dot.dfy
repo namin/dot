@@ -87,10 +87,44 @@ function lookup<A>(x: nat, m: partial_map<A>): option<A>
 function dom<A>(m: partial_map<A>): seq<int>
   ensures forall x :: x in dom(m) ==> x>=0;
   ensures forall x:nat :: x in dom(m) ==> lookup(x, m).Some?;
+  ensures m.Extend? ==> dom(m) == [m.x]+dom(m.rest);
 {
   match m
   case Empty => []
   case Extend(x, v, rest) => [x]+dom(rest)
+}
+function prefixes<A>(m: partial_map<A>): seq<partial_map<A>>
+  ensures m in prefixes(m);
+  ensures m.Extend? ==> m.rest in prefixes(m);
+{
+  match m
+  case Empty => [m]
+  case Extend(x, v, rest) => [m]+prefixes(rest)
+}
+predicate prefix_of<A>(m: partial_map<A>, m_prev: partial_map<A>)
+{
+  m==m_prev || (m.Extend? && prefix_of(m.rest, m_prev))
+}
+function build<A>(m: partial_map<A>, r: partial_map<A>): partial_map<A>
+  decreases r;
+{
+  match r
+  case Empty => m
+  case Extend(x, v, rest) => build(Extend(x, v, m), rest)
+}
+function map_complement<A>(m: partial_map<A>, m_prev: partial_map<A>, start: partial_map<A>): partial_map<A>
+  requires prefix_of(m, m_prev);
+  //ensures build(m_prev, map_complement(m, m_prev, Empty))==m;
+  decreases m;
+{
+  if (m==m_prev) then start
+  else map_complement(m.rest, m_prev, Extend(m.x, m.v, start))
+}
+function map_fst<A,B>(m: partial_map<pair<A,B>>): partial_map<A>
+{
+  match m
+  case Empty => Empty
+  case Extend(x, v, rest) => Extend(x, v.fst, map_fst(rest))
 }
 
 // ### Sequences ###
@@ -760,6 +794,12 @@ predicate mstep(t: tm, s: store, t': tm, s': store, n: nat)
 
 // ### Context ###
 datatype context = Context(m: partial_map<tp>);
+function ctx_extend(x: nat, T: tp, ctx: context): context
+  ensures ctx_extend(x, T, ctx).m == Extend(x, T, ctx.m);
+  ensures prefix_of(ctx_extend(x, T, ctx).m, ctx.m);
+{
+  Context(Extend(x, T, ctx.m))
+}
 
 // ### Declaration Lattice ###
 predicate decl_bot(d: decl)
@@ -1039,6 +1079,7 @@ copredicate subtype(ctx: context, S: tp, T: tp)
 // -----------------
 
 predicate V(T: tp, t: tm, k: nat, ctx: context, s: store)
+  requires A(k, ctx, s);
   decreases k;
 {
   t.tm_var? && t.x in dom(s.m) &&
@@ -1052,31 +1093,53 @@ predicate V(T: tp, t: tm, k: nat, ctx: context, s: store)
      exists S', U' :: abstract_type_membership(ctx, t, Li, S', U')) &&
     (forall mi:nat, S, U :: decl_mt(mi, S, U) in Ds.decls ==>
      exists xi:nat, ti :: def_mt(mi, xi, ti) in init &&
-     E(U, ti, j, Context(Extend(xi, S, ctx.m)), s)) &&
+     E(U, ti, j, ctx_extend(xi, S, ctx), s, ctx)) &&
     (forall li:nat, U :: decl_tm(li, U) in Ds.decls ==>
      exists vi :: def_tm(li, vi) in init &&
      V(U, vi, j, ctx, s))
   )
 }
 
-predicate E(T: tp, t: tm, k: nat, ctx: context, s: store)
+predicate E(T: tp, t: tm, k: nat, ctx: context, s: store, ctx_prev: context)
+  requires A(k, ctx_prev, s);
+  requires As(k, ctx, s, ctx_prev);
   decreases k;
 {
   k==0 || (
   forall j:nat :: j<k ==>
-  forall ctx', s' :: Xs(ctx', s', k, ctx, s) ==>
+  forall ctx', s' :: Xs(ctx', s', k, ctx, s, ctx_prev) && A (k, ctx', s') ==>
   forall t', s'' :: mstep(t, s', t', s'', j) && irred(t', s'') ==>
-  forall ctx'' :: Xc(ctx'', k, ctx', s'') ==>
+  forall ctx'' :: Xc(ctx'', k, ctx', s'', s') && A(k, ctx'', s'') ==>
   V(T, t', k-j-1, ctx'', s'')
   )
 }
 
-predicate Xs(ctx': context, s': store, k: nat, ctx: context, s: store)
+predicate A(k: nat, ctx: context, s: store)
 {
-  true // TODO
+  dom(ctx.m) == dom(s.m)
+  //&& forall x:nat, T :: lookup(x, ctx.m) == Some(T) ==> V(T, tm_var(x), k, ctx, s)
+}
+predicate As(k: nat, ctx: context, s: store, ctx_prev: context)
+{
+  prefix_of(ctx.m, ctx_prev.m) && A(k, ctx_prev, s)
+}
+predicate Ac(k: nat, ctx: context, s: store, s_prev: store)
+{
+  prefix_of(s.m, s_prev.m) && A(k, ctx, s_prev)
 }
 
-predicate Xc(ctx': context, k: nat, ctx: context, s: store)
+predicate Xs(ctx': context, s': store, k: nat, ctx: context, s: store, ctx_prev: context)
+  requires As(k, ctx, s, ctx_prev);
+  //ensures Xs(ctx', s', k, ctx, s, ctx_prev) ==> A(ctx', s');
 {
-  true // TODO
+  false // TODO
+}
+
+predicate Xc(ctx': context, k: nat, ctx: context, s: store, s_prev: store)
+  requires Ac(k, ctx, s, s_prev);
+  //ensures Xc(ctx', k, ctx, s, s_prev) ==> A(ctx', s);
+{
+  var s_todo := map_complement(s.m, s_prev.m, Empty);
+  var tp_todo := map_fst(s_todo);
+  ctx'.m==build(ctx.m, tp_todo)
 }
