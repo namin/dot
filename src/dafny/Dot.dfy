@@ -747,6 +747,7 @@ function decls_vars(decls: list<decl>): seq<int>
 
 // ### Reduction ###
 function step(t: tm, s: store): option<pair<tm, store>>
+  ensures step(t, s).Some? ==> prefix_of(step(t, s).get.snd.m, s.m);
 {
   /* msel */
   if (t.tm_msel? && t.o.tm_var? && value(t.a) && t.o.x in dom(s.m) &&
@@ -782,6 +783,7 @@ predicate irred(t: tm, s: store)
 
 // ### Multi-steps ###
 predicate mstep(t: tm, s: store, t': tm, s': store, n: nat)
+  //ensures mstep(t, s, t', s', n) ==> prefix_of(s'.m, s.m);
   decreases n;
 {
   if (n==0) then t==t' && s==s'
@@ -1107,8 +1109,8 @@ predicate E(T: tp, t: tm, k: nat, ctx: context, s: store, ctx_prev: context)
 {
   k==0 || (
   forall j:nat :: j<k ==>
-  forall ctx', s' :: Xs(ctx', s', k, ctx, s, ctx_prev) && A (k, ctx', s') ==>
-  forall t', s'' :: mstep(t, s', t', s'', j) && irred(t', s'') ==>
+  forall ctx', s':store :: Xs(ctx', s', k-1, ctx, s, ctx_prev) && A(k-1, ctx', s') ==>
+  forall t', s'':store :: prefix_of(s''.m, s'.m) && mstep(t, s', t', s'', j) && irred(t', s'') ==>
   forall ctx'' :: Xc(ctx'', k, ctx', s'', s') && A(k, ctx'', s'') ==>
   V(T, t', k-j-1, ctx'', s'')
   )
@@ -1131,10 +1133,29 @@ predicate Ac(k: nat, ctx: context, s: store, s_prev: store)
 predicate Xs(ctx': context, s': store, k: nat, ctx: context, s: store, ctx_prev: context)
   requires As(k, ctx, s, ctx_prev);
   //ensures Xs(ctx', s', k, ctx, s, ctx_prev) ==> A(ctx', s');
+  decreases k;
 {
-  false // TODO
+  A(k, ctx', s') && As(k, ctx', s, ctx_prev) && Ac(k, ctx_prev, s', s) && (
+  k==0 ||
+  Xs_check(map_complement(ctx.m, ctx_prev.m, Empty),
+           map_complement(ctx'.m, ctx_prev.m, Empty), 
+           map_complement(s'.m, s.m, Empty),
+           k, ctx_prev, s))
 }
-
+predicate Xs_check(todo: partial_map<tp>, ctx_todo: partial_map<tp>, s_todo: partial_map<pair<tp,list<def>>>, k: nat, ctx: context, s: store)
+  requires k>0;
+  requires A(k, ctx, s);
+  //requires dom(ctx_todo) == dom(s_todo);
+  decreases k, ctx_todo;
+{
+  match ctx_todo
+  case Empty => todo.Empty? && s_todo.Empty?
+  case Extend(x, T, ctx_todo_rest) =>
+    todo.Extend? && s_todo.Extend? && s_todo.x==x &&
+    V(T, tm_var(x), k-1, ctx_extend(x, T, ctx), Store(Extend(x, s_todo.v, s.m))) &&
+    if (todo.x==x) then todo.v==T && Xs_check(todo.rest, ctx_todo_rest, s_todo.rest, k, ctx_extend(x, T, ctx), Store(Extend(x, s_todo.v, s.m)))
+    else Xs_check(todo, ctx_todo_rest, s_todo.rest, k, ctx_extend(x, T, ctx), Store(Extend(x, s_todo.v, s.m)))
+}
 predicate Xc(ctx': context, k: nat, ctx: context, s: store, s_prev: store)
   requires Ac(k, ctx, s, s_prev);
   //ensures Xc(ctx', k, ctx, s, s_prev) ==> A(ctx', s);
