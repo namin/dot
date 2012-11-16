@@ -14,9 +14,9 @@ import scala.util.Equalities
  */
 trait Constraints extends StandardTyperMonad with  TyperSyntax {
   type State = Set[Constraint]
-  val initState = Set()
+  val initState = Set[Constraint]()
 
-  def addConstraint(c: Constraint): TyperMonad[()] =
+  def addConstraint(c: Constraint): TyperMonad[Unit] = ()
 
   implicit def constrainExpected(tp1: Expected[Type]) = new {def <:<(tp2: Expected[Type]): Constraint = new SubtypeConstraint(tp1, tp2) }
 
@@ -34,7 +34,8 @@ class Typer extends StandardTyperMonad with Constraints with TyperSyntax with No
   def ofT(tm: Term, pt: Expected[Type]): TyperMonad[Unit] = tm match {
     // Var
     case Var(x) => for(
-        _  <- pt := lookup(x)) yield ()
+        r  <- lookup(x);
+        _  <- pt := r) yield ()
     // Sel
     case Sel(t, l) => for(
         _  <- hasMem(t, l, pt)) yield ()
@@ -48,9 +49,9 @@ class Typer extends StandardTyperMonad with Constraints with TyperSyntax with No
         _   <- wf(Check(ta));
         tr  = Infer[Type]("tr");
         _   <- assume(x, ta)(ofT(b, tr));
-        tr  <- !tr;
-        _   <- fresh(x, tr);
-        _   <- pt := FunT(ta, tr.toMetaVar(MetaType));
+        tr <- !tr;
+        _   <- fresh(x, Check(tr));
+        _   <- pt := FunT(ta, Check(tr).toMetaVar(MetaType));
         _   <- wf(pt)) yield ()
     // New
     case New(tc, \\(x, (args, b))) => for( // parsing has already checked tc is a class type
@@ -73,7 +74,7 @@ class Typer extends StandardTyperMonad with Constraints with TyperSyntax with No
           <:<(Check(s), Check(u))
         case TypeDecl(l, tp) =>
           for(a <- exactlyOne(args.defs find {_.l === l});
-              _ <- ofT(a.rhs, tp)) yield ()
+              _ <- ofT(a.rhs, Check(tp))) yield ()
       }
 
   // for nom = Check(cb) check that x is fresh in nom

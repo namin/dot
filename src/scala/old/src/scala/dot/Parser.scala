@@ -143,7 +143,7 @@ object TestParser extends Parsing with PrettyPrinting with Application with Eval
 
   def parse(in: String) = phrase(Parser.term)(new lexical.Scanner(in))
 
-  val source = Source.fromPath("../dot.txt")
+  val source = Source.fromFile("../dot.txt")
   val lines = source.getLines().mkString
   println("parsing: " + lines)
   println("******************")

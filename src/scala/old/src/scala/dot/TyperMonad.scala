@@ -43,12 +43,12 @@ trait TyperMonad extends AbstractBindingSyntax {
 
     // chain the computations yielded by f(x) for all x in xs, so that, if f(x) is a failure for some x in xs,
     // the computation produced by forall fails; the computation succeeds iff, for all x in xs, f(x) succeeds
-    def forall[T](xs: Traversable[T])(f: T => TyperMonad[()]): TyperMonad[()] =
+    def forall[T](xs: Traversable[T])(f: T => TyperMonad[Unit]): TyperMonad[Unit] =
       (xs map f).foldLeft(result(())){(acc, fx) => acc >>= {_ => fx}}
 
 
     def exactlyOne[T](xs: Traversable[T], err: String="required exactly 1 element"): TyperMonad[T] =
-      if(xs.length == 1) result(xs.head)
+      if(xs.size == 1) result(xs.head)
       else fail(err)
   }
 
