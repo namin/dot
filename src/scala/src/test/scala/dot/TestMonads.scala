@@ -1,6 +1,8 @@
 package dot
 
 import org.scalatest._
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
 import scala.collection.mutable.HashMap
 
@@ -12,6 +14,7 @@ class IntStateMonad[A](override val initState: HashMap[Int, Int], override val s
   implicit override val companion = IntStateMonadCompanion
 }
 
+@RunWith(classOf[JUnitRunner])
 class TestMonads extends Suite {
   import IntStateMonadCompanion._
 
