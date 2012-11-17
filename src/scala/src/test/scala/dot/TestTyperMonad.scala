@@ -6,6 +6,7 @@ import org.scalatest.junit.JUnitRunner
 
 trait LambdaTyper extends StandardTyperMonad with LambdaTyperSyntax with LambdaNominalSyntax {
   import TyperMonad._
+  override val debugMode = false
 
   type State = AbsState
   val initState = AbsState(0)
@@ -15,7 +16,7 @@ trait LambdaTyper extends StandardTyperMonad with LambdaTyperSyntax with LambdaN
   }
 
   def ofT(tm: Term, pt: Expected[Type]): TyperMonad[Unit] = {
-    println("type of " + tm + ":" + pt)
+    debug("type of " + tm + ":" + pt)
     tm match {
       case Var(x) => for(
 	r <- lookup(x);

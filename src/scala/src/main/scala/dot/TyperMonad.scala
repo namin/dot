@@ -4,6 +4,9 @@ import collection.immutable.HashMap
 import collection.Traversable
 
 trait TyperMonad extends AbstractBindingSyntax {
+  val debugMode: Boolean = true
+  def debug(msg: String) { if (debugMode) println(msg) }
+
   // results of the monad
   sealed abstract class Result[A] extends Monad[A, Result] {
     object companion extends MonadCompanion[Result]{
@@ -119,7 +122,7 @@ trait MetaVariables extends AbstractBindingSyntax with TyperMonad with Equalitie
   }
   class Infer[A : ChecksEquality](val name: String) extends Expected[A] {
     def :=(o: A): TyperMonad[Unit] = {
-      println("infer " + this + " is " + o)
+      debug("infer " + this + " is " + o)
       TyperMonad.result(res=Some(o))
     }
     def unary_! = res map {TyperMonad.result(_)} getOrElse TyperMonad.fail("could not infer "+name)
@@ -134,10 +137,10 @@ trait MetaVariables extends AbstractBindingSyntax with TyperMonad with Equalitie
 
     def :=(o: A): TyperMonad[Unit] =
       if(proto === o) {
-        println("check: "+ proto +" == "+ o)
+        debug("check: "+ proto +" == "+ o)
         TyperMonad.result(())
       } else {
-        println("check: "+ proto +" != "+ o)
+        debug("check: "+ proto +" != "+ o)
         TyperMonad.fail("type checking failed")
       }
 
@@ -175,7 +178,7 @@ trait MetaVariables extends AbstractBindingSyntax with TyperMonad with Equalitie
 
     def unify(o: T): Boolean = {
       assert(v.isEmpty) // or unify silently when o == v.get ?
-      println("unified "+this+" to "+o)
+      debug("unified "+this+" to "+o)
       v = unifies(o)
       !v.isEmpty
     }
@@ -240,8 +243,8 @@ trait StandardTyperMonad extends TyperMonad with MetaVariables {
 
   def lookup(n: Name): TyperMonad[Type] = getGamma >>= {
     _.get(n) match {
-    case Some(t) => println("lu"+t); TyperMonad.result(t)
-    case None => TyperMonad.fail("")
+    case Some(t) => debug("looked up "+t); TyperMonad.result(t)
+    case None => TyperMonad.fail("unbound " + n)
     }
   }
 }
