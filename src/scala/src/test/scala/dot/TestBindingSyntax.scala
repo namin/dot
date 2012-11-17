@@ -8,7 +8,11 @@ trait LambdaSyntax extends AbstractBindingSyntax {
   sealed abstract class Term
   case class Var(n: Name) extends Term
   case class App(fun: Term, arg: Term) extends Term
-  case class Lam(abs: \\[Term]) extends Term
+  case class Lam(ty: Type, abs: \\[Term]) extends Term
+
+  abstract class Type
+  case class T(base: String) extends Type
+  case class Fun(ty1: Type, ty2: Type) extends Type
 }
 
 trait LambdaNominalSyntax extends LambdaSyntax with NominalBindingSyntax { self: LambdaSyntax =>
@@ -17,14 +21,14 @@ trait LambdaNominalSyntax extends LambdaSyntax with NominalBindingSyntax { self:
       tm match {
 	case Var(n) => Var(n swap(a, b))
 	case App(fun, arg) => App(fun swap(a, b), arg swap(a, b))
-	case Lam(abs) => Lam(abs swap(a, b))
+	case Lam(ty, abs) => Lam(ty, abs swap(a, b))
       }
     }
     def fresh(a: Name): Boolean = {
       tm match {
 	case Var(n) => n fresh(a)
 	case App(fun, arg) => fun.fresh(a) && arg.fresh(a)
-	case Lam(abs) => abs fresh(a)
+	case Lam(ty, abs) => abs fresh(a)
       }
     }
   }
@@ -38,7 +42,7 @@ trait LambdaSubstitution extends LambdaNominalSyntax {
       case Var(`from`) => to
       case Var(_) => in
       case App(fun, arg) => App(fun subst(from, to), arg subst(from, to))
-      case Lam(abs) => Lam(abs subst(from, to))
+      case Lam(ty, abs) => Lam(ty, abs subst(from, to))
     }
   }
 }
@@ -48,13 +52,15 @@ class TestBindingSyntax extends Suite with LambdaNominalSyntax with LambdaSubsti
   val x = Name("x")
   val y = Name("y")
   val z = Name("z")
+  val ty = T("*")
+
   def testAlphaEquivalence() = {
-    expect(true)(Lam(x\\Var(y)) == Lam(z\\Var(y)))
-    expect(false)(Lam(x\\Var(y)) == Lam(y\\Var(x)))
-    expect(true)(Lam(x\\Var(x)) == Lam(y\\Var(y)))
+    expect(true)(Lam(ty, x\\Var(y)) == Lam(ty, z\\Var(y)))
+    expect(false)(Lam(ty, x\\Var(y)) == Lam(ty, y\\Var(x)))
+    expect(true)(Lam(ty, x\\Var(x)) == Lam(ty, y\\Var(y)))
   }
   def testSubstitution() = {
-    expect(Lam(y\\Var(z)))(Lam(y\\Var(x)) subst(x, Var(z)))
-    expect(Lam(x\\Var(x)))(Lam(x\\Var(x)) subst(x, Var(z)))
+    expect(Lam(ty, y\\Var(z)))(Lam(ty, y\\Var(x)) subst(x, Var(z)))
+    expect(Lam(ty, x\\Var(x)))(Lam(ty, x\\Var(x)) subst(x, Var(z)))
   }
 }

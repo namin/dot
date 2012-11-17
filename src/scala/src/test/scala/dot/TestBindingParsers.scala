@@ -11,7 +11,7 @@ import util.parsing.combinator.{PackratParsers, ImplicitConversions}
 
 trait LambdaParsing extends StdTokenParsers with BindingParsers with PackratParsers with LambdaNominalSyntax with ImplicitConversions { theParser =>
   type Tokens = StdLexical; val lexical = new StdLexical
-  lexical.delimiters ++= List("\\",".", "(", ")")
+  lexical.delimiters ++= List("\\",".", "(", ")", ":", "->", "*")
 
   type P[T] = PackratParser[T]
 
@@ -21,12 +21,16 @@ trait LambdaParsing extends StdTokenParsers with BindingParsers with PackratPars
   }
   def BindingParser(env: Map[String, Name]): BindingParser = new BindingParser(env)
   class BindingParser(env: Map[String, Name]) extends BindingParserCore(env) {
-    lazy val termSingle: P[Term] = (
+    lazy val term1: P[Term] = (
       l(bound(ident) ^^ {case x => Var(x)}) ("var") |
-      l("\\" ~> bind(ident) >> {x => "." ~> under(x)(_.term)} ^^ {case abs => Lam(abs)}) ("lam") |
+      l("\\" ~> bind(ident) >> {x => ":" ~> ty ~("." ~> under(x)(_.term))} ^^ {case ty~abs => Lam(ty, abs)}) ("lam") |
       l("(" ~> term <~ ")") ("paren")
     )
-    lazy val term = chainl1(termSingle, l(success(App(_, _))) ("app"))
+    lazy val term = chainl1(term1, l(success(App(_, _))) ("app"))
+
+    lazy val ty: P[Type] = (
+      l(ty ~ ("->" ~> ty) ^^ {case ty1~ty2 => Fun(ty1, ty2)}) ("arrow type")) |
+      l(("*" | ident) ^^ {case base => T(base)}) ("base type")
   }
   object Parser extends BindingParser(HashMap.empty)
 }
@@ -38,6 +42,7 @@ class TestBindingParsers extends Suite with LambdaParsing {
   val x = Name("x")
   val y = Name("y")
   val z = Name("z")
+  val ty = T("*")
 
   def ok(expected: Term)(in: String) = parse(in) match {
     case Success(actual, _) => expect(expected)(actual)
@@ -49,14 +54,15 @@ class TestBindingParsers extends Suite with LambdaParsing {
     case _@r => fail("expected failure, got " + r)
   }
 
-  def testOK1() = ok(Lam(x\\Var(x)))("\\x.x")
-  def testOK2() = ok(Lam(x\\Lam(y\\Var(x))))("\\x.\\y.x")
-  def testOK3() = ok(Lam(x\\Lam(y\\App(Var(x), Var(y)))))("\\x.\\y.(x y)")
-  def testOK4() = ok(Lam(x\\Lam(y\\App(App(Var(x), Var(y)), Var(x)))))("\\x.\\y.(x y) x")
-  def testOK3a() = ok(Lam(x\\Lam(y\\App(Var(x), Var(y)))))("\\x.\\y.x y")
-  def testOK4a() = ok(Lam(x\\Lam(y\\App(App(Var(x), Var(y)), Var(x)))))("\\x.\\y.x y x")
+  def testOK1() = ok(Lam(ty, x\\Var(x)))("\\x:*.x")
+  def testOK2() = ok(Lam(ty, x\\Lam(ty, y\\Var(x))))("\\x:*.\\y:*.x")
+  def testOK3() = ok(Lam(ty, x\\Lam(ty, y\\App(Var(x), Var(y)))))("\\x:*.\\y:*.(x y)")
+  def testOK4() = ok(Lam(ty, x\\Lam(ty, y\\App(App(Var(x), Var(y)), Var(x)))))("\\x:*.\\y:*.(x y) x")
+  def testOK3a() = ok(Lam(ty, x\\Lam(ty, y\\App(Var(x), Var(y)))))("\\x:*.\\y:*.x y")
+  def testOK4a() = ok(Lam(ty, x\\Lam(ty, y\\App(App(Var(x), Var(y)), Var(x)))))("\\x:*.\\y:*.x y x")
+  def testOK5() = ok(Lam(Fun(ty, Fun(ty, ty)), x\\Var(x)))("\\x:*->*->*.x")
 
   def testBad1() = bad("Unbound variable: x")("x")
-  def testBad2() = bad("Unbound variable: x")("\\y.x")
-  def testBad3() = bad("Unbound variable: x")("(\\y.x) (\\x.x)")
+  def testBad2() = bad("Unbound variable: x")("\\y:*.x")
+  def testBad3() = bad("Unbound variable: x")("(\\y:*.x) (\\x:*.x)")
 }
