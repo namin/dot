@@ -30,8 +30,21 @@ trait LambdaNominalSyntax extends LambdaSyntax with NominalBindingSyntax { self:
   }
 }
 
+trait LambdaSubstitution extends LambdaNominalSyntax {
+  implicit def scopedIsTermSubstable[T](in: \\[T])(implicit wSubs: T => Substable[Term, T], wNom: T => Nominal[T]): Substable[Term, \\[T]] = scopedIsSubstable[T, Term, T](in)
+
+  implicit def termIsSubstable(in: Term): Substable[Term, Term] = new Substable[Term, Term] {
+    def subst(from: Name, to: Term): Term = in match {
+      case Var(`from`) => to
+      case Var(_) => in
+      case App(fun, arg) => App(fun subst(from, to), arg subst(from, to))
+      case Lam(abs) => Lam(abs subst(from, to))
+    }
+  }
+}
+
 @RunWith(classOf[JUnitRunner])
-class TestBindingSyntax extends Suite with LambdaNominalSyntax {
+class TestBindingSyntax extends Suite with LambdaNominalSyntax with LambdaSubstitution {
   val x = Name("x")
   val y = Name("y")
   val z = Name("z")
@@ -39,5 +52,9 @@ class TestBindingSyntax extends Suite with LambdaNominalSyntax {
     expect(true)(Lam(x\\Var(y)) == Lam(z\\Var(y)))
     expect(false)(Lam(x\\Var(y)) == Lam(y\\Var(x)))
     expect(true)(Lam(x\\Var(x)) == Lam(y\\Var(y)))
+  }
+  def testSubstitution() = {
+    expect(Lam(y\\Var(z)))(Lam(y\\Var(x)) subst(x, Var(z)))
+    expect(Lam(x\\Var(x)))(Lam(x\\Var(x)) subst(x, Var(z)))
   }
 }
