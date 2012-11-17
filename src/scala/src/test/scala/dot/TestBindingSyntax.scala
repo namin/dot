@@ -4,14 +4,14 @@ import org.scalatest._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
-trait Lambda extends AbstractBindingSyntax {
+trait LambdaSyntax extends AbstractBindingSyntax {
   sealed abstract class Term
   case class Var(n: Name) extends Term
   case class App(fun: Term, arg: Term) extends Term
   case class Lam(abs: \\[Term]) extends Term
 }
 
-trait NominalLambda extends Lambda with NominalBindingSyntax { self: Lambda =>
+trait LambdaNominalSyntax extends LambdaSyntax with NominalBindingSyntax { self: LambdaSyntax =>
   implicit val termHasBinders: ContainsBinders[Term] = (tm: Term) => new Nominal[Term] {
     def swap(a: Name, b: Name): Term = {
       tm match {
@@ -31,15 +31,13 @@ trait NominalLambda extends Lambda with NominalBindingSyntax { self: Lambda =>
 }
 
 @RunWith(classOf[JUnitRunner])
-class TestBindingSyntax extends Suite {
+class TestBindingSyntax extends Suite with LambdaNominalSyntax {
+  val x = Name("x")
+  val y = Name("y")
+  val z = Name("z")
   def testAlphaEquivalence() = {
-    new NominalLambda {
-      val x = Name("x")
-      val y = Name("y")
-      val z = Name("z")
-      expect(true)(Lam(x\\Var(y)) == Lam(z\\Var(y)))
-      expect(false)(Lam(x\\Var(y)) == Lam(y\\Var(x)))
-      expect(true)(Lam(x\\Var(x)) == Lam(y\\Var(y)))
-    }
+    expect(true)(Lam(x\\Var(y)) == Lam(z\\Var(y)))
+    expect(false)(Lam(x\\Var(y)) == Lam(y\\Var(x)))
+    expect(true)(Lam(x\\Var(x)) == Lam(y\\Var(y)))
   }
 }
