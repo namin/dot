@@ -6,6 +6,10 @@ import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class TestDotTyper extends Suite with DotTyper {
+  def bad[A](r: Result[A]) {
+    assert(r.isInstanceOf[Failure[A]])
+  }
+
   import Terms._
   import Types._
   import Members._
@@ -30,6 +34,26 @@ class TestDotTyper extends Suite with DotTyper {
     } {
       typecheck(New(Refine(Top, z\\Decls(List(TypeDecl(AbstractTypeLabel("L"), TypeBounds(Top, Bottom))))), x\\(nodefs, Var(x))))
     }
+
+  def testTC_Sel() =
+    expect(Success(Top))(typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Top)))), x\\(Defs(List(ValueDef(ValueLabel("l"), Var(x)))), Sel(Var(x), ValueLabel("l"))))))
+
+  def testTC_Sel_Bad() =
+    expect {
+      Failure("undeclared label ValueLabel(l')")
+    } {
+      typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Top)))), x\\(Defs(List(ValueDef(ValueLabel("l"), Var(x)))), Sel(Var(x), ValueLabel("l'")))))
+    }
+
+  def testTC_Sel_BadInit() =
+    expect {
+      Failure("uninitialized value for label ValueLabel(l)")
+    } {
+      typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Top)))), x\\(Defs(List(ValueDef(ValueLabel("l'"), Var(x)))), Sel(Var(x), ValueLabel("l")))))
+    }
+
+  def testTC_Sel_BadInitTC() =
+    bad(typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Bottom)))), x\\(Defs(List(ValueDef(ValueLabel("l"), Var(x)))), Sel(Var(x), ValueLabel("l"))))))
 
   val decls1 = Decls(List(
     TypeDecl(AbstractTypeLabel("L1"), TypeBounds(Tsel(Var(x), AbstractTypeLabel("S1")), Tsel(Var(x), AbstractTypeLabel("U1")))),

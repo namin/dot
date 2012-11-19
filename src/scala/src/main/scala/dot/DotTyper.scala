@@ -30,7 +30,9 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
       case Var(x) => for(
 	r <- lookup(x);
 	_ <- pt := r) yield ()
-      //case Sel(o, l) => TODO
+      case Sel(o, l) => for(
+	tp <- memValue(o, l);
+	_ <- pt := tp) yield ()
       //case Msel(o, m, a) => TODO
       case New(tc, \\(x, (args, b))) => for(
 	// TODO: complete stub
@@ -47,7 +49,12 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     case BottomDecls => fail("bottom expansion for constructor type")
     case Decls(ds) => forall(ds) {
       case TypeDecl(l, TypeBounds(s, u)) => sub(s, u)
-      // TODO...
+      case ValueDecl(l, u) => for(
+	ValueDef(_, v) <- exactlyOne(args.defs.find(d => d.l===l), "uninitialized value for label " + l);
+	tv <- Infer[Type]("valTp").toMetaVar(MetaType);
+	_ <- ofT(v, Check(tv));
+	tv <- !tv;
+	_ <- sub(tv, u)) yield ()
     }
   }
 
