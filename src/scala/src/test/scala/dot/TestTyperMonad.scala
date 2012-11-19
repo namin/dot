@@ -8,12 +8,8 @@ trait LambdaTyper extends StandardTyperMonad with LambdaTyperSyntax with LambdaN
   import TyperMonad._
   override val debugMode = false
 
-  type State = AbsState
-  val initState = AbsState(0)
-  // state that is carried along
-  case class AbsState(currTag: Int) {
-    def next = AbsState(currTag+1)
-  }
+  type State = Option[Nothing]
+  val initState = None
 
   def ofT(tm: Term, pt: Expected[Type]): TyperMonad[Unit] = {
     debug("type of " + tm + ":" + pt)
