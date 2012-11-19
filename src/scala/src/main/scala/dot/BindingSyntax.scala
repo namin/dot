@@ -1,5 +1,15 @@
 package dot
 
+// based in part on:
+// FreshLib and Scrap your Nameplate (Functional Pearl)
+// by James Cheney, available at
+// http://homepages.inf.ed.ac.uk/jcheney/programs/freshlib/
+
+// NOTE(namin): digested nominal abstract syntax from:
+// alphaKanren: A Fresh Name in Nominal Logic Programming
+// by William E. Byrd and Daniel P. Friedman, available at
+// http://www.cs.indiana.edu/~webyrd/
+
 trait AbstractBindingSyntax {
   type ContainsBinders[T] 
 

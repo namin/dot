@@ -1,5 +1,10 @@
 package dot
 
+// based in part on:
+// Practical type inference for arbitrary-rank types
+// by Simon Peyton Jones et al
+// http://research.microsoft.com/en-us/um/people/simonpj/papers/higher-rank/index.htm
+
 import collection.immutable.HashMap
 import collection.Traversable
 
