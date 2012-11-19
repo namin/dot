@@ -171,10 +171,19 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     }
   }
 
-  def sub(tp1: Type, tp2: Type): TyperMonad[Unit] = first(List(
-    (for (_ <- check(tp2===Top); _ <- wfe(tp1)) yield ()),
-    (for (_ <- check(tp1===Bottom); _ <- wfe(tp2)) yield ()),
-    fail(tp1 + " is not a subtype of " + tp2)))
+  def sub(tp1: Type, tp2: Type): TyperMonad[Unit] = some(List(
+    /*refl*/    (for(_ <- check(tp1===tp2); _ <- wfe(tp1))                                                   yield()),
+    /*<:-top*/  (for(_ <- check(tp2===Top); _ <- wfe(tp1))                                                   yield()),
+    /*bot-<:*/  (for(_ <- check(tp1===Bottom); _ <- wfe(tp2))                                                yield()),
+    /*<:-and*/  (for(Intersect(a, b) <- tp2; _ <- sub(tp1, a); _ <- sub(tp1, b))                             yield()),
+    /*or-<:*/   (for(Union(a, b) <- tp1; _ <- sub(a, tp2); _ <- sub(b, tp2))                                 yield()),
+    /*and1-<:*/ (for(Intersect(a, b) <- tp1; _ <- sub(a, tp2); _ <- wfe(b))                                  yield()),
+    /*and2-<:*/ (for(Intersect(a, b) <- tp1; _ <- sub(b, tp2); _ <- wfe(a))                                  yield()),
+    /*<:-or1*/  (for(Union(a, b) <- tp2; _ <- sub(tp1, a); _ <- wfe(b))                                      yield()),
+    /*<:-or2*/  (for(Union(a, b) <- tp2; _ <- sub(tp1, b); _ <- wfe(a))                                      yield()),
+    /*<:-tsel*/ (for(Tsel(p, l) <- tp2; TypeBounds(s, u) <- memType(p, l); _ <- sub(s, u); _ <- sub(tp1, s)) yield()),
+    /*tsel-<:*/ (for(Tsel(p, l) <- tp1; TypeBounds(s, u) <- memType(p, l); _ <- sub(s, u); _ <- sub(u, tp2)) yield())),
+    err=tp1 + " is not a subtype of " + tp2)
 
   def wf(tp: Type): TyperMonad[Unit] = tp match {
     case Top => ()
