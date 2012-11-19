@@ -20,9 +20,10 @@ relations. The current sketch of type-safety
 unchecked.
 
 Immediate Goals
-===============
+---------------
 
 - Mechanize the proof of type-safety via logical relations in Dafny.
 
 - Improve the readability and usability of the Scala model, so that it
   can be used for experiments and extensions.
+
