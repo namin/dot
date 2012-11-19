@@ -3,7 +3,7 @@ Dependent Object Types (DOT)
 
 The DOT calculus proposes a new foundation for Scala's type system.
 
-The current model is presented in a paper
+The current model is described in a paper
 ([PDF](http://lampwww.epfl.ch/~amin/dot/fool.pdf)) presented at the
 [FOOL 2012 workshop](http://www.cs.uwm.edu/~boyland/fool2012/).
 
