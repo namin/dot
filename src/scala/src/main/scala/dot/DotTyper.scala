@@ -182,15 +182,30 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     /*<:-or1*/  (for(Union(a, b) <- tp2; _ <- sub(tp1, a); _ <- wfe(b))                                      yield()),
     /*<:-or2*/  (for(Union(a, b) <- tp2; _ <- sub(tp1, b); _ <- wfe(a))                                      yield()),
     /*<:-tsel*/ (for(Tsel(p, l) <- tp2; TypeBounds(s, u) <- memType(p, l); _ <- sub(s, u); _ <- sub(tp1, s)) yield()),
-    /*tsel-<:*/ (for(Tsel(p, l) <- tp1; TypeBounds(s, u) <- memType(p, l); _ <- sub(s, u); _ <- sub(u, tp2)) yield())),
+    /*tsel-<:*/ (for(Tsel(p, l) <- tp1; TypeBounds(s, u) <- memType(p, l); _ <- sub(s, u); _ <- sub(u, tp2)) yield()),
+    /*rfn-<:*/  (for(Refine(parent, \\(z, ds)) <- tp1; _ <- wfe(tp1); _ <- sub(parent, tp2))                 yield()),
+    /*<:-rfn*/  (for(Refine(parent, \\(z, ds)) <- tp2; _ <- wfe(tp2); _ <- sub(tp1, parent);
+		     ds1 <- expand(z, tp1);
+		     _ <- assume(z, tp1){
+		       forall(ds.decls){d2 => for(d1 <- exactlyOne(ds1.findByLabel(d2.l));
+						  _ <- subDecl(d1, d2)) yield()}})                           yield())),
     err=tp1 + " is not a subtype of " + tp2)
+
+  def subDecl[L <: Level, E <: Entity](d1: Decl[L,E], d2: Decl[L,E]): TyperMonad[Unit] = (d1, d2) match {
+    case (TypeDecl(l1, TypeBounds(s1, u1)), TypeDecl(l2, TypeBounds(s2, u2))) if l1===l2 =>
+      for (_ <- sub(s2, s1); _ <- sub(u1, u2)) yield()
+    case (MethodDecl(l1, ArrowType(s1, u1)), MethodDecl(l2, ArrowType(s2, u2))) if l1===l2 =>
+      for (_ <- sub(s2, s1); _ <- sub(u1, u2)) yield()
+    case (ValueDecl(l1, u1), ValueDecl(l2, u2)) if l1===l2 =>
+      for (_ <- sub(u1, u2)) yield()
+  }
 
   def wf(tp: Type): TyperMonad[Unit] = tp match {
     case Top => ()
     case Bottom => ()
     case Refine(parent, \\(z, Decls(ds))) =>
       for (_ <- wf(parent);
-	   _ <- assume(z, tp){forall(ds) { wf_decl(_) }})
+	   _ <- assume(z, tp){forall(ds) { wfDecl(_) }})
       yield ()
     case Intersect(a, b) =>
       for (_ <- wf(a);
@@ -209,7 +224,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
        yield ())
   }
 
-  def wf_decl(d: Dcl): TyperMonad[Unit] = d match {
+  def wfDecl(d: Dcl): TyperMonad[Unit] = d match {
     case TypeDecl(l, TypeBounds(s, u)) => for(
       _ <- wf(s); _ <- wf(u)) yield ()
     case MethodDecl(l, ArrowType(s, u)) => for(
