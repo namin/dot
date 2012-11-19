@@ -85,7 +85,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     tp <- !etp;
     z <- freshName("z");
     ds <- expand(z, tp);
-    Some(di) = ds.findByLabel(d.l);
+    di <- exactlyOne(ds.findByLabel(d.l), "undeclared label " + d.l);
     if ((entityHasBinders(di.cls).fresh(z) && di.cls===d.cls) ||
 	(tm.isPath && entityIsSubstable(di.cls).subst(z, tm)===d.cls))) yield ()
 
