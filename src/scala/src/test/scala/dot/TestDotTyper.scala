@@ -55,6 +55,12 @@ class TestDotTyper extends Suite with DotTyper {
   def testTC_Sel_BadInitTC() =
     bad(typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Bottom)))), x\\(Defs(List(ValueDef(ValueLabel("l"), Var(x)))), Sel(Var(x), ValueLabel("l"))))))
 
+  def testTc_Msel() =
+    expect(Success(Top))(typecheck(New(Refine(Top, z\\Decls(List(MethodDecl(MethodLabel("m"), ArrowType(Top, Top))))),
+				       z\\(Defs(List(MethodDef(MethodLabel("m"),
+							       Method(x\\Var(x))))),
+					   Msel(Var(z), MethodLabel("m"), Var(z))))))
+
   val decls1 = Decls(List(
     TypeDecl(AbstractTypeLabel("L1"), TypeBounds(Tsel(Var(x), AbstractTypeLabel("S1")), Tsel(Var(x), AbstractTypeLabel("U1")))),
     TypeDecl(AbstractTypeLabel("L"), TypeBounds(Tsel(Var(x), AbstractTypeLabel("S1")), Tsel(Var(x), AbstractTypeLabel("U1")))),

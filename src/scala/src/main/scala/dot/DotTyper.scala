@@ -33,7 +33,13 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
       case Sel(o, l) => for(
 	tp <- memValue(o, l);
 	_ <- pt := tp) yield ()
-      //case Msel(o, m, a) => TODO
+      case Msel(o, m, a) => for(
+	ArrowType(s, u) <- memMethod(o, m);
+	_ <- pt := u;
+	ta <- Infer[Type]("argTp");
+	_ <- ofT(a, ta);
+	ta <- !ta;
+	_ <- sub(ta, s)) yield ()
       case New(tc, \\(x, (args, b))) => for(
 	// TODO: complete stub
 	_ <- assume(x, tc){for(
@@ -55,6 +61,12 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
 	_ <- ofT(v, Check(tv));
 	tv <- !tv;
 	_ <- sub(tv, u)) yield ()
+      case MethodDecl(l, ArrowType(s, u)) => for(
+	MethodDef(_, Method(\\(x, b))) <- exactlyOne(args.defs.find(d => d.l===l), "uninitialized method for label " + l);
+	tb <- Infer[Type]("bodyTp").toMetaVar(MetaType);
+	_ <- assume(x, s)(ofT(b, Check(tb)));
+	tb <- !tb;
+	_ <- sub(tb, u)) yield ()
     }
   }
 
@@ -105,32 +117,54 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     lo <- !lo;
     hi <- !hi) yield TypeBounds(lo, hi)
 
-  def mem(tm: Term, d: Dcl): TyperMonad[Unit] = for(
-    etp <- Infer[Type]("memObjTp");
-    _ <- ofT(tm, etp);
-    tp <- !etp;
-    z <- freshName("z");
-    ds <- expand(z, tp);
-    di <- exactlyOne(ds.findByLabel(d.l), "undeclared label " + d.l);
-    if ((entityHasBinders(di.cls).fresh(z) && di.cls===d.cls) ||
-	(tm.isPath && entityIsSubstable(di.cls).subst(z, tm)===d.cls))) yield ()
+  def mem(tm: Term, d: Dcl): TyperMonad[Unit] = {
+    debug("mem? " + tm + " : " + d)
+    val r = for(
+      etp <- Infer[Type]("memObjTp");
+      _ <- ofT(tm, etp);
+      tp <- !etp;
+      z <- freshName("z");
+      ds <- expand(z, tp);
+      _ <- debug("expanded to " + ds);
+      di <- exactlyOne(ds.findByLabel(d.l), "undeclared label " + d.l);
+      _ <- debug("found decl " + di)) yield (z, di)
+
+    if (tm.isPath) {
+      debug("mem-path");
+      for ((z, di) <- r;
+	   _ <- entityIsSubstable(di.cls).subst(z, tm)===d.cls) yield ()
+    } else {
+      debug("mem-term");
+      (for ((z, di) <- r;
+	    if entityHasBinders(di.cls).fresh(z);
+            _ <- debug("mem-term restriction ok");
+	    _ <- di.cls===d.cls) yield ()) ++
+      (for ((z, di) <- r;
+	    if !entityHasBinders(di.cls).fresh(z);
+	    _:Unit <- fail("mem-term restriction fails for " + z + " in " + di)) yield ())
+    }
+  }
 
 
-  def expand(x: Name, tp: Type): TyperMonad[Dcls] = tp match {
-    case Refine(parent, \\(z, ds)) =>
-      for (dsp <- expand(x, parent))
-      yield meet(dsp, ds swap(z, x))
-    case Intersect(a, b) =>
-      for (dsa <- expand(x, a);
-	   dsb <- expand(x, b))
-      yield meet(dsa, dsb)
-    case Union(a, b) =>
-      for (dsa <- expand(x, a);
-	   dsb <- expand(x, b))
-      yield join(dsa, dsb)
-    /*case Tsel(p, l) => // TODO */
-    case Top => Decls(List())
-    case Bottom => BottomDecls
+
+  def expand(x: Name, tp: Type): TyperMonad[Dcls] = {
+    debug("expand_" + x + " of " + tp)
+    tp match {
+      case Refine(parent, \\(z, ds)) =>
+	for (dsp <- expand(x, parent))
+	yield meet(dsp, ds swap(z, x))
+      case Intersect(a, b) =>
+	for (dsa <- expand(x, a);
+	     dsb <- expand(x, b))
+	yield meet(dsa, dsb)
+      case Union(a, b) =>
+	for (dsa <- expand(x, a);
+	     dsb <- expand(x, b))
+	yield join(dsa, dsb)
+      /*case Tsel(p, l) => // TODO */
+      case Top => Decls(List())
+      case Bottom => BottomDecls
+    }
   }
 
   def sub(tp1: Type, tp2: Type): TyperMonad[Unit] = {
@@ -187,7 +221,7 @@ trait DotTyperSyntax extends MetaVariablesNominal with DotSyntax {
   }
 
   implicit def eqTypePair[L <: Level](p1: TypePair[L]): Equality[TypePair[L]] = new Equality[TypePair[L]] {
-    def ===(p2: TypePair[L]) = p1.lo==p2.lo && p1.hi==p2.hi
+    def ===(p2: TypePair[L]) = p1.lo===p2.lo && p1.hi===p2.hi
   }
 
   implicit def eqDecl[L <: Level, E <: Entity : ChecksEquality](d1: Members.Decl[L, E]): Equality[Members.Decl[L, E]] = new Equality[Members.Decl[L, E]] {
