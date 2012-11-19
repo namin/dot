@@ -79,8 +79,27 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
       ds1.flatMap{d1 => ds2.find{d2 => d1.l===d2.l}.map{d2 => unionDecl(d1, d2)}})
   }
 
+  def memValue(o: Term, l: ValueLabel): TyperMonad[Type] = for(
+    tp <- Infer[Type]("memValTp").toMetaVar(MetaType);
+    _ <- mem(o, ValueDecl(l, tp));
+    tp <- !tp) yield tp
+
+  def memMethod(o: Term, m: MethodLabel): TyperMonad[ArrowType] = for(
+    lo <- Infer[Type]("memMetTp").toMetaVar(MetaType);
+    hi <- Infer[Type]("memMetTp").toMetaVar(MetaType);
+    _ <- mem(o, MethodDecl(m, ArrowType(lo, hi)));
+    lo <- !lo;
+    hi <- !hi) yield ArrowType(lo, hi)
+
+  def memMethod(o: Term, l: TypeLabel): TyperMonad[TypeBounds] = for(
+    lo <- Infer[Type]("memTypTp").toMetaVar(MetaType);
+    hi <- Infer[Type]("memTypTp").toMetaVar(MetaType);
+    _ <- mem(o, TypeDecl(l, TypeBounds(lo, hi)));
+    lo <- !lo;
+    hi <- !hi) yield TypeBounds(lo, hi)
+
   def mem(tm: Term, d: Dcl): TyperMonad[Unit] = for(
-    etp <- Infer[Type]("memtp");
+    etp <- Infer[Type]("memObjTp");
     _ <- ofT(tm, etp);
     tp <- !etp;
     z <- freshName("z");
