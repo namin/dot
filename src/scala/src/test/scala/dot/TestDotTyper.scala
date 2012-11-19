@@ -63,5 +63,4 @@ class TestDotTyper extends Suite with DotTyper {
     } {
       join(decls1, decls2)
     }
-
 }

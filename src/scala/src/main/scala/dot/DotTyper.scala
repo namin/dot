@@ -87,10 +87,20 @@ trait DotTyper extends StandardTyperMonad with Constraints with DotTyperSyntax w
   }
 
   def expand(x: Name, tp: Type): TyperMonad[Dcls] = tp match {
+    case Refine(parent, \\(z, ds)) =>
+      for (dsp <- expand(x, parent))
+      yield meet(dsp, ds swap(z, x))
+    case Intersect(a, b) =>
+      for (dsa <- expand(x, a);
+	   dsb <- expand(x, b))
+      yield meet(dsa, dsb)
+    case Union(a, b) =>
+      for (dsa <- expand(x, a);
+	   dsb <- expand(x, b))
+      yield join(dsa, dsb)
+    /*case Tsel(p, l) => // TODO */
     case Top => Decls(List())
     case Bottom => BottomDecls
-    // TODO
-    case Refine(parent, \\(z, decls)) if parent===Top => decls swap(z, x)
   }
 
   def sub(tp1: Type, tp2: Type): TyperMonad[Unit] = {
