@@ -3,9 +3,10 @@ package dot
 trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyntax with DotSubstitution {
   override type State = Int
   override val initState = 0
-  def tag: TyperMonad[String] = TyperMonad{from =>
-    from.mapStateTo({state => state + 1}, {state => Success("$tag$" + state.toString)})
+  def tag: TyperMonad[Int] = TyperMonad{from =>
+    from.mapStateTo({state => state + 1}, {state => Success(state)})
   }
+  def freshName(n: String): TyperMonad[Name] = for (s <- tag) yield (Name(n+"$tag$"+s))
 
   import Terms._
   import Types._
