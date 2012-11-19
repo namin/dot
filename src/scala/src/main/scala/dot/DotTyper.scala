@@ -13,8 +13,6 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
   import Members._
   import TyperMonad._
 
-  override val debugMode = true
-
   def typecheck(tm: Term): Result[Type] = {
     val r = (for(
       ein <- Infer[Type]("in");
@@ -135,13 +133,13 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     if (tm.isPath) {
       debug("mem-path");
       for ((z, di) <- r;
-	   _ <- entityIsSubstable(di.cls).subst(z, tm)===d.cls) yield ()
+	   _ <- check(entityIsSubstable(di.cls).subst(z, tm)===d.cls)) yield ()
     } else {
       debug("mem-term");
       (for ((z, di) <- r;
 	    if entityHasBinders(di.cls).fresh(z);
             _ <- debug("mem-term restriction ok");
-	    _ <- di.cls===d.cls) yield ()) ++
+	    _ <- check(di.cls===d.cls)) yield ()) ++
       (for ((z, di) <- r;
 	    if !entityHasBinders(di.cls).fresh(z);
 	    _:Unit <- fail("mem-term restriction fails for " + z + " in " + di)) yield ())
@@ -173,12 +171,10 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     }
   }
 
-  def sub(tp1: Type, tp2: Type): TyperMonad[Unit] = {
-    if (tp2 === Top) ()
-    else if (tp1 === Bottom) ()
-    else fail(tp1 + " is not a subtype of " + tp2)
-    // TODO
-  }
+  def sub(tp1: Type, tp2: Type): TyperMonad[Unit] = first(List(
+    (for (_ <- check(tp2===Top); _ <- wfe(tp1)) yield ()),
+    (for (_ <- check(tp1===Bottom); _ <- wfe(tp2)) yield ()),
+    fail(tp1 + " is not a subtype of " + tp2)))
 
   def wf(tp: Type): TyperMonad[Unit] = tp match {
     case Top => ()
@@ -212,6 +208,11 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     case ValueDecl(l, u) => for(
                   _ <- wf(u)) yield ()
   }
+
+  def wfe(tp: Type): TyperMonad[Unit] = for(
+    _ <- wf(tp);
+    z <- freshName("z");
+    _ <- expand(z, tp)) yield ()
 }
 
 trait DotTyperSyntax extends MetaVariablesNominal with DotSyntax {

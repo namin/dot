@@ -47,8 +47,21 @@ trait TyperMonad extends AbstractBindingSyntax with Debug {
     def exactlyOne[T](xs: Traversable[T], err: String="required exactly 1 element"): TyperMonad[T] =
       if(xs.size == 1) result(xs.head)
       else fail(err)
-  }
 
+
+    // returns the first computation that succeeds
+    def first[A](ms: List[TyperMonad[A]]): TyperMonad[A] = ms match {
+      case Nil => fail("empty list of alternatives")
+      case m::Nil => m
+      case m::ms =>  TyperMonad{x =>
+	val mx = m(x)
+	mx mapStRes {
+	  case (_, r:Success[A]) => debug("first: success"); mx
+	  case (_, r:Failure[A]) => debug("first: failure"); first(ms)(x)
+	}
+      }
+    }
+  }
   
   // state that is carried along
   type State

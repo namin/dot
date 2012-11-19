@@ -6,7 +6,6 @@ import org.scalatest.junit.JUnitRunner
 
 trait LambdaTyper extends StandardTyperMonad with LambdaTyperSyntax with LambdaNominalSyntax {
   import TyperMonad._
-  override val debugMode = false
 
   type State = Option[Nothing]
   val initState = None
