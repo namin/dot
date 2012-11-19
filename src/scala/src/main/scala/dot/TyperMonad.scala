@@ -3,10 +3,7 @@ package dot
 import collection.immutable.HashMap
 import collection.Traversable
 
-trait TyperMonad extends AbstractBindingSyntax {
-  val debugMode: Boolean = true
-  def debug(msg: String) { if (debugMode) println(msg) }
-
+trait TyperMonad extends AbstractBindingSyntax with Debug {
   // results of the monad
   sealed abstract class Result[A] extends Monad[A, Result] {
     object companion extends MonadCompanion[Result]{

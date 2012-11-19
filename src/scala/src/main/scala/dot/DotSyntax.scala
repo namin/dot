@@ -222,3 +222,83 @@ trait DotNominalSyntax extends DotSyntax with NominalBindingSyntax { self: DotSy
     }
   }
 }
+
+trait DotSubstitution extends DotNominalSyntax {
+  import Terms._
+  import Types._
+  import Members._
+
+  implicit def scopedIsTermSubstable[T](in: \\[T])(implicit wSubs: T => Substable[Term, T], wNom: T => Nominal[T]): Substable[Term, \\[T]] = scopedIsSubstable[T, Term, T](in)
+  implicit def listIsTermSubstable[T: Substable[Term, T]#From](in: List[T]): Substable[Term, List[T]] = listIsSubstable[T, Term, T](in)
+
+  implicit def termIsSubstable(in: Term): Substable[Term, Term] = new Substable[Term, Term] {
+    def subst(from: Name, to: Term): Term = in match {
+      case Var(`from`) => to
+      case Var(_) => in
+      case Sel(obj, l) => Sel(obj subst(from, to), l)
+      case Msel(obj, m, arg) => Msel(obj subst(from, to), m, arg subst(from, to))
+      case New(tpe, args_scope) => New(tpe subst(from, to), args_scope subst(from, to))
+    }
+  }
+
+  implicit def typeIsSubstable(in: Type): Substable[Term, Type] = new Substable[Term, Type] {
+    def subst(from: Name, to: Term): Type = in match {
+      case Tsel(obj, l) => Tsel(obj subst(from, to), l)
+      case Refine(parent, decls) => Refine(parent subst(from, to), decls subst(from, to))
+      case Intersect(a, b) => Intersect(a subst(from, to), b subst(from, to))
+      case Union(a, b) => Union(a subst(from, to), b subst(from, to))
+      case Top => Top
+      case Bottom => Bottom
+    }
+  }
+
+  implicit def typeBoundsIsSubstable(in: TypeBounds): Substable[Term, TypeBounds] = new Substable[Term, TypeBounds] {
+    def subst(from: Name, to: Term): TypeBounds = in match {
+      case TypeBounds(lo, hi) => TypeBounds(lo subst(from, to), hi subst(from, to))
+    }
+  }
+
+  implicit def arrowTypeIsSubstable(in: ArrowType): Substable[Term, ArrowType] = new Substable[Term, ArrowType] {
+    def subst(from: Name, to: Term): ArrowType = in match {
+      case ArrowType(lo, hi) => ArrowType(lo subst(from, to), hi subst(from, to))
+    }
+  }
+
+  implicit def memDeclIsSubstable(in: Dcl): Substable[Term, Dcl] = new Substable[Term, Dcl] {
+    def subst(from: Name, to: Term): Dcl = in match {
+      case TypeDecl(l, cls) => TypeDecl(l, cls subst(from, to))
+      case ValueDecl(l, cls) => ValueDecl(l, cls subst(from, to))
+      case MethodDecl(l, cls) => MethodDecl(l, cls subst(from, to))
+    }
+  }
+
+  implicit def valueIsSubstable(in: Value): Substable[Term, Value] = new Substable[Term, Value] {
+    def subst(from: Name, to: Term): Value =
+      termIsSubstable(in).subst(from, to).asInstanceOf[Value]
+  }
+
+  implicit def methodIsSubstable(in: Method): Substable[Term, Method] = new Substable[Term, Method] {
+    def subst(from: Name, to: Term): Method = in match {
+      case Method(body) => Method(body subst(from, to))
+    }
+  }
+
+  implicit def memDefIsSubstable(in: Defn): Substable[Term, Defn] = new Substable[Term, Defn] {
+    def subst(from: Name, to: Term): Defn = in match {
+      case ValueDef(l, rhs) => ValueDef(l, rhs subst(from, to))
+      case MethodDef(l, rhs) => MethodDef(l, rhs subst(from, to))
+    }
+  }
+
+  implicit def declsIsSubstable(in: Decls): Substable[Term, Decls] = new Substable[Term, Decls] {
+    def subst(from: Name, to: Term): Decls = in match {
+      case Decls(ds) => Decls(ds subst(from, to))
+    }
+  }
+
+  implicit def defsIsSubstable(in: Defs): Substable[Term, Defs] = new Substable[Term, Defs] {
+    def subst(from: Name, to: Term): Defs = in match {
+      case Defs(ds) => Defs(ds subst(from, to))
+    }
+  }
+}

@@ -5,7 +5,7 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class TestDotSyntax extends Suite with DotNominalSyntax {
+class TestDotSyntax extends Suite with DotNominalSyntax with DotSubstitution {
   import Terms._
   import Types._
   import Members._
@@ -28,5 +28,14 @@ class TestDotSyntax extends Suite with DotNominalSyntax {
       New(Top, x\\(Defs(List(MethodDef(MethodLabel("m"), Method(y\\Msel(Var(x), MethodLabel("m"), Var(y)))))), Var(z)))
       ==
       New(Top, z\\(Defs(List(MethodDef(MethodLabel("m"), Method(x\\Msel(Var(z), MethodLabel("m"), Var(x)))))), Var(z))))
+  }
+
+  def testSubstitution() = {
+    expect(Var(x))(Var(y) subst(y, Var(x)))
+    expect {
+      New(Top, z\\(Defs(List(ValueDef(ValueLabel("l"), Var(x)))), Sel(Var(z), ValueLabel("l"))))
+    } {
+      New(Top, y\\(Defs(List(ValueDef(ValueLabel("l"), Var(z)))), Sel(Var(y), ValueLabel("l")))) subst(z, Var(x))
+    }
   }
 }
