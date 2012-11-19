@@ -38,14 +38,14 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
 	_ <- ofT(a, ta);
 	ta <- !ta;
 	_ <- sub(ta, s)) yield ()
-      case New(tc, \\(x, (args, b))) => for(
-	// TODO: complete stub
-	_ <- assume(x, tc){for(
-	  ds <- expand(x, tc);
+      case New(tc, \\(y, (args, b))) => for(
+	_ <- wfe(tc);
+	ds <- expand(y, tc);
+	_ <- assume(y, tc){for(
 	  _ <- wfCtorMems(ds, args);
 	  _ <- ofT(b, pt);
 	  tp <- !pt;
-	  if tp fresh(x)) yield ()}) yield ()
+	  if tp fresh(y)) yield ()}) yield ()
     }
   }
 
