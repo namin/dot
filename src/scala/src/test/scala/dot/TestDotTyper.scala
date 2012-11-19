@@ -49,7 +49,7 @@ class TestDotTyper extends Suite with DotTyper {
     expect {
       Failure("uninitialized value for label ValueLabel(l)")
     } {
-      typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Top)))), x\\(Defs(List(ValueDef(ValueLabel("l'"), Var(x)))), Sel(Var(x), ValueLabel("l")))))
+      typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Top)))), x\\(nodefs, Sel(Var(x), ValueLabel("l")))))
     }
 
   def testTC_Sel_BadInitTC() =

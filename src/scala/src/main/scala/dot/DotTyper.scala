@@ -52,7 +52,10 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
   }
 
   def wfCtorMems(ds: Dcls, args: Defs): TyperMonad[Unit] = ds match {
-    case BottomDecls => fail("bottom expansion for constructor type")
+    case BottomDecls =>
+      fail("bottom expansion for constructor type")
+    case Decls(ds) if !args.defs.forall{d1 => ds.exists{d2 => d1.l==d2.l}} =>
+      fail("initialized label is undeclared")
     case Decls(ds) => forall(ds) {
       case TypeDecl(l, TypeBounds(s, u)) => sub(s, u)
       case ValueDecl(l, u) => for(
@@ -110,7 +113,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     lo <- !lo;
     hi <- !hi) yield ArrowType(lo, hi)
 
-  def memMethod(o: Term, l: TypeLabel): TyperMonad[TypeBounds] = for(
+  def memType(o: Term, l: TypeLabel): TyperMonad[TypeBounds] = for(
     lo <- Infer[Type]("memTypTp").toMetaVar(MetaType);
     hi <- Infer[Type]("memTypTp").toMetaVar(MetaType);
     _ <- mem(o, TypeDecl(l, TypeBounds(lo, hi)));
@@ -161,7 +164,10 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
 	for (dsa <- expand(x, a);
 	     dsb <- expand(x, b))
 	yield join(dsa, dsb)
-      /*case Tsel(p, l) => // TODO */
+      case Tsel(p, l) =>
+	for (TypeBounds(s, u) <- memType(p, l);
+	     dsu <- expand(x, u))
+	yield dsu
       case Top => Decls(List())
       case Bottom => BottomDecls
     }
@@ -172,6 +178,39 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     else if (tp1 === Bottom) ()
     else fail(tp1 + " is not a subtype of " + tp2)
     // TODO
+  }
+
+  def wf(tp: Type): TyperMonad[Unit] = tp match {
+    case Top => ()
+    case Bottom => ()
+    case Refine(parent, \\(z, Decls(ds))) =>
+      for (_ <- wf(parent);
+	   _ <- assume(z, tp){forall(ds) { wf_decl(_) }})
+      yield ()
+    case Intersect(a, b) =>
+      for (_ <- wf(a);
+	   _ <- wf(b))
+      yield ()
+    case Union(a, b) =>
+      for (_ <- wf(a);
+	   _ <- wf(b))
+      yield ()
+    case Tsel(p, l) =>
+      (for (TypeBounds(Bottom, u) <- memType(p, l))
+       yield ()) ++
+      (for (TypeBounds(s, u) <- memType(p, l);
+	    _ <- wf(s);
+	    _ <- wf(u))
+       yield ())
+  }
+
+  def wf_decl(d: Dcl): TyperMonad[Unit] = d match {
+    case TypeDecl(l, TypeBounds(s, u)) => for(
+      _ <- wf(s); _ <- wf(u)) yield ()
+    case MethodDecl(l, ArrowType(s, u)) => for(
+      _ <- wf(s); _ <- wf(u)) yield ()
+    case ValueDecl(l, u) => for(
+                  _ <- wf(u)) yield ()
   }
 }
 

@@ -55,7 +55,8 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
 
   object Members {
     type Dcl = Decl[Level, Entity]
-    sealed abstract class Decl[+L <: Level, +E <: Entity](val l: Label[L], val cls: E)
+    sealed abstract class DeclOrDef[+L <: Level](val l: Label[L])
+    sealed abstract class Decl[+L <: Level, +E <: Entity](override val l: Label[L], val cls: E) extends DeclOrDef[L](l)
     case class TypeDecl(override val l: TypeLabel, override val cls: TypeBounds) extends Decl(l, cls)
     case class ValueDecl(override val l: ValueLabel, override val cls: Type) extends Decl(l, cls)
     case class MethodDecl(override val l: MethodLabel, override val cls: ArrowType) extends Decl(l, cls)
@@ -63,6 +64,7 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
       def findByLabel(l: Label[_]): Option[Dcl]
     }
     case class Decls(decls: List[Dcl]) extends Dcls {
+      assert(uniqLabels(decls))
       override def findByLabel(l: Label[_]) = decls.find(d => d.l==l)
     }
     case object BottomDecls extends Dcls {
@@ -75,10 +77,17 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
     }
 
     type Defn = Def[Level, Entity]
-    sealed abstract class Def[+L <: Level, +E <: Entity](val l: Label[L], val rhs: E)
+    sealed abstract class Def[+L <: Level, +E <: Entity](override val l: Label[L], val rhs: E) extends DeclOrDef[L](l)
     case class ValueDef(override val l: ValueLabel, override val rhs: Terms.Value) extends Def(l, rhs)
     case class MethodDef(override val l: MethodLabel, override val rhs: Method) extends Def(l, rhs)
-    case class Defs(defs: List[Defn])
+    case class Defs(defs: List[Defn]) {
+      assert(uniqLabels(defs))
+    }
+
+    def uniqLabels[D <: DeclOrDef[_]](ds: List[D]): Boolean = ds forall{ d1 =>
+      val n = ds.filter(d2 => d1.l==d2.l).size
+      n==1
+    }
   }
 
   object Terms {
