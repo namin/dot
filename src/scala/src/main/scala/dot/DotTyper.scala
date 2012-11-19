@@ -79,6 +79,17 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
       ds1.flatMap{d1 => ds2.find{d2 => d1.l===d2.l}.map{d2 => unionDecl(d1, d2)}})
   }
 
+  def mem(tm: Term, d: Dcl): TyperMonad[Unit] = for(
+    etp <- Infer[Type]("memtp");
+    _ <- ofT(tm, etp);
+    tp <- !etp;
+    z <- freshName("z");
+    ds <- expand(z, tp);
+    Some(di) = ds.findByLabel(d.l);
+    if ((entityHasBinders(di.cls).fresh(z) && di.cls===d.cls) ||
+	(tm.isPath && entityIsSubstable(di.cls).subst(z, tm)===d.cls))) yield ()
+
+
   def expand(x: Name, tp: Type): TyperMonad[Dcls] = tp match {
     case Refine(parent, \\(z, ds)) =>
       for (dsp <- expand(x, parent))

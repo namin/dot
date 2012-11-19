@@ -59,9 +59,20 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
     case class TypeDecl(override val l: TypeLabel, override val cls: TypeBounds) extends Decl(l, cls)
     case class ValueDecl(override val l: ValueLabel, override val cls: Type) extends Decl(l, cls)
     case class MethodDecl(override val l: MethodLabel, override val cls: ArrowType) extends Decl(l, cls)
-    abstract class Dcls
-    case class Decls(decls: List[Dcl]) extends Dcls
-    case object BottomDecls extends Dcls
+    abstract class Dcls {
+      def findByLabel(l: Label[_]): Option[Dcl]
+    }
+    case class Decls(decls: List[Dcl]) extends Dcls {
+      override def findByLabel(l: Label[_]) = decls.find(d => d.l==l)
+    }
+    case object BottomDecls extends Dcls {
+      val s = Types.Top; val u = Types.Bottom
+      override def findByLabel(l: Label[_]) = Some(l match {
+	case (l: TypeLabel) => TypeDecl(l, TypeBounds(s, u))
+	case (l: MethodLabel) => MethodDecl(l, ArrowType(s, u))
+	case (l: ValueLabel) => ValueDecl(l, u)
+      })
+    }
 
     type Defn = Def[Level, Entity]
     sealed abstract class Def[+L <: Level, +E <: Entity](val l: Label[L], val rhs: E)
@@ -226,6 +237,23 @@ trait DotNominalSyntax extends DotSyntax with NominalBindingSyntax { self: DotSy
       case Defs(ds) => ds.fresh(a)
     }
   }
+
+  val entityHasBinders: ContainsBinders[Entity] = (e: Entity) => new Nominal[Entity] {
+    def swap(a: Name, b: Name): Entity = e match {
+      case (e: TypeBounds) => typeBoundsHasBinders(e) swap(a, b)
+      case (e: Type) => typeHasBinders(e) swap(a, b)
+      case (e: Term) => termHasBinders(e) swap(a, b)
+      case (e: ArrowType) => arrowTypeHasBinders(e) swap(a, b)
+      case (e: Method) => methodHasBinders(e) swap(a, b)
+    }
+    def fresh(a: Name): Boolean = e match {
+      case (e: TypeBounds) => typeBoundsHasBinders(e) fresh(a)
+      case (e: Type) => typeHasBinders(e) fresh(a)
+      case (e: Term) => termHasBinders(e) fresh(a)
+      case (e: ArrowType) => arrowTypeHasBinders(e) fresh(a)
+      case (e: Method) => methodHasBinders(e) fresh(a)
+    }
+  }
 }
 
 trait DotSubstitution extends DotNominalSyntax {
@@ -304,6 +332,17 @@ trait DotSubstitution extends DotNominalSyntax {
   implicit def defsIsSubstable(in: Defs): Substable[Term, Defs] = new Substable[Term, Defs] {
     def subst(from: Name, to: Term): Defs = in match {
       case Defs(ds) => Defs(ds subst(from, to))
+    }
+  }
+
+
+  def entityIsSubstable(in: Entity): Substable[Term, Entity] = new Substable[Term, Entity] {
+    def subst(from: Name, to: Term): Entity = in match {
+      case (e: TypeBounds) => typeBoundsIsSubstable(e) subst(from, to)
+      case (e: Type) => typeIsSubstable(e) subst(from, to)
+      case (e: Term) => termIsSubstable(e) subst(from, to)
+      case (e: ArrowType) => arrowTypeIsSubstable(e) subst(from, to)
+      case (e: Method) => methodIsSubstable(e) subst(from, to)
     }
   }
 }
