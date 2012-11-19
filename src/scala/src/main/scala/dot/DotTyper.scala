@@ -1,30 +1,11 @@
 package dot
 
-trait Constraints extends StandardTyperMonad with NominalBindingSyntax {
-  override type State = Set[Constraint]
-  override val initState = Set[Constraint]()
-
-  def addConstraint(c: Constraint): TyperMonad[Unit] = TyperMonad{from =>
-    from.mapStateTo({state => state + c}, {state => Success(())})
-  }
-
-  implicit def subtypingConstraintExpected(tp1: Expected[Type]) = new {
-    def <:<(tp2: Expected[Type]): Constraint = new SubtypeConstraint(tp1, tp2)
-  }
-
-  implicit def freshnessConstraintExpected[T: ContainsBinders](tp: Expected[T]) = new {
-    def fresh(x: Name): Constraint = new FreshnessConstraint(x, tp)
-  }
-
-  trait Constraint
-  case class SubtypeConstraint(tv1: Expected[Type], tv2: Expected[Type]) extends Constraint
-  case class FreshnessConstraint[T: ContainsBinders](x: Name, nom: Expected[T]) extends Constraint
-}
-
 trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyntax with DotSubstitution {
-  // NOTE: don't use constraints for now (baby steps)
-  override type State = Option[Nothing]
-  override val initState = None
+  override type State = Int
+  override val initState = 0
+  def tag: TyperMonad[String] = TyperMonad{from =>
+    from.mapStateTo({state => state + 1}, {state => Success("$tag$" + state.toString)})
+  }
 
   import Terms._
   import Types._
