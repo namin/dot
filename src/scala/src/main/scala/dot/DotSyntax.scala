@@ -59,7 +59,8 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
     case class TypeDecl(override val l: TypeLabel, override val cls: TypeBounds) extends Decl(l, cls)
     case class ValueDecl(override val l: ValueLabel, override val cls: Type) extends Decl(l, cls)
     case class MethodDecl(override val l: MethodLabel, override val cls: ArrowType) extends Decl(l, cls)
-    case class Decls(decls: List[Dcl])
+    abstract class Dcls
+    case class Decls(decls: List[Dcl]) extends Dcls
 
     type Defn = Def[Level, Entity]
     sealed abstract class Def[+L <: Level, +E <: Entity](val l: Label[L], val rhs: E)
@@ -87,7 +88,7 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
       assert(o.isPath)
       override def isConcrete = label.isConcrete
     }
-    case class Refine(parent: Type, decls: \\[Members.Decls]) extends Type {
+    case class Refine(parent: Type, decls: \\[Members.Dcls]) extends Type {
       override def isConcrete = parent.isConcrete
     }
     case class Intersect(a: Type, b: Type) extends Type {
@@ -205,9 +206,9 @@ trait DotNominalSyntax extends DotSyntax with NominalBindingSyntax { self: DotSy
     }
   }
 
-  implicit def declsHasBinders: ContainsBinders[Members.Decls] = (ds: Members.Decls) => new Nominal[Members.Decls] {
+  implicit def dclsHasBinders: ContainsBinders[Members.Dcls] = (ds: Members.Dcls) => new Nominal[Members.Dcls] {
     import Members._
-    def swap(a: Name, b: Name): Decls = ds match {
+    def swap(a: Name, b: Name): Dcls = ds match {
       case Decls(ds) => Decls(ds swap(a, b))
     }
     def fresh(a: Name): Boolean = ds match {
@@ -293,8 +294,8 @@ trait DotSubstitution extends DotNominalSyntax {
     }
   }
 
-  implicit def declsIsSubstable(in: Decls): Substable[Term, Decls] = new Substable[Term, Decls] {
-    def subst(from: Name, to: Term): Decls = in match {
+  implicit def dclsIsSubstable(in: Dcls): Substable[Term, Dcls] = new Substable[Term, Dcls] {
+    def subst(from: Name, to: Term): Dcls = in match {
       case Decls(ds) => Decls(ds subst(from, to))
     }
   }

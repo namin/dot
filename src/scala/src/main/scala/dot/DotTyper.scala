@@ -16,14 +16,67 @@ trait Constraints extends StandardTyperMonad {
   case class SubtypeConstraint(tv1: Expected[Type], tv2: Expected[Type]) extends Constraint
 }
 
-trait Typer extends StandardTyperMonad with Constraints with DotTyperSyntax with DotNominalSyntax with DotSubstitution {
+trait DotTyper extends StandardTyperMonad with Constraints with DotTyperSyntax with DotNominalSyntax with DotSubstitution {
   import Terms._
   import Types._
   import Members._
   import TyperMonad._
+
+  override val debugMode = true
+
+  def typecheck(tm: Term): Result[Type] = (for(
+    ein <- Infer[Type]("in");
+    _ <- ofT(tm, ein);
+    in <- !ein) yield in).run getOrElse Failure("")
+
+  def ofT(tm: Term, pt: Expected[Type]): TyperMonad[Unit] = {
+    debug("type of " + tm + ":" + pt)
+    tm match {
+      case Var(x) => for(
+	r <- lookup(x);
+	_ <- pt := r) yield ()
+      //case Sel(o, l) => TODO
+      //case Msel(o, m, a) => TODO
+      case New(tc, \\(x, (args, b))) => for(
+	// TODO: complete stub
+	_ <- assume(x, tc){for(
+	  _ <- ofT(b, pt)) yield ()}) yield ()
+    }
+  }
 }
 
 trait DotTyperSyntax extends MetaVariablesNominal with DotSyntax {
+  implicit object MetaClassLabel extends MetaVarBuilder[ClassLabel, MetaClassLabel]("metaLc") {
+    def apply(n: String) = new MetaClassLabel(n)
+  }
+  class MetaClassLabel(override val name: String) extends ClassLabel(name) with MetaVar[ClassLabel]
+
+  implicit object MetaAbstractTypeLabel extends MetaVarBuilder[AbstractTypeLabel, MetaAbstractTypeLabel]("metaL") {
+    def apply(n: String) = new MetaAbstractTypeLabel(n)
+  }
+  class MetaAbstractTypeLabel(override val name: String) extends AbstractTypeLabel(name) with MetaVar[AbstractTypeLabel]
+
+  implicit object MetaValueLabel extends MetaVarBuilder[ValueLabel, MetaValueLabel]("metal") {
+    def apply(n: String) = new MetaValueLabel(n)
+  }
+  class MetaValueLabel(override val name: String) extends ValueLabel(name) with MetaVar[ValueLabel]
+
+  implicit object MetaMethodLabel extends MetaVarBuilder[MethodLabel, MetaMethodLabel]("metam") {
+    def apply(n: String) = new MetaMethodLabel(n)
+  }
+  class MetaMethodLabel(override val name: String) extends MethodLabel(name) with MetaVar[MethodLabel]
+
+  implicit object MetaType extends MetaVarBuilder[Type, MetaType]("metaTp") {
+    def apply(n: String) = new MetaType(n)
+  }
+  class MetaType(override val name: String) extends Type with MetaVar[Type]
+
+  implicit object MetaDcls extends MetaVarBuilder[Members.Dcls, MetaDcls]("metaDs") {
+    def apply(n: String) = new MetaDcls(n)
+  }
+  class MetaDcls(override val name: String) extends Members.Dcls with MetaVar[Members.Dcls]
+
+
   implicit def eqEntity(e1: Entity): Equality[Entity] = new Equality[Entity] {
     def ===(e2: Entity) = (e1, e2) match {
       case (a: TypeBounds, b: TypeBounds) => a === b
@@ -38,6 +91,8 @@ trait DotTyperSyntax extends MetaVariablesNominal with DotSyntax {
   implicit def eqType(tp1: Type): Equality[Type] = new Equality[Type] {
     import Types._
     def ===(tp2: Type) = (tp1, tp2) match {
+      case (x1: MetaType, _) => x1===tp2
+      case (_, x2: MetaType) => x2===tp1
       case (Tsel(o1, l1), Tsel(o2, l2)) => o1===o2 && l1===l2
       case (Refine(parent1, decls1), Refine(parent2, decls2)) => parent1===parent2 && decls1===decls2
       case (Intersect(a1, b1), Intersect(a2, b2)) => a1===a2 && b1===b2
@@ -80,8 +135,11 @@ trait DotTyperSyntax extends MetaVariablesNominal with DotSyntax {
       s1.length == s2.length && s1.forall{x1 => s2.exists{x2 => x1 === x2}}
   }
 
-  implicit def eqDecls(ds1: Members.Decls): Equality[Members.Decls] = new Equality[Members.Decls] {
-    def ===(ds2: Members.Decls) = eqListAsSet(ds1.decls)===ds2.decls
+  implicit def eqDcls(ds1: Members.Dcls): Equality[Members.Dcls] = new Equality[Members.Dcls] {
+    def ===(ds2: Members.Dcls) = (ds1, ds2) match {
+      case (Members.Decls(s1), Members.Decls(s2)) => eqListAsSet(s1)===s2
+      case _ => false
+    }
   }
 
   implicit def eqDefs(ds1: Members.Defs): Equality[Members.Defs] = new Equality[Members.Defs] {
