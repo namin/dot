@@ -58,6 +58,34 @@ trait DotTyper extends StandardTyperMonad with Constraints with DotTyperSyntax w
     }
   }
 
+  def mergeDecl[L <: Level, E <: Entity](funlo: (Type, Type) => Type, funhi: (Type, Type) => Type)(
+    d1: Decl[L,E], d2: Decl[L,E]): Dcl = (d1, d2) match {
+      case (TypeDecl(l1, TypeBounds(s1, u1)), TypeDecl(l2, TypeBounds(s2, u2))) if l1===l2 =>
+	TypeDecl(l1, TypeBounds(funlo(s1, s2), funhi(u1, u2)))
+      case (MethodDecl(l1, ArrowType(s1, u1)), MethodDecl(l2, ArrowType(s2, u2))) if l1===l2 =>
+	MethodDecl(l1, ArrowType(funlo(s1, s2), funhi(u1, u2)))
+      case (ValueDecl(l1, u1), ValueDecl(l2, u2)) if l1===l2 =>
+	ValueDecl(l1, funhi(u1, u2))
+    }
+  def intersectDecl = mergeDecl(Union, Intersect) _
+  def unionDecl = mergeDecl(Intersect, Union) _
+  //  intersection of declaration sets
+  def meet(ds1: Dcls, ds2: Dcls): Dcls = (ds1, ds2) match {
+    case (BottomDecls, _) => BottomDecls
+    case (_, BottomDecls) => BottomDecls
+    case (Decls(ds1), Decls(ds2)) => Decls(
+      ds1.flatMap{d1 => ds2.find{d2 => d1.l===d2.l}.map{d2 => intersectDecl(d1, d2)}} ++
+      ds1.filterNot{d1 => ds2.exists{d2 => d1.l===d2.l}} ++
+      ds2.filterNot{d2 => ds1.exists{d1 => d1.l===d2.l}})
+  }
+  // union of declaration sets
+  def join(ds1: Dcls, ds2: Dcls): Dcls = (ds1, ds2) match {
+    case (BottomDecls, other) => other
+    case (other, BottomDecls) => other
+    case (Decls(ds1), Decls(ds2)) => Decls(
+      ds1.flatMap{d1 => ds2.find{d2 => d1.l===d2.l}.map{d2 => unionDecl(d1, d2)}})
+  }
+
   def expand(x: Name, tp: Type): TyperMonad[Dcls] = tp match {
     case Top => Decls(List())
     case Bottom => BottomDecls

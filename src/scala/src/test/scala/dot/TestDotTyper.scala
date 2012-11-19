@@ -30,4 +30,38 @@ class TestDotTyper extends Suite with DotTyper {
     } {
       typecheck(New(Refine(Top, z\\Decls(List(TypeDecl(AbstractTypeLabel("L"), TypeBounds(Top, Bottom))))), x\\(nodefs, Var(x))))
     }
+
+  val decls1 = Decls(List(
+    TypeDecl(AbstractTypeLabel("L1"), TypeBounds(Tsel(Var(x), AbstractTypeLabel("S1")), Tsel(Var(x), AbstractTypeLabel("U1")))),
+    TypeDecl(AbstractTypeLabel("L"), TypeBounds(Tsel(Var(x), AbstractTypeLabel("S1")), Tsel(Var(x), AbstractTypeLabel("U1")))),
+    TypeDecl(AbstractTypeLabel("L'"), TypeBounds(Tsel(Var(x), AbstractTypeLabel("S1'")), Tsel(Var(x), AbstractTypeLabel("U1'"))))))
+  val decls2 = Decls(List(
+    TypeDecl(AbstractTypeLabel("L2"), TypeBounds(Tsel(Var(x), AbstractTypeLabel("S2")), Tsel(Var(x), AbstractTypeLabel("U2")))),
+    TypeDecl(AbstractTypeLabel("L'"), TypeBounds(Tsel(Var(x), AbstractTypeLabel("S2'")), Tsel(Var(x), AbstractTypeLabel("U2'")))),
+    TypeDecl(AbstractTypeLabel("L"), TypeBounds(Tsel(Var(x), AbstractTypeLabel("S2")), Tsel(Var(x), AbstractTypeLabel("U2"))))))
+
+  def testMeet1() =
+    expect {
+      Decls(List(
+	TypeDecl(AbstractTypeLabel("L"), TypeBounds(Union(Tsel(Var(x), AbstractTypeLabel("S1")), Tsel(Var(x), AbstractTypeLabel("S2"))),
+						    Intersect(Tsel(Var(x), AbstractTypeLabel("U1")), Tsel(Var(x), AbstractTypeLabel("U2"))))),
+	TypeDecl(AbstractTypeLabel("L'"), TypeBounds(Union(Tsel(Var(x), AbstractTypeLabel("S1'")), Tsel(Var(x), AbstractTypeLabel("S2'"))),
+						     Intersect(Tsel(Var(x), AbstractTypeLabel("U1'")), Tsel(Var(x), AbstractTypeLabel("U2'"))))),
+        TypeDecl(AbstractTypeLabel("L1"), TypeBounds(Tsel(Var(x), AbstractTypeLabel("S1")), Tsel(Var(x), AbstractTypeLabel("U1")))),
+        TypeDecl(AbstractTypeLabel("L2"), TypeBounds(Tsel(Var(x), AbstractTypeLabel("S2")), Tsel(Var(x), AbstractTypeLabel("U2"))))))
+    } {
+      meet(decls1, decls2)
+    }
+
+  def testJoin1() =
+    expect {
+      Decls(List(
+	TypeDecl(AbstractTypeLabel("L"), TypeBounds(Intersect(Tsel(Var(x), AbstractTypeLabel("S1")), Tsel(Var(x), AbstractTypeLabel("S2"))),
+						    Union(Tsel(Var(x), AbstractTypeLabel("U1")), Tsel(Var(x), AbstractTypeLabel("U2"))))),
+	TypeDecl(AbstractTypeLabel("L'"), TypeBounds(Intersect(Tsel(Var(x), AbstractTypeLabel("S1'")), Tsel(Var(x), AbstractTypeLabel("S2'"))),
+						     Union(Tsel(Var(x), AbstractTypeLabel("U1'")), Tsel(Var(x), AbstractTypeLabel("U2'")))))))
+    } {
+      join(decls1, decls2)
+    }
+
 }
