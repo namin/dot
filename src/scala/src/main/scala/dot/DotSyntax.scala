@@ -16,7 +16,7 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
 
   sealed abstract class Label[+T <: Level](val name: String)
   sealed abstract class TypeLabel(name: String, val isConcrete: Boolean) extends Label[Levels.Type](name)
-  case class ConcreteTypeLabel(override val name: String) extends TypeLabel(name, true)
+  case class ClassLabel(override val name: String) extends TypeLabel(name, true)
   case class AbstractTypeLabel(override val name: String) extends TypeLabel(name, false)
   object TypeLabel {
     def unapply(tyl : TypeLabel): Option[(String, Boolean)] = Some((tyl.name, tyl.isConcrete))
@@ -32,6 +32,9 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
     type Level = Levels.Term
     def isPath = false
   }
+  object Path {
+    def unapply(t: Term): Option[Term] = if(t.isPath) Some(t) else None
+  }
 
   case class Method(body: \\[Term]) extends Entity {
     type Level = Levels.Method
@@ -41,14 +44,14 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
     type Level = Levels.Type
     def isConcrete = false
   }
+  object ClassType {
+    def unapply(tp: Type): Option[Type] = if(tp.isConcrete) Some(tp) else None
+  }
 
-  sealed abstract class TypePair(val lo: Type, val hi: Type) extends Entity
-  case class TypeBounds(override val lo: Type, override val hi: Type) extends TypePair(lo, hi) {
-    type Level = Levels.TypeBounds
-  }
-  case class ArrowType(val paramType: Type, val bodyType: Type) extends TypePair(paramType, bodyType) {
-    type Level = Levels.ArrowType
-  }
+  sealed abstract class TypePair[Level](val lo: Type, val hi: Type) extends Entity
+
+  case class TypeBounds(override val lo: Type, override val hi: Type) extends TypePair[Levels.TypeBounds](lo, hi)
+  case class ArrowType(val paramType: Type, val bodyType: Type) extends TypePair[Levels.ArrowType](paramType, bodyType)
 
   object Members {
     type Dcl = Decl[Level, Entity]
@@ -58,10 +61,10 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
     case class MethodDecl(override val l: MethodLabel, override val cls: ArrowType) extends Decl(l, cls)
     case class Decls(decls: List[Dcl])
 
-    type Defn = Def[Entity]
-    sealed abstract class Def[+E <: Entity](val l: Label[E#Level], val rhs: E)
-    case class ValueDef(override val l: ValueLabel, override val rhs: Terms.Value) extends Def[Term](l, rhs)
-    case class MethodDef(override val l: MethodLabel, override val rhs: Method) extends Def[Method](l, rhs)
+    type Defn = Def[Level, Entity]
+    sealed abstract class Def[+L <: Level, +E <: Entity](val l: Label[L], val rhs: E)
+    case class ValueDef(override val l: ValueLabel, override val rhs: Terms.Value) extends Def(l, rhs)
+    case class MethodDef(override val l: MethodLabel, override val rhs: Method) extends Def(l, rhs)
     case class Defs(defs: List[Defn])
   }
 

@@ -14,4 +14,8 @@ trait Equalities {
   implicit def ListEq[T : ChecksEquality](self: List[T]) = new Equality[List[T]] {
     def ===(other: List[T]): Boolean = (self, other).zipped.forall(_ === _) 
   }
+
+  implicit def PairEq[A : ChecksEquality, B: ChecksEquality](self: (A,B)) = new Equality[(A,B)] {
+    def ===(other: (A,B)): Boolean = self._1===other._1 && self._2===other._2
+  }
 }
