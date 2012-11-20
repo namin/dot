@@ -61,15 +61,15 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
     case class ValueDecl(override val l: ValueLabel, override val cls: Type) extends Decl(l, cls)
     case class MethodDecl(override val l: MethodLabel, override val cls: ArrowType) extends Decl(l, cls)
     abstract class Dcls {
-      def findByLabel(l: Label[_]): Option[Dcl]
+      def findByLabel[L <: Level](l: Label[L]): Option[Dcl]
     }
     case class Decls(decls: List[Dcl]) extends Dcls {
       assert(uniqLabels(decls))
-      override def findByLabel(l: Label[_]) = decls.find(d => d.l==l)
+      override def findByLabel[L <: Level](l: Label[L]) = decls.find(d => d.l==l)
     }
     case object BottomDecls extends Dcls {
       val s = Types.Top; val u = Types.Bottom
-      override def findByLabel(l: Label[_]) = Some(l match {
+      override def findByLabel[L <: Level](l: Label[L]) = Some(l match {
 	case (l: TypeLabel) => TypeDecl(l, TypeBounds(s, u))
 	case (l: MethodLabel) => MethodDecl(l, ArrowType(s, u))
 	case (l: ValueLabel) => ValueDecl(l, u)

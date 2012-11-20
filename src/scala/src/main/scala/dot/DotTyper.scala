@@ -142,7 +142,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
 	    _ <- check(di.cls===d.cls)) yield ()) ++
       (for ((z, di) <- r;
 	    if !entityHasBinders(di.cls).fresh(z);
-	    _:Unit <- fail("mem-term restriction fails for " + z + " in " + di)) yield ())
+	    _ <- fail[Unit]("mem-term restriction fails for " + z + " in " + di)) yield ())
     }
   }
 
