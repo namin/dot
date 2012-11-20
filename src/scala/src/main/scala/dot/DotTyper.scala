@@ -146,8 +146,6 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     }
   }
 
-
-
   def expand(x: Name, tp: Type): TyperMonad[Dcls] = {
     debug("expand_" + x + " of " + tp)
     tp match {
