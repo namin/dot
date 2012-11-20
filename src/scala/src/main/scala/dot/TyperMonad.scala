@@ -78,9 +78,14 @@ trait TyperMonad extends AbstractBindingSyntax with Debug {
   trait TyperMonad[A] extends (From => To[A]) with Monad[A, TyperMonad] {
     val companion = TyperMonad ; import companion._
 
-    // TODO: add support for withFilter
     def filter(pred: A => Boolean): TyperMonad[A] = TyperMonad{x => this(x) filterRes(pred)}
-      
+    def withFilter(pred: A => Boolean) = new WithFilter[A](this, pred)
+    final class WithFilter[+A](self: TyperMonad[A], pred: A => Boolean) {
+      def map[B](f: A => B): TyperMonad[B] = self filter pred map f
+      def flatMap[B](f: A => TyperMonad[B]): TyperMonad[B] = self filter pred flatMap f
+      def withFilter(q: A => Boolean): WithFilter[A] = new WithFilter[A](self, x => pred(x) && q(x))
+    }
+
     // chains this computation with the next one
     def >>=[B](next: A => TyperMonad[B]): TyperMonad[B] = TyperMonad{x => this(x) chainRes((st, r) => next(r)(x.state = st), To(_, _))}
 	  
