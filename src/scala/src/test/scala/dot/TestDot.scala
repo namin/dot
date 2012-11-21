@@ -14,6 +14,10 @@ class TestDot extends Suite with DotParsing with DotTyper {
     case TyperSuccess(ty) => ty
     case TyperFailure(msg) => sys.error(msg)
   }
+  def checkfail(in: String): String = typecheck(parse(in)) match {
+    case TyperSuccess(ty) => sys.error("expected failure, got success: "+ty)
+    case TyperFailure(msg) => msg
+  }
   
   import Types._
  
@@ -75,4 +79,27 @@ class TestDot extends Suite with DotParsing with DotTyper {
       id.apply(id)
     """
   )}
+
+  def testLabelMixupError1() = expect("undeclared label ClassLabel(L)")(checkfail(
+    """
+      val x = new ⊤
+      val y = new x.!L
+      x
+    """
+  ))
+
+  def testLabelMixupError2() = expect("undeclared label ValueLabel(a)")(checkfail(
+    """
+      val x = new ⊤
+      val y = new x.a.!L
+      x
+    """
+  ))
+
+  def testLabelMixupError3() = expect("undeclared label ValueLabel(a)")(checkfail(
+    """
+      val x = new ⊤
+      x.a.b
+    """
+  ))
 }

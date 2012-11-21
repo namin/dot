@@ -55,8 +55,9 @@ trait TyperMonad extends AbstractBindingSyntax with Debug {
 
 
     // returns some computation that succeeds or else fails with the given error
-    def some[A](ms: List[TyperMonad[A]], err: String = ""): TyperMonad[A] = ms match {
-      case Nil => fail(err)
+    def some[A](ms: List[TyperMonad[A]], err: String=null): TyperMonad[A] = ms match {
+      case Nil => assert(err!=null); fail(err)
+      case m::Nil => m
       case m::ms =>  TyperMonad{x =>
         val mx = m(x)
         mx mapStRes {

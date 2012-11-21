@@ -19,7 +19,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
       ein <- Infer[Type]("in");
       _ <- ofT(tm, ein);
       in <- !ein) yield in).findAll
-    assert(r.length==1, r)
+    assert(r.length==1, "typecheck result is not unique: "+r)
     r.head
   }
 
@@ -137,9 +137,9 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
   def mem(tm: Term, d: Dcl): TyperMonad[Unit] = {
     debug("mem? " + tm + " : " + d)
     val r = for(
-      tp <- Infer[Type]("memObjTp").toMetaVar(MetaType);
-      _ <- ofT(tm, Check(tp));
-      tp <- !tp;
+      etp <- Infer[Type]("memObjTp");
+      _ <- ofT(tm, etp);
+      tp <- !etp;
       z <- freshName("z");
       ds <- expand(z, tp);
       _ <- debug("expanded to " + ds);
