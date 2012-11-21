@@ -34,7 +34,7 @@ trait LambdaTyper extends StandardTyperMonad with LambdaTyperSyntax with LambdaN
   def typecheck(tm: Term): Result[Type] = (for(
     ein <- Infer[Type]("in");
     _ <- ofT(tm, ein);
-    in <- !ein) yield in).run getOrElse Failure("")
+    in <- !ein) yield in).run getOrElse TyperFailure("")
 }
 
 trait LambdaTyperSyntax extends MetaVariablesNominal with LambdaSyntax {
@@ -61,7 +61,7 @@ class TestTyperMonad extends Suite with LambdaTyper {
   val f = Name("f")
   val ty = T("*")
 
-  def test1() = expect(Success(Fun(ty, ty)))(typecheck(Lam(ty, x\\Var(x))))
-  def test2() = expect(Success(Fun(Fun(ty, ty), Fun(ty, ty))))(typecheck(Lam(Fun(ty, ty), f\\Lam(ty, x\\App(Var(f), Var(x))))))
-  def test3() = expect(Failure(""))(typecheck(Lam(Fun(ty, ty), f\\Lam(ty, x\\App(Var(x), Var(f))))))
+  def test1() = expect(TyperSuccess(Fun(ty, ty)))(typecheck(Lam(ty, x\\Var(x))))
+  def test2() = expect(TyperSuccess(Fun(Fun(ty, ty), Fun(ty, ty))))(typecheck(Lam(Fun(ty, ty), f\\Lam(ty, x\\App(Var(f), Var(x))))))
+  def test3() = expect(TyperFailure(""))(typecheck(Lam(Fun(ty, ty), f\\Lam(ty, x\\App(Var(x), Var(f))))))
 }

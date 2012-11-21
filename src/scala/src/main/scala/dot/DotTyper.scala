@@ -4,7 +4,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
   override type State = Int
   override val initState = 0
   def tag: TyperMonad[Int] = TyperMonad{from =>
-    from.mapStateTo({state => state + 1}, {state => Success(state)})
+    from.mapStateTo({state => state + 1}, {state => TyperSuccess(state)})
   }
   def freshName(n: String): TyperMonad[Name] = for (s <- tag) yield (Name(n+"$tag$"+s))
 
@@ -18,7 +18,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
       ein <- Infer[Type]("in");
       _ <- ofT(tm, ein);
       in <- !ein) yield in).findAll
-    assert(r.length==1)
+    assert(r.length==1, r)
     r.head
   }
 
@@ -213,13 +213,13 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
       for (_ <- wf(a);
 	   _ <- wf(b))
       yield ()
-    case Tsel(p, l) =>
+    case Tsel(p, l) => some(List(
       (for (TypeBounds(Bottom, u) <- memType(p, l))
-       yield ()) ++
+       yield ()),
       (for (TypeBounds(s, u) <- memType(p, l);
 	    _ <- wf(s);
 	    _ <- wf(u))
-       yield ())
+       yield ())))
   }
 
   def wfDecl(d: Dcl): TyperMonad[Unit] = d match {

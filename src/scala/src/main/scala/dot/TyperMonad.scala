@@ -12,7 +12,7 @@ trait TyperMonad extends AbstractBindingSyntax with Debug {
   // results of the monad
   sealed abstract class Result[A] extends Monad[A, Result] {
     object companion extends MonadCompanion[Result]{
-      implicit def result[A](x: A) = Success(x)
+      implicit def result[A](x: A) = TyperSuccess(x)
     }
     def filter(pred: A => Boolean): Result[A]     
     def mapOutZero[M[_], B](f: A => M[B])(z: Result[B] => M[B]): M[B]
@@ -21,25 +21,25 @@ trait TyperMonad extends AbstractBindingSyntax with Debug {
 //  def Success[A](r: A): Success[A] = Success(r, List())
   
   // TODO: generalise res to deal with multiple results (Stream / List)
-  case class Success[A](res: A) extends Result[A] {
+  case class TyperSuccess[A](res: A) extends Result[A] {
     def >>=[B](next: A => Result[B]) = next(res) //concat (more map ((mo: () => Result[A]) => () => mo() >>= next))
-    def filter(pred: A => Boolean): Result[A] = if(pred(res)) this else Failure("filtered out")
+    def filter(pred: A => Boolean): Result[A] = if(pred(res)) TyperSuccess.this else TyperFailure("filtered out")
     def mapOutZero[M[_], B](f: A => M[B])(z: Result[B] => M[B]): M[B] = f(res)
   }
   
-  case class Failure[A](msg: String) extends Result[A] {
-    def >>=[B](next: A => Result[B]) = Failure[B](msg)
-    def filter(pred: A => Boolean): Result[A] = this
-    def mapOutZero[M[_], B](f: A => M[B])(z: Result[B] => M[B]): M[B] = z(Failure[B](msg))
+  case class TyperFailure[A](msg: String) extends Result[A] {
+    def >>=[B](next: A => Result[B]) = TyperFailure[B](msg)
+    def filter(pred: A => Boolean): Result[A] = TyperFailure.this
+    def mapOutZero[M[_], B](f: A => M[B])(z: Result[B] => M[B]): M[B] = z(TyperFailure[B](msg))
   }
     
   object TyperMonad extends MonadCompanion[TyperMonad] {
     def apply[A](f: From => To[A]) = new TyperMonad[A]{def apply(from: From) = f(from)}
     
     // inject x into the monad
-    implicit def result[A](x: A) = TyperMonad{_ mapEnvTo(_y => Success(x))}
-    def results[A](x: Iterable[A]): TyperMonad[A] = TyperMonad{ case From(st, env) => To(x.toStream map {x => (st, Success(x))})}
-    def fail[A](msg: String) = TyperMonad{_ mapEnvTo(_y => Failure[A](msg))}
+    implicit def result[A](x: A) = TyperMonad{_ mapEnvTo(_y => TyperSuccess(x))}
+    def results[A](x: Iterable[A]): TyperMonad[A] = TyperMonad{ case From(st, env) => To(x.toStream map {x => (st, TyperSuccess(x))})}
+    def fail[A](msg: String) = TyperMonad{_ mapEnvTo(_y => TyperFailure[A](msg))}
 
     def check(p: => Boolean) = result() filter(x => p)
 
@@ -60,8 +60,8 @@ trait TyperMonad extends AbstractBindingSyntax with Debug {
       case m::ms =>  TyperMonad{x =>
 	val mx = m(x)
 	mx mapStRes {
-	  case (_, r:Success[A]) => mx
-	  case (_, r:Failure[A]) => some(ms, err)(x)
+	  case (_, r:TyperSuccess[A]) => mx
+	  case (_, r:TyperFailure[A]) => some(ms, err)(x)
 	}
       }
     }
@@ -92,7 +92,7 @@ trait TyperMonad extends AbstractBindingSyntax with Debug {
     def ++(alt: => TyperMonad[A]): TyperMonad[A] = TyperMonad{x => this(x) ++ alt(x) }
     
     def findAll = this(From(initState, initEnv)).tos map {case (st, r) => r} toList
-    def run = this(From(initState, initEnv)).tos map {case (st, r) => r} find{case Success(_) => true; case _ => false}
+    def run = this(From(initState, initEnv)).tos map {case (st, r) => r} find{case TyperSuccess(_) => true; case _ => false}
   } 
 
     
@@ -258,7 +258,7 @@ trait StandardTyperMonad extends TyperMonad with MetaVariables {
     in(x mapEnv {_ + (vr -> tp)})
   }
 
-  def getGamma: TyperMonad[Env] = TyperMonad{_ mapEnvTo(x => Success(x)) }
+  def getGamma: TyperMonad[Env] = TyperMonad{_ mapEnvTo(x => TyperSuccess(x)) }
 
   def lookup(n: Name): TyperMonad[Type] = getGamma >>= {
     _.get(n) match {
