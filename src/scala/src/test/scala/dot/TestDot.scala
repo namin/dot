@@ -102,4 +102,73 @@ class TestDot extends Suite with DotParsing with DotTyper {
       x.a.b
     """
   ))
+
+  def testBottom() = expect(Bottom)(check(
+    """
+      val root = new ⊤ { root => error:  ⊤ -> ⊥ } ( error(x) = root.error(x) )
+      root.error(root)
+    """
+  ))
+
+  def testBottomFun() = expect(Bottom)(check(
+    """
+      val sugar = new ⊤ { s ⇒
+        !Arrow: ⊥ .. ⊤ { f ⇒
+           apply: ⊥ → ⊤
+        }
+      }
+      val error = new sugar.!Arrow { f => apply: ⊤ → ⊥ } (apply(x) = error.apply(x))
+      error.apply(error)
+    """
+  ))
+
+  def testPeano() = expect(Top){check(
+    """
+      val sugar = new ⊤ { s ⇒
+        !Arrow: ⊥ .. ⊤ { f ⇒
+           apply: ⊥ → ⊤
+        }
+        !Unit: ⊥ .. ⊤
+      }
+      val unit = new sugar.!Unit
+      val id = new sugar.!Arrow { f => apply: ⊤ → ⊤ } (apply(x)=x)
+      val error = new sugar.!Arrow { f => apply: ⊤ → ⊥ } (apply(x) = error.apply(x))
+
+      val root = new ⊤ { r ⇒
+        !Nat2Nat: sugar.!Arrow { f => apply: r.!Nat  → r.!Nat }
+                  ..
+                  sugar.!Arrow { f => apply: r.!Nat  → r.!Nat }
+        !Boolean: ⊥..⊤ { b ⇒
+          ifNat: r.!Nat → r.!Nat2Nat
+        }
+        !Nat: ⊥ .. ⊤ { n  ⇒
+          isZero: sugar.!Unit → r.!Boolean
+          pred: sugar.!Unit → r.!Nat
+          succ: sugar.!Unit → r.!Nat
+        }
+        false: sugar.!Unit → r.!Boolean
+        true: sugar.!Unit → r.!Boolean
+        zero: sugar.!Unit → r.!Nat
+        successor: r.!Nat → r.!Nat
+      } (
+        false(u) = val ff = new root.!Boolean (
+          ifNat(a) = val f = new root.!Nat2Nat ( apply(b) = b ); f
+        ); ff
+        true(u)  = val tt = new root.!Boolean (
+          ifNat(a) = val f = new root.!Nat2Nat ( apply(b) = a ); f
+        ); tt
+        zero(u)  = val zz = new root.!Nat (
+          isZero(u) = root.true(u)
+          succ(u)   = root.successor(zz)
+          pred(u)   = error.apply(u)
+        ); zz
+        successor(n) = val ss = new root.!Nat (
+          isZero(u) = root.false(u)
+          succ(u)   = root.successor(ss)
+          pred(u)   = n
+       ); ss
+      )
+      id.apply(root.zero(unit).succ(unit).pred(unit).isZero(unit))
+    """
+  )}
 }

@@ -151,14 +151,12 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
       for ((z, di) <- r;
            _ <- check(entityIsSubstable(di.cls).subst(z, tm)===d.cls)) yield ()
     } else {
-      debug("mem-term");
-      (for ((z, di) <- r;
-            if entityHasBinders(di.cls).fresh(z);
-            _ <- debug("mem-term restriction ok");
-            _ <- check(di.cls===d.cls)) yield ()) ++
-      (for ((z, di) <- r;
-            if !entityHasBinders(di.cls).fresh(z);
-            _ <- fail[Unit]("mem-term restriction fails for " + z + " in " + di)) yield ())
+      debug("mem-term")
+      for ((z, di) <- r;
+           _ <- some(List((for (_ <- check(entityHasBinders(di.cls).fresh(z));
+                                _ <- debug("mem-term restriction ok");
+                                _ <- check(di.cls===d.cls)) yield ())),
+                     "mem-term restriction fails for " + z + " in " + di)) yield ()
     }
   }
 
