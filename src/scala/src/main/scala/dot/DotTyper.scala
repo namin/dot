@@ -87,7 +87,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     case (other, Bottom) => Bottom
     case (Top, other) => other
     case (other, Top) => other
-    case (a, b) => Union(a, b)
+    case (a, b) => Intersect(a, b)
   }
   def union(a: Type, b: Type): Type = (a, b) match {
     case (Bottom, other) => other
