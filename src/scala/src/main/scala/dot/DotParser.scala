@@ -12,14 +12,17 @@ trait DotParsing extends StdTokenParsers with BindingParsers with PackratParsers
 
   type P[T] = PackratParser[T]
 
+  val debugParser: Boolean = false
+  def debugParser(msg: String) { if (debugParser) super.debug(msg) }
+
   private var indent = ""
   def l[T](p: => Parser[T])(name: String): P[T] = Parser{ in =>
-    debug(indent + "trying " + name)
+    debugParser(indent + "trying " + name)
     val oldIndent = indent
     indent += " "
     val r = p(in)
     indent = oldIndent
-    debug(indent + name + " --> " + r)
+    debugParser(indent + name + " --> " + r)
     r
   }
 

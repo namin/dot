@@ -6,6 +6,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
   def tag: TyperMonad[Int] = TyperMonad{from =>
     from.mapStateTo({state => state + 1}, {state => TyperSuccess(state)})
   }
+
   def freshName(n: String): TyperMonad[Name] = for (s <- tag) yield (Name(n+"$tag$"+s))
 
   import Terms._
@@ -23,6 +24,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
   }
 
   def ofT(tm: Term, pt: Expected[Type]): TyperMonad[Unit] = {
+    debug("-------------------------")
     debug("type of " + tm + ":" + pt)
     tm match {
       case Var(x) => for(
@@ -58,15 +60,15 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
       case TypeDecl(l, TypeBounds(s, u)) => sub(s, u)
       case ValueDecl(l, u) => for(
         ValueDef(_, v) <- exactlyOne(args.defs.find(d => d.l===l), "uninitialized value for label " + l);
-        tv <- Infer[Type]("valTp").toMetaVar(MetaType);
-        _ <- ofT(v, Check(tv));
-        tv <- !tv;
+        etv <- Infer[Type]("valTp");
+        _ <- ofT(v, etv);
+        tv <- !etv;
         _ <- sub(tv, u)) yield ()
       case MethodDecl(l, ArrowType(s, u)) => for(
         MethodDef(_, Method(\\(x, b))) <- exactlyOne(args.defs.find(d => d.l===l), "uninitialized method for label " + l);
-        tb <- Infer[Type]("bodyTp").toMetaVar(MetaType);
-        _ <- assume(x, s)(ofT(b, Check(tb)));
-        tb <- !tb;
+        etb <- Infer[Type]("bodyTp");
+        _ <- assume(x, s)(ofT(b, etb));
+        tb <- !etb;
         _ <- sub(tb, u)) yield ()
     }
   }
@@ -121,9 +123,9 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
   def mem(tm: Term, d: Dcl): TyperMonad[Unit] = {
     debug("mem? " + tm + " : " + d)
     val r = for(
-      etp <- Infer[Type]("memObjTp");
-      _ <- ofT(tm, etp);
-      tp <- !etp;
+      tp <- Infer[Type]("memObjTp").toMetaVar(MetaType);
+      _ <- ofT(tm, Check(tp));
+      tp <- !tp;
       z <- freshName("z");
       ds <- expand(z, tp);
       _ <- debug("expanded to " + ds);
@@ -238,7 +240,8 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
 }
 
 trait DotTyperSyntax extends MetaVariablesNominal with DotSyntax {
-  implicit object MetaType extends MetaVarBuilder[Type, MetaType]("metaTp") {
+  // TODO: is there a point in making it implicit?
+  object MetaType extends MetaVarBuilder[Type, MetaType]("metaTp") {
     def apply(n: String) = new MetaType(n)
   }
   class MetaType(override val name: String) extends Type with MetaVar[Type]
