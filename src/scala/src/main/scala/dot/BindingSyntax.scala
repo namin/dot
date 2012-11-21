@@ -84,7 +84,7 @@ trait NominalBindingSyntax extends AbstractBindingSyntax with Equalities {
     def apply(s: String) = new Name(s)
   }
 
-  // represents a binder, friendlyName is only used for toString
+  // represents a binder
   class Name(friendlyName: String) extends Nominal[Name] with Equality[Name] {
     def \\[T : ContainsBinders](body: T): \\[T] = new \\(this, body)
 
@@ -101,6 +101,7 @@ trait NominalBindingSyntax extends AbstractBindingSyntax with Equalities {
 
     private val id: Int = {val r = Name.nextId; Name.nextId +=1; r }
     override def toString = friendlyName + "$" + id
+    def pp = friendlyName
   }
 
   object \\ extends ScopedCompanion {
