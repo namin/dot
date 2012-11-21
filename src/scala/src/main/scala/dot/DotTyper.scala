@@ -14,11 +14,11 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
   import Members._
   import TyperMonad._
 
-  def typecheck(tm: Term): Result[Type] = {
+  def typecheck(tm: Term, env: Option[Env] = None): Result[Type] = {
     val r = (for(
       ein <- Infer[Type]("in");
       _ <- ofT(tm, ein);
-      in <- !ein) yield in).findAll
+      in <- !ein) yield in).findAll(env)
     assert(r.length==1, "typecheck result is not unique: "+r.map(_.map(_.pp)).mkString(", "))
     r.head
   }
