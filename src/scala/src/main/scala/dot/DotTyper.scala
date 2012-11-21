@@ -26,26 +26,26 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     debug("type of " + tm + ":" + pt)
     tm match {
       case Var(x) => for(
-	r <- lookup(x);
-	_ <- pt := r) yield ()
+        r <- lookup(x);
+        _ <- pt := r) yield ()
       case Sel(o, l) => for(
-	tp <- memValue(o, l);
-	_ <- pt := tp) yield ()
+        tp <- memValue(o, l);
+        _ <- pt := tp) yield ()
       case Msel(o, m, a) => for(
-	ArrowType(s, u) <- memMethod(o, m);
-	_ <- pt := u;
-	ta <- Infer[Type]("argTp");
-	_ <- ofT(a, ta);
-	ta <- !ta;
-	_ <- sub(ta, s)) yield ()
+        ArrowType(s, u) <- memMethod(o, m);
+        _ <- pt := u;
+        ta <- Infer[Type]("argTp");
+        _ <- ofT(a, ta);
+        ta <- !ta;
+        _ <- sub(ta, s)) yield ()
       case New(tc, \\(y, (args, b))) => for(
-	_ <- wfe(tc);
-	ds <- expand(y, tc);
-	_ <- assume(y, tc){for(
-	  _ <- wfCtorMems(ds, args);
-	  _ <- ofT(b, pt);
-	  tp <- !pt;
-	  if tp fresh(y)) yield ()}) yield ()
+        _ <- wfe(tc);
+        ds <- expand(y, tc);
+        _ <- assume(y, tc){for(
+          _ <- wfCtorMems(ds, args);
+          _ <- ofT(b, pt);
+          tp <- !pt;
+          if tp fresh(y)) yield ()}) yield ()
     }
   }
 
@@ -57,28 +57,28 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     case Decls(ds) => forall(ds) {
       case TypeDecl(l, TypeBounds(s, u)) => sub(s, u)
       case ValueDecl(l, u) => for(
-	ValueDef(_, v) <- exactlyOne(args.defs.find(d => d.l===l), "uninitialized value for label " + l);
-	tv <- Infer[Type]("valTp").toMetaVar(MetaType);
-	_ <- ofT(v, Check(tv));
-	tv <- !tv;
-	_ <- sub(tv, u)) yield ()
+        ValueDef(_, v) <- exactlyOne(args.defs.find(d => d.l===l), "uninitialized value for label " + l);
+        tv <- Infer[Type]("valTp").toMetaVar(MetaType);
+        _ <- ofT(v, Check(tv));
+        tv <- !tv;
+        _ <- sub(tv, u)) yield ()
       case MethodDecl(l, ArrowType(s, u)) => for(
-	MethodDef(_, Method(\\(x, b))) <- exactlyOne(args.defs.find(d => d.l===l), "uninitialized method for label " + l);
-	tb <- Infer[Type]("bodyTp").toMetaVar(MetaType);
-	_ <- assume(x, s)(ofT(b, Check(tb)));
-	tb <- !tb;
-	_ <- sub(tb, u)) yield ()
+        MethodDef(_, Method(\\(x, b))) <- exactlyOne(args.defs.find(d => d.l===l), "uninitialized method for label " + l);
+        tb <- Infer[Type]("bodyTp").toMetaVar(MetaType);
+        _ <- assume(x, s)(ofT(b, Check(tb)));
+        tb <- !tb;
+        _ <- sub(tb, u)) yield ()
     }
   }
 
   def mergeDecl[L <: Level, E <: Entity](funlo: (Type, Type) => Type, funhi: (Type, Type) => Type)(
     d1: Decl[L,E], d2: Decl[L,E]): Dcl = (d1, d2) match {
       case (TypeDecl(l1, TypeBounds(s1, u1)), TypeDecl(l2, TypeBounds(s2, u2))) if l1===l2 =>
-	TypeDecl(l1, TypeBounds(funlo(s1, s2), funhi(u1, u2)))
+        TypeDecl(l1, TypeBounds(funlo(s1, s2), funhi(u1, u2)))
       case (MethodDecl(l1, ArrowType(s1, u1)), MethodDecl(l2, ArrowType(s2, u2))) if l1===l2 =>
-	MethodDecl(l1, ArrowType(funlo(s1, s2), funhi(u1, u2)))
+        MethodDecl(l1, ArrowType(funlo(s1, s2), funhi(u1, u2)))
       case (ValueDecl(l1, u1), ValueDecl(l2, u2)) if l1===l2 =>
-	ValueDecl(l1, funhi(u1, u2))
+        ValueDecl(l1, funhi(u1, u2))
     }
   def intersectDecl = mergeDecl(Union, Intersect) _
   def unionDecl = mergeDecl(Intersect, Union) _
@@ -133,16 +133,16 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     if (tm.isPath) {
       debug("mem-path");
       for ((z, di) <- r;
-	   _ <- check(entityIsSubstable(di.cls).subst(z, tm)===d.cls)) yield ()
+           _ <- check(entityIsSubstable(di.cls).subst(z, tm)===d.cls)) yield ()
     } else {
       debug("mem-term");
       (for ((z, di) <- r;
-	    if entityHasBinders(di.cls).fresh(z);
+            if entityHasBinders(di.cls).fresh(z);
             _ <- debug("mem-term restriction ok");
-	    _ <- check(di.cls===d.cls)) yield ()) ++
+            _ <- check(di.cls===d.cls)) yield ()) ++
       (for ((z, di) <- r;
-	    if !entityHasBinders(di.cls).fresh(z);
-	    _ <- fail[Unit]("mem-term restriction fails for " + z + " in " + di)) yield ())
+            if !entityHasBinders(di.cls).fresh(z);
+            _ <- fail[Unit]("mem-term restriction fails for " + z + " in " + di)) yield ())
     }
   }
 
@@ -150,20 +150,20 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     debug("expand_" + x + " of " + tp)
     tp match {
       case Refine(parent, \\(z, ds)) =>
-	for (dsp <- expand(x, parent))
-	yield meet(dsp, ds swap(z, x))
+        for (dsp <- expand(x, parent))
+        yield meet(dsp, ds swap(z, x))
       case Intersect(a, b) =>
-	for (dsa <- expand(x, a);
-	     dsb <- expand(x, b))
-	yield meet(dsa, dsb)
+        for (dsa <- expand(x, a);
+             dsb <- expand(x, b))
+        yield meet(dsa, dsb)
       case Union(a, b) =>
-	for (dsa <- expand(x, a);
-	     dsb <- expand(x, b))
-	yield join(dsa, dsb)
+        for (dsa <- expand(x, a);
+             dsb <- expand(x, b))
+        yield join(dsa, dsb)
       case Tsel(p, l) =>
-	for (TypeBounds(s, u) <- memType(p, l);
-	     dsu <- expand(x, u))
-	yield dsu
+        for (TypeBounds(s, u) <- memType(p, l);
+             dsu <- expand(x, u))
+        yield dsu
       case Top => Decls(List())
       case Bottom => BottomDecls
     }
@@ -183,10 +183,10 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     /*tsel-<:*/ (for(Tsel(p, l) <- tp1; TypeBounds(s, u) <- memType(p, l); _ <- sub(s, u); _ <- sub(u, tp2)) yield()),
     /*rfn-<:*/  (for(Refine(parent, \\(z, ds)) <- tp1; _ <- wfe(tp1); _ <- sub(parent, tp2))                 yield()),
     /*<:-rfn*/  (for(Refine(parent, \\(z, ds)) <- tp2; _ <- wfe(tp2); _ <- sub(tp1, parent);
-		     ds1 <- expand(z, tp1);
-		     _ <- assume(z, tp1){
-		       forall(ds.decls){d2 => for(d1 <- exactlyOne(ds1.findByLabel(d2.l));
-						  _ <- subDecl(d1, d2)) yield()}})                           yield())),
+                     ds1 <- expand(z, tp1);
+                     _ <- assume(z, tp1){
+                       forall(ds.decls){d2 => for(d1 <- exactlyOne(ds1.findByLabel(d2.l));
+                                                  _ <- subDecl(d1, d2)) yield()}})                           yield())),
     err=tp1 + " is not a subtype of " + tp2)
 
   def subDecl[L <: Level, E <: Entity](d1: Decl[L,E], d2: Decl[L,E]): TyperMonad[Unit] = (d1, d2) match {
@@ -203,22 +203,22 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     case Bottom => ()
     case Refine(parent, \\(z, Decls(ds))) =>
       for (_ <- wf(parent);
-	   _ <- assume(z, tp){forall(ds) { wfDecl(_) }})
+           _ <- assume(z, tp){forall(ds) { wfDecl(_) }})
       yield ()
     case Intersect(a, b) =>
       for (_ <- wf(a);
-	   _ <- wf(b))
+           _ <- wf(b))
       yield ()
     case Union(a, b) =>
       for (_ <- wf(a);
-	   _ <- wf(b))
+           _ <- wf(b))
       yield ()
     case Tsel(p, l) => some(List(
       (for (TypeBounds(Bottom, u) <- memType(p, l))
        yield ()),
       (for (TypeBounds(s, u) <- memType(p, l);
-	    _ <- wf(s);
-	    _ <- wf(u))
+            _ <- wf(s);
+            _ <- wf(u))
        yield ())))
   }
 

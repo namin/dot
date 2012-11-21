@@ -14,21 +14,21 @@ trait LambdaTyper extends StandardTyperMonad with LambdaTyperSyntax with LambdaN
     debug("type of " + tm + ":" + pt)
     tm match {
       case Var(x) => for(
-	r <- lookup(x);
-	_ <- pt := r) yield ()
+        r <- lookup(x);
+        _ <- pt := r) yield ()
       case App(fun, arg) => for(
-	ty1 <- Infer[Type]("ty1").toMetaVar(MetaType);
-	ty2 <- Infer[Type]("ty2").toMetaVar(MetaType);
-	_ <- ofT(fun, Check(Fun(ty1, ty2)));
-	ty1 <- !ty1;
-	ty2 <- !ty2;
-	_ <- ofT(arg, Check(ty1));
+        ty1 <- Infer[Type]("ty1").toMetaVar(MetaType);
+        ty2 <- Infer[Type]("ty2").toMetaVar(MetaType);
+        _ <- ofT(fun, Check(Fun(ty1, ty2)));
+        ty1 <- !ty1;
+        ty2 <- !ty2;
+        _ <- ofT(arg, Check(ty1));
         _ <- pt := ty2) yield ()
       case Lam(ty1, \\(x, b)) => for(
-	ety2 <- Infer[Type]("ty2");
-	_ <- assume(x, ty1)(ofT(b, ety2));
-	ty2 <- !ety2;
-	_ <- pt := Fun(ty1, ty2)) yield ()
+        ety2 <- Infer[Type]("ty2");
+        _ <- assume(x, ty1)(ofT(b, ety2));
+        ty2 <- !ety2;
+        _ <- pt := Fun(ty1, ty2)) yield ()
     }
   }
   def typecheck(tm: Term): Result[Type] = (for(

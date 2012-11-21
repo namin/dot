@@ -19,16 +19,16 @@ trait LambdaNominalSyntax extends LambdaSyntax with NominalBindingSyntax { self:
   implicit val termHasBinders: ContainsBinders[Term] = (tm: Term) => new Nominal[Term] {
     def swap(a: Name, b: Name): Term = {
       tm match {
-	case Var(n) => Var(n swap(a, b))
-	case App(fun, arg) => App(fun swap(a, b), arg swap(a, b))
-	case Lam(ty, abs) => Lam(ty, abs swap(a, b))
+        case Var(n) => Var(n swap(a, b))
+        case App(fun, arg) => App(fun swap(a, b), arg swap(a, b))
+        case Lam(ty, abs) => Lam(ty, abs swap(a, b))
       }
     }
     def fresh(a: Name): Boolean = {
       tm match {
-	case Var(n) => n fresh(a)
-	case App(fun, arg) => fun.fresh(a) && arg.fresh(a)
-	case Lam(ty, abs) => abs fresh(a)
+        case Var(n) => n fresh(a)
+        case App(fun, arg) => fun.fresh(a) && arg.fresh(a)
+        case Lam(ty, abs) => abs fresh(a)
       }
     }
   }

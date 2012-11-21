@@ -58,11 +58,11 @@ trait TyperMonad extends AbstractBindingSyntax with Debug {
     def some[A](ms: List[TyperMonad[A]], err: String = ""): TyperMonad[A] = ms match {
       case Nil => fail(err)
       case m::ms =>  TyperMonad{x =>
-	val mx = m(x)
-	mx mapStRes {
-	  case (_, r:TyperSuccess[A]) => mx
-	  case (_, r:TyperFailure[A]) => some(ms, err)(x)
-	}
+        val mx = m(x)
+        mx mapStRes {
+          case (_, r:TyperSuccess[A]) => mx
+          case (_, r:TyperFailure[A]) => some(ms, err)(x)
+        }
       }
     }
   }
@@ -88,7 +88,7 @@ trait TyperMonad extends AbstractBindingSyntax with Debug {
 
     // chains this computation with the next one
     def >>=[B](next: A => TyperMonad[B]): TyperMonad[B] = TyperMonad{x => this(x) chainRes((st, r) => next(r)(x.state = st), To(_, _))}
-	  
+
     def ++(alt: => TyperMonad[A]): TyperMonad[A] = TyperMonad{x => this(x) ++ alt(x) }
     
     def findAll = this(From(initState, initEnv)).tos map {case (st, r) => r} toList

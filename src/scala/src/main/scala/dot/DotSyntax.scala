@@ -70,9 +70,9 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
     case object BottomDecls extends Dcls {
       val s = Types.Top; val u = Types.Bottom
       override def findByLabel[L <: Level](l: Label[L]) = Some(l match {
-	case (l: TypeLabel) => TypeDecl(l, TypeBounds(s, u))
-	case (l: MethodLabel) => MethodDecl(l, ArrowType(s, u))
-	case (l: ValueLabel) => ValueDecl(l, u)
+        case (l: TypeLabel) => TypeDecl(l, TypeBounds(s, u))
+        case (l: MethodLabel) => MethodDecl(l, ArrowType(s, u))
+        case (l: ValueLabel) => ValueDecl(l, u)
       })
     }
 
