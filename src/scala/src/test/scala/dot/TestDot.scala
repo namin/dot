@@ -63,4 +63,16 @@ class TestDot extends Suite with DotParsing with DotTyper {
       id.apply(root.unit(dummy))
     """
   )}
+
+  def testFunctions() = expect(Top){check(
+    """
+      val sugar = new ⊤ { s ⇒
+        !Arrow: ⊥..⊤ { f ⇒
+           apply: ⊥ → ⊤
+        }
+      }
+      val id = new sugar.!Arrow { f => apply: ⊤ → ⊤ } (apply(x)=x)
+      id.apply(id)
+    """
+  )}
 }

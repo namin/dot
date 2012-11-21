@@ -82,8 +82,22 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
       case (ValueDecl(l1, u1), ValueDecl(l2, u2)) if l1===l2 =>
         ValueDecl(l1, funhi(u1, u2))
     }
-  def intersectDecl = mergeDecl(Union, Intersect) _
-  def unionDecl = mergeDecl(Intersect, Union) _
+  def intersect(a: Type, b: Type): Type = (a, b) match {
+    case (Bottom, other) => Bottom
+    case (other, Bottom) => Bottom
+    case (Top, other) => other
+    case (other, Top) => other
+    case (a, b) => Union(a, b)
+  }
+  def union(a: Type, b: Type): Type = (a, b) match {
+    case (Bottom, other) => other
+    case (other, Bottom) => other
+    case (Top, other) => Top
+    case (other, Top) => Top
+    case (a, b) => Union(a, b)
+  }
+  def intersectDecl = mergeDecl(union, intersect) _
+  def unionDecl = mergeDecl(intersect, union) _
   //  intersection of declaration sets
   def meet(ds1: Dcls, ds2: Dcls): Dcls = (ds1, ds2) match {
     case (BottomDecls, _) => BottomDecls
