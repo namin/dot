@@ -30,7 +30,7 @@ class TestDotTyper extends Suite with DotTyper {
 
   def testTC2BadBounds() =
     expect {
-      TyperFailure("Top is not a subtype of Bottom")
+      TyperFailure("⊤ is not a subtype of ⊥")
     } {
       typecheck(New(Refine(Top, z\\Decls(List(TypeDecl(AbstractTypeLabel("L"), TypeBounds(Top, Bottom))))), x\\(nodefs, Var(x))))
     }

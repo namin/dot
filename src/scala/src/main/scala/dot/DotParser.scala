@@ -5,7 +5,7 @@ import scala.util.parsing.combinator.lexical.StdLexical
 import scala.collection.immutable._
 import util.parsing.combinator.{PackratParsers, ImplicitConversions}
 
-trait DotParsing extends StdTokenParsers with BindingParsers with PackratParsers with DotNominalSyntax with ImplicitConversions with Debug { theParser =>
+trait DotParsing extends StdTokenParsers with BindingParsers with PackratParsers with DotNominalSyntax with ImplicitConversions with Debug with DotPrettyPrint { theParser =>
   type Tokens = StdLexical; val lexical = new StdLexical
   lexical.delimiters ++= List("=", ";", ".", "(", ")", "{", "}", "=>", "⇒", ":", "..", "->", "→", "!", "&", "∧", "/\\", "|", "∨", "\\/", "⊥", "⊤")
   lexical.reserved ++= List("val", "new", "Top", "Bottom", "Bot")
@@ -86,7 +86,7 @@ trait DotParsing extends StdTokenParsers with BindingParsers with PackratParsers
         only[List[Dcl]](repsep(p.dcl, opt(";")), uniqLabels, _ => "duplicate declaration") ^^ Decls }} <~ "}") ^^
       { case ty~ds => Refine(ty, ds) }) ("refinement type")
     lazy val type_selection: Parser[Type] = l(
-      only[Term](term, _.isPath, "expected path, not arbitrary term like "+_) ~ ("." ~> typeLabel) ^^ Tsel
+      only[Term](term, _.isPath, "expected path, not arbitrary term like "+_.pp) ~ ("." ~> typeLabel) ^^ Tsel
     ) ("type selection")
     lazy val typ1: P[Type] =
       refinement(typ1) |
@@ -97,7 +97,7 @@ trait DotParsing extends StdTokenParsers with BindingParsers with PackratParsers
     lazy val typ2: P[Type] = intersection | typ1
     lazy val typ3: P[Type] = union | typ2
     lazy val typ: P[Type] = refinement(typ3) | typ3
-    lazy val concrete_typ: P[Type] = only[Type](typ, _.isConcrete, "expected concrete type, unlike "+_)
+    lazy val concrete_typ: P[Type] = only[Type](typ, _.isConcrete, "expected concrete type, unlike "+_.pp)
   }
   object Parser extends BindingParser(HashMap.empty)
 }

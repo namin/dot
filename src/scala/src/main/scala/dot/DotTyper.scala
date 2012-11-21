@@ -1,6 +1,6 @@
 package dot
 
-trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyntax with DotSubstitution {
+trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyntax with DotSubstitution with DotPrettyPrint {
   override type State = Int
   override val initState = 0
   def tag: TyperMonad[Int] = TyperMonad{from =>
@@ -19,13 +19,13 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
       ein <- Infer[Type]("in");
       _ <- ofT(tm, ein);
       in <- !ein) yield in).findAll
-    assert(r.length==1, "typecheck result is not unique: "+r)
+    assert(r.length==1, "typecheck result is not unique: "+r.map(_.map(_.pp)).mkString(", "))
     r.head
   }
 
   def ofT(tm: Term, pt: Expected[Type]): TyperMonad[Unit] = {
     debug("-------------------------")
-    debug("type of " + tm + ":" + pt)
+    debug("type of " + tm.pp + ":" + pt)
     tm match {
       case Var(x) => for(
         r <- lookup(x);
@@ -161,7 +161,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
   }
 
   def expand(x: Name, tp: Type): TyperMonad[Dcls] = {
-    debug("expand_" + x + " of " + tp)
+    debug("expand_" + x + " of " + tp.pp)
     tp match {
       case Refine(parent, \\(z, ds)) =>
         for (dsp <- expand(x, parent))
@@ -201,7 +201,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
                      _ <- assume(z, tp1){
                        forall(ds.decls){d2 => for(d1 <- exactlyOne(ds1.findByLabel(d2.l));
                                                   _ <- subDecl(d1, d2)) yield()}})                           yield())),
-    err=tp1 + " is not a subtype of " + tp2)
+    err=tp1.pp + " is not a subtype of " + tp2.pp)
 
   def subDecl[L <: Level, E <: Entity](d1: Decl[L,E], d2: Decl[L,E]): TyperMonad[Unit] = (d1, d2) match {
     case (TypeDecl(l1, TypeBounds(s1, u1)), TypeDecl(l2, TypeBounds(s2, u2))) if l1===l2 =>

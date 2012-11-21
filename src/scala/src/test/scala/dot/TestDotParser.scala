@@ -30,7 +30,7 @@ class TestDotParser extends Suite with DotParsing {
   def testNew4() = ok(Parser.term)("val x = new Top(l=x); x")
   def testNew5() = ok(Parser.term)("val x = new Top(l=x; m(x)=x); x")
   def testNew6() = ok(Parser.term)("val x = new Top(l=x; m(x)=(val y = new Top; x)); x")
-  def testNewBad1() = bad(Parser.term, Some("expected concrete type, unlike Bottom"))("val x = new Bot; x")
+  def testNewBad1() = bad(Parser.term, Some("expected concrete type, unlike ⊥"))("val x = new Bot; x")
 
   def testSel1() = ok(Parser.term)("val x = new Top; x.l")
   def testSel2() = ok(Parser.term)("val x = new Top; x.a.b")
@@ -45,7 +45,7 @@ class TestDotParser extends Suite with DotParsing {
   
   def testConcreteType1() = ok(Parser.concrete_typ)("Top")
   def testConcreteType2() = ok(Parser.concrete_typ)("Top & Top")
-  def testConcreteTypeBad1() = bad(Parser.concrete_typ, Some("expected concrete type, unlike Union(Top,Top)"))("Top | Top")
+  def testConcreteTypeBad1() = bad(Parser.concrete_typ, Some("expected concrete type, unlike ⊤ ∨ ⊤"))("Top | Top")
 
   def testRefine1() = ok(Parser.typ)("Top { z => }")
   def testRefine2() = ok(Parser.typ)(
