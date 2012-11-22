@@ -2,6 +2,8 @@ package dot
 
 import scala.collection.immutable._
 
+import org.kiama.util.REPL
+
 trait DotShell extends DotParsing with DotTyper with DotPrettyPrint { shell =>
   sealed class Line
   case class ValDef(x: String, tpe: Type, args: \\[Members.Defs]) extends Line
@@ -54,9 +56,9 @@ trait DotShell extends DotParsing with DotTyper with DotPrettyPrint { shell =>
         case ValDef(xStr, tpe, \\(x, args)) =>
           parsingEnv = parsingEnv.updated(xStr, x)
           typerEnv = typerEnv.updated(x, tpe)
-          "<<< " + xStr + " : " + tpe.pp
+          "<=== " + xStr + " : " + tpe.pp
         case LineTerm(tm) =>
-          ">>> " + tm.pp + " : " + tp.pp
+          "===> " + tm.pp + " : " + tp.pp
       }
       case TyperFailure(msg) => "type error: " + msg
     }
@@ -68,23 +70,19 @@ trait DotShell extends DotParsing with DotTyper with DotPrettyPrint { shell =>
   }
 }
 
-// A minimal shell for DOT:
-// $ sbt console
+// A minimal shell for DOT.
 //
-// ...
-//
-// scala> dot.sh.exec("val x = new Top")
-// <<< x : ⊤
-//
-// scala> dot.sh.exec("x")
-// >>> x : ⊤
-// 
-// scala> dot.sh.exec("val y = new Top { y => l: Top } (l=x)")
-// <<< y : ⊤ { y ⇒ l: ⊤ }
-// 
-// scala> dot.sh.exec("y")
-// >>> y : ⊤ { y ⇒ l: ⊤ }
-// 
-// scala> dot.sh.exec("y.l")
-// >>> y.l : ⊤
-object sh extends DotShell
+// dot> val x = new Top
+// <=== x : ⊤
+// dot> x
+// ===> x : ⊤
+// dot> val y = new Top { y => l: Top } (l=x)
+// <=== y : ⊤ { y ⇒ l: ⊤ }
+// dot> y
+// ===> y : ⊤ { y ⇒ l: ⊤ }
+// dot> y.l
+// ===> y.l : ⊤
+object sh extends DotShell with REPL {
+  override def prompt() = "dot> "
+  override def processline(line: String): Unit = exec(line)
+}
