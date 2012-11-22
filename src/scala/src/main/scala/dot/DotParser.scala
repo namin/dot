@@ -4,6 +4,7 @@ import scala.util.parsing.combinator.syntactical.StdTokenParsers
 import scala.util.parsing.combinator.lexical.StdLexical
 import scala.collection.immutable._
 import util.parsing.combinator.{PackratParsers, ImplicitConversions}
+import scala.util.parsing.input.Positional
 
 trait DotParsing extends StdTokenParsers with BindingParsers with PackratParsers with DotNominalSyntax with ImplicitConversions with Debug with DotPrettyPrint { theParser =>
   type Tokens = StdLexical; val lexical = new StdLexical
@@ -16,7 +17,7 @@ trait DotParsing extends StdTokenParsers with BindingParsers with PackratParsers
   def debugParser(msg: String) { if (debugParser) super.debug(msg) }
 
   private var indent = ""
-  def l[T](p: => Parser[T])(name: String): P[T] = Parser{ in =>
+  def l[T <: Positional](p: => Parser[T])(name: String): P[T] = positioned(Parser{ in =>
     debugParser(indent + "trying " + name)
     val oldIndent = indent
     indent += " "
@@ -24,7 +25,7 @@ trait DotParsing extends StdTokenParsers with BindingParsers with PackratParsers
     indent = oldIndent
     debugParser(indent + name + " --> " + r)
     r
-  }
+  })
 
   import Terms._
   import Types._

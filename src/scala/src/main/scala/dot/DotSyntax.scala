@@ -1,6 +1,8 @@
 package dot
 
 trait DotSyntax extends AbstractBindingSyntax { syntax =>
+  import scala.util.parsing.input.Positional
+
   sealed trait Level {
     type Classifies <: Level
   }
@@ -14,7 +16,7 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
     trait Method extends Level { type Classifies = Nothing }
   }  
 
-  sealed abstract class Label[+T <: Level](val name: String)
+  sealed abstract class Label[+T <: Level](val name: String) extends Positional
   sealed abstract class TypeLabel(name: String, val isConcrete: Boolean) extends Label[Levels.Type](name)
   case class ClassLabel(override val name: String) extends TypeLabel(name, true)
   case class AbstractTypeLabel(override val name: String) extends TypeLabel(name, false)
@@ -24,7 +26,7 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
   case class ValueLabel(override val name: String) extends Label[Levels.Term](name)
   case class MethodLabel(override val name: String) extends Label[Levels.Method](name)
 
-  sealed trait Entity {
+  sealed trait Entity extends Positional {
     type Level <: syntax.Level
   }
 
@@ -55,12 +57,12 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
 
   object Members {
     type Dcl = Decl[Level, Entity]
-    sealed abstract class DeclOrDef[+L <: Level](val l: Label[L])
+    sealed abstract class DeclOrDef[+L <: Level](val l: Label[L]) extends Positional
     sealed abstract class Decl[+L <: Level, +E <: Entity](override val l: Label[L], val cls: E) extends DeclOrDef[L](l)
     case class TypeDecl(override val l: TypeLabel, override val cls: TypeBounds) extends Decl(l, cls)
     case class ValueDecl(override val l: ValueLabel, override val cls: Type) extends Decl(l, cls)
     case class MethodDecl(override val l: MethodLabel, override val cls: ArrowType) extends Decl(l, cls)
-    abstract class Dcls {
+    abstract class Dcls extends Positional {
       def findByLabel[L <: Level](l: Label[L]): Option[Dcl]
     }
     case class Decls(decls: List[Dcl]) extends Dcls {
@@ -80,7 +82,7 @@ trait DotSyntax extends AbstractBindingSyntax { syntax =>
     sealed abstract class Def[+L <: Level, +E <: Entity](override val l: Label[L], val rhs: E) extends DeclOrDef[L](l)
     case class ValueDef(override val l: ValueLabel, override val rhs: Terms.Value) extends Def(l, rhs)
     case class MethodDef(override val l: MethodLabel, override val rhs: Method) extends Def(l, rhs)
-    case class Defs(defs: List[Defn]) {
+    case class Defs(defs: List[Defn]) extends Positional {
       assert(uniqLabels(defs))
     }
 
@@ -131,10 +133,10 @@ trait DotNominalSyntax extends DotSyntax with NominalBindingSyntax { self: DotSy
   implicit val termHasBinders: ContainsBinders[Term] = (tm: Term) => new Nominal[Term] {
     import Terms._
     def swap(a: Name, b: Name): Term = tm match {
-      case Var(n) => Var(n swap(a, b))
-      case Sel(obj, l) => Sel(obj swap(a, b), l swap(a, b))
-      case Msel(obj, m, arg) => Msel(obj swap(a, b), m swap(a, b), arg swap(a, b))
-      case New(tpe, args_scope) => New(tpe swap(a, b), args_scope swap(a, b))
+      case Var(n) => Var(n swap(a, b)).setPos(tm.pos)
+      case Sel(obj, l) => Sel(obj swap(a, b), l swap(a, b)).setPos(tm.pos)
+      case Msel(obj, m, arg) => Msel(obj swap(a, b), m swap(a, b), arg swap(a, b)).setPos(tm.pos)
+      case New(tpe, args_scope) => New(tpe swap(a, b), args_scope swap(a, b)).setPos(tm.pos)
     }
     def fresh(a: Name): Boolean = tm match {
       case Var(n) => n fresh(a)
@@ -147,12 +149,12 @@ trait DotNominalSyntax extends DotSyntax with NominalBindingSyntax { self: DotSy
   implicit val typeHasBinders: ContainsBinders[Type] = (tp: Type) => new Nominal[Type] {
     import Types._
     def swap(a: Name, b: Name): Type = tp match {
-      case Tsel(obj, l) => Tsel(obj swap(a, b), l swap(a, b))
-      case Refine(parent, decls) => Refine(parent swap(a, b), decls swap(a, b))
-      case Intersect(tp1, tp2) => Intersect(tp1 swap(a, b), tp2 swap(a, b))
-      case Union(tp1, tp2) => Union(tp1 swap(a, b), tp2 swap(a, b))
-      case Top => Top
-      case Bottom => Bottom
+      case Tsel(obj, l) => Tsel(obj swap(a, b), l swap(a, b)).setPos(tp.pos)
+      case Refine(parent, decls) => Refine(parent swap(a, b), decls swap(a, b)).setPos(tp.pos)
+      case Intersect(tp1, tp2) => Intersect(tp1 swap(a, b), tp2 swap(a, b)).setPos(tp.pos)
+      case Union(tp1, tp2) => Union(tp1 swap(a, b), tp2 swap(a, b)).setPos(tp.pos)
+      case Top => Top.setPos(tp.pos)
+      case Bottom => Bottom.setPos(tp.pos)
     }
     def fresh(a: Name): Boolean = tp match {
       case Tsel(obj, l) => obj.fresh(a) && l.fresh(a)
@@ -166,7 +168,7 @@ trait DotNominalSyntax extends DotSyntax with NominalBindingSyntax { self: DotSy
 
   implicit val typeBoundsHasBinders: ContainsBinders[TypeBounds] = (k: TypeBounds) => new Nominal[TypeBounds] {
     def swap(a: Name, b: Name): TypeBounds = k match {
-      case TypeBounds(lo, hi) => TypeBounds(lo swap(a, b), hi swap(a, b))
+      case TypeBounds(lo, hi) => TypeBounds(lo swap(a, b), hi swap(a, b)).setPos(k.pos)
     }
     def fresh(a: Name): Boolean = k match {
       case TypeBounds(lo, hi) => lo.fresh(a) && hi.fresh(a)
@@ -175,7 +177,7 @@ trait DotNominalSyntax extends DotSyntax with NominalBindingSyntax { self: DotSy
 
   implicit val arrowTypeHasBinders: ContainsBinders[ArrowType] = (k: ArrowType) => new Nominal[ArrowType] {
     def swap(a: Name, b: Name): ArrowType = k match {
-      case ArrowType(lo, hi) => ArrowType(lo swap(a, b), hi swap(a, b))
+      case ArrowType(lo, hi) => ArrowType(lo swap(a, b), hi swap(a, b)).setPos(k.pos)
     }
     def fresh(a: Name): Boolean = k match {
       case ArrowType(lo, hi) => lo.fresh(a) && hi.fresh(a)
@@ -185,9 +187,9 @@ trait DotNominalSyntax extends DotSyntax with NominalBindingSyntax { self: DotSy
   implicit def memDeclHasBinders: ContainsBinders[Members.Dcl] = (mem: Members.Dcl) => new Nominal[Members.Dcl] {
     import Members._
     def swap(a: Name, b: Name): Members.Dcl = mem match {
-      case TypeDecl(l, cls) => TypeDecl(l swap(a, b), cls swap(a, b))
-      case ValueDecl(l, cls) => ValueDecl(l swap(a, b), cls swap(a, b))
-      case MethodDecl(l, cls) => MethodDecl(l swap(a, b), cls swap(a, b))
+      case TypeDecl(l, cls) => TypeDecl(l swap(a, b), cls swap(a, b)).setPos(mem.pos)
+      case ValueDecl(l, cls) => ValueDecl(l swap(a, b), cls swap(a, b)).setPos(mem.pos)
+      case MethodDecl(l, cls) => MethodDecl(l swap(a, b), cls swap(a, b)).setPos(mem.pos)
     }
     def fresh(a: Name): Boolean = mem match {
       case TypeDecl(l, cls) => l.fresh(a) && cls.fresh(a)
@@ -199,7 +201,7 @@ trait DotNominalSyntax extends DotSyntax with NominalBindingSyntax { self: DotSy
   implicit def valueHasBinders: ContainsBinders[Terms.Value] = (tm: Terms.Value) => new Nominal[Terms.Value] {
     import Terms._
     def swap(a: Name, b: Name): Value = tm match {
-      case Var(n) => Var(n swap(a, b))
+      case Var(n) => Var(n swap(a, b)).setPos(tm.pos)
     }
     def fresh(a: Name): Boolean = tm match {
       case Var(n) => n fresh(a)
@@ -208,7 +210,7 @@ trait DotNominalSyntax extends DotSyntax with NominalBindingSyntax { self: DotSy
 
   implicit def methodHasBinders: ContainsBinders[Method] = (method: Method) => new Nominal[Method] {
     def swap(a: Name, b: Name): Method = method match {
-      case Method(body) => Method(body swap(a, b))
+      case Method(body) => Method(body swap(a, b)).setPos(method.pos)
     }
     def fresh(a: Name): Boolean = method match {
       case Method(body) => body fresh(a)
@@ -218,8 +220,8 @@ trait DotNominalSyntax extends DotSyntax with NominalBindingSyntax { self: DotSy
   implicit def memDefHasBinders: ContainsBinders[Members.Defn] = (mem: Members.Defn) => new Nominal[Members.Defn] {
     import Members._
     def swap(a: Name, b: Name): Members.Defn = mem match {
-      case ValueDef(l, rhs) => ValueDef(l swap(a, b), valueHasBinders(rhs) swap(a, b))
-      case MethodDef(l, rhs) => MethodDef(l swap(a, b), rhs swap(a, b))
+      case ValueDef(l, rhs) => ValueDef(l swap(a, b), valueHasBinders(rhs) swap(a, b)).setPos(mem.pos)
+      case MethodDef(l, rhs) => MethodDef(l swap(a, b), rhs swap(a, b)).setPos(mem.pos)
     }
     def fresh(a: Name): Boolean = mem match {
       case ValueDef(l, rhs) => l.fresh(a) && valueHasBinders(rhs).fresh(a)
@@ -277,40 +279,40 @@ trait DotSubstitution extends DotNominalSyntax {
     def subst(from: Name, to: Term): Term = in match {
       case Var(`from`) => to
       case Var(_) => in
-      case Sel(obj, l) => Sel(obj subst(from, to), l)
-      case Msel(obj, m, arg) => Msel(obj subst(from, to), m, arg subst(from, to))
-      case New(tpe, args_scope) => New(tpe subst(from, to), args_scope subst(from, to))
+      case Sel(obj, l) => Sel(obj subst(from, to), l).setPos(in.pos)
+      case Msel(obj, m, arg) => Msel(obj subst(from, to), m, arg subst(from, to)).setPos(in.pos)
+      case New(tpe, args_scope) => New(tpe subst(from, to), args_scope subst(from, to)).setPos(in.pos)
     }
   }
 
   implicit def typeIsSubstable(in: Type): Substable[Term, Type] = new Substable[Term, Type] {
     def subst(from: Name, to: Term): Type = in match {
-      case Tsel(obj, l) => Tsel(obj subst(from, to), l)
-      case Refine(parent, decls) => Refine(parent subst(from, to), decls subst(from, to))
-      case Intersect(a, b) => Intersect(a subst(from, to), b subst(from, to))
-      case Union(a, b) => Union(a subst(from, to), b subst(from, to))
-      case Top => Top
-      case Bottom => Bottom
+      case Tsel(obj, l) => Tsel(obj subst(from, to), l).setPos(in.pos)
+      case Refine(parent, decls) => Refine(parent subst(from, to), decls subst(from, to)).setPos(in.pos)
+      case Intersect(a, b) => Intersect(a subst(from, to), b subst(from, to)).setPos(in.pos)
+      case Union(a, b) => Union(a subst(from, to), b subst(from, to)).setPos(in.pos)
+      case Top => Top.setPos(in.pos)
+      case Bottom => Bottom.setPos(in.pos)
     }
   }
 
   implicit def typeBoundsIsSubstable(in: TypeBounds): Substable[Term, TypeBounds] = new Substable[Term, TypeBounds] {
     def subst(from: Name, to: Term): TypeBounds = in match {
-      case TypeBounds(lo, hi) => TypeBounds(lo subst(from, to), hi subst(from, to))
+      case TypeBounds(lo, hi) => TypeBounds(lo subst(from, to), hi subst(from, to)).setPos(in.pos)
     }
   }
 
   implicit def arrowTypeIsSubstable(in: ArrowType): Substable[Term, ArrowType] = new Substable[Term, ArrowType] {
     def subst(from: Name, to: Term): ArrowType = in match {
-      case ArrowType(lo, hi) => ArrowType(lo subst(from, to), hi subst(from, to))
+      case ArrowType(lo, hi) => ArrowType(lo subst(from, to), hi subst(from, to)).setPos(in.pos)
     }
   }
 
   implicit def memDeclIsSubstable(in: Dcl): Substable[Term, Dcl] = new Substable[Term, Dcl] {
     def subst(from: Name, to: Term): Dcl = in match {
-      case TypeDecl(l, cls) => TypeDecl(l, cls subst(from, to))
-      case ValueDecl(l, cls) => ValueDecl(l, cls subst(from, to))
-      case MethodDecl(l, cls) => MethodDecl(l, cls subst(from, to))
+      case TypeDecl(l, cls) => TypeDecl(l, cls subst(from, to)).setPos(in.pos)
+      case ValueDecl(l, cls) => ValueDecl(l, cls subst(from, to)).setPos(in.pos)
+      case MethodDecl(l, cls) => MethodDecl(l, cls subst(from, to)).setPos(in.pos)
     }
   }
 
@@ -321,26 +323,26 @@ trait DotSubstitution extends DotNominalSyntax {
 
   implicit def methodIsSubstable(in: Method): Substable[Term, Method] = new Substable[Term, Method] {
     def subst(from: Name, to: Term): Method = in match {
-      case Method(body) => Method(body subst(from, to))
+      case Method(body) => Method(body subst(from, to)).setPos(in.pos)
     }
   }
 
   implicit def memDefIsSubstable(in: Defn): Substable[Term, Defn] = new Substable[Term, Defn] {
     def subst(from: Name, to: Term): Defn = in match {
-      case ValueDef(l, rhs) => ValueDef(l, rhs subst(from, to))
-      case MethodDef(l, rhs) => MethodDef(l, rhs subst(from, to))
+      case ValueDef(l, rhs) => ValueDef(l, rhs subst(from, to)).setPos(in.pos)
+      case MethodDef(l, rhs) => MethodDef(l, rhs subst(from, to)).setPos(in.pos)
     }
   }
 
   implicit def declsIsSubstable(in: Decls): Substable[Term, Decls] = new Substable[Term, Decls] {
     def subst(from: Name, to: Term): Decls = in match {
-      case Decls(ds) => Decls(ds subst(from, to))
+      case Decls(ds) => Decls(ds subst(from, to)).setPos(in.pos)
     }
   }
 
   implicit def defsIsSubstable(in: Defs): Substable[Term, Defs] = new Substable[Term, Defs] {
     def subst(from: Name, to: Term): Defs = in match {
-      case Defs(ds) => Defs(ds subst(from, to))
+      case Defs(ds) => Defs(ds subst(from, to)).setPos(in.pos)
     }
   }
 

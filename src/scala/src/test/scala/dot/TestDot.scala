@@ -80,7 +80,11 @@ class TestDot extends Suite with DotParsing with DotTyper {
     """
   )}
 
-  def testLabelMixupError1() = expect("undeclared label ClassLabel(L)")(checkfail(
+  def testLabelMixupError1() = expect(
+"""undeclared ClassLabel(L)
+      val y = new x.!L
+
+                    ^""")(checkfail(
     """
       val x = new ⊤
       val y = new x.!L
@@ -88,7 +92,11 @@ class TestDot extends Suite with DotParsing with DotTyper {
     """
   ))
 
-  def testLabelMixupError2() = expect("undeclared label ValueLabel(a)")(checkfail(
+  def testLabelMixupError2() = expect(
+"""undeclared ValueLabel(a)
+      val y = new x.a.!L
+
+                    ^""")(checkfail(
     """
       val x = new ⊤
       val y = new x.a.!L
@@ -96,7 +104,12 @@ class TestDot extends Suite with DotParsing with DotTyper {
     """
   ))
 
-  def testLabelMixupError3() = expect("undeclared label ValueLabel(a)")(checkfail(
+  def testLabelMixupError3() = expect(
+"""undeclared ValueLabel(a)
+      x.a.b
+
+        ^"""
+)(checkfail(
     """
       val x = new ⊤
       x.a.b
@@ -170,5 +183,26 @@ class TestDot extends Suite with DotParsing with DotTyper {
       )
       id.apply(root.zero(unit).succ(unit).pred(unit).isZero(unit))
     """
+  )}
+
+  def testScopeFresh() = expect(
+"""cannot have type (x.L) of new scope (x.l) path-dependent on x
+    x.l
+
+    ^"""){checkfail(
+    """
+    val x = new Top { x => L: Top..Top; l: x.L }(l=x);
+    x.l
+    """
+  )}
+
+  def testMemTermRestriction() = expect(
+"""mem-term restriction fails for z in l: z.L
+(val x = new Top { x => L: Top..Top; l: x.L }(l=x); x).l
+
+                                                       ^"""){checkfail(
+"""
+(val x = new Top { x => L: Top..Top; l: x.L }(l=x); x).l
+"""
   )}
 }

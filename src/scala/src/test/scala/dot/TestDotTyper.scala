@@ -40,14 +40,14 @@ class TestDotTyper extends Suite with DotTyper {
 
   def testTC_Sel_Bad() =
     expect {
-      TyperFailure("undeclared label ValueLabel(l')")
+      TyperFailure("undeclared ValueLabel(l')")
     } {
       typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Top)))), x\\(Defs(List(ValueDef(ValueLabel("l"), Var(x)))), Sel(Var(x), ValueLabel("l'")))))
     }
 
   def testTC_Sel_BadInit() =
     expect {
-      TyperFailure("uninitialized value for label ValueLabel(l)")
+      TyperFailure("uninitialized value for label l")
     } {
       typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Top)))), x\\(nodefs, Sel(Var(x), ValueLabel("l")))))
     }

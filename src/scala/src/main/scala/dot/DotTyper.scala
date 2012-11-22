@@ -1,5 +1,8 @@
 package dot
 
+import scala.util.parsing.input.Positional
+import scala.util.parsing.input.NoPosition
+
 trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyntax with DotSubstitution with DotPrettyPrint {
   override type State = Int
   override val initState = 0
@@ -7,7 +10,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     from.mapStateTo({state => state + 1}, {state => TyperSuccess(state)})
   }
 
-  def freshName(n: String): TyperMonad[Name] = for (s <- tag) yield (Name(n+"$tag$"+s))
+  def freshName(n: String): TyperMonad[Name] = for (s <- tag) yield (Name(n+(if (debugMode) ("$fresh$"+s) else "")))
 
   import Terms._
   import Types._
@@ -23,6 +26,9 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
     r.head
   }
 
+  def pos(p: Positional, msg: String): String = {
+    msg + (if (p.pos==NoPosition) "" else ("\n"+p.pos.longString))
+  }
   def ofT(tm: Term, pt: Expected[Type]): TyperMonad[Unit] = {
     debug("-------------------------")
     debug("type of " + tm.pp + ":" + pt)
@@ -44,28 +50,32 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
         _ <- wfe(tc);
         ds <- expand(y, tc);
         _ <- assume(y, tc){for(
-          _ <- wfCtorMems(ds, args);
+          _ <- wfCtorMems(tm, ds, args);
           _ <- ofT(b, pt);
           tp <- !pt;
-          if tp fresh(y)) yield ()}) yield ()
+          _ <- some(List(check(tp fresh(y))),
+                    pos(b, "cannot have type (" + tp.pp + ") of new scope ("+ b.pp + ") path-dependent on " + y.pp)))
+          yield ()}) yield ()
     }
   }
 
-  def wfCtorMems(ds: Dcls, args: Defs): TyperMonad[Unit] = ds match {
+  def wfCtorMems(newTerm: Term, ds: Dcls, args: Defs): TyperMonad[Unit] = ds match {
     case BottomDecls =>
-      fail("bottom expansion for constructor type")
+      fail(pos(newTerm, "bottom expansion for constructor type"))
     case Decls(ds) if !args.defs.forall{d1 => ds.exists{d2 => d1.l==d2.l}} =>
-      fail("initialized label is undeclared")
+      fail(pos(newTerm, "some initialized label is undeclared"))
     case Decls(ds) => forall(ds) {
       case TypeDecl(l, TypeBounds(s, u)) => sub(s, u)
       case ValueDecl(l, u) => for(
-        ValueDef(_, v) <- exactlyOne(args.defs.find(d => d.l===l), "uninitialized value for label " + l);
+        ValueDef(_, v) <- exactlyOne(args.defs.find(d => d.l===l),
+                                     pos(l, "uninitialized value for label " + l.name));
         etv <- Infer[Type]("valTp");
         _ <- ofT(v, etv);
         tv <- !etv;
         _ <- sub(tv, u)) yield ()
       case MethodDecl(l, ArrowType(s, u)) => for(
-        MethodDef(_, Method(\\(x, b))) <- exactlyOne(args.defs.find(d => d.l===l), "uninitialized method for label " + l);
+        MethodDef(_, Method(\\(x, b))) <- exactlyOne(args.defs.find(d => d.l===l),
+                                                     pos(l, "uninitialized method for label " + l.name));
         etb <- Infer[Type]("bodyTp");
         _ <- assume(x, s)(ofT(b, etb));
         tb <- !etb;
@@ -143,7 +153,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
       z <- freshName("z");
       ds <- expand(z, tp);
       _ <- debug("expanded to " + ds);
-      di <- exactlyOne(ds.findByLabel(d.l), "undeclared label " + d.l);
+      di <- exactlyOne(ds.findByLabel(d.l), pos(d.l, "undeclared " + d.l));
       _ <- debug("found decl " + di)) yield (z, di)
 
     if (tm.isPath) {
@@ -156,7 +166,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
            _ <- some(List((for (_ <- check(entityHasBinders(di.cls).fresh(z));
                                 _ <- debug("mem-term restriction ok");
                                 _ <- check(di.cls===d.cls)) yield ())),
-                     "mem-term restriction fails for " + z + " in " + di)) yield ()
+                     pos(d.l, "mem-term restriction fails for " + z.pp + " in " + di.pp))) yield ()
     }
   }
 

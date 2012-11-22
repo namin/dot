@@ -1,11 +1,11 @@
 package dot
 
 import scala.collection.immutable._
-
 import org.kiama.util.REPL
+import scala.util.parsing.input.Positional
 
 trait DotShell extends DotParsing with DotTyper with DotPrettyPrint { shell =>
-  sealed class Line
+  sealed class Line extends Positional
   case class ValDef(x: String, tpe: Type, args: \\[Members.Defs]) extends Line
   case class LineTerm(tm: Term) extends Line
   
@@ -19,7 +19,7 @@ trait DotShell extends DotParsing with DotTyper with DotPrettyPrint { shell =>
       "val" ~> ident >> {xStr => bind(success(xStr)) >> {x => "=" ~> "new" ~> (concrete_typ ~
        under(x){p => p.defs <~ opt(";")}) ^^
        {case tyc~args => ValDef(xStr: String, tyc, args)}}}) ("val def")
-    def line: P[Line] = term ^^ LineTerm | valdef
+    def line: P[Line] = l(term ^^ LineTerm) ("line term") | valdef
   }
 
   import Terms._
