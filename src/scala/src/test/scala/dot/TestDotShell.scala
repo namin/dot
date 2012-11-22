@@ -19,4 +19,9 @@ class TestDotShell extends Suite with DotShell { sh =>
       ("val y = new Top { y => l: Top } (l=x)", "<<< y : ⊤ { y ⇒ l: ⊤ }"),
       ("y", ">>> y : ⊤ { y ⇒ l: ⊤ }"),
       ("y.l", ">>> y.l : ⊤")))
+
+  def test2() = ok(List(
+      ("val x = 1", "parse error: [1.9] failure: ``new'' expected but 1 found\n\n" +
+                    "val x = 1\n" +
+                    "        ^")))
 }

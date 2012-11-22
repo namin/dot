@@ -46,7 +46,7 @@ trait DotShell extends DotParsing with DotTyper with DotPrettyPrint { shell =>
   def tc(in: String): String = {
     val line: Line = phrase(new ShellParser(parsingEnv).line)(new lexical.Scanner(in)) match {
       case Success(line, _) => line
-      case r@_ => sys.error("parse error: "+r)
+      case r@_ => return "parse error: " + r
     }
     val r = typecheck(toTerm(line), Some(typerEnv))
     val msg = r match {
