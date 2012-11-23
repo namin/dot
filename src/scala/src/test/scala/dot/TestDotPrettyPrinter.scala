@@ -23,31 +23,29 @@ val x = new ⊤ { z ⇒ L: ⊥ .. ⊤ } ∧
   def test6() = ok("""
 val x = new ⊤ { x ⇒ !L: ⊥ .. ⊤; L: ⊥ .. ⊤ };
 val y = new x.!L;
-val id = new ⊤ { id ⇒
-   apply: ⊤ → ⊤
-} ( apply(x) = x );
-id.apply(y)
+val id = new ⊤ { id ⇒ app: ⊤ → ⊤ } ( app(x) = x );
+id.app(y)
 """)
 
   def test7() = ok(
 """
 val sugar = new ⊤ { s ⇒
-   !Arrow: ⊥ .. ⊤ { f ⇒ apply: ⊥ → ⊤ };
+   !Arrow: ⊥ .. ⊤ { f ⇒ app: ⊥ → ⊤ };
    !Unit: ⊥ .. ⊤
 };
 val unit = new sugar.!Unit;
 val id = new sugar.!Arrow { f ⇒
-   apply: ⊤ → ⊤
-} ( apply(x) = x );
+   app: ⊤ → ⊤
+} ( app(x) = x );
 val error = new sugar.!Arrow { f ⇒
-   apply: ⊤ → ⊥
-} ( apply(x) = error.apply(x) );
+   app: ⊤ → ⊥
+} ( app(x) = error.app(x) );
 val root = new ⊤ { r ⇒
    !Nat2Nat: sugar.!Arrow { f ⇒
-                apply: r.!Nat → r.!Nat
+                app: r.!Nat → r.!Nat
              } ..
              sugar.!Arrow { f ⇒
-                apply: r.!Nat → r.!Nat
+                app: r.!Nat → r.!Nat
              };
    !Boolean: ⊥ .. ⊤ { b ⇒
       ifNat: r.!Nat → r.!Nat2Nat
@@ -64,18 +62,18 @@ val root = new ⊤ { r ⇒
 } (
    false(u) = val ff = new root.!Boolean (
       ifNat(a) = val f = new root.!Nat2Nat (
-         apply(b) = b
+         app(b) = b
       ); f
    ); ff;
    true(u) = val tt = new root.!Boolean (
       ifNat(a) = val f = new root.!Nat2Nat (
-         apply(b) = a
+         app(b) = a
       ); f
    ); tt;
    zero(u) = val zz = new root.!Nat (
       isZero(u) = root.true(u);
       succ(u) = root.successor(zz);
-      pred(u) = error.apply(u)
+      pred(u) = error.app(u)
    ); zz;
    successor(n) = val ss = new root.!Nat (
       isZero(u) = root.false(u);
@@ -83,7 +81,7 @@ val root = new ⊤ { r ⇒
       pred(u) = n
    ); ss
 );
-id.apply(root.zero(unit).succ(unit).pred(unit).isZero(unit))
+id.app(root.zero(unit).succ(unit).pred(unit).isZero(unit))
 """)
 
   def testGrouping1() = ok("val x = new ⊤ { z ⇒ L: ⊤ .. ⊤ ∧ ⊤ ∨ ⊤ }; x")

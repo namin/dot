@@ -13,8 +13,8 @@ trait DotShell extends DotParsing with DotTyper with DotPrettyPrint { shell =>
   var typerEnv: Env = initEnv
   var parsingEnv: Map[String, Name] = HashMap.empty
   
-  override def BindingParser(env: Map[String, Name]): ShellParser = new ShellParser(env)
-  class ShellParser(env: Map[String, Name]) extends BindingParser(env) {
+  override def BindingParser(envArg: Map[String, Name]) = new ShellParser { val env = envArg }
+  trait ShellParser extends BindingParser {
     lazy val valdef: P[ValDef] = l(
       "val" ~> ident >> {xStr => bind(success(xStr)) >> {x => "=" ~> "new" ~> (concrete_typ ~
        under(x){p => p.defs <~ opt(";")}) ^^
@@ -46,7 +46,7 @@ trait DotShell extends DotParsing with DotTyper with DotPrettyPrint { shell =>
   }
 
   def tc(in: String): String = {
-    val line: Line = phrase(new ShellParser(parsingEnv).line)(new lexical.Scanner(in)) match {
+    val line: Line = phrase(BindingParser(parsingEnv).line)(new lexical.Scanner(in)) match {
       case Success(line, _) => line
       case r@_ => return "parse error: " + r
     }
@@ -70,6 +70,11 @@ trait DotShell extends DotParsing with DotTyper with DotPrettyPrint { shell =>
   }
 }
 
+trait DotShellWithSugar extends DotShell with DotSugarFunctions {
+  override def BindingParser(envArg: Map[String, Name]) = new ShellParserWithSugar { val env = envArg }
+  trait ShellParserWithSugar extends ShellParser with DotSugarFunctionsBindingParser
+}
+
 // A minimal shell for DOT.
 //
 // dot> val x = new Top
@@ -82,7 +87,7 @@ trait DotShell extends DotParsing with DotTyper with DotPrettyPrint { shell =>
 // ===> y : ⊤ { y ⇒ l: ⊤ }
 // dot> y.l
 // ===> y.l : ⊤
-object sh extends DotShell with REPL {
+object sh extends DotShellWithSugar with REPL {
   override def prompt() = "dot> "
   override def processline(line: String): Unit = exec(line)
 }

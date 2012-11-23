@@ -7,7 +7,10 @@ import util.parsing.combinator.{PackratParsers, ImplicitConversions}
 import scala.util.parsing.input.Positional
 
 trait DotParsing extends StdTokenParsers with BindingParsers with PackratParsers with DotNominalSyntax with ImplicitConversions with Debug with DotPrettyPrint { theParser =>
-  type Tokens = StdLexical; val lexical = new StdLexical
+  type Tokens = StdLexical; val lexical = new StdLexical {
+    override def token: Parser[Token] = delim | super.token
+  }
+
   lexical.delimiters ++= List("=", ";", ".", "(", ")", "{", "}", "=>", "⇒", ":", "..", "->", "→", "!", "&", "∧", "/\\", "|", "∨", "\\/", "⊥", "⊤")
   lexical.reserved ++= List("val", "new", "Top", "Bottom", "Bot")
 
@@ -31,8 +34,8 @@ trait DotParsing extends StdTokenParsers with BindingParsers with PackratParsers
   import Types._
   import Members._
 
-  def BindingParser(env: Map[String, Name]): BindingParser = new BindingParser(env)
-  class BindingParser(env: Map[String, Name]) extends BindingParserCore(env) {
+  def BindingParser(envArg: Map[String, Name]): BindingParser = new BindingParser { val env = envArg }
+  trait BindingParser extends BindingParserCore {
     def suggest[T](parser: Parser[T], pred: T => Boolean, err: T => String): Parser[T] = Parser{ in =>
      parser(in) filterWithError(pred, err, in)
     }
@@ -61,12 +64,13 @@ trait DotParsing extends StdTokenParsers with BindingParsers with PackratParsers
       "val" ~> bind(ident) >> {x => "=" ~> "new" ~> concrete_typ ~
        under(x){p => p.defs ~ (opt(";") ~> p.term <~ opt(";")) ^^ { case ds~t => (ds,t) }} ^^
        { case tyc~args_scope => New(tyc, args_scope) }}) ("new instance")
-    lazy val term: P[Term] =
-      l(term ~ ("." ~> methodLabel) ~ ("(" ~> term <~ ")") ^^ {case o~m~a => Msel(o, m, a)}) ("method invocation") |
-      l(term ~ ("." ~> valueLabel) ^^ {case t~l => Sel(t, l)}) ("field selection") |
+    lazy val term1: P[Term] =
+      l(term1 ~ ("." ~> methodLabel) ~ ("(" ~> term <~ ")") ^^ {case o~m~a => Msel(o, m, a)}) ("method invocation") |
+      l(term1 ~ ("." ~> valueLabel) ^^ {case t~l => Sel(t, l)}) ("field selection") |
       newInstance |
       value |
       l("(" ~> term <~ ")") ("parenthesized term")
+    def term: P[Term] = term1
 
     lazy val abstractTypeLabel: P[AbstractTypeLabel] =
       l(upperident("abstract type label") ^^ AbstractTypeLabel) ("abstract type label")
@@ -97,8 +101,9 @@ trait DotParsing extends StdTokenParsers with BindingParsers with PackratParsers
       l("(" ~> typ <~ ")") ("parenthesized type")
     lazy val typ2: P[Type] = intersection | typ1
     lazy val typ3: P[Type] = union | typ2
-    lazy val typ: P[Type] = refinement(typ3) | typ3
+    lazy val typ4: P[Type] = refinement(typ) | typ3
+    def typ: P[Type] = typ4
     lazy val concrete_typ: P[Type] = only[Type](typ, _.isConcrete, "expected concrete type, unlike "+_.pp)
   }
-  object Parser extends BindingParser(HashMap.empty)
+  def Parser = BindingParser(HashMap.empty)
 }

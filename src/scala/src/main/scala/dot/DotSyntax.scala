@@ -130,7 +130,7 @@ trait DotNominalSyntax extends DotSyntax with NominalBindingSyntax { self: DotSy
   implicit def valueLabelHasBinders: ContainsBinders[ValueLabel] = AtomicIsNominal[ValueLabel](_)
   implicit def methodLabelHasBinders: ContainsBinders[MethodLabel] = AtomicIsNominal[MethodLabel](_)
 
-  implicit val termHasBinders: ContainsBinders[Term] = (tm: Term) => new Nominal[Term] {
+  implicit def termHasBinders: ContainsBinders[Term] = (tm: Term) => new Nominal[Term] {
     import Terms._
     def swap(a: Name, b: Name): Term = tm match {
       case Var(n) => Var(n swap(a, b)).setPos(tm.pos)

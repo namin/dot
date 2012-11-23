@@ -19,8 +19,8 @@ trait LambdaParsing extends StdTokenParsers with BindingParsers with PackratPars
     val r = p(in)
     r
   }
-  def BindingParser(env: Map[String, Name]): BindingParser = new BindingParser(env)
-  class BindingParser(env: Map[String, Name]) extends BindingParserCore(env) {
+  def BindingParser(envArg: Map[String, Name]): BindingParser = new BindingParser { val env = envArg }
+  trait BindingParser extends BindingParserCore {
     lazy val term1: P[Term] = (
       l(bound(ident) ^^ {case x => Var(x)}) ("var") |
       l("\\" ~> bind(ident) >> {x => ":" ~> ty ~("." ~> under(x)(_.term))} ^^ {case ty~abs => Lam(ty, abs)}) ("lam") |
@@ -32,7 +32,7 @@ trait LambdaParsing extends StdTokenParsers with BindingParsers with PackratPars
       l(ty ~ ("->" ~> ty) ^^ {case ty1~ty2 => Fun(ty1, ty2)}) ("arrow type")) |
       l(("*" | ident) ^^ {case base => T(base)}) ("base type")
   }
-  object Parser extends BindingParser(HashMap.empty)
+  def Parser = BindingParser(HashMap.empty)
 }
 
 @RunWith(classOf[JUnitRunner])
