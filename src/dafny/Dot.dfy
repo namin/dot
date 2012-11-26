@@ -1108,11 +1108,11 @@ predicate E(T: tp, t: tm, k: nat, ctx: context, s: store, ctx_prev: context)
   decreases k;
 {
   k==0 || (
-  forall j:nat :: j<k ==>
+  forall i:nat, j:nat :: i+j<k ==>
   forall ctx', s':store :: Xs(ctx', s', k-1, ctx, s, ctx_prev) && A(k-1, ctx', s') ==>
   forall t', s'':store :: prefix_of(s''.m, s'.m) && mstep(t, s', t', s'', j) && irred(t', s'') ==>
   forall ctx'' :: Xc(ctx'', k, ctx', s'', s') && A(k, ctx'', s'') ==>
-  V(T, t', k-j-1, ctx'', s'')
+  V(T, t', i, ctx'', s'')
   )
 }
 
@@ -1163,4 +1163,61 @@ predicate Xc(ctx': context, k: nat, ctx: context, s: store, s_prev: store)
   var s_todo := map_complement(s.m, s_prev.m, Empty);
   var tp_todo := map_fst(s_todo);
   ctx'.m==build(ctx.m, tp_todo)
+}
+
+predicate R(ctx: context, t: tm, T: tp)
+{
+  forall k: nat ::
+      A(k, Context(Empty), Store(Empty)) &&
+      As(k, ctx, Store(Empty), Context(Empty)) &&
+      E(T, t, k, ctx, Store(Empty), Context(Empty))
+}
+
+ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
+  requires typing(ctx, t, T);
+  ensures R(ctx, t, T);
+  decreases t;
+{
+  assume(R(ctx, t, T)); // TODO
+}
+
+// -----------
+// Type-Safety
+// -----------
+predicate type_safety(t: tm, T: tp)
+{
+  typing(Context(Empty), t, T) ==>
+  forall t', s', n:nat :: mstep(t, Store(Empty), t', s', n) ==>
+  value(t') || step(t', s').Some?
+}
+
+ghost method lemma_E_empty(T: tp, t: tm, k: nat, i: nat, j: nat, t': tm, s'': store, ctx'': context)
+  requires E(T, t, k, Context(Empty), Store(Empty), Context(Empty));
+  requires i+j<k;
+  requires mstep(t, Store(Empty), t', s'', i);
+  requires Ac(k, ctx'', s'', Store(Empty));
+  requires Xc(ctx'', k, Context(Empty), s'', Store(Empty)) && A(k, ctx'', s'');
+  ensures irred(t', s'') ==> V(T, t', j, ctx'', s'');
+{
+  assert Xs(Context(Empty), Store(Empty), k-1, Context(Empty), Store(Empty), Context(Empty));
+  assert A(k-1, Context(Empty), Store(Empty));
+}
+
+ghost method corollary_type_safety(t: tm, T: tp)
+  ensures type_safety(t, T);
+{
+  if (typing(Context(Empty), t, T)) {
+    parallel (t', s', n:nat | mstep(t, Store(Empty), t', s', n))
+      ensures value(t') || step(t', s').Some?;
+    {
+      assert A(n, Context(Empty), Store(Empty));
+      assert As(n, Context(Empty), Store(Empty), Context(Empty));
+      theorem_fundamental_R(Context(Empty), t, T);
+      assert E(T, t, n+1, Context(Empty), Store(Empty), Context(Empty));
+      var ctx' := *;
+      // TODO: get rid of assume
+      assume(Ac(n+1, ctx', s', Store(Empty)) && Xc(ctx', n+1, Context(Empty), s', Store(Empty)) && A(n+1, ctx', s'));
+      lemma_E_empty(T, t, n+1, n, 0, t', s', ctx');
+    }
+  }
 }
