@@ -176,6 +176,26 @@ ghost method lemma_rev_end__beg<A>(s: seq<A>, x: A)
 {
   lemma_rev(s, [x]);
 }
+ghost method lemma_rev_rev<A>(s: seq<A>)
+  ensures rev(rev(s))==s;
+{
+  if (|s|==0) {
+
+  } else {
+    lemma_rev_rev(s[1..]);
+    assert rev(rev(s[1..]))==s[1..];
+    lemma_rev_beg__end(s[1..], s[0]);
+    assert rev([s[0]]+s[1..])==rev(s[1..])+[s[0]];
+    lemma_rev_end__beg(rev(s[1..]), s[0]);
+    assert rev(rev(s[1..])+[s[0]])==[s[0]]+rev(rev(s[1..]));
+    assert [s[0]]+rev(rev(s[1..]))==[s[0]]+s[1..];
+    assert [s[0]]+s[1..]==s;
+    assert rev(rev(s))==rev(rev([s[0]]+s[1..]));
+    assert rev(rev([s[0]]+s[1..]))==[s[0]]+rev(rev(s[1..]));
+    assert [s[0]]+rev(rev(s[1..]))==[s[0]]+s[1..];
+    assert rev(rev(s))==s;
+  }
+}
 ghost method lemma_prefix_of__dom<A>(m: partial_map<A>, m_prev: partial_map<A>) returns (s: seq<int>)
   requires prefix_of(m, m_prev);
   ensures dom(m)==s+dom(m_prev);
@@ -205,7 +225,7 @@ ghost method lemma_map_complement_extend__dom<A>(m: partial_map<A>, m_prev: part
 }
 ghost method lemma_map_complement__dom<A>(m: partial_map<A>, m_prev: partial_map<A>)
   requires prefix_of(m, m_prev);
-  ensures  dom(m)==rev(dom(map_complement(m, m_prev, Empty)))+dom(m_prev);
+  ensures dom(m)==rev(dom(map_complement(m, m_prev, Empty)))+dom(m_prev);
 {
   if (m==m_prev) {
   } else {
@@ -218,6 +238,19 @@ ghost method lemma_map_complement__dom<A>(m: partial_map<A>, m_prev: partial_map
     assert rev(dom(map_complement(m.rest, m_prev, Empty))+[m.x])==[m.x]+rev(dom(map_complement(m.rest, m_prev, Empty)));
   }
 }
+ghost method lemma_map_complement_prev_empty__dom<A>(m: partial_map<A>)
+  ensures prefix_of(m, Empty);
+  ensures dom(m)==rev(dom(map_complement(m, Empty, Empty)));
+  ensures rev(dom(m))==dom(map_complement(m, Empty, Empty));
+{
+  lemma_map_complement__dom(m, Empty);
+  assert dom(m)==rev(dom(map_complement(m, Empty, Empty)));
+  assert rev(dom(m))==rev(rev(dom(map_complement(m, Empty, Empty))));
+  lemma_rev_rev(dom(map_complement(m, Empty, Empty)));
+  assert rev(rev(dom(map_complement(m, Empty, Empty))))==dom(map_complement(m, Empty, Empty));
+  assert rev(dom(m))==dom(map_complement(m, Empty, Empty));
+}
+
 ghost method lemma_build__dom<A>(m: partial_map<A>, r: partial_map<A>)
   ensures dom(build(m, r)) == rev(dom(r)) + dom(m);
   decreases r;
@@ -1178,7 +1211,7 @@ copredicate subtype(ctx: context, S: tp, T: tp)
 
 predicate V(T: tp, t: tm, k: nat, ctx: context, s: store)
   requires A(k, ctx, s);
-  decreases k;
+  decreases k, k; // weird!
 {
   t.tm_var? && t.x in dom(s.m) &&
   wfe_type(ctx, T) &&
@@ -1205,9 +1238,9 @@ predicate E(T: tp, t: tm, k: nat, ctx: context, s: store, ctx_prev: context)
 {
   k==0 || (
   forall i:nat, j:nat :: i+j<k ==>
-  forall ctx', s':store :: Xs(ctx', s', k-1, ctx, s, ctx_prev) && A(k-1, ctx', s') ==>
+  forall ctx', s':store :: Xs(ctx', s', i, ctx, s, ctx_prev) && A(i, ctx', s') ==>
   forall t', s'':store :: prefix_of(s''.m, s'.m) && mstep(t, s', t', s'', j) && irred(t', s'') ==>
-  forall ctx'' :: Xc(ctx'', k, ctx', s'', s') && A(k, ctx'', s'') ==>
+  forall ctx'' :: Xc(ctx'', i, ctx', s'', s') && A(i, ctx'', s'') ==>
   V(T, t', i, ctx'', s'')
   )
 }
@@ -1215,7 +1248,6 @@ predicate E(T: tp, t: tm, k: nat, ctx: context, s: store, ctx_prev: context)
 predicate A(k: nat, ctx: context, s: store)
 {
   dom(ctx.m) == dom(s.m)
-  //&& forall x:nat, T :: lookup(x, ctx.m) == Some(T) ==> V(T, tm_var(x), k, ctx, s)
 }
 predicate As(k: nat, ctx: context, s: store, ctx_prev: context)
 {
@@ -1225,36 +1257,16 @@ predicate Ac(k: nat, ctx: context, s: store, s_prev: store)
 {
   prefix_of(s.m, s_prev.m) && A(k, ctx, s_prev)
 }
-
 predicate Xs(ctx': context, s': store, k: nat, ctx: context, s: store, ctx_prev: context)
   requires As(k, ctx, s, ctx_prev);
-  //ensures Xs(ctx', s', k, ctx, s, ctx_prev) ==> A(ctx', s');
   decreases k;
 {
   A(k, ctx', s') && As(k, ctx', s, ctx_prev) && Ac(k, ctx_prev, s', s) && (
-  k==0 ||
-  Xs_check(map_complement(ctx.m, ctx_prev.m, Empty),
-           map_complement(ctx'.m, ctx_prev.m, Empty), 
-           map_complement(s'.m, s.m, Empty),
-           k, ctx_prev, s))
-}
-predicate Xs_check(todo: partial_map<tp>, ctx_todo: partial_map<tp>, s_todo: partial_map<pair<tp,list<def>>>, k: nat, ctx: context, s: store)
-  requires k>0;
-  requires A(k, ctx, s);
-  //requires dom(ctx_todo) == dom(s_todo);
-  decreases k, ctx_todo;
-{
-  match ctx_todo
-  case Empty => todo.Empty? && s_todo.Empty?
-  case Extend(x, T, ctx_todo_rest) =>
-    todo.Extend? && s_todo.Extend? && s_todo.x==x &&
-    V(T, tm_var(x), k-1, ctx_extend(x, T, ctx), Store(Extend(x, s_todo.v, s.m))) &&
-    if (todo.x==x) then todo.v==T && Xs_check(todo.rest, ctx_todo_rest, s_todo.rest, k, ctx_extend(x, T, ctx), Store(Extend(x, s_todo.v, s.m)))
-    else Xs_check(todo, ctx_todo_rest, s_todo.rest, k, ctx_extend(x, T, ctx), Store(Extend(x, s_todo.v, s.m)))
+  forall x:nat, T :: lookup(x, ctx.m)==Some(T) ==>
+    lookup(x, ctx'.m)==Some(T) && V(T, tm_var(x), k, ctx', s'))
 }
 predicate Xc(ctx': context, k: nat, ctx: context, s: store, s_prev: store)
   requires Ac(k, ctx, s, s_prev);
-  //ensures Xc(ctx', k, ctx, s, s_prev) ==> A(ctx', s);
 {
   var s_todo := map_complement(s.m, s_prev.m, Empty);
   var tp_todo := map_fst(s_todo);
@@ -1278,31 +1290,26 @@ ghost method lemma_E(T: tp, t: tm, t': tm, k: nat, j: nat, i: nat,
   requires As(k, ctx, s, ctx_prev);
   requires E(T, t, k, ctx, s, ctx_prev);
   requires i+j<k;
-  requires Xs(ctx', s', k-1, ctx, s, ctx_prev) && A(k-1, ctx', s');
+  requires Xs(ctx', s', i, ctx, s, ctx_prev) && A(i, ctx', s');
   requires prefix_of(s''.m, s'.m) && mstep(t, s', t', s'', j);
-  requires Xc(ctx'', k, ctx', s'', s') && A(k, ctx'', s'');
+  requires Xc(ctx'', i, ctx', s'', s') && A(i, ctx'', s'');
   ensures irred(t', s'') ==> V(T, t', i, ctx'', s'');
 {
 }
-
-ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
-  requires typing(ctx, t, T);
-  ensures R(ctx, t, T);
-  decreases t;
+ghost method lemma_Xs_lookup(x: nat, T: tp, ctx': context, s': store, k: nat, ctx: context, s: store, ctx_prev: context)
+  requires As(k, ctx, s, ctx_prev);
+  requires Xs(ctx', s', k, ctx, s, ctx_prev);
+  requires lookup(x, ctx.m) == Some(T);
+  ensures V(T, tm_var(x), k, ctx', s');
 {
-  assume(R(ctx, t, T)); // TODO
 }
-
-// -----------
-// Type-Safety
-// -----------
-predicate type_safety(t: tm, T: tp)
+ghost method lemma_unchanged_Xc(ctx': context, k: nat, ctx: context, s: store, s_prev: store)
+  requires Ac(k, ctx, s, s_prev);
+  requires Xc(ctx', k, ctx, s, s_prev);
+  requires s==s_prev;
+  ensures ctx'==ctx;
 {
-  typing(Context(Empty), t, T) ==>
-  forall t', s', n:nat :: mstep(t, Store(Empty), t', s', n) ==>
-  value(t') || step(t', s').Some?
 }
-
 ghost method build_Xc(k: nat, ctx: context, s: store, s_prev: store) returns (ctx': context)
   requires Ac(k, ctx, s, s_prev);
   ensures Xc(ctx', k, ctx, s, s_prev);
@@ -1317,6 +1324,67 @@ ghost method build_Xc(k: nat, ctx: context, s: store, s_prev: store) returns (ct
 
   ctx' := Context(build(ctx.m, tp_todo));
   lemma_build__dom(ctx.m, tp_todo);
+}
+
+ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
+  requires typing(ctx, t, T);
+  ensures R(ctx, t, T);
+  decreases t;
+{
+  var ctx_prev := Context(Empty);
+  var s := Store(Empty);
+
+  parallel (k: nat)
+    ensures
+      A(k, ctx_prev, s) &&
+      As(k, ctx, s, ctx_prev) &&
+      E(T, t, k, ctx, s, ctx_prev);
+  {
+    lemma_empty_prefix_of_any(ctx.m);
+    assert As(k, ctx, s, ctx_prev);
+
+    match t {
+    case tm_var(x) =>
+      assert lookup(x, ctx.m) == Some(T);
+      if (k>0) {
+        parallel (
+          i:nat, j:nat,
+          ctx', s':store,
+          t', s'':store,
+          ctx'' |
+          i+j<k &&
+          Xs(ctx', s', i, ctx, s, ctx_prev) && A(i, ctx', s') &&
+          prefix_of(s''.m, s'.m) && mstep(t, s', t', s'', j) && irred(t', s'') &&
+          Xc(ctx'', i, ctx', s'', s') && A(i, ctx'', s''))
+          ensures V(T, t', i, ctx'', s'');
+       {
+         assert j==0;
+         assert t'==t;
+         assert s''==s';
+         lemma_unchanged_Xc(ctx'', i, ctx', s'', s');
+         assert ctx''==ctx';
+         lemma_Xs_lookup(x, T, ctx', s', i, ctx, s, ctx_prev);
+         assert V(T, t', i, ctx', s');
+         assert V(T, t', i, ctx'', s'');
+       }
+      }
+      assert E(T, t, k, ctx, Store(Empty), Context(Empty));
+    case tm_new(y, Tc, init, t1) => // TODO
+    case tm_sel(t1, l) => // TODO
+    case tm_msel(o, m, a) => // TODO
+    }
+    assume E(T, t, k, ctx, Store(Empty), Context(Empty)); // TODO: remove
+  }
+}
+
+// -----------
+// Type-Safety
+// -----------
+predicate type_safety(t: tm, T: tp)
+{
+  typing(Context(Empty), t, T) ==>
+  forall t', s', n:nat :: mstep(t, Store(Empty), t', s', n) ==>
+  value(t') || step(t', s').Some?
 }
 
 ghost method corollary_type_safety(t: tm, T: tp)
