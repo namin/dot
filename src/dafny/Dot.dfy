@@ -121,6 +121,7 @@ function map_complement<A>(m: partial_map<A>, m_prev: partial_map<A>, start: par
   else map_complement(m.rest, m_prev, Extend(m.x, m.v, start))
 }
 function map_fst<A,B>(m: partial_map<pair<A,B>>): partial_map<A>
+  ensures dom(m)==dom(map_fst(m));
 {
   match m
   case Empty => Empty
@@ -135,6 +136,101 @@ function max(s: seq<int>, start: int): int
   if (s == []) then start
   else if (s[0] <= start) then max(s[1..], start)
   else max(s[1..], s[0])
+}
+function rev<A>(s: seq<A>): seq<A>
+{
+  if (|s|==0) then [] else rev(s[1..])+[s[0]]
+}
+
+// ### Lemmas about utilities ###
+ghost method lemma_empty_prefix_of_any<A>(m: partial_map<A>)
+  ensures prefix_of(m, Empty);
+{
+}
+ghost method lemma_rev_beg__end<A>(s: seq<A>, x: A)
+  ensures rev([x]+s)==rev(s)+[x];
+{
+}
+ghost method lemma_rev<A>(s1: seq<A>, s2: seq<A>)
+  ensures rev(s1+s2)==rev(s2)+rev(s1);
+{
+  if (s1==[]) {
+    assert s1+s2==s2;
+  } else {
+    lemma_rev_beg__end(s1[1..], s1[0]);
+    assert rev([s1[0]]+(s1[1..]+s2))==rev(s1[1..]+s2)+[s1[0]];
+    lemma_rev(s1[1..], s2);
+    assert rev(s1[1..]+s2)+[s1[0]]==rev(s2)+rev(s1[1..])+[s1[0]];
+    lemma_rev_beg__end(s1[1..], s1[0]);
+    assert rev(s1[1..]+s2)+[s1[0]]==rev(s2)+rev(s1);
+    assert rev([s1[0]]+(s1[1..]+s2))==rev(s2)+rev(s1);
+    assert [s1[0]]+(s1[1..]+s2)==([s1[0]]+s1[1..])+s2;
+    assert ([s1[0]]+s1[1..])+s2==s1+s2;
+    assert rev([s1[0]]+(s1[1..]+s2))==rev(([s1[0]]+s1[1..])+s2);
+    assert rev([s1[0]]+(s1[1..]+s2))==rev(s1+s2);
+    assert rev(s1+s2)==rev(s2)+rev(s1);
+  }
+}
+ghost method lemma_rev_end__beg<A>(s: seq<A>, x: A)
+  ensures rev(s+[x])==[x]+rev(s);
+{
+  lemma_rev(s, [x]);
+}
+ghost method lemma_prefix_of__dom<A>(m: partial_map<A>, m_prev: partial_map<A>) returns (s: seq<int>)
+  requires prefix_of(m, m_prev);
+  ensures dom(m)==s+dom(m_prev);
+{
+  if (m==m_prev) {
+    s := [];
+  } else {
+    var s' := lemma_prefix_of__dom(m.rest, m_prev);
+    assert dom(m.rest)==s'+dom(m_prev);
+    s := [m.x] + s';
+    assert dom(m)==[m.x]+dom(m.rest);
+  }
+}
+ghost method lemma_map_complement_extend__dom'<A>(m: partial_map<A>, m_prev: partial_map<A>, start: partial_map<A>)
+  requires prefix_of(m, m_prev);
+  ensures dom(map_complement(m, m_prev, start))==dom(map_complement(m, m_prev, Empty))+dom(start);
+{
+}
+ghost method lemma_map_complement_extend__dom<A>(m: partial_map<A>, m_prev: partial_map<A>)
+  requires prefix_of(m, m_prev);
+  ensures m!=m_prev ==> dom(map_complement(m, m_prev, Empty))==dom(map_complement(m.rest, m_prev, Extend(m.x, m.v, Empty)));
+  ensures m!=m_prev ==> dom(map_complement(m, m_prev, Empty))==dom(map_complement(m.rest, m_prev, Empty))+[m.x];
+{
+  if (m!=m_prev) {
+    lemma_map_complement_extend__dom'(m.rest, m_prev, Extend(m.x, m.v, Empty));
+  }
+}
+ghost method lemma_map_complement__dom<A>(m: partial_map<A>, m_prev: partial_map<A>)
+  requires prefix_of(m, m_prev);
+  ensures  dom(m)==rev(dom(map_complement(m, m_prev, Empty)))+dom(m_prev);
+{
+  if (m==m_prev) {
+  } else {
+    lemma_map_complement__dom(m.rest, m_prev);
+    assert dom(m.rest)==rev(dom(map_complement(m.rest, m_prev, Empty)))+dom(m_prev);
+    lemma_map_complement_extend__dom(m, m_prev);
+    assert dom(map_complement(m, m_prev, Empty))==dom(map_complement(m.rest, m_prev, Empty))+[m.x];
+    assert rev(dom(map_complement(m, m_prev, Empty)))==rev(dom(map_complement(m.rest, m_prev, Empty))+[m.x]);
+    lemma_rev_end__beg(dom(map_complement(m.rest, m_prev, Empty)), m.x);
+    assert rev(dom(map_complement(m.rest, m_prev, Empty))+[m.x])==[m.x]+rev(dom(map_complement(m.rest, m_prev, Empty)));
+  }
+}
+ghost method lemma_build__dom<A>(m: partial_map<A>, r: partial_map<A>)
+  ensures dom(build(m, r)) == rev(dom(r)) + dom(m);
+  decreases r;
+{
+  match r {
+  case Empty =>
+  case Extend(x, v, rest) =>
+    lemma_build__dom(Extend(x, v, m), rest);
+    assert dom(build(Extend(x, v, m), rest)) == rev(dom(rest)) + dom(Extend(x, v, m));
+    assert dom(Extend(x, v, m)) == [x]+dom(m);
+    lemma_rev_beg__end(dom(rest), x);
+    assert rev(dom(rest))+[x]==rev([x]+dom(rest));
+  }
 }
 
 // ------
@@ -1173,6 +1269,22 @@ predicate R(ctx: context, t: tm, T: tp)
       E(T, t, k, ctx, Store(Empty), Context(Empty))
 }
 
+// ### Lemmas about logical relations ###
+
+ghost method lemma_E(T: tp, t: tm, t': tm, k: nat, j: nat, i: nat,
+  s: store, s': store, s'': store,
+  ctx_prev: context, ctx: context, ctx': context, ctx'': context)
+  requires A(k, ctx_prev, s);
+  requires As(k, ctx, s, ctx_prev);
+  requires E(T, t, k, ctx, s, ctx_prev);
+  requires i+j<k;
+  requires Xs(ctx', s', k-1, ctx, s, ctx_prev) && A(k-1, ctx', s');
+  requires prefix_of(s''.m, s'.m) && mstep(t, s', t', s'', j);
+  requires Xc(ctx'', k, ctx', s'', s') && A(k, ctx'', s'');
+  ensures irred(t', s'') ==> V(T, t', i, ctx'', s'');
+{
+}
+
 ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
   requires typing(ctx, t, T);
   ensures R(ctx, t, T);
@@ -1191,16 +1303,20 @@ predicate type_safety(t: tm, T: tp)
   value(t') || step(t', s').Some?
 }
 
-ghost method lemma_E_empty(T: tp, t: tm, k: nat, i: nat, j: nat, t': tm, s'': store, ctx'': context)
-  requires E(T, t, k, Context(Empty), Store(Empty), Context(Empty));
-  requires i+j<k;
-  requires mstep(t, Store(Empty), t', s'', i);
-  requires Ac(k, ctx'', s'', Store(Empty));
-  requires Xc(ctx'', k, Context(Empty), s'', Store(Empty)) && A(k, ctx'', s'');
-  ensures irred(t', s'') ==> V(T, t', j, ctx'', s'');
+ghost method build_Xc(k: nat, ctx: context, s: store, s_prev: store) returns (ctx': context)
+  requires Ac(k, ctx, s, s_prev);
+  ensures Xc(ctx', k, ctx, s, s_prev);
+  ensures A(k, ctx', s);
 {
-  assert Xs(Context(Empty), Store(Empty), k-1, Context(Empty), Store(Empty), Context(Empty));
-  assert A(k-1, Context(Empty), Store(Empty));
+  var s_todo := map_complement(s.m, s_prev.m, Empty);
+  lemma_map_complement__dom(s.m, s_prev.m);
+  assert  dom(s.m)==rev(dom(s_todo))+dom(s_prev.m);
+
+  var tp_todo := map_fst(s_todo);
+  assert  dom(s.m)==rev(dom(tp_todo))+dom(s_prev.m);
+
+  ctx' := Context(build(ctx.m, tp_todo));
+  lemma_build__dom(ctx.m, tp_todo);
 }
 
 ghost method corollary_type_safety(t: tm, T: tp)
@@ -1210,14 +1326,18 @@ ghost method corollary_type_safety(t: tm, T: tp)
     parallel (t', s', n:nat | mstep(t, Store(Empty), t', s', n))
       ensures value(t') || step(t', s').Some?;
     {
+      theorem_fundamental_R(Context(Empty), t, T);
       assert A(n, Context(Empty), Store(Empty));
       assert As(n, Context(Empty), Store(Empty), Context(Empty));
-      theorem_fundamental_R(Context(Empty), t, T);
       assert E(T, t, n+1, Context(Empty), Store(Empty), Context(Empty));
-      var ctx' := *;
-      // TODO: get rid of assume
-      assume(Ac(n+1, ctx', s', Store(Empty)) && Xc(ctx', n+1, Context(Empty), s', Store(Empty)) && A(n+1, ctx', s'));
-      lemma_E_empty(T, t, n+1, n, 0, t', s', ctx');
+      assert Xs(Context(Empty), Store(Empty), n, Context(Empty), Store(Empty), Context(Empty));
+      assert A(n, Context(Empty), Store(Empty));
+      lemma_empty_prefix_of_any(s'.m);
+      assert prefix_of(s'.m, Store(Empty).m);
+      assert mstep(t, Store(Empty), t', s', n);
+      assert Ac(n+1, Context(Empty), s', Store(Empty));
+      var ctx' := build_Xc(n+1, Context(Empty), s', Store(Empty));
+      lemma_E(T, t, t', n+1, n, 0, Store(Empty), Store(Empty), s', Context(Empty), Context(Empty), Context(Empty), ctx');
     }
   }
 }
