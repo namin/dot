@@ -250,7 +250,6 @@ ghost method lemma_map_complement_prev_empty__dom<A>(m: partial_map<A>)
   assert rev(rev(dom(map_complement(m, Empty, Empty))))==dom(map_complement(m, Empty, Empty));
   assert rev(dom(m))==dom(map_complement(m, Empty, Empty));
 }
-
 ghost method lemma_build__dom<A>(m: partial_map<A>, r: partial_map<A>)
   ensures dom(build(m, r)) == rev(dom(r)) + dom(m);
   decreases r;
@@ -264,6 +263,12 @@ ghost method lemma_build__dom<A>(m: partial_map<A>, r: partial_map<A>)
     lemma_rev_beg__end(dom(rest), x);
     assert rev(dom(rest))+[x]==rev([x]+dom(rest));
   }
+}
+ghost method lemma_prefix_of_trans<A>(m1: partial_map<A>, m2: partial_map<A>, m3: partial_map<A>)
+  requires prefix_of(m3, m2);
+  requires prefix_of(m2, m1);
+  ensures prefix_of(m3, m1);
+{
 }
 
 // ------
@@ -919,6 +924,84 @@ predicate mstep(t: tm, s: store, t': tm, s': store, n: nat)
   else step(t, s).Some? && mstep(step(t, s).get.fst, step(t, s).get.snd, t', s', n-1)
 }
 
+// ### Properties of Operational Semantics ###
+
+ghost method lemma_step__prefix(t1: tm, s1: store, t2: tm, s2: store)
+  requires step(t1, s1) == Some(P(t2, s2));
+  ensures prefix_of(s2.m, s1.m);
+{
+}
+
+ghost method lemma_mstep__prefix(t1: tm, s1: store, t2: tm, s2: store, n: nat)
+  requires mstep(t1, s1, t2, s2, n);
+  ensures prefix_of(s2.m, s1.m);
+  decreases n;
+{
+  if (n>0) {
+    lemma_step__prefix(t1, s1, step(t1, s1).get.fst, step(t1, s1).get.snd);
+    lemma_mstep__prefix(step(t1, s1).get.fst, step(t1, s1).get.snd, t2, s2, n-1);
+    lemma_prefix_of_trans(s1.m, step(t1, s1).get.snd.m, s2.m);
+  }
+}
+
+ghost method lemma_mstep_trans(t1: tm, s1: store, t2: tm, s2: store, t3: tm, s3: store, n12: nat, n23: nat)
+  requires mstep(t1, s1, t2, s2, n12);
+  requires mstep(t2, s2, t3, s3, n23);
+  ensures mstep(t1, s1, t3, s3, n12+n23);
+  decreases n12+n23;
+{
+  if (n12>0) {
+    lemma_mstep_trans(step(t1, s1).get.fst, step(t1, s1).get.snd, t2, s2, t3, s3, n12-1, n23);
+  } else if (n23>0) {
+    lemma_mstep_trans(step(t1, s1).get.fst, step(t1, s1).get.snd, step(t2, s2).get.fst, step(t2, s2).get.snd, t3, s3, n12, n23-1);
+  }
+}
+
+ghost method lemma_mstep_trans'(t1: tm, s1: store, t2: tm, s2: store, t3: tm, s3: store, n12: nat, n13: nat)
+  requires n12 <= n13;
+  requires mstep(t1, s1, t2, s2, n12);
+  requires mstep(t1, s1, t3, s3, n13);
+  ensures mstep(t2, s2, t3, s3, n13-n12);
+  decreases n12;
+{
+  if (n12>0 && n13>0) {
+    lemma_mstep_trans'(step(t1, s1).get.fst, step(t1, s1).get.snd, t2, s2, t3, s3, n12-1, n13-1);
+  }
+}
+
+// ### Congruence Lemmas ###
+
+ghost method lemma_mstep_sel(o: tm, l: nat, o': tm, s: store, s': store, oi: nat)
+  requires mstep(o, s, o', s', oi);
+  ensures mstep(tm_sel(o, l), s, tm_sel(o', l), s', oi);
+  decreases oi;
+{
+  if (oi>0) {
+    lemma_mstep_sel(step(o, s).get.fst, l, o', step(o, s).get.snd, s', oi-1);
+  }
+}
+
+ghost method lemma_sel_irred__o_mstep_irred(o: tm, l: nat, t': tm, s: store, s': store, i: nat) returns (o': tm, so': store, oi: nat)
+  requires mstep(tm_sel(o, l), s, t', s', i);
+  requires irred(t', s');
+  ensures oi<=i && mstep(o, s, o', so', oi) && irred(o', so');
+  decreases i;
+{
+  if (irred(o, s)) {
+    o' := o;
+	  so' := s;
+    oi := 0;
+  } else {
+    assert step(o, s).Some?;
+    lemma_mstep_trans'(tm_sel(o, l), s, tm_sel(step(o, s).get.fst, l), step(o, s).get.snd, t', s', 1, i);
+    var o'', so'', oi' := lemma_sel_irred__o_mstep_irred(step(o, s).get.fst, l, t', step(o, s).get.snd, s', i-1);
+    lemma_mstep_trans(o, s, step(o, s).get.fst, step(o, s).get.snd, o'', so'', 1, oi');
+    o' := o'';
+  	so' := so'';
+    oi := oi'+1;
+  }
+}
+
 // -----------
 // Type System
 // -----------
@@ -1088,10 +1171,9 @@ copredicate wfe_type(ctx: context, T: tp)
 }
 copredicate membership(ctx: context, t: tm, l: nat, d: decl)
 {
-  forall z:nat :: z !in dom(ctx.m) && !tm_fn(z, t) ==>
   decl_label(d)==l &&
-  exists T :: !tp_fn(z, T) &&
-  typing(ctx, t, T) &&
+  exists T :: typing(ctx, t, T) &&
+  forall z:nat :: !tp_fn(z, T) && z !in dom(ctx.m) && !tm_fn(z, t) ==>
   exists Ds ::
   expansion(ctx, z, T, Ds) &&
   ((Ds.decls_fin? &&
@@ -1101,8 +1183,7 @@ copredicate membership(ctx: context, t: tm, l: nat, d: decl)
 }
 copredicate field_membership(ctx: context, t: tm, l: nat, T: tp)
 {
-  exists d :: membership(ctx, t, l, d) &&
-  d.decl_tm? && d.l==l && d.T==T
+  membership(ctx, t, l, decl_tm(l, T))
 }
 copredicate method_membership(ctx: context, t: tm, m: nat, P: tp, R: tp)
 {
@@ -1205,6 +1286,17 @@ copredicate subtype(ctx: context, S: tp, T: tp)
   /* or-<: */   (S.tp_or? && subtype(ctx, S.or1, T) && subtype(ctx, S.or2, T))
 }
 
+// ### Properties of typing judgments ###
+
+ghost method lemma_field_mem__expansion_decl(ctx: context, t1: tm, T1: tp, l: nat, T: tp, ctx': context, z: nat, Ds: decls)
+  requires field_membership(ctx, t1, l, T);
+  requires typing(ctx, t1, T1);
+  requires expansion(ctx', z, T1, Ds) && Ds.decls_fin?;
+  ensures exists U :: decl_tm(l, U) in Ds.decls;
+{
+  assume exists U :: decl_tm(l, U) in Ds.decls; // TODO...
+}
+
 // -----------------
 // Logical Relations
 // -----------------
@@ -1215,19 +1307,21 @@ predicate V(T: tp, t: tm, k: nat, ctx: context, s: store)
 {
   t.tm_var? && t.x in dom(s.m) &&
   wfe_type(ctx, T) &&
-  forall j:nat :: j<k ==>
-  forall Tc, init :: P(Tc, seq2lst(init)) == lookup(t.x, s.m).get ==>
-  forall Ds :: expansion(ctx, t.x, T, Ds) ==> Ds.decls_fin? && (
+  (exists Tc, init :: P(Tc, init) == lookup(t.x, s.m).get) &&
+  (exists Ds :: expansion(ctx, t.x, T, Ds) && Ds.decls_fin?) &&
+  forall Tc, init :: P(Tc, init) == lookup(t.x, s.m).get ==>
+  forall Ds :: expansion(ctx, t.x, T, Ds) && Ds.decls_fin? ==>
+  forall j:nat :: j<k ==> (
     (forall Li:nat, S, U :: decl_tp_c(Li, S, U) in Ds.decls ==>
      exists S', U' :: concrete_type_membership(ctx, t, Li, S', U')) &&
     (forall Li:nat, S, U :: decl_tp_a(Li, S, U) in Ds.decls ==>
      exists S', U' :: abstract_type_membership(ctx, t, Li, S', U')) &&
     (forall mi:nat, S, U :: decl_mt(mi, S, U) in Ds.decls ==>
-     exists xi:nat, ti :: def_mt(mi, xi, ti) in init &&
+     exists xi, ti :: def_method_lookup(mi, init) == Some(P(xi, ti)) &&
      E(U, ti, j, ctx_extend(xi, S, ctx), s, ctx)) &&
     (forall li:nat, U :: decl_tm(li, U) in Ds.decls ==>
-     exists vi :: def_tm(li, vi) in init &&
-     V(U, vi, j, ctx, s))
+     def_field_lookup(li, init).Some? &&
+     V(U, def_field_lookup(li, init).get, j, ctx, s))
   )
 }
 
@@ -1238,9 +1332,9 @@ predicate E(T: tp, t: tm, k: nat, ctx: context, s: store, ctx_prev: context)
 {
   k==0 || (
   forall i:nat, j:nat :: i+j<k ==>
-  forall ctx', s':store :: Xs(ctx', s', i, ctx, s, ctx_prev) && A(i, ctx', s') ==>
+  forall ctx', s':store :: Xs(ctx', s', k-1, ctx, s, ctx_prev) && A(k-1, ctx', s') ==>
   forall t', s'':store :: prefix_of(s''.m, s'.m) && mstep(t, s', t', s'', j) && irred(t', s'') ==>
-  forall ctx'' :: Xc(ctx'', i, ctx', s'', s') && A(i, ctx'', s'') ==>
+  forall ctx'' :: Xc(ctx'', k-1, ctx', s'', s') && A(k-1, ctx'', s'') ==>
   V(T, t', i, ctx'', s'')
   )
 }
@@ -1262,8 +1356,8 @@ predicate Xs(ctx': context, s': store, k: nat, ctx: context, s: store, ctx_prev:
   decreases k;
 {
   A(k, ctx', s') && As(k, ctx', s, ctx_prev) && Ac(k, ctx_prev, s', s) && (
-  forall x:nat, T :: lookup(x, ctx.m)==Some(T) ==>
-    lookup(x, ctx'.m)==Some(T) && V(T, tm_var(x), k, ctx', s'))
+  forall x:nat :: lookup(x, ctx.m).Some? ==>
+    lookup(x, ctx'.m)==Some(lookup(x, ctx.m).get) && V(lookup(x, ctx.m).get, tm_var(x), k, ctx', s'))
 }
 predicate Xc(ctx': context, k: nat, ctx: context, s: store, s_prev: store)
   requires Ac(k, ctx, s, s_prev);
@@ -1282,6 +1376,74 @@ predicate R(ctx: context, t: tm, T: tp)
 }
 
 // ### Lemmas about logical relations ###
+ghost method lemma_A_monotonic(k: nat, j: nat, ctx: context, s: store)
+  requires A(k, ctx, s);
+  requires j <= k;
+  ensures A(j, ctx, s);
+{
+}
+ghost method lemma_As_monotononic(k: nat, j: nat, ctx: context, s: store, ctx_prev: context)
+  requires As(k, ctx, s, ctx_prev);
+  requires j <= k;
+  ensures As(j, ctx, s, ctx_prev);
+{
+}
+ghost method lemma_Ac_monotononic(k: nat, j: nat, ctx: context, s: store, s_prev: store)
+  requires Ac(k, ctx, s, s_prev);
+  requires j <= k;
+  ensures Ac(j, ctx, s, s_prev);
+{
+}
+ghost method lemma_Xs_monotonic(ctx': context, s': store, k: nat, j: nat, ctx: context, s: store, ctx_prev: context)
+  requires As(k, ctx, s, ctx_prev);
+  requires As(j, ctx, s, ctx_prev);
+  requires Xs(ctx', s', k, ctx, s, ctx_prev);
+  requires j <= k;
+  ensures Xs(ctx', s', j, ctx, s, ctx_prev);
+{
+  parallel (x:nat | lookup(x, ctx.m).Some?)
+    ensures lookup(x, ctx'.m)==Some(lookup(x, ctx.m).get) && V(lookup(x, ctx.m).get, tm_var(x), j, ctx', s');
+  {
+    lemma_V_monotonic(lookup(x, ctx.m).get, tm_var(x), k, j, ctx', s');
+  }
+}
+ghost method lemma_Xc_monotonic(ctx': context, k: nat, j: nat, ctx: context, s: store, s_prev: store)
+  requires Ac(k, ctx, s, s_prev);
+  requires Ac(j, ctx, s, s_prev);
+  requires Xc(ctx', k, ctx, s, s_prev);
+  requires j <= k;
+  ensures Xc(ctx', j, ctx, s, s_prev);
+{
+}
+ghost method lemma_V_monotonic(T: tp, t: tm, k: nat, j: nat, ctx: context, s: store)
+  requires A(k, ctx, s);
+  requires A(j, ctx, s);
+  requires V(T, t, k, ctx, s);
+  requires j <= k;
+  ensures V(T, t, j, ctx, s);
+{
+  assume V(T, t, j, ctx, s); // TODO... but really follows from def.
+}
+
+ghost method lemma_V_value(T: tp, t: tm, k: nat, ctx: context, s: store)
+  requires A(k, ctx, s);
+  requires V(T, t, k, ctx, s);
+  ensures value(t);
+{
+}
+ghost method lemma_V_field(T1: tp, t1: tm, l: nat, T: tp, k: nat, j: nat, ctx1: context, s1: store, Tc: tp, init: list<def>, Ds: decls)
+  requires A(k, ctx1, s1);
+  requires V(T1, t1, k, ctx1, s1);
+  requires t1.tm_var?;
+  requires P(Tc, init) == lookup(t1.x, s1.m).get;
+  requires expansion(ctx1, t1.x, T1, Ds) && Ds.decls_fin?;
+  requires decl_tm(l, T) in Ds.decls;
+  requires j<k;
+  ensures def_field_lookup(l, init).Some? && V(T, def_field_lookup(l, init).get, j, ctx1, s1);
+{
+  // TODO...
+  assume def_field_lookup(l, init).Some? && V(T, def_field_lookup(l, init).get, j, ctx1, s1);
+}
 
 ghost method lemma_E(T: tp, t: tm, t': tm, k: nat, j: nat, i: nat,
   s: store, s': store, s'': store,
@@ -1290,12 +1452,13 @@ ghost method lemma_E(T: tp, t: tm, t': tm, k: nat, j: nat, i: nat,
   requires As(k, ctx, s, ctx_prev);
   requires E(T, t, k, ctx, s, ctx_prev);
   requires i+j<k;
-  requires Xs(ctx', s', i, ctx, s, ctx_prev) && A(i, ctx', s');
+  requires Xs(ctx', s', k-1, ctx, s, ctx_prev) && A(k-1, ctx', s');
   requires prefix_of(s''.m, s'.m) && mstep(t, s', t', s'', j);
-  requires Xc(ctx'', i, ctx', s'', s') && A(i, ctx'', s'');
+  requires Xc(ctx'', k-1, ctx', s'', s') && A(k-1, ctx'', s'');
   ensures irred(t', s'') ==> V(T, t', i, ctx'', s'');
 {
 }
+
 ghost method lemma_Xs_lookup(x: nat, T: tp, ctx': context, s': store, k: nat, ctx: context, s: store, ctx_prev: context)
   requires As(k, ctx, s, ctx_prev);
   requires Xs(ctx', s', k, ctx, s, ctx_prev);
@@ -1308,6 +1471,13 @@ ghost method lemma_unchanged_Xc(ctx': context, k: nat, ctx: context, s: store, s
   requires Xc(ctx', k, ctx, s, s_prev);
   requires s==s_prev;
   ensures ctx'==ctx;
+{
+}
+ghost method lemma_Xc_unique(ctx2: context, ctx1: context, k: nat, ctx: context, s: store, s_prev: store)
+  requires Ac(k, ctx, s, s_prev);
+  requires Xc(ctx1, k, ctx, s, s_prev);
+  requires Xc(ctx2, k, ctx, s, s_prev);
+  ensures ctx1==ctx2;
 {
 }
 ghost method build_Xc(k: nat, ctx: context, s: store, s_prev: store) returns (ctx': context)
@@ -1353,27 +1523,102 @@ ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
           t', s'':store,
           ctx'' |
           i+j<k &&
-          Xs(ctx', s', i, ctx, s, ctx_prev) && A(i, ctx', s') &&
+          Xs(ctx', s', k-1, ctx, s, ctx_prev) && A(k-1, ctx', s') &&
           prefix_of(s''.m, s'.m) && mstep(t, s', t', s'', j) && irred(t', s'') &&
-          Xc(ctx'', i, ctx', s'', s') && A(i, ctx'', s''))
+          Xc(ctx'', k-1, ctx', s'', s') && A(k-1, ctx'', s''))
           ensures V(T, t', i, ctx'', s'');
        {
          assert j==0;
          assert t'==t;
          assert s''==s';
-         lemma_unchanged_Xc(ctx'', i, ctx', s'', s');
+         lemma_unchanged_Xc(ctx'', k-1, ctx', s'', s');
          assert ctx''==ctx';
-         lemma_Xs_lookup(x, T, ctx', s', i, ctx, s, ctx_prev);
-         assert V(T, t', i, ctx', s');
-         assert V(T, t', i, ctx'', s'');
+         lemma_Xs_lookup(x, T, ctx', s', k-1, ctx, s, ctx_prev);
+         assert V(T, t', k-1, ctx', s');
+         assert V(T, t', k-1, ctx'', s'');
+         lemma_V_monotonic(T, t', k-1, i, ctx'', s'');
        }
       }
       assert E(T, t, k, ctx, Store(Empty), Context(Empty));
-    case tm_new(y, Tc, init, t1) => // TODO
-    case tm_sel(t1, l) => // TODO
-    case tm_msel(o, m, a) => // TODO
+    case tm_new(y, Tc, init, t1) =>
+      assume E(T, t, k, ctx, Store(Empty), Context(Empty)); // TODO
+    case tm_sel(t1, l) =>
+      assert field_membership(ctx, t1, l, T);
+      assert membership(ctx, t1, l, decl_tm(l, T));
+      assert exists T1 :: typing(ctx, t1, T1);
+      parallel (T1 | typing(ctx, t1, T1))
+        ensures E(T, t, k, ctx, s, ctx_prev);
+      {
+        theorem_fundamental_R(ctx, t1, T1);
+        if (k>0) {
+          parallel (
+            i:nat, j:nat,
+            ctx', s':store,
+            t', s'':store,
+            ctx'' |
+            i+j<k &&
+            Xs(ctx', s', k-1, ctx, s, ctx_prev) && A(k-1, ctx', s') &&
+            prefix_of(s''.m, s'.m) && mstep(t, s', t', s'', j) && irred(t', s'') &&
+            Xc(ctx'', k-1, ctx', s'', s') && A(k-1, ctx'', s''))
+            ensures V(T, t', i, ctx'', s'');
+          {
+            var t1', t1s, t1j := lemma_sel_irred__o_mstep_irred(t1, l, t', s', s'', j);
+            lemma_mstep__prefix(t1, s', t1', t1s, t1j);
+            var t1ctx :=  build_Xc(k-1, ctx', t1s, s');
+            lemma_E(T1, t1, t1', k, t1j, i+j-t1j, s, s', t1s, ctx_prev, ctx, ctx', t1ctx);
+            lemma_V_value(T1, t1', i+j-t1j, t1ctx, t1s);
+
+            lemma_mstep_sel(t1, l, t1', s', t1s, t1j);
+            lemma_mstep_trans'(t, s', tm_sel(t1', l), t1s, t', s'', t1j, j);
+
+            parallel (Tc, init, Ds |
+              P(Tc, init) == lookup(t1'.x, t1s.m).get &&
+              expansion(t1ctx, t1'.x, T1, Ds) && Ds.decls_fin?)
+              ensures V(T, t', i, ctx'', s'');
+            {
+              lemma_field_mem__expansion_decl(ctx, t1, T1, l, T, t1ctx, t1'.x, Ds);
+              assert exists U :: decl_tm(l, U) in Ds.decls;
+              // How do we relate U and T?
+              // This is fishy because T might have t1 as self, and U might have t1'.
+              // so certainly, they can be !=.
+              assume decl_tm(l, T) in Ds.decls;
+
+              assume j-t1j>0; // fishy: how can we guarantee that?
+              lemma_V_field(T1, t1', l, T, i+j-t1j, i, t1ctx, t1s, Tc, init, Ds);
+              assert V(T, def_field_lookup(l, init).get, i, t1ctx, t1s);
+              lemma_V_value(T, def_field_lookup(l, init).get, i, t1ctx, t1s);
+              
+              lemma_mstep_trans'(tm_sel(t1', l), t1s, def_field_lookup(l, init).get, t1s, t', s'', 1, j-t1j);
+
+              assert def_field_lookup(l, init).get.tm_var?;
+              assert irred(def_field_lookup(l, init).get, t1s);
+              assert t'==def_field_lookup(l, init).get;
+              assert mstep(def_field_lookup(l, init).get, t1s, t', s'', 0);
+              assert s''==t1s;
+              lemma_Xc_unique(ctx'', t1ctx, k-1, ctx', s'', s');
+              assert ctx''==t1ctx;
+              assert V(T, t', i, ctx'', s'');
+            }
+
+            assert forall Tc, init, Ds :: (
+              P(Tc, init) == lookup(t1'.x, t1s.m).get &&
+              expansion(t1ctx, t1'.x, T1, Ds) && Ds.decls_fin?) ==>
+              V(T, t', i, ctx'', s'');
+            assert exists Tc, init :: P(Tc, init) == lookup(t1'.x, t1s.m).get;
+            assert exists Ds :: expansion(t1ctx, t1'.x, T1, Ds) && Ds.decls_fin?;
+            assert exists Tc, init, Ds :: (
+              P(Tc, init) == lookup(t1'.x, t1s.m).get &&
+              expansion(t1ctx, t1'.x, T1, Ds) && Ds.decls_fin?);
+            assert V(T, t', i, ctx'', s'');
+          }
+        }
+        assert forall T1 :: typing(ctx, t1, T1) ==> E(T, t, k, ctx, s, ctx_prev);
+        assert exists T1 :: typing(ctx, t1, T1);
+        assert E(T, t, k, ctx, s, ctx_prev);
+      }
+    case tm_msel(o, m, a) =>
+      assume E(T, t, k, ctx, Store(Empty), Context(Empty)); // TODO
     }
-    assume E(T, t, k, ctx, Store(Empty), Context(Empty)); // TODO: remove
   }
 }
 
