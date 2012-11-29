@@ -165,6 +165,7 @@ ghost method lemma_rev<A>(s1: seq<A>, s2: seq<A>)
     assert rev(s1[1..]+s2)+[s1[0]]==rev(s2)+rev(s1);
     assert rev([s1[0]]+(s1[1..]+s2))==rev(s2)+rev(s1);
     assert [s1[0]]+(s1[1..]+s2)==([s1[0]]+s1[1..])+s2;
+    assert [s1[0]]+s1[1..]==s1;
     assert ([s1[0]]+s1[1..])+s2==s1+s2;
     assert rev([s1[0]]+(s1[1..]+s2))==rev(([s1[0]]+s1[1..])+s2);
     assert rev([s1[0]]+(s1[1..]+s2))==rev(s1+s2);
