@@ -1197,6 +1197,35 @@ function pathev(p: tm, s: store): option<int>
     else None
 }
 
+function store_tp_bounds_lookup(x: nat, T: tp, L: nat, s: store): option<pair<tp,tp>>
+  decreases x, T;
+{
+  match T
+  case tp_bot => Some(P(tp_top, tp_bot))
+  case tp_top => None
+  case tp_and(tp1, tp2) =>
+    if (store_tp_bounds_lookup(x, tp1, L, s).Some? && store_tp_bounds_lookup(x, tp2, L, s).Some?)
+    then Some(P(tp_or(store_tp_bounds_lookup(x, tp1, L, s).get.fst, store_tp_bounds_lookup(x, tp2, L, s).get.fst),
+                tp_and(store_tp_bounds_lookup(x, tp1, L, s).get.snd, store_tp_bounds_lookup(x, tp2, L, s).get.snd)))
+    else if (store_tp_bounds_lookup(x, tp1, L, s).Some?)
+    then store_tp_bounds_lookup(x, tp1, L, s)
+    else store_tp_bounds_lookup(x, tp2, L, s)
+  case tp_or(tp1, tp2) =>
+    if (store_tp_bounds_lookup(x, tp1, L, s).Some? && store_tp_bounds_lookup(x, tp2, L, s).Some?)
+    then Some(P(tp_and(store_tp_bounds_lookup(x, tp1, L, s).get.fst, store_tp_bounds_lookup(x, tp2, L, s).get.fst),
+                tp_or(store_tp_bounds_lookup(x, tp1, L, s).get.snd, store_tp_bounds_lookup(x, tp2, L, s).get.snd)))
+    else None
+  case tp_rfn(tp1, z, ds) =>
+    None // TODO
+  case tp_sel_c(p1, L1) =>
+    None // TODO
+  case tp_sel_a(p1, L1) =>
+    // strict on < x won't work for self-references :-(
+    if (path(p1) && pathev(p1, s).Some? && pathev(p1, s).get < x && pathev(p1, s).get in dom(s.m))
+    then store_tp_bounds_lookup(pathev(p1, s).get, store_tp_lookup(pathev(p1, s).get, s), L1, s)
+    else None
+}
+
 predicate store_ok(k: nat, s: store)
   decreases k, k;
 {
@@ -1223,14 +1252,25 @@ predicate V(k: nat, x: nat, T: tp, s: store)
         M(k-1, u, store_tp_lookup(u, s'), Li, s')) ==> V(k-1, u, Ui, s'))))
     // TODO: add tm and mt cases
   )
-  case tp_sel_c(p1, L1) => path(p1) && pathev(p1, s).Some? &&
-    M(k, x, store_tp_lookup(pathev(p1, s).get, s), L1, s)
-  case tp_sel_a(p1, L1) => path(p1) && pathev(p1, s).Some? &&
-    M(k, x, store_tp_lookup(pathev(p1, s).get, s), L1, s)
+  case tp_sel_c(p1, L1) => path(p1) && pathev(p1, s).Some? && x in dom(s.m) && (k==0 ||
+    M(k-1, x, store_tp_lookup(pathev(p1, s).get, s), L1, s))
+  case tp_sel_a(p1, L1) => path(p1) && pathev(p1, s).Some? && x in dom(s.m) && (k==0 ||
+    M(k-1, x, store_tp_lookup(pathev(p1, s).get, s), L1, s))
 }
 
 predicate M(k: nat, x: nat, T: tp, L: nat, s: store)
   ensures M(k, x, T, L, s) ==> x in dom(s.m);
+  decreases k, T;
 {
-  false // TODO
+  match T
+  case tp_bot => false
+  case tp_top => false
+  case tp_and(tp1, tp2) => M(k, x, tp1, L, s) || M(k, x, tp2, L, s)
+  case tp_or(tp1, tp2) => M(k, x, tp1, L, s) && M(k, x, tp2, L, s)
+  case tp_rfn(tp1, z, ds) =>
+    if (exists S, U :: decl_tp_c(L, S, U) in lst2seq(ds) || decl_tp_a(L, S, U) in lst2seq(ds))
+    then false // TODO
+    else M(k, x, tp1, L, s)
+  case tp_sel_c(p1, L1) => false // TODO
+  case tp_sel_a(p1, L1) => false //TODO
 }
