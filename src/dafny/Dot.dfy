@@ -1314,9 +1314,11 @@ predicate V(T: tp, t: tm, k: nat, ctx: context, s: store)
   forall Ds :: expansion(ctx, t.x, T, Ds) && Ds.decls_fin? ==>
   forall j:nat :: j<k ==> (
     (forall Li:nat, S, U :: decl_tp_c(Li, S, U) in Ds.decls ==>
-     exists S', U' :: concrete_type_membership(ctx, t, Li, S', U')) &&
+     exists S', U' :: concrete_type_membership(ctx, t, Li, S', U') &&
+     subtype(ctx, S, S') && subtype(ctx, S', U') && subtype(ctx, U', U)) &&
     (forall Li:nat, S, U :: decl_tp_a(Li, S, U) in Ds.decls ==>
-     exists S', U' :: abstract_type_membership(ctx, t, Li, S', U')) &&
+     exists S', U' :: abstract_type_membership(ctx, t, Li, S', U') &&
+     subtype(ctx, S, S') && subtype(ctx, S', U') && subtype(ctx, U', U)) &&
     (forall mi:nat, S, U :: decl_mt(mi, S, U) in Ds.decls ==>
      exists xi, ti :: def_method_lookup(mi, init) == Some(P(xi, ti)) &&
      E(U, ti, j, ctx_extend(xi, S, ctx), s, ctx)) &&
