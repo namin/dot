@@ -110,16 +110,17 @@
 (test-predicate preservation (term (valnew (u ((rfn Top self (: (cc L) Bot (sel self (cc L)))))) (fun x Top Top x))))
 
 
-(check-false
-(typecheck (term (() ())) (term (valnew (u ((rfn Top self (: (cc L) Bot (sel self (cc L)))))) (cast Top
+(test-predicate preservation
+(term (valnew (u ((rfn Top self (: (cc L) Bot (sel self (cc L)))))) (cast Top
 (cast (arrow (sel u (cc L)) (rfn Top z))
       (cast (arrow (sel u (cc L)) Top)
             (fun x (sel u (cc L)) (sel u (cc L)) x)))
-))))
+)))
 )
 
-(check-false
-(typecheck (term (() ())) (term (valnew (u ((rfn Top self 
+
+(test-predicate preservation
+(term (valnew (u ((rfn Top self
                                                  (: (ca L1) Bot (sel self (ca L1)))
                                                  (: (ca L2) Bot (rfn Top z (: (ca L3) Bot Top)))
                                                  (: (ca L4) ((sel self (ca L2)) ∧ (sel self (ca L1))) (sel self (ca L2))))))
@@ -129,7 +130,7 @@
             (fun x ((sel u (ca L2)) ∧ (sel u (ca L1)))
                  ((sel u (ca L2)) ∧ (sel u (ca L1)))
                  x)))
-))))
+)))
 )
 
 (check-true

@@ -242,44 +242,43 @@
    (wf-type env U)])
 
 (define-metafunction dot
-  is_wfe-type : (T ...) env T -> bool
-  [(is_wfe-type (T_p ...) env T) #t
-   (side-condition (term (is_wf-type (T_p ...) env T)))
+  is_wfe-type : env T -> bool
+  [(is_wfe-type env T) #t
+   (side-condition (term (is_wf-type env T)))
    (judgment-holds (expansion env z T ((DLt ...) (Dl ...) (Dm ...))))]
-  [(is_wfe-type (T_p ...) env T) #f])
+  [(is_wfe-type env T) #f])
 
 (define-metafunction dot
-  is_wf-type : (T ...) env T -> bool
-  [(is_wf-type (T_p ...) env Top) #t]
-  [(is_wf-type (T_p ...) env (-> T_1 T_2)) #t
-   (side-condition (term (is_wf-type (T_p ...) env T_1)))
-   (side-condition (term (is_wf-type (T_p ...) env T_2)))]
-  [(is_wf-type (T_p ...) (Gamma store) (rfn T z D ...)) #t
-   (side-condition (term (is_wf-type (T_p ...) (Gamma store) T)))
+  is_wf-type : env T -> bool
+  [(is_wf-type env Top) #t]
+  [(is_wf-type env (-> T_1 T_2)) #t
+   (side-condition (term (is_wf-type env T_1)))
+   (side-condition (term (is_wf-type env T_2)))]
+  [(is_wf-type (Gamma store) (rfn T z D ...)) #t
+   (side-condition (term (is_wf-type (Gamma store) T)))
    (where env_extended ((gamma-extend Gamma z (rfn T z D ...)) store))
    (side-condition (andmap (lambda (d) (judgment-holds (wf-decl env_extended ,d))) (term (D ...))))]
-  [(is_wf-type (T_p ...) env (sel p Lt)) #t
-   (side-condition (not (member (term (sel p Lt)) (term (T_p ...)))))
+  [(is_wf-type env (sel p Lt)) #t
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))]
-  [(is_wf-type (T_p ...) env (T_1 ∧ T_2)) #t
-   (side-condition (term (is_wf-type (T_p ...) env T_1)))
-   (side-condition (term (is_wf-type (T_p ...) env T_2)))]
-  [(is_wf-type (T_p ...) env (T_1 ∨ T_2)) #t
-   (side-condition (term (is_wf-type (T_p ...) env T_1)))
-   (side-condition (term (is_wf-type (T_p ...) env T_2)))]
-  [(is_wf-type (T_p ...) env Bot) #t]
-  [(is_wf-type (T_p ...) env T) #f])
+  [(is_wf-type env (T_1 ∧ T_2)) #t
+   (side-condition (term (is_wf-type env T_1)))
+   (side-condition (term (is_wf-type env T_2)))]
+  [(is_wf-type env (T_1 ∨ T_2)) #t
+   (side-condition (term (is_wf-type env T_1)))
+   (side-condition (term (is_wf-type env T_2)))]
+  [(is_wf-type env Bot) #t]
+  [(is_wf-type env T) #f])
 
 (define-judgment-form dot
   #:mode (wfe-type I I)
   #:contract (wfe-type env T)
-  [(wfe-type env T) (found (is_wfe-type () env T) #t)])
+  [(wfe-type env T) (found (is_wfe-type env T) #t)])
 
 (define-judgment-form dot
   #:mode (wf-type I I)
   #:contract (wf-type env T)
-  [(wf-type env T) (found (is_wf-type () env T) #t)])
+  [(wf-type env T) (found (is_wf-type env T) #t)])
  
 (define (sort-decls ds)
   (sort ds #:key (lambda (x) (symbol->string (cadr (cadr x)))) string<?))
@@ -404,43 +403,56 @@
 
 (define max-iter 100)
 
+(define-metafunction dot
+  member : any (any ...) -> #t or #f
+  [(member any_1 (any_0 ... any_1 any_2 ...)) #t]
+  [(member any_1 (any_0 ...)) #f])
+
 (define-judgment-form dot
-  #:mode (expansion-iter I I I I O O)
-  #:contract (expansion-iter (((sel p Lt) Ds) ...) env z T (((sel p Lt) Ds) ...) ((DLt ...) (Dl ...) (Dm ...)))
-  [(expansion-iter (((sel p Lt) Ds) ...) env z Top (((sel p Lt) Ds) ...) (() () ()))]
+  #:mode (expansion-fix I I I I I I O)
+  #:contract (expansion-fix (sel p Lt) Ds (((sel p Lt) Ds) ...) env z T Ds)
+  [(expansion-fix (sel p_w Lt_w) Ds_w (((sel p_0 Lt_0) Ds_0) ...) env z T Ds_w)
+   (expansion-iter (((sel p_w Lt_w) Ds_w) ((sel p_0 Lt_0) Ds_0) ...) env z T Ds_w)]
+  [(expansion-fix (sel p_w Lt_w) Ds_w (((sel p_0 Lt_0) Ds_0) ...) env z T Ds_o)
+   (expansion-iter (((sel p_w Lt_w) Ds_w) ((sel p_0 Lt_0) Ds_0) ...) env z T Ds_a)
+   (found (member Ds_a (Ds_w)) #f)
+   (expansion-fix (sel p_w Lt_w) Ds_a (((sel p_0 Lt_0) Ds_0) ...) env z T Ds_o)])
+
+(define-judgment-form dot
+  #:mode (expansion-iter I I I I O)
+  #:contract (expansion-iter (((sel p Lt) Ds) ...) env z T Ds)
+  [(expansion-iter (((sel p Lt) Ds) ...) env z Top (() () ()))]
   [(expansion-iter (((sel p Lt) Ds) ...) env z_1 (rfn T_1 z_2 DLt_1 ... Dl_1 ... Dm_1 ...)
-                   (((sel p_1 Lt_1) Ds_1) ...)
                    ((decl-intersection (sorted-decls (subst (DLt_1 ...) z_2 z_1)) (sorted-decls (DLt_2 ...)))
                     (decl-intersection (sorted-decls (subst (Dl_1 ...) z_2 z_1)) (sorted-decls (Dl_2 ...)))
                     (decl-intersection (sorted-decls (subst (Dm_1  ...) z_2 z_1)) (sorted-decls (Dm_2  ...)))))
-   (expansion-iter (((sel p Lt) Ds) ...) env z_1 T_1 (((sel p_1 Lt_1) Ds_1) ...) ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
+   (expansion-iter (((sel p Lt) Ds) ...) env z_1 T_1 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
   [(expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z (T_1 ∧ T_2)
-                   (((sel p_2 Lt_2) Ds_2) ...)
                    ((decl-intersection (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
                     (decl-intersection (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))
                     (decl-intersection (sorted-decls (Dm_1  ...)) (sorted-decls (Dm_2  ...)))))
-   (expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z T_1 (((sel p_1 Lt_1) Ds_1) ...) ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
-   (expansion-iter (((sel p_1 Lt_1) Ds_1) ...) env z T_2 (((sel p_2 Lt_2) Ds_2) ...) ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
+   (expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z T_1 ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
+   (expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z T_2 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
   [(expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z (T_1 ∨ T_2)
-                   (((sel p_2 Lt_2) Ds_2) ...)
                    ((decl-union (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
                     (decl-union (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))
                     (decl-union (sorted-decls (Dm_1  ...)) (sorted-decls (Dm_2  ...)))))
-   (expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z T_1 (((sel p_1 Lt_1) Ds_1) ...) ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
-   (expansion-iter (((sel p_1 Lt_1) Ds_1) ...) env z T_2 (((sel p_2 Lt_2) Ds_2) ...) ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
-  [(expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z (sel p Lt) (((sel p_1 Lt_1) Ds_1) ...) ((DLt_u ...) (Dl_u ...) (Dm_u ...)))
-   (where any_bound (membership-type-lookup env p Lt))
+   (expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z T_1 ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
+   (expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z T_2 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
+  [(expansion-iter (((sel p_0 Lt_0) Ds_0) ... ((sel p_w Lt_w) Ds_w) ((sel p_2 Lt_2) Ds_2) ...) env z (sel p_w Lt_w) Ds_w)]
+  [(expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z (sel p_w Lt_w) Ds_u)
+   (found (member (sel p_w Lt_w) ((sel p_0 Lt_0) ...)) #f)
+   (where any_bound (membership-type-lookup env p_w Lt_w))
    (found any_bound #t)
-   (where (S_p (side-condition U_p (and (not (member (term U_p) (term ((sel p_0 Lt_0) ...)))))))
-          any_bound)
-   (expansion-iter (((sel p Lt) (()()())) ((sel p_0 Lt_0) Ds_0) ...) env z U_p (((sel p_1 Lt_1) Ds_1) ...) ((DLt_u ...) (Dl_u ...) (Dm_u ...)))]
-  [(expansion-iter (((sel p Lt) Ds) ...) env z Bot (((sel p Lt) Ds) ...) (((: (ca kludge) Top Bot)) () ()))]) ;; kludge
+   (where (S_p U_p) any_bound)
+   (expansion-fix (sel p_w Lt_w) (()()()) (((sel p_0 Lt_0) Ds_0) ...) env z U_p Ds_u)]
+  [(expansion-iter (((sel p Lt) Ds) ...) env z Bot (((: (ca kludge) Top Bot)) () ()))]) ;; kludge
 
 (define-judgment-form dot
   #:mode (expansion I I I O)
-  #:contract (expansion env z T ((DLt ...) (Dl ...) (Dm ...)))
-  [(expansion env z T ((DLt ...) (Dl ...) (Dm ...)))
-   (expansion-iter () env z T (((sel p_0 Lt_0) Ds_0) ...) ((DLt ...) (Dl ...) (Dm ...)))])
+  #:contract (expansion env z T Ds)
+  [(expansion env z T Ds)
+   (expansion-iter () env z T Ds)])
 
 (define-judgment-form dot
   #:mode (subdecl I I I)
@@ -464,7 +476,7 @@
 (define-metafunction dot
   is_subtype : ((T T) ...) env S T -> bool
   [(is_subtype ((T_a T_b) ...) env S T) #f
-   (side-condition (member (term (S T)) (term ((T_a T_b) ...))))]
+   (judgment-holds (found (member (S T) ((T_a T_b) ...)) #t))]
   [(is_subtype ((T_a T_b) ...) env T T) #t
    (judgment-holds (wfe-type env T))]
   [(is_subtype ((T_a T_b) ...) env T Top) #t
