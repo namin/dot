@@ -29,7 +29,8 @@
   (bool #t #f)
   (DLm DLt Dm)
   (Lm Lt m)
-  (Lany Lt l m))
+  (Lany Lt l m)
+  (Ds ((DLt ...) (Dl ...) (Dm ...))))
 
 (define-metafunction dot
   intersection : T T -> T
@@ -404,41 +405,42 @@
 (define max-iter 100)
 
 (define-judgment-form dot
-  #:mode (expansion-iter I I I I O)
-  #:contract (expansion-iter (T ...) env z T ((DLt ...) (Dl ...) (Dm ...)))
-  [(expansion-iter (T_p ...) env z Top (() () ()))]
-  [(expansion-iter (T_p ...) env z (-> S T) (() () ()))]
-  [(expansion-iter (T_p ...) env z_1 (rfn T_1 z_2 DLt_1 ... Dl_1 ... Dm_1 ...)
+  #:mode (expansion-iter I I I I O O)
+  #:contract (expansion-iter (((sel p Lt) Ds) ...) env z T (((sel p Lt) Ds) ...) ((DLt ...) (Dl ...) (Dm ...)))
+  [(expansion-iter (((sel p Lt) Ds) ...) env z Top (((sel p Lt) Ds) ...) (() () ()))]
+  [(expansion-iter (((sel p Lt) Ds) ...) env z_1 (rfn T_1 z_2 DLt_1 ... Dl_1 ... Dm_1 ...)
+                   (((sel p_1 Lt_1) Ds_1) ...)
                    ((decl-intersection (sorted-decls (subst (DLt_1 ...) z_2 z_1)) (sorted-decls (DLt_2 ...)))
                     (decl-intersection (sorted-decls (subst (Dl_1 ...) z_2 z_1)) (sorted-decls (Dl_2 ...)))
                     (decl-intersection (sorted-decls (subst (Dm_1  ...) z_2 z_1)) (sorted-decls (Dm_2  ...)))))
-   (expansion-iter (T_p ... (rfn T_1 z_2 DLt_1 ... Dl_1 ... Dm_1 ...)) env z_1 T_1 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
-  [(expansion-iter (T_p ...) env z (T_1 ∧ T_2)
+   (expansion-iter (((sel p Lt) Ds) ...) env z_1 T_1 (((sel p_1 Lt_1) Ds_1) ...) ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
+  [(expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z (T_1 ∧ T_2)
+                   (((sel p_2 Lt_2) Ds_2) ...)
                    ((decl-intersection (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
                     (decl-intersection (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))
                     (decl-intersection (sorted-decls (Dm_1  ...)) (sorted-decls (Dm_2  ...)))))
-   (expansion-iter (T_p ... (T_1 ∧ T_2)) env z T_1 ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
-   (expansion-iter (T_p ... (T_1 ∧ T_2)) env z T_2 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
-  [(expansion-iter (T_p ...) env z (T_1 ∨ T_2)
+   (expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z T_1 (((sel p_1 Lt_1) Ds_1) ...) ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
+   (expansion-iter (((sel p_1 Lt_1) Ds_1) ...) env z T_2 (((sel p_2 Lt_2) Ds_2) ...) ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
+  [(expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z (T_1 ∨ T_2)
+                   (((sel p_2 Lt_2) Ds_2) ...)
                    ((decl-union (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
                     (decl-union (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))
                     (decl-union (sorted-decls (Dm_1  ...)) (sorted-decls (Dm_2  ...)))))
-   (expansion-iter (T_p ... (T_1 ∨ T_2)) env z T_1 ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
-   (expansion-iter (T_p ... (T_1 ∨ T_2)) env z T_2 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
-  [(expansion-iter (T_p ...) env z (sel p Lt) ((DLt_u ...) (Dl_u ...) (Dm_u ...)))
+   (expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z T_1 (((sel p_1 Lt_1) Ds_1) ...) ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
+   (expansion-iter (((sel p_1 Lt_1) Ds_1) ...) env z T_2 (((sel p_2 Lt_2) Ds_2) ...) ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
+  [(expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z (sel p Lt) (((sel p_1 Lt_1) Ds_1) ...) ((DLt_u ...) (Dl_u ...) (Dm_u ...)))
    (where any_bound (membership-type-lookup env p Lt))
    (found any_bound #t)
-   (where (S_p (side-condition U_p (and (not (member (term U_p) (term (T_p ... (sel p Lt)))))
-                                        (< (length (term (T_p ...))) max-iter))))
+   (where (S_p (side-condition U_p (and (not (member (term U_p) (term ((sel p_0 Lt_0) ...)))))))
           any_bound)
-   (expansion-iter (T_p ... (sel p Lt)) env z U_p ((DLt_u ...) (Dl_u ...) (Dm_u ...)))]
-  [(expansion-iter (T_p ...) env z Bot (((: (ca kludge) Top Bot)) () ()))]) ;; kludge
+   (expansion-iter (((sel p Lt) (()()())) ((sel p_0 Lt_0) Ds_0) ...) env z U_p (((sel p_1 Lt_1) Ds_1) ...) ((DLt_u ...) (Dl_u ...) (Dm_u ...)))]
+  [(expansion-iter (((sel p Lt) Ds) ...) env z Bot (((sel p Lt) Ds) ...) (((: (ca kludge) Top Bot)) () ()))]) ;; kludge
 
 (define-judgment-form dot
   #:mode (expansion I I I O)
   #:contract (expansion env z T ((DLt ...) (Dl ...) (Dm ...)))
   [(expansion env z T ((DLt ...) (Dl ...) (Dm ...)))
-   (expansion-iter () env z T ((DLt ...) (Dl ...) (Dm ...)))])
+   (expansion-iter () env z T (((sel p_0 Lt_0) Ds_0) ...) ((DLt ...) (Dl ...) (Dm ...)))])
 
 (define-judgment-form dot
   #:mode (subdecl I I I)
