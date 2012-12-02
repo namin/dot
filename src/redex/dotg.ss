@@ -258,16 +258,9 @@
    (where env_extended ((gamma-extend Gamma z (rfn T z D ...)) store))
    (side-condition (andmap (lambda (d) (judgment-holds (wf-decl env_extended ,d))) (term (D ...))))]
   [(is_wf-type (T_p ...) env (sel p Lt)) #t
-   (where any_bound (membership-type-lookup env p Lt))
-   (judgment-holds (found any_bound #t))
-   (where (Bot U) any_bound)]
-  [(is_wf-type (T_p ...) env (sel p Lt)) #t
    (side-condition (not (member (term (sel p Lt)) (term (T_p ...)))))
    (where any_bound (membership-type-lookup env p Lt))
-   (judgment-holds (found any_bound #t))
-   (where (S U) any_bound)
-   (side-condition (term (is_wf-type ((sel p Lt) T_p ...) env S)))
-   (side-condition (term (is_wf-type ((sel p Lt) T_p ...) env U)))]
+   (judgment-holds (found any_bound #t))]
   [(is_wf-type (T_p ...) env (T_1 ∧ T_2)) #t
    (side-condition (term (is_wf-type (T_p ...) env T_1)))
    (side-condition (term (is_wf-type (T_p ...) env T_2)))]
