@@ -337,7 +337,7 @@
                     (valnew (z ((sel x (cc L)))) (cast Top z)))
                v))))
 
-(test-predicate type-safety
+(test-predicate preservation
  (term
   (valnew (v ((rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot (sel z (ca A))))))))
   (app (fun x (rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot Top)))) Top
@@ -351,7 +351,7 @@
                     (cast Top z)))
        (as (rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot Top)))) v)))))
 
-(test-predicate type-safety
+(test-predicate preservation
  (term
   (valnew (x00 ((rfn Top z (: (ca L) Bot
                               (rfn Top self
@@ -371,7 +371,7 @@
                  (cast Top z))))
        (as (sel x0 (cc Lc1)) x1))))))))
 
-(test-predicate type-safety
+(test-predicate preservation
  (term
   (valnew (v ((rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) (sel z (ca A)) Top))))))
   (app (fun x (rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot Top)))) Top
@@ -424,7 +424,7 @@
             (cm m)
             (as (rfn Top z (: (ca A) Top Top) (: (ca B) Bot Top)) v))))))
 
-(test-predicate type-safety
+(test-predicate preservation
  (term
   (valnew (v ((rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot (sel z (ca A))))))))
   (app (as (arrow (rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot (sel z (ca A)))))) Top)
