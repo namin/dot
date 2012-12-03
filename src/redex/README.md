@@ -1,4 +1,4 @@
 DOT in PLT Redex
 ================
 
-The current model is implemented in `dotf.ss`.
+The FOOL model is implemented in `dotf.ss`. The current model is implemented in `dotg.ss`.
