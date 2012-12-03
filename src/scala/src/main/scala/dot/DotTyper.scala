@@ -3,6 +3,59 @@ package dot
 import scala.util.parsing.input.Positional
 import scala.util.parsing.input.NoPosition
 
+trait LooseDotTyper extends DotTyper {
+  import Terms._
+  import Types._
+  import Members._
+  import TyperMonad._
+
+  override def wf(tp: Type): TyperMonad[Unit] = tp match {
+    case Tsel(p, l) => for (TypeBounds(s, u) <- memType(p, l)) yield ()
+    case _ => super.wf(tp)
+  }
+
+  override def expand(x: Name, tp: Type): TyperMonad[Dcls] = {
+    expandIter(Map(), x, tp)
+  }
+
+  def expandIter(m: Map[Tsel, Dcls], x: Name, tp: Type): TyperMonad[Dcls] = {
+    debug("loose expand_" + x + " of " + tp.pp)
+    tp match {
+      case Refine(parent, \\(z, ds)) =>
+        for (dsp <- expandIter(m, x, parent))
+        yield meet(dsp, ds swap(z, x))
+      case Intersect(a, b) =>
+        for (dsa <- expandIter(m, x, a);
+             dsb <- expandIter(m, x, b))
+        yield meet(dsa, dsb)
+      case Union(a, b) =>
+        for (dsa <- expandIter(m, x, a);
+             dsb <- expandIter(m, x, b))
+        yield join(dsa, dsb)
+      case selT@Tsel(p, l) =>
+        m.get(selT) match {
+          case Some(ds) => ds
+          case None =>
+            for(TypeBounds(s, u) <- memType(p, l);
+               ds <- expandFix(selT, Decls(List()), m, x, u))
+            yield ds
+        }
+      case Top => Decls(List())
+      case Bottom => BottomDecls
+    }
+  }
+
+  def expandFix(selT: Tsel, selDs: Dcls, m: Map[Tsel, Dcls], x: Name, tp: Type): TyperMonad[Dcls] = {
+    debug("fix expand_" + x + " of " + tp.pp)
+    some(List(
+    (for (ds <- expandIter(m + (selT -> selDs), x, tp);
+          if ds==selDs) yield ds),
+    (for (ds <- expandIter(m + (selT -> selDs), x, tp);
+          if ds!=selDs;
+          fixDs <- expandFix(selT, ds, m, x, tp)) yield fixDs)))
+  }
+}
+
 trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyntax with DotSubstitution with DotPrettyPrint {
   override type State = Int
   override val initState = 0

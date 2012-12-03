@@ -87,7 +87,7 @@ trait DotShellWithSugar extends DotShell with DotSugarFunctions {
 // ===> y : ⊤ { y ⇒ l: ⊤ }
 // dot> y.l
 // ===> y.l : ⊤
-object sh extends DotShellWithSugar with REPL {
+object sh extends DotShellWithSugar with LooseDotTyper with REPL {
   override def prompt() = "dot> "
   override def processline(line: String): Unit = exec(line)
 }

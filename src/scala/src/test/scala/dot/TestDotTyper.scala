@@ -5,6 +5,10 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
+class TestLooseDotTyper extends TestDotTyper with LooseDotTyper {
+}
+
+@RunWith(classOf[JUnitRunner])
 class TestDotTyper extends Suite with DotTyper {
   def bad[A](r: Result[A]) {
     assert(r.isInstanceOf[TyperFailure[A]])

@@ -5,6 +5,10 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
+class TestLooseDot extends TestDot with LooseDotTyper {
+}
+
+@RunWith(classOf[JUnitRunner])
 class TestDot extends Suite with DotParsing with DotTyper {
   def parse(in: String): Term = phrase(Parser.term)(new lexical.Scanner(in)) match {
     case Success(tm, _) => tm
