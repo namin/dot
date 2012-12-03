@@ -77,23 +77,26 @@ datatype pair<A, B> = P(fst: A, snd: B);
 datatype option<A> = None | Some(get: A);
 
 // ### Partial Maps ###
-datatype partial_map<A> = Empty | Extend(x: nat, v: A, rest: partial_map<A>);
-function lookup<A>(x: nat, m: partial_map<A>): option<A>
+datatype partial_map<K,V> = Empty | Extend(x: K, v: V, rest: partial_map<K,V>);
+function lookup<K,V>(x: K, m: partial_map<K,V>): option<V>
+  ensures m.Empty? ==> lookup(x, m).None?;
+  ensures m.Empty? ==> !lookup(x, m).Some?;
+  ensures m.Extend? && m.x==x ==> lookup(x, m) == Some(m.v);
+  ensures m.Extend? && m.x!=x ==> lookup(x, m) == lookup(x, m.rest);
 {
   match m
   case Empty => None
   case Extend(x', v, rest) => if x==x' then Some(v) else lookup(x, rest)
 }
-function dom<A>(m: partial_map<A>): seq<int>
-  ensures forall x :: x in dom(m) ==> x>=0;
-  ensures forall x:nat :: x in dom(m) ==> lookup(x, m).Some?;
+function dom<K,V>(m: partial_map<K,V>): seq<K>
+  ensures forall x :: x in dom(m) ==> lookup(x, m).Some?;
   ensures m.Extend? ==> dom(m) == [m.x]+dom(m.rest);
 {
   match m
   case Empty => []
   case Extend(x, v, rest) => [x]+dom(rest)
 }
-function prefixes<A>(m: partial_map<A>): seq<partial_map<A>>
+function prefixes<K,V>(m: partial_map<K,V>): seq<partial_map<K,V>>
   ensures m in prefixes(m);
   ensures m.Extend? ==> m.rest in prefixes(m);
 {
@@ -101,18 +104,18 @@ function prefixes<A>(m: partial_map<A>): seq<partial_map<A>>
   case Empty => [m]
   case Extend(x, v, rest) => [m]+prefixes(rest)
 }
-predicate prefix_of<A>(m: partial_map<A>, m_prev: partial_map<A>)
+predicate prefix_of<K,V>(m: partial_map<K,V>, m_prev: partial_map<K,V>)
 {
   m==m_prev || (m.Extend? && prefix_of(m.rest, m_prev))
 }
-function build<A>(m: partial_map<A>, r: partial_map<A>): partial_map<A>
+function build<K,V>(m: partial_map<K,V>, r: partial_map<K,V>): partial_map<K,V>
   decreases r;
 {
   match r
   case Empty => m
   case Extend(x, v, rest) => build(Extend(x, v, m), rest)
 }
-function map_complement<A>(m: partial_map<A>, m_prev: partial_map<A>, start: partial_map<A>): partial_map<A>
+function map_complement<K,V>(m: partial_map<K,V>, m_prev: partial_map<K,V>, start: partial_map<K,V>): partial_map<K,V>
   requires prefix_of(m, m_prev);
   //ensures build(m_prev, map_complement(m, m_prev, Empty))==m;
   decreases m;
@@ -120,7 +123,7 @@ function map_complement<A>(m: partial_map<A>, m_prev: partial_map<A>, start: par
   if (m==m_prev) then start
   else map_complement(m.rest, m_prev, Extend(m.x, m.v, start))
 }
-function map_fst<A,B>(m: partial_map<pair<A,B>>): partial_map<A>
+function map_fst<K,A,B>(m: partial_map<K,pair<A,B>>): partial_map<K,A>
   ensures dom(m)==dom(map_fst(m));
 {
   match m
@@ -143,7 +146,7 @@ function rev<A>(s: seq<A>): seq<A>
 }
 
 // ### Lemmas about utilities ###
-ghost method lemma_empty_prefix_of_any<A>(m: partial_map<A>)
+ghost method lemma_empty_prefix_of_any<K,V>(m: partial_map<K,V>)
   ensures prefix_of(m, Empty);
 {
 }
@@ -197,7 +200,7 @@ ghost method lemma_rev_rev<A>(s: seq<A>)
     assert rev(rev(s))==s;
   }
 }
-ghost method lemma_prefix_of__dom<A>(m: partial_map<A>, m_prev: partial_map<A>) returns (s: seq<int>)
+ghost method lemma_prefix_of__dom<K,V>(m: partial_map<K,V>, m_prev: partial_map<K,V>) returns (s: seq<K>)
   requires prefix_of(m, m_prev);
   ensures dom(m)==s+dom(m_prev);
 {
@@ -210,12 +213,12 @@ ghost method lemma_prefix_of__dom<A>(m: partial_map<A>, m_prev: partial_map<A>) 
     assert dom(m)==[m.x]+dom(m.rest);
   }
 }
-ghost method lemma_map_complement_extend__dom'<A>(m: partial_map<A>, m_prev: partial_map<A>, start: partial_map<A>)
+ghost method lemma_map_complement_extend__dom'<K,V>(m: partial_map<K,V>, m_prev: partial_map<K,V>, start: partial_map<K,V>)
   requires prefix_of(m, m_prev);
   ensures dom(map_complement(m, m_prev, start))==dom(map_complement(m, m_prev, Empty))+dom(start);
 {
 }
-ghost method lemma_map_complement_extend__dom<A>(m: partial_map<A>, m_prev: partial_map<A>)
+ghost method lemma_map_complement_extend__dom<K,V>(m: partial_map<K,V>, m_prev: partial_map<K,V>)
   requires prefix_of(m, m_prev);
   ensures m!=m_prev ==> dom(map_complement(m, m_prev, Empty))==dom(map_complement(m.rest, m_prev, Extend(m.x, m.v, Empty)));
   ensures m!=m_prev ==> dom(map_complement(m, m_prev, Empty))==dom(map_complement(m.rest, m_prev, Empty))+[m.x];
@@ -224,7 +227,7 @@ ghost method lemma_map_complement_extend__dom<A>(m: partial_map<A>, m_prev: part
     lemma_map_complement_extend__dom'(m.rest, m_prev, Extend(m.x, m.v, Empty));
   }
 }
-ghost method lemma_map_complement__dom<A>(m: partial_map<A>, m_prev: partial_map<A>)
+ghost method lemma_map_complement__dom<K,V>(m: partial_map<K,V>, m_prev: partial_map<K,V>)
   requires prefix_of(m, m_prev);
   ensures dom(m)==rev(dom(map_complement(m, m_prev, Empty)))+dom(m_prev);
 {
@@ -239,7 +242,7 @@ ghost method lemma_map_complement__dom<A>(m: partial_map<A>, m_prev: partial_map
     assert rev(dom(map_complement(m.rest, m_prev, Empty))+[m.x])==[m.x]+rev(dom(map_complement(m.rest, m_prev, Empty)));
   }
 }
-ghost method lemma_map_complement_prev_empty__dom<A>(m: partial_map<A>)
+ghost method lemma_map_complement_prev_empty__dom<K,V>(m: partial_map<K,V>)
   ensures prefix_of(m, Empty);
   ensures dom(m)==rev(dom(map_complement(m, Empty, Empty)));
   ensures rev(dom(m))==dom(map_complement(m, Empty, Empty));
@@ -251,7 +254,7 @@ ghost method lemma_map_complement_prev_empty__dom<A>(m: partial_map<A>)
   assert rev(rev(dom(map_complement(m, Empty, Empty))))==dom(map_complement(m, Empty, Empty));
   assert rev(dom(m))==dom(map_complement(m, Empty, Empty));
 }
-ghost method lemma_build__dom<A>(m: partial_map<A>, r: partial_map<A>)
+ghost method lemma_build__dom<K,V>(m: partial_map<K,V>, r: partial_map<K,V>)
   ensures dom(build(m, r)) == rev(dom(r)) + dom(m);
   decreases r;
 {
@@ -265,7 +268,7 @@ ghost method lemma_build__dom<A>(m: partial_map<A>, r: partial_map<A>)
     assert rev(dom(rest))+[x]==rev([x]+dom(rest));
   }
 }
-ghost method lemma_prefix_of_trans<A>(m1: partial_map<A>, m2: partial_map<A>, m3: partial_map<A>)
+ghost method lemma_prefix_of_trans<K,V>(m1: partial_map<K,V>, m2: partial_map<K,V>, m3: partial_map<K,V>)
   requires prefix_of(m3, m2);
   requires prefix_of(m2, m1);
   ensures prefix_of(m3, m1);
@@ -589,7 +592,7 @@ predicate value(t: tm)
 }
 
 // ### Store ###
-datatype store = Store(m: partial_map<pair<tp, list<def>>>);
+datatype store = Store(m: partial_map<int,pair<tp, list<def>>>);
 function store_lookup(n: nat, s: store): list<def>
   requires n in dom(s.m);
 {
@@ -927,6 +930,12 @@ predicate mstep(t: tm, s: store, t': tm, s': store, n: nat)
 
 // ### Properties of Operational Semantics ###
 
+ghost method lemma_value__irred(t: tm, s: store)
+  requires value(t);
+  ensures irred(t, s);
+{
+}
+
 ghost method lemma_step__prefix(t1: tm, s1: store, t2: tm, s2: store)
   requires step(t1, s1) == Some(P(t2, s2));
   ensures prefix_of(s2.m, s1.m);
@@ -1008,7 +1017,7 @@ ghost method lemma_sel_irred__o_mstep_irred(o: tm, l: nat, t': tm, s: store, s':
 // -----------
 
 // ### Context ###
-datatype context = Context(m: partial_map<tp>);
+datatype context = Context(m: partial_map<int,tp>);
 function ctx_extend(x: nat, T: tp, ctx: context): context
   ensures ctx_extend(x, T, ctx).m == Extend(x, T, ctx.m);
   ensures prefix_of(ctx_extend(x, T, ctx).m, ctx.m);
@@ -1153,14 +1162,10 @@ copredicate wf_type(ctx: context, T: tp)
     wf_type(ctx, T') && wf_decls(Context(Extend(z, T, ctx.m)), Ds)
   case tp_sel_c(p, L) =>
     path(p) &&
-    exists S, U :: concrete_type_membership(ctx, p, L, S, U) &&
-    (S==tp_bot ||
-    (wf_type(ctx, S) && wf_type(ctx, U)))
+    exists S, U :: concrete_type_membership(ctx, p, L, S, U)
   case tp_sel_a(p, L) =>
     path(p) &&
-    exists S, U :: abstract_type_membership(ctx, p, L, S, U) &&
-    (S==tp_bot ||
-    (wf_type(ctx, S) && wf_type(ctx, U)))
+    exists S, U :: abstract_type_membership(ctx, p, L, S, U)
   case tp_and(T1, T2) => wf_type(ctx, T1) && wf_type(ctx, T2)
   case tp_or(T1, T2) => wf_type(ctx, T1) && wf_type(ctx, T2)
   case tp_top => true
@@ -1201,30 +1206,53 @@ copredicate abstract_type_membership(ctx: context, t: tm, L: nat, S: tp, U: tp)
   exists d :: membership(ctx, t, L, d) &&
   d.decl_tp_a? && d.La==L && d.Sa==S && d.Ua==U
 }
+predicate m_decl_seq_sorted(m: partial_map<tp, decls>)
+{
+  match m
+  case Empty => true
+  case Extend(x, v, rest) => (v.decls_fin? ==> decl_seq_sorted(v.decls)) && m_decl_seq_sorted(rest)
+}
 copredicate expansion(ctx: context, z: nat, T: tp, Ds: decls)
   ensures expansion(ctx, z, T, Ds) && Ds.decls_fin? ==> decl_seq_sorted(Ds.decls);
 {
+  expansion_iter(Empty, ctx, z, T, Ds)
+}
+copredicate expansion_iter(m: partial_map<tp, decls>, ctx: context, z: nat, T: tp, Ds: decls)
+  requires m_decl_seq_sorted(m);
+  ensures expansion_iter(m, ctx, z, T, Ds) && Ds.decls_fin? ==> decl_seq_sorted(Ds.decls);
+{
   match T
   case tp_rfn(T', z', Ds') =>
-    exists DsT :: expansion(ctx, z, T, DsT) &&
+    exists DsT :: expansion_iter(m, ctx, z, T, DsT) &&
     exists rfn_decls :: rfn_decls==decl_seq_sort(lst2seq(decls_subst(z', tm_var(z), Ds'))) &&
     decl_seq_sorted(rfn_decls) &&
     Ds==decls_and(decls_fin(rfn_decls), DsT) &&
     (Ds.decls_fin? ==> decl_seq_sorted(Ds.decls))
   case tp_sel_c(p, L) =>
-    exists S, U :: concrete_type_membership(ctx, p, L, S, U) && expansion(ctx, z, U, Ds)
+    (lookup(T, m).Some? && lookup(T, m).get==Ds && (Ds.decls_fin? ==> decl_seq_sorted(Ds.decls))) || 
+    (lookup(T, m).None? && exists S, U :: concrete_type_membership(ctx, p, L, S, U) && expansion_fix(T, decls_fin([]), m, ctx, z, U, Ds))
   case tp_sel_a(p, L) =>
-    exists S, U :: abstract_type_membership(ctx, p, L, S, U) && expansion(ctx, z, U, Ds)
+    (lookup(T, m).Some? && lookup(T, m).get==Ds && (Ds.decls_fin? ==> decl_seq_sorted(Ds.decls))) || 
+    (lookup(T, m).None? && exists S, U :: abstract_type_membership(ctx, p, L, S, U) && expansion_fix(T, decls_fin([]), m, ctx, z, U, Ds))
   case tp_and(T1, T2) =>
-    exists Ds1, Ds2 :: expansion(ctx, z, T1, Ds1) && expansion(ctx, z, T2, Ds2) &&
+    exists Ds1, Ds2 :: expansion_iter(m, ctx, z, T1, Ds1) && expansion_iter(m, ctx, z, T2, Ds2) &&
     Ds==decls_and(Ds1, Ds2) &&
     (Ds.decls_fin? ==> decl_seq_sorted(Ds.decls))
   case tp_or(T1, T2) =>
-    exists Ds1, Ds2 :: expansion(ctx, z, T1, Ds1) && expansion(ctx, z, T2, Ds2) &&
+    exists Ds1, Ds2 :: expansion_iter(m, ctx, z, T1, Ds1) && expansion_iter(m, ctx, z, T2, Ds2) &&
     Ds==decls_or(Ds1, Ds2) &&
     (Ds.decls_fin? ==> decl_seq_sorted(Ds.decls))
   case tp_top => Ds==decls_fin([])
   case tp_bot => Ds==decls_bot
+}
+copredicate expansion_fix(selT: tp, selDs: decls, m: partial_map<tp, decls>, ctx: context, z: nat, T: tp, Ds: decls)
+  requires m_decl_seq_sorted(m);
+  requires selDs.decls_fin? ==> decl_seq_sorted(selDs.decls);
+  ensures expansion_fix(selT, selDs, m, ctx, z, T, Ds) && Ds.decls_fin? ==> decl_seq_sorted(Ds.decls);
+{
+  (selDs==Ds && expansion_iter(Extend(selT, selDs, m), ctx, z, T, Ds)) ||
+  (selDs!=Ds && exists Da :: expansion_iter(Extend(selT, selDs, m), ctx, z, T, Da) &&
+   expansion_fix(selT, Da, m, ctx, z, T, Ds))
 }
 copredicate decl_sub(ctx: context, d1: decl, d2: decl)
   requires decl_eq(d1, d2);
@@ -1499,25 +1527,16 @@ ghost method build_Xc(k: nat, ctx: context, s: store, s_prev: store) returns (ct
   lemma_build__dom(ctx.m, tp_todo);
 }
 
-ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
-  requires typing(ctx, t, T);
-  ensures R(ctx, t, T);
-  decreases t;
+ghost method theorem_fundamental_R_var(ctx: context, T: tp, x: nat, k: nat)
+  requires typing(ctx, tm_var(x), T);
+  requires A(k, Context(Empty), Store(Empty));
+  requires As(k, ctx, Store(Empty), Context(Empty));
+  ensures E(T, tm_var(x), k, ctx, Store(Empty), Context(Empty));
 {
   var ctx_prev := Context(Empty);
   var s := Store(Empty);
+  var t := tm_var(x);
 
-  parallel (k: nat)
-    ensures
-      A(k, ctx_prev, s) &&
-      As(k, ctx, s, ctx_prev) &&
-      E(T, t, k, ctx, s, ctx_prev);
-  {
-    lemma_empty_prefix_of_any(ctx.m);
-    assert As(k, ctx, s, ctx_prev);
-
-    match t {
-    case tm_var(x) =>
       assert lookup(x, ctx.m) == Some(T);
       if (k>0) {
         parallel (
@@ -1543,6 +1562,112 @@ ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
        }
       }
       assert E(T, t, k, ctx, Store(Empty), Context(Empty));
+}
+
+ghost method theorem_fundamental_R_sel(ctx: context, T: tp, T1: tp, t1: tm, l: nat, k: nat)
+  requires typing(ctx, tm_sel(t1, l), T);
+  requires A(k, Context(Empty), Store(Empty));
+  requires As(k, ctx, Store(Empty), Context(Empty));
+
+  requires field_membership(ctx, t1, l, T);
+  requires membership(ctx, t1, l, decl_tm(l, T));
+  requires typing(ctx, t1, T1);
+  requires E(T1, t1, k, ctx, Store(Empty), Context(Empty));
+
+  ensures E(T, tm_sel(t1, l), k, ctx, Store(Empty), Context(Empty));
+{
+  var ctx_prev := Context(Empty);
+  var s := Store(Empty);
+  var t := tm_sel(t1, l);
+
+  if (k>0) {
+    parallel (
+      i:nat, j:nat,
+      ctx', s':store,
+      t', s'':store,
+      ctx'' |
+      i+j<k &&
+      Xs(ctx', s', k-1, ctx, s, ctx_prev) && A(k-1, ctx', s') &&
+      prefix_of(s''.m, s'.m) && mstep(t, s', t', s'', j) && irred(t', s'') &&
+      Xc(ctx'', k-1, ctx', s'', s') && A(k-1, ctx'', s''))
+      ensures V(T, t', i, ctx'', s'');
+    {
+      var t1', t1s, t1j := lemma_sel_irred__o_mstep_irred(t1, l, t', s', s'', j);
+      lemma_mstep__prefix(t1, s', t1', t1s, t1j);
+      var t1ctx :=  build_Xc(k-1, ctx', t1s, s');
+      lemma_E(T1, t1, t1', k, t1j, i+j-t1j, s, s', t1s, ctx_prev, ctx, ctx', t1ctx);
+      lemma_V_value(T1, t1', i+j-t1j, t1ctx, t1s);
+
+      lemma_mstep_sel(t1, l, t1', s', t1s, t1j);
+      lemma_mstep_trans'(t, s', tm_sel(t1', l), t1s, t', s'', t1j, j);
+ 
+      parallel (Tc, init, Ds |
+        P(Tc, init) == lookup(t1'.x, t1s.m).get &&
+        expansion(t1ctx, t1'.x, T1, Ds) && Ds.decls_fin?)
+        ensures V(T, t', i, ctx'', s'');
+      {
+        lemma_field_mem__expansion_decl(ctx, t1, T1, l, T, t1ctx, t1'.x, Ds);
+        assert exists U :: decl_tm(l, U) in Ds.decls;
+        // How do we relate U and T?
+        // This is fishy because T might have t1 as self, and U might have t1'.
+        // so certainly, they can be !=.
+        assume decl_tm(l, T) in Ds.decls;
+
+        assume j-t1j>0; // fishy: how can we guarantee that?
+        lemma_V_field(T1, t1', l, T, i+j-t1j, i, t1ctx, t1s, Tc, init, Ds);
+        assert V(T, def_field_lookup(l, init).get, i, t1ctx, t1s);
+        lemma_V_value(T, def_field_lookup(l, init).get, i, t1ctx, t1s);
+              
+        lemma_mstep_trans'(tm_sel(t1', l), t1s, def_field_lookup(l, init).get, t1s, t', s'', 1, j-t1j);
+        
+        assert def_field_lookup(l, init).get.tm_var?;
+        lemma_value__irred(def_field_lookup(l, init).get, t1s);
+        assert irred(def_field_lookup(l, init).get, t1s);
+
+        assert t'==def_field_lookup(l, init).get;
+        assert mstep(def_field_lookup(l, init).get, t1s, t', s'', 0);
+        assert s''==t1s;
+        lemma_Xc_unique(ctx'', t1ctx, k-1, ctx', s'', s');
+        assert ctx''==t1ctx;
+
+        assert V(T, def_field_lookup(l, init).get, i, t1ctx, t1s);
+        assert V(T, t', i, ctx'', s'');
+      }
+
+      assert forall Tc, init, Ds :: (
+        P(Tc, init) == lookup(t1'.x, t1s.m).get &&
+        expansion(t1ctx, t1'.x, T1, Ds) && Ds.decls_fin?) ==>
+        V(T, t', i, ctx'', s'');
+      assert exists Tc, init :: P(Tc, init) == lookup(t1'.x, t1s.m).get;
+      assert exists Ds :: expansion(t1ctx, t1'.x, T1, Ds) && Ds.decls_fin?;
+      assert exists Tc, init, Ds :: (
+        P(Tc, init) == lookup(t1'.x, t1s.m).get &&
+        expansion(t1ctx, t1'.x, T1, Ds) && Ds.decls_fin?);
+      assert V(T, t', i, ctx'', s'');
+    }
+  }
+}
+
+ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
+  requires typing(ctx, t, T);
+  ensures R(ctx, t, T);
+  decreases t;
+{
+  var ctx_prev := Context(Empty);
+  var s := Store(Empty);
+
+  parallel (k: nat)
+    ensures
+      A(k, ctx_prev, s) &&
+      As(k, ctx, s, ctx_prev) &&
+      E(T, t, k, ctx, s, ctx_prev);
+  {
+    lemma_empty_prefix_of_any(ctx.m);
+    assert As(k, ctx, s, ctx_prev);
+
+    match t {
+    case tm_var(x) =>
+      theorem_fundamental_R_var(ctx, T, x, k);
     case tm_new(y, Tc, init, t1) =>
       assume E(T, t, k, ctx, Store(Empty), Context(Empty)); // TODO
     case tm_sel(t1, l) =>
@@ -1553,68 +1678,8 @@ ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
         ensures E(T, t, k, ctx, s, ctx_prev);
       {
         theorem_fundamental_R(ctx, t1, T1);
-        if (k>0) {
-          parallel (
-            i:nat, j:nat,
-            ctx', s':store,
-            t', s'':store,
-            ctx'' |
-            i+j<k &&
-            Xs(ctx', s', k-1, ctx, s, ctx_prev) && A(k-1, ctx', s') &&
-            prefix_of(s''.m, s'.m) && mstep(t, s', t', s'', j) && irred(t', s'') &&
-            Xc(ctx'', k-1, ctx', s'', s') && A(k-1, ctx'', s''))
-            ensures V(T, t', i, ctx'', s'');
-          {
-            var t1', t1s, t1j := lemma_sel_irred__o_mstep_irred(t1, l, t', s', s'', j);
-            lemma_mstep__prefix(t1, s', t1', t1s, t1j);
-            var t1ctx :=  build_Xc(k-1, ctx', t1s, s');
-            lemma_E(T1, t1, t1', k, t1j, i+j-t1j, s, s', t1s, ctx_prev, ctx, ctx', t1ctx);
-            lemma_V_value(T1, t1', i+j-t1j, t1ctx, t1s);
+        theorem_fundamental_R_sel(ctx, T, T1, t1, l, k);
 
-            lemma_mstep_sel(t1, l, t1', s', t1s, t1j);
-            lemma_mstep_trans'(t, s', tm_sel(t1', l), t1s, t', s'', t1j, j);
-
-            parallel (Tc, init, Ds |
-              P(Tc, init) == lookup(t1'.x, t1s.m).get &&
-              expansion(t1ctx, t1'.x, T1, Ds) && Ds.decls_fin?)
-              ensures V(T, t', i, ctx'', s'');
-            {
-              lemma_field_mem__expansion_decl(ctx, t1, T1, l, T, t1ctx, t1'.x, Ds);
-              assert exists U :: decl_tm(l, U) in Ds.decls;
-              // How do we relate U and T?
-              // This is fishy because T might have t1 as self, and U might have t1'.
-              // so certainly, they can be !=.
-              assume decl_tm(l, T) in Ds.decls;
-
-              assume j-t1j>0; // fishy: how can we guarantee that?
-              lemma_V_field(T1, t1', l, T, i+j-t1j, i, t1ctx, t1s, Tc, init, Ds);
-              assert V(T, def_field_lookup(l, init).get, i, t1ctx, t1s);
-              lemma_V_value(T, def_field_lookup(l, init).get, i, t1ctx, t1s);
-              
-              lemma_mstep_trans'(tm_sel(t1', l), t1s, def_field_lookup(l, init).get, t1s, t', s'', 1, j-t1j);
-
-              assert def_field_lookup(l, init).get.tm_var?;
-              assert irred(def_field_lookup(l, init).get, t1s);
-              assert t'==def_field_lookup(l, init).get;
-              assert mstep(def_field_lookup(l, init).get, t1s, t', s'', 0);
-              assert s''==t1s;
-              lemma_Xc_unique(ctx'', t1ctx, k-1, ctx', s'', s');
-              assert ctx''==t1ctx;
-              assert V(T, t', i, ctx'', s'');
-            }
-
-            assert forall Tc, init, Ds :: (
-              P(Tc, init) == lookup(t1'.x, t1s.m).get &&
-              expansion(t1ctx, t1'.x, T1, Ds) && Ds.decls_fin?) ==>
-              V(T, t', i, ctx'', s'');
-            assert exists Tc, init :: P(Tc, init) == lookup(t1'.x, t1s.m).get;
-            assert exists Ds :: expansion(t1ctx, t1'.x, T1, Ds) && Ds.decls_fin?;
-            assert exists Tc, init, Ds :: (
-              P(Tc, init) == lookup(t1'.x, t1s.m).get &&
-              expansion(t1ctx, t1'.x, T1, Ds) && Ds.decls_fin?);
-            assert V(T, t', i, ctx'', s'');
-          }
-        }
         assert forall T1 :: typing(ctx, t1, T1) ==> E(T, t, k, ctx, s, ctx_prev);
         assert exists T1 :: typing(ctx, t1, T1);
         assert E(T, t, k, ctx, s, ctx_prev);
