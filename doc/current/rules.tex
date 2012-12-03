@@ -443,26 +443,31 @@ D ::= & \lindent\mbox{Declaration} \\
 
 \infrule[\textsc{new}]
 {
-c = {T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}}\\
 y \notin \fn(T') \\
-\Gamma \ts T_c \wf \\
-\Gamma \ts T_c \expand_y \seq{\Ldecl L S U},\seq{\ldecl l V},\seq{\mdecl m T W} \\
-\Gamma \envplus{y: T_c} \ts \seq{S \sub U}\\
-\Gamma \envplus{y: T_c} \ts \seq{v \typ V'} \spcomma \seq{V' \sub V}\\
-\Gamma \envplus{y: T_c} \ts \seq{{T_i} \wfe}\\
-\seq{\Gamma \envplus{y: T_c} \envplus{x_i: T_i} \ts t_i \typ {W_i}' \spcomma {W_i}' \sub {W_i}}\\
-\Gamma \envplus{y: T_c} \ts  {t'} \typ T'}
-{\Gamma \ts \new y c {t'} \typ T'}
+\Gamma \ts T_c \wfe \spcomma T_c \expand_y \seq{\Ldecl L S U}, \seq{D} \\
+\Gamma \envplus{y: T_c} \ts \seq{S <: U} \spcomma \seq{d} \typ \seq{D} \spcomma {t'} \typ {T'}}
+{\Gamma \ts \new y {T_c \ldefs{\seq{d}}} {t'} \typ T'}
 
-%\infrule[\textsc{sub}]
-%{\Gamma \ts t: T \spcomma T \sub T'}
-%{\Gamma \ts t: T'}
+\end{multicols}
+
+\linesep
+
+\begin{multicols}{2}[\judgement{Declaration Assignment}{\fbox{$\Gamma \ts d \typ D$}}]
+
+\infrule[\textsc{vdecl}]
+{\Gamma \ts v \typ {V'} \spcomma {V'} \sub V}
+{\Gamma \ts (l = v) \typ (\ldecl l V)}
+
+\infrule[\textsc{mdecl}]
+{\Gamma \ts S \wfe\\
+ \Gamma \envplus{x : S} \ts t \typ {T'} \spcomma {T'} \sub T}
+{\Gamma \ts (m(x) = t) \typ (\mdecl m S T) }
 
 \end{multicols}
 
 }
 
-\caption{The DOT Calculus : Syntax, Reduction, Type Assignment}\label{dot-one}
+\caption{The DOT Calculus : Syntax, Reduction, Type / Declaration Assignment}\label{dot-one}
 \end{figure}
 
 \begin{figure}
