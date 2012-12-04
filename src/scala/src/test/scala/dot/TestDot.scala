@@ -209,4 +209,8 @@ class TestDot extends Suite with DotParsing with DotTyper {
 (val x = new Top { x => L: Top..Top; l: x.L }(l=x); x).l
 """
   )}
+
+  def testTooRecursive() = expect("stuck in infinite derivation"){checkfail(
+      "val x = new Top {x => l: x.L; L: Bot .. x.l.L} (l=x); x")
+  }
 }

@@ -94,9 +94,13 @@ trait TyperMonad extends AbstractBindingSyntax with Debug {
     
     def findAll(env: Option[Env] = None) = this(From(initState, env.getOrElse(initEnv))).tos map {case (st, r) => r} toList
     def findExactlyOne(env: Option[Env] = None) = {
-      val r = findAll(env)
-      assert(r.length==1, "result is not unique")
-      r.head
+      try {
+        val r = findAll(env)
+        assert(r.length==1, "result is not unique")
+        r.head
+      } catch {
+        case eso: StackOverflowError => TyperFailure[A]("stuck in infinite derivation")
+      }
     }
     def run = this(From(initState, initEnv)).tos map {case (st, r) => r} find{case TyperSuccess(_) => true; case _ => false}
   } 
