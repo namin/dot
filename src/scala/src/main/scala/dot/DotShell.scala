@@ -9,21 +9,25 @@ trait DotShell extends DotParsing with DotTyper with DotPrettyPrint { shell =>
   case class ValDef(x: String, tpe: Type, args: \\[Members.Defs]) extends Line
   case class LineTerm(tm: Term) extends Line
   case class LineQueryWf(tp: Type) extends Line
+  case class LineQueryExpand(x: String, tp: Type) extends Line
 
   var valDefs: List[ValDef] = List.empty
   var typerEnv: Env = initEnv
   var parsingEnv: Map[String, Name] = HashMap.empty
   
   lexical.delimiters ++= List("?")
-  lexical.reserved ++= List("wf")
+  lexical.reserved ++= List("wf", "expand")
   override def BindingParser(envArg: Map[String, Name]) = new ShellParser { val env = envArg }
   trait ShellParser extends BindingParser {
     lazy val valdef: P[ValDef] = l(
       "val" ~> ident >> {xStr => bind(success(xStr)) >> {x => "=" ~> "new" ~> (concrete_typ ~
        under(x){p => p.defs <~ opt(";")}) ^^
        {case tyc~args => ValDef(xStr: String, tyc, args)}}}) ("val def")
-    lazy val query: P[Line] = wfQuery
+    lazy val query: P[Line] = wfQuery | expandQuery
     lazy val wfQuery: P[LineQueryWf] = l("wf" ~> "?" ~> typ ^^ LineQueryWf) ("line query wf")
+    lazy val expandQuery: P[LineQueryExpand] = l(
+        "expand" ~> opt("(" ~> ident <~ ")") ~ ("?" ~> typ) ^^ {
+        case ox~tp => LineQueryExpand(ox.getOrElse("self"), tp)}) ("line query expand")
     def line: P[Line] = query | l(term ^^ LineTerm) ("line term") | valdef
   }
 
@@ -73,6 +77,16 @@ trait DotShell extends DotParsing with DotTyper with DotPrettyPrint { shell =>
             "===> wf? " + tp.pp + " : yes"
           case TyperFailure(msg) =>
             "===> wf? " + tp.pp + " : no, " + msg
+        }
+      case LineQueryExpand(x, tp) =>
+        (for (dcls <- expand(Name(x), tp)) yield (dcls)).findExactlyOne(Some(typerEnv)) match {
+          case TyperSuccess(dcls) =>
+            "===> expand("+x+")? " + tp.pp + " : yes, " + (dcls match {
+              case BottomDecls => "D⊥"
+              case ds:Decls => "{"+ds.pp+" }"
+            })
+          case TyperFailure(msg) =>
+            "===> expand("+x+")? " + tp.pp + " : no, " + msg
         }
     }
   }
