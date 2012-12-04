@@ -19,6 +19,7 @@ FILES = \
 	Dot_Lemmas \
         Dot_Examples \
         Dot_Transitivity \
+        Dot_Theorems \
         Dot_Preservation \
 	Dot_Safety \
         Dot_Rules_Fool \
