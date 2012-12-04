@@ -93,6 +93,11 @@ trait TyperMonad extends AbstractBindingSyntax with Debug {
     def ++(alt: => TyperMonad[A]): TyperMonad[A] = TyperMonad{x => this(x) ++ alt(x) }
     
     def findAll(env: Option[Env] = None) = this(From(initState, env.getOrElse(initEnv))).tos map {case (st, r) => r} toList
+    def findExactlyOne(env: Option[Env] = None) = {
+      val r = findAll(env)
+      assert(r.length==1, "result is not unique")
+      r.head
+    }
     def run = this(From(initState, initEnv)).tos map {case (st, r) => r} find{case TyperSuccess(_) => true; case _ => false}
   } 
 

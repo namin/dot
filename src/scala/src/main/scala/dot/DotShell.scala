@@ -8,18 +8,23 @@ trait DotShell extends DotParsing with DotTyper with DotPrettyPrint { shell =>
   sealed class Line extends Positional
   case class ValDef(x: String, tpe: Type, args: \\[Members.Defs]) extends Line
   case class LineTerm(tm: Term) extends Line
-  
+  case class LineQueryWf(tp: Type) extends Line
+
   var valDefs: List[ValDef] = List.empty
   var typerEnv: Env = initEnv
   var parsingEnv: Map[String, Name] = HashMap.empty
   
+  lexical.delimiters ++= List("?")
+  lexical.reserved ++= List("wf")
   override def BindingParser(envArg: Map[String, Name]) = new ShellParser { val env = envArg }
   trait ShellParser extends BindingParser {
     lazy val valdef: P[ValDef] = l(
       "val" ~> ident >> {xStr => bind(success(xStr)) >> {x => "=" ~> "new" ~> (concrete_typ ~
        under(x){p => p.defs <~ opt(";")}) ^^
        {case tyc~args => ValDef(xStr: String, tyc, args)}}}) ("val def")
-    def line: P[Line] = l(term ^^ LineTerm) ("line term") | valdef
+    lazy val query: P[Line] = wfQuery
+    lazy val wfQuery: P[LineQueryWf] = l("wf" ~> "?" ~> typ ^^ LineQueryWf) ("line query wf")
+    def line: P[Line] = query | l(term ^^ LineTerm) ("line term") | valdef
   }
 
   import Terms._
@@ -40,29 +45,36 @@ trait DotShell extends DotParsing with DotTyper with DotPrettyPrint { shell =>
       vy\\(Defs(List(MethodDef(funApply, Method(vx\\Var(vx))))),
            Msel(Var(vy), funApply, tm)))
   }
-  def toTerm(line: Line): Term = line match {
-    case ValDef(_, tpe, \\(x, args)) => New(tpe, x\\(args, cast(Var(x), Top)))
-    case LineTerm(tm) => tm
-  }
 
   def tc(in: String): String = {
     val line: Line = phrase(BindingParser(parsingEnv).line)(new lexical.Scanner(in)) match {
       case Success(line, _) => line
       case r@_ => return "parse error: " + r
     }
-    val r = typecheck(toTerm(line), Some(typerEnv))
-    val msg = r match {
-      case TyperSuccess(tp) => line match {
-        case ValDef(xStr, tpe, \\(x, args)) =>
-          parsingEnv = parsingEnv.updated(xStr, x)
-          typerEnv = typerEnv.updated(x, tpe)
-          "<=== " + xStr + " : " + tpe.pp
-        case LineTerm(tm) =>
-          "===> " + tm.pp + " : " + tp.pp
-      }
-      case TyperFailure(msg) => "type error: " + msg
+    line match {
+      case ValDef(xStr, tpe, \\(x, args)) =>
+        val tm = New(tpe, x\\(args, cast(Var(x), Top)))
+        typecheck(tm, Some(typerEnv)) match {
+          case TyperSuccess(tp) =>
+            parsingEnv = parsingEnv.updated(xStr, x)
+            typerEnv = typerEnv.updated(x, tpe)
+            "<=== " + xStr + " : " + tpe.pp
+          case TyperFailure(msg) => "type error: " + msg
+        }
+      case LineTerm(tm) =>
+        typecheck(tm, Some(typerEnv)) match {
+          case TyperSuccess(tp) =>
+            "===> " + tm.pp + " : " + tp.pp
+          case TyperFailure(msg) => "type error: " + msg
+        }
+      case LineQueryWf(tp) =>
+        (for (_ <- wf(tp)) yield ()).findExactlyOne(Some(typerEnv)) match {
+          case TyperSuccess(_) =>
+            "===> wf? " + tp.pp + " : yes"
+          case TyperFailure(msg) =>
+            "===> wf? " + tp.pp + " : no, " + msg
+        }
     }
-    msg
   }
   
   def exec(in: String) {
