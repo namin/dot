@@ -4,7 +4,7 @@ Set Implicit Arguments.
 Require Import List.
 Require Export Dot_Labels.
 Require Import Metatheory LibTactics_sf.
-Require Export Dot_Syntax Dot_Definitions Dot_Rules.
+Require Export Dot_Syntax Dot_Definitions Dot_Rules_Fool.
 Require Import Coq.Program.Equality.
 Require Import Coq.Classes.Equivalence.
 Require Import Coq.Classes.EquivDec.
@@ -102,7 +102,7 @@ Admitted.
 Lemma expansion_decls_ok : forall E T DS,
   expands E T DS -> decls_ok DS.
 Proof.
-  introv H. induction H. induction H; try solve [
+  introv H. induction H; try solve [
     apply decls_ok_fin_nil |
     inversion H0; assumption |
     inversion H1; assumption].
@@ -113,7 +113,7 @@ Lemma expands_bot_inf_nil : forall E, wf_env E -> E |= tp_bot ~< decls_inf nil.
 Proof.
   Hint Constructors bot_decl valid_label.
   introv Henv.
-  apply expands_any. apply expands_iter_bot; auto.
+  apply expands_bot; auto.
   Case "bot_decls (decls_inf nil)". unfold bot_decls. splits.
     SCase "decls_ok (decls_inf nil)". unfold decls_ok. splits.
       SSCase "decls_uniq (decls_inf nil)". unfold decls_uniq.
@@ -150,7 +150,7 @@ Hint Resolve wfe_bot.
 Lemma wfe_top : forall E, wf_env E -> wfe_tp E tp_top.
 Proof.
   introv Henv.
-  apply wfe_any with (DT:=decls_fin nil); auto using wf_top, expands_any, expands_iter_top.
+  apply wfe_any with (DT:=decls_fin nil); auto using wf_top, expands_top.
 Qed.
 Hint Resolve wfe_top.
 
@@ -176,18 +176,16 @@ Hint Extern 1 (wfe_tp ?E ?T) =>
   | IH: _ /\ wfe_tp ?E ?T /\ _ |- _ => apply (proj1 (proj2 IH))
   | IH: _ /\ _ /\ wfe_tp ?E ?T |- _ => apply (proj2 (proj2 IH))
   end.
-
-(* Hint Extern 2 (wfe_tp ?E (tp_sel ?p ?L)) =>
+Hint Extern 2 (wfe_tp ?E (tp_sel ?p ?L)) =>
   match goal with
   | H: ?E |= ?p ~mem~ ?L ~: decl_tp ?S ?U |- _ => let DU := fresh "DU" with HxU := fresh "HxU" in
-    add_expands_hyp E U DU HxU; inversion HxU; subst; apply wfe_any with (DT:=DU); eauto 3
-  end. *)
+    add_expands_hyp E U DU HxU; apply wfe_any with (DT:=DU); eauto 3
+  end.
 
 Ltac combine_decls E T1 T2 DSM cmb_decls decls_cmb_exists :=
   let DT1 := fresh "DT1" with HxT1 := fresh "HxT1" with DT2 := fresh "DT2" with HxT2 := fresh "HxT2"
     with Hdsm' := fresh "Hdsm'" with Hdsm := fresh "Hdsm" in
       add_expands_hyp E T1 DT1 HxT1; add_expands_hyp E T2 DT2 HxT2;
-      inversion HxT1; inversion HxT2; subst;
       assert (exists DSM, cmb_decls DT1 DT2 DSM) as Hdsm'; try solve [apply decls_cmb_exists; eauto 3];
         inversion Hdsm' as [DSM Hdsm].
 
@@ -198,7 +196,7 @@ Ltac wfe_by_combine_decls E T1 T2 cmb_decls decls_cmb_exists :=
 Hint Extern 2 (wfe_tp ?E (tp_and ?T1 ?T2)) => wfe_by_combine_decls E T1 T2 and_decls decls_and_exists.
 Hint Extern 2 (wfe_tp ?E (tp_or ?T1 ?T2)) => wfe_by_combine_decls E T1 T2 or_decls decls_or_exists.
 
-Hint Constructors wf_tp expands expands_iter.
+Hint Constructors wf_tp expands.
 
 Hint Extern 1 (wf_tp ?E ?T) =>
   match goal with
@@ -212,6 +210,7 @@ Hint Extern 1 (wf_tp ?E ?T) =>
   end.
 
   introv H. induction H; splits; eauto 3.
+
 Qed.
 
 (* *********************************************************************** *)
@@ -227,9 +226,3 @@ Hint Extern 1 (wfe_tp ?E ?T) =>
   | H: sub_tp E T _ |- _ => apply (proj1 (proj2 (sub_tp_regular H)))
   | H: sub_tp E _ T |- _ => apply (proj2 (proj2 (sub_tp_regular H)))
   end.
-
-(*
-*** Local Variables:
-*** coq-load-path: ("metalib" "lib")
-*** End:
-*)

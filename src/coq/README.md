@@ -1,4 +1,4 @@
 DOT in Coq
 ==========
 
-The FOOL 2012 model is implemented in this directory.
+The current and FOOL 2012 models are implemented in this directory.
