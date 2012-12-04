@@ -24,7 +24,17 @@ Proof.
     exists DSM.
     apply expands_any. apply expands_iter_rfn with (DSP:=DT). inversion HDT; subst; assumption. assumption.
   Case "sel".
-    skip. (* TODO *)
+    assert (exists DT,  expands_fix (tp_sel p L) (decls_fin nil) nil E U DT /\ decls_ok DT) as Hfix.
+      skip. (* TODO *)
+    inversion Hfix as [DT [HDTfix HDTok]].
+    exists DT.
+    apply expands_any. apply expands_iter_tsel_fix with (S:=S) (U:=U).
+      assumption.
+      assumption.
+      auto.
+      assumption.
+      assumption.
+      assumption.
   Case "and".
     specialize (IHHwf1 Henv). inversion IHHwf1 as [DT1 HDT1].
     specialize (IHHwf2 Henv). inversion IHHwf2 as [DT2 HDT2].
