@@ -1406,7 +1406,7 @@ ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
   {
     match t {
     case tm_var(x) =>
-      assume E(T, t, ctx, s); // TODO
+      theorem_fundamental_R_var(T, x, ctx, s);
     case tm_new(y, Tc, init, t1) =>
       assume E(T, t, ctx, s); // TODO
     case tm_sel(t1, l) =>
