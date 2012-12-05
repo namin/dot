@@ -12,6 +12,48 @@ Require Import Coq.Logic.Decidable.
 
 (* ********************************************************************** *)
 
+Scheme h_expands_iter_indm   := Induction for expands_iter Sort Prop
+  with h_expands_fix_indm    := Induction for expands_fix Sort Prop
+.
+
+Combined Scheme h_expands_mutind from h_expands_iter_indm, h_expands_fix_indm.
+Ltac mutind_h_expands P1_ P2_ :=
+  cut ((forall M E T DS (H: expands_iter M E T DS), (P1_ M E T DS H)) /\
+       (forall Ts Ds M E T DS (H: expands_fix Ts Ds M E T DS), (P2_ Ts Ds M E T DS H))); [tauto |
+    apply (h_expands_mutind P1_ P2_); try unfold P1_, P2_; [
+Case "expands_iter_rfn" | Case "expands_iter_tsel_cache" | Case "expands_iter_tsel_fix" | Case "expands_iter_and" | Case "expands_iter_or" | Case "expands_iter_top" | Case "expands_iter_bot" | Case "expands_fix_one" | Case "expands_fix_rec"];
+      introv; eauto ].
+
+Section TestHMutInd.
+  Let Pexi (M: list (tp * decls)) (E: env) (T: tp) (DS : decls) (H: expands_iter M E T DS) := True.
+  Let Pexf (Ts: tp) (Ds: decls) (M: list (tp * decls)) (E: env) (T: tp) (DS : decls) (H: expands_fix Ts Ds M E T DS) := True.
+Lemma EnsureMutindHExpandsTacticIsUpToDate : True.
+Proof. mutind_h_expands Pexi Pexf; intros; auto. Qed.
+End TestHMutInd.
+
+Section ExpansionOK.
+  Let P1_ (M': list (tp * decls)) (E': env) (T': tp) (DS' : decls) (H': expands_iter M' E' T' DS') :=
+    decls_ok DS'.
+  Let P2_ (Ts': tp) (Ds': decls) (M': list (tp * decls)) (E': env) (T': tp) (DS': decls) (H': expands_fix Ts' Ds' M' E' T' DS') :=
+    decls_ok DS'.
+
+  Lemma h_expands_decls_ok:
+    (forall (M': list (tp * decls)) (E': env) (T': tp) (DS' : decls) (H': expands_iter M' E' T' DS'), 
+     decls_ok DS')
+    /\
+    (forall (Ts': tp) (Ds': decls) (M': list (tp * decls)) (E': env) (T': tp) (DS': decls) (H': expands_fix Ts' Ds' M' E' T' DS'),
+     decls_ok DS').
+  Proof.
+    mutind_h_expands P1_ P2_.
+    Case "expands_iter_rfn".
+      intros Hexp Hok Hand. inversion Hand. assumption.
+    Case "expands_iter_and".
+      intros Hexp1 Hok1 Hexp2 Hok2 Hand. inversion Hand. assumption.
+    Case "expands_iter_or".
+      intros Hexp1 Hok1 Hexp2 Hok2 Hor. inversion Hor. assumption.
+  Qed.
+End ExpansionOK.
+
 Lemma tp_sel__expands_fix : forall p L E U,
   exists DT,  expands_fix (tp_sel p L) (decls_fin nil) nil E U DT /\ decls_ok DT.
 Proof.
