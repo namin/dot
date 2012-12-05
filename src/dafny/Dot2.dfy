@@ -146,6 +146,12 @@ function rev<A>(s: seq<A>): seq<A>
 }
 
 // ### Lemmas about utilities ###
+ghost method lemma_lookup__in_dom<K,V>(x: K, m: partial_map<K,V>)
+  requires lookup(x, m).Some?;
+  ensures x in dom(m);
+{
+}
+
 ghost method lemma_empty_prefix_of_any<K,V>(m: partial_map<K,V>)
   ensures prefix_of(m, Empty);
 {
@@ -1333,7 +1339,7 @@ ghost method lemma_field_mem__expansion_decl(ctx: context, t1: tm, T1: tp, l: na
 
 predicate V(T: tp, t: tm, ctx: context, s: store)
 {
-  t.tm_var? && t.x in dom(s.m) && wfe_type(ctx, T) &&
+  t.tm_var? && t.x in dom(s.m) &&
   (exists Tc, init, Dc :: P(Tc, init) == lookup(t.x, s.m).get && concrete(Tc) && wfe_type(ctx, Tc) && expansion(ctx, t.x, Tc, Dc) && Dc.decls_fin?) &&
   forall Tc, init, Dc :: P(Tc, init) == lookup(t.x, s.m).get && concrete(Tc) && wfe_type(ctx, Tc) && expansion(ctx, t.x, Tc, Dc) && Dc.decls_fin? ==>
   subtype(ctx, Tc, T) &&
@@ -1356,7 +1362,7 @@ function Xctx(ctx: context, s: store, s': store): context
 
 predicate Xstore(ctx: context, s: store)
 {
-  dom(ctx.m) == dom(s.m) && forall x:nat :: x in dom(ctx.m) ==> V(lookup(x, ctx.m).get, tm_var(x), ctx, s)
+  dom(ctx.m) == dom(s.m) && forall x:nat :: x in dom(ctx.m) ==> x in dom(s.m) && V(lookup(x, ctx.m).get, tm_var(x), ctx, s)
 }
 
 predicate R(ctx: context, t: tm, T: tp)
@@ -1364,13 +1370,51 @@ predicate R(ctx: context, t: tm, T: tp)
   forall s :: Xstore(ctx, s) ==> E(T, t, ctx, s)
 }
 
+ghost method lemma_Xstore_in(ctx: context, s: store, x: nat, T: tp)
+  requires Xstore(ctx, s);
+  requires lookup(x, ctx.m) == Some(T);
+  ensures V(T, tm_var(x), ctx, s);
+{
+  lemma_lookup__in_dom(x, ctx.m);
+  assert x in dom(ctx.m);
+}
+
+ghost method theorem_fundamental_R_var(T: tp, x: nat, ctx: context, s: store)
+  requires typing(ctx, tm_var(x), T);
+  requires Xstore(ctx, s);
+  ensures E(T, tm_var(x), ctx, s);
+{
+    lemma_Xstore_in(ctx, s, x, T);
+    assert V(T, tm_var(x), ctx, s);
+    parallel (j:nat, t', s' | mstep(tm_var(x), s, t', s', j) && irred(t', s'))
+    ensures prefix_of(s'.m, s.m) && V(T, t', Xctx(ctx, s, s'), s');
+    {
+      assert j==0;
+      assert t'==tm_var(x);
+      assert s'==s;
+      assert Xctx(ctx, s, s')==ctx;
+    }
+}
+
 ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
   requires typing(ctx, t, T);
   ensures R(ctx, t, T);
   decreases t;
 {
-  // TODO
-  assume R(ctx, t, T);
+  parallel (s | Xstore(ctx, s))
+  ensures E(T, t, ctx, s);
+  {
+    match t {
+    case tm_var(x) =>
+      theorem_fundamental_R_var(T, x, ctx, s);
+    case tm_new(y, Tc, init, t1) =>
+      assume E(T, t, ctx, s); // TODO
+    case tm_sel(t1, l) =>
+      assume E(T, t, ctx, s); // TODO
+    case tm_msel(o, m, a) =>
+      assume E(T, t, ctx, s); // TODO
+    }
+  }
 }
 
 // -----------
