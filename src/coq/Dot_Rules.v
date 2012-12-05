@@ -221,10 +221,10 @@ with expands_iter : list (tp * decls) -> env -> tp -> decls -> Prop :=
 
 with expands_fix : tp -> decls -> list (tp * decls) -> env -> tp -> decls -> Prop :=
   | expands_fix_one : forall Ts M E T DS,
-      expands_iter ((T ~ DS) ++ M) E T DS ->
+      expands_iter ((Ts ~ DS) ++ M) E T DS ->
       expands_fix Ts DS M E T DS
   | expands_fix_rec : forall Ts DS M E T DSA DSB,
-      expands_iter ((T ~ DS) ++ M) E T DSA ->
+      expands_iter ((Ts ~ DS) ++ M) E T DSA ->
       DS <> DSA ->
       expands_fix Ts DSA M E T DSB ->
       expands_fix Ts DS M E T DSB
