@@ -1111,106 +1111,106 @@ function decls_or(Ds1: decls, Ds2: decls): decls
 
 // ### Typing-Related Judgments ###
 
-copredicate typing(ctx: context, t: tm, T: tp)
+copredicate typing(ctx: context, s: store, t: tm, T: tp)
 {
   match t
   case tm_var(x) => lookup(x, ctx.m) == Some(T)
   case tm_new(y, Tc, init, t') =>
     concrete(Tc) &&
     exists Ds:decls :: Ds.decls_fin? &&
-    wfe_type(ctx, Tc) &&
-    expansion(ctx, y, Tc, Ds) && 
-    wf_init(Context(Extend(y, Tc, ctx.m)), Ds.decls, def_seq_sort(lst2seq(init))) &&
+    wfe_type(ctx, s, Tc) &&
+    expansion(ctx, s, y, Tc, Ds) && 
+    wf_init(Context(Extend(y, Tc, ctx.m)), s, Ds.decls, def_seq_sort(lst2seq(init))) &&
     !tp_fn(y, T) &&
-    typing(Context(Extend(y, Tc, ctx.m)), t', T)
+    typing(Context(Extend(y, Tc, ctx.m)), s, t', T)
   case tm_sel(t, l) =>
-    field_membership(ctx, t, l, T)
+    field_membership(ctx, s, t, l, T)
   case tm_msel(o, m, a) =>
-    exists S, T' :: method_membership(ctx, o, m, S, T) &&
-    typing(ctx, a, T') &&
-    subtype(ctx, T', S)
+    exists S, T' :: method_membership(ctx, s, o, m, S, T) &&
+    typing(ctx, s, a, T') &&
+    subtype(ctx, s, T', S)
 }
-copredicate wf_init(ctx: context, decls: seq<decl>, defs: seq<def>)
+copredicate wf_init(ctx: context, s: store, decls: seq<decl>, defs: seq<def>)
   //requires decl_seq_sorted(decls);
   //requires def_seq_sorted(defs);
 {
   (decls==[] && defs==[]) || (|decls|>0 && (
-    (((decls[0].decl_tp_c? && subtype(ctx, decls[0].Sc, decls[0].Uc)) ||
-      (decls[0].decl_tp_a? && subtype(ctx, decls[0].Sa, decls[0].Ua))) &&
-     wf_init(ctx, decls[1..], defs)) || (|defs|>0 && (
+    (((decls[0].decl_tp_c? && subtype(ctx, s, decls[0].Sc, decls[0].Uc)) ||
+      (decls[0].decl_tp_a? && subtype(ctx, s, decls[0].Sa, decls[0].Ua))) &&
+     wf_init(ctx, s, decls[1..], defs)) || (|defs|>0 && (
     ((decls[0].decl_tm? && defs[0].def_tm? && decls[0].l==defs[0].l &&
       value(defs[0].t) &&
-      exists T :: typing(ctx, defs[0].t, T) &&
-      subtype(ctx, T, decls[0].T)) ||
+      exists T :: typing(ctx, s, defs[0].t, T) &&
+      subtype(ctx, s, T, decls[0].T)) ||
      (decls[0].decl_mt? && defs[0].def_mt? && decls[0].m==defs[0].m &&
-      wfe_type(ctx, decls[0].P) &&
-      exists T' :: typing(Context(Extend(defs[0].param, decls[0].P, ctx.m)), defs[0].body, T') &&
-      subtype(Context(Extend(defs[0].param, decls[0].P, ctx.m)), T', decls[0].R))) &&
-     wf_init(ctx, decls[1..], defs[1..])))))
+      wfe_type(ctx, s, decls[0].P) &&
+      exists T' :: typing(Context(Extend(defs[0].param, decls[0].P, ctx.m)), s, defs[0].body, T') &&
+      subtype(Context(Extend(defs[0].param, decls[0].P, ctx.m)), s, T', decls[0].R))) &&
+     wf_init(ctx, s, decls[1..], defs[1..])))))
 }
-copredicate wf_decl(ctx: context, d: decl)
+copredicate wf_decl(ctx: context, s: store, d: decl)
 {
   match d
-  case decl_tp_c(L, S, U) => wf_type(ctx, S) && wf_type(ctx, U)
-  case decl_tp_a(L, S, U) => wf_type(ctx, S) && wf_type(ctx, U)
-  case decl_tm(l, T) => wf_type(ctx, T)
-  case decl_mt(m, S, T) => wf_type(ctx, S) && wf_type(ctx, T)
+  case decl_tp_c(L, S, U) => wf_type(ctx, s, S) && wf_type(ctx, s, U)
+  case decl_tp_a(L, S, U) => wf_type(ctx, s, S) && wf_type(ctx, s, U)
+  case decl_tm(l, T) => wf_type(ctx, s, T)
+  case decl_mt(m, S, T) => wf_type(ctx, s, S) && wf_type(ctx, s, T)
 }
-copredicate wf_decls(ctx: context, Ds: list<decl>)
+copredicate wf_decls(ctx: context, s: store, Ds: list<decl>)
 {
   match Ds
   case Nil => true
-  case Cons(head, tail) => wf_decl(ctx, head) && wf_decls(ctx, tail)
+  case Cons(head, tail) => wf_decl(ctx, s, head) && wf_decls(ctx, s, tail)
 }
-copredicate wf_type(ctx: context, T: tp)
+copredicate wf_type(ctx: context, s: store, T: tp)
 {
   match T
   case tp_rfn(T', z, Ds) =>
-    wf_type(ctx, T') && wf_decls(Context(Extend(z, T, ctx.m)), Ds)
+    wf_type(ctx, s, T') && wf_decls(Context(Extend(z, T, ctx.m)), s, Ds)
   case tp_sel_c(p, L) =>
     path(p) &&
-    exists S, U :: concrete_type_membership(ctx, p, L, S, U)
+    exists S, U :: concrete_type_membership(ctx, s, p, L, S, U)
   case tp_sel_a(p, L) =>
     path(p) &&
-    exists S, U :: abstract_type_membership(ctx, p, L, S, U)
-  case tp_and(T1, T2) => wf_type(ctx, T1) && wf_type(ctx, T2)
-  case tp_or(T1, T2) => wf_type(ctx, T1) && wf_type(ctx, T2)
+    exists S, U :: abstract_type_membership(ctx, s, p, L, S, U)
+  case tp_and(T1, T2) => wf_type(ctx, s, T1) && wf_type(ctx, s, T2)
+  case tp_or(T1, T2) => wf_type(ctx, s, T1) && wf_type(ctx, s, T2)
   case tp_top => true
   case tp_bot => true
 }
-copredicate wfe_type(ctx: context, T: tp)
+copredicate wfe_type(ctx: context, s: store, T: tp)
 {
-  wf_type(ctx, T) && exists Ds :: expansion(ctx, 0, T, Ds)
+  wf_type(ctx, s, T) && exists Ds :: expansion(ctx, s, 0, T, Ds)
 }
-copredicate membership(ctx: context, t: tm, l: nat, d: decl)
+copredicate membership(ctx: context, s: store, t: tm, l: nat, d: decl)
 {
   decl_label(d)==l &&
-  exists T :: typing(ctx, t, T) &&
+  exists T :: typing(ctx, s, t, T) &&
   forall z:nat :: !tp_fn(z, T) && z !in dom(ctx.m) && !tm_fn(z, t) ==>
   exists Ds ::
-  expansion(ctx, z, T, Ds) &&
+  expansion(ctx, s, z, T, Ds) &&
   ((Ds.decls_fin? &&
      ((path(t) && exists d' :: d' in Ds.decls && d==decl_subst(z, t, d')) ||
      (!path(t) && d in Ds.decls && !decl_fn(z, d)))) ||
    (Ds.decls_bot? && decl_bot(d)))
 }
-copredicate field_membership(ctx: context, t: tm, l: nat, T: tp)
+copredicate field_membership(ctx: context, s: store, t: tm, l: nat, T: tp)
 {
-  membership(ctx, t, l, decl_tm(l, T))
+  membership(ctx, s, t, l, decl_tm(l, T))
 }
-copredicate method_membership(ctx: context, t: tm, m: nat, P: tp, R: tp)
+copredicate method_membership(ctx: context, s: store, t: tm, m: nat, P: tp, R: tp)
 {
-  exists d :: membership(ctx, t, m, d) &&
+  exists d :: membership(ctx, s, t, m, d) &&
   d.decl_mt? && d.m==m && d.P==P && d.R==R
 }
-copredicate concrete_type_membership(ctx: context, t: tm, L: nat, S: tp, U: tp)
+copredicate concrete_type_membership(ctx: context, s: store, t: tm, L: nat, S: tp, U: tp)
 {
-  exists d :: membership(ctx, t, L, d) &&
+  exists d :: membership(ctx, s, t, L, d) &&
   d.decl_tp_c? && d.Lc==L && d.Sc==S && d.Uc==U
 }
-copredicate abstract_type_membership(ctx: context, t: tm, L: nat, S: tp, U: tp)
+copredicate abstract_type_membership(ctx: context, s: store, t: tm, L: nat, S: tp, U: tp)
 {
-  exists d :: membership(ctx, t, L, d) &&
+  exists d :: membership(ctx, s, t, L, d) &&
   d.decl_tp_a? && d.La==L && d.Sa==S && d.Ua==U
 }
 predicate m_decl_seq_sorted(m: partial_map<tp, decls>)
@@ -1219,68 +1219,68 @@ predicate m_decl_seq_sorted(m: partial_map<tp, decls>)
   case Empty => true
   case Extend(x, v, rest) => (v.decls_fin? ==> decl_seq_sorted(v.decls)) && m_decl_seq_sorted(rest)
 }
-copredicate expansion(ctx: context, z: nat, T: tp, Ds: decls)
-  ensures expansion(ctx, z, T, Ds) && Ds.decls_fin? ==> decl_seq_sorted(Ds.decls);
+copredicate expansion(ctx: context, s: store, z: nat, T: tp, Ds: decls)
+  ensures expansion(ctx, s, z, T, Ds) && Ds.decls_fin? ==> decl_seq_sorted(Ds.decls);
 {
-  expansion_iter(Empty, ctx, z, T, Ds)
+  expansion_iter(Empty, ctx, s, z, T, Ds)
 }
-copredicate expansion_iter(m: partial_map<tp, decls>, ctx: context, z: nat, T: tp, Ds: decls)
+copredicate expansion_iter(m: partial_map<tp, decls>, ctx: context, s: store, z: nat, T: tp, Ds: decls)
   requires m_decl_seq_sorted(m);
-  ensures expansion_iter(m, ctx, z, T, Ds) && Ds.decls_fin? ==> decl_seq_sorted(Ds.decls);
+  ensures expansion_iter(m, ctx, s, z, T, Ds) && Ds.decls_fin? ==> decl_seq_sorted(Ds.decls);
 {
   match T
   case tp_rfn(T', z', Ds') =>
-    exists DsT :: expansion_iter(m, ctx, z, T, DsT) &&
+    exists DsT :: expansion_iter(m, ctx, s, z, T, DsT) &&
     exists rfn_decls :: rfn_decls==decl_seq_sort(lst2seq(decls_subst(z', tm_var(z), Ds'))) &&
     decl_seq_sorted(rfn_decls) &&
     Ds==decls_and(decls_fin(rfn_decls), DsT) &&
     (Ds.decls_fin? ==> decl_seq_sorted(Ds.decls))
   case tp_sel_c(p, L) =>
     (lookup(T, m).Some? && lookup(T, m).get==Ds && (Ds.decls_fin? ==> decl_seq_sorted(Ds.decls))) || 
-    (lookup(T, m).None? && exists S, U :: concrete_type_membership(ctx, p, L, S, U) && expansion_fix(T, decls_fin([]), m, ctx, z, U, Ds))
+    (lookup(T, m).None? && exists S, U :: concrete_type_membership(ctx, s, p, L, S, U) && expansion_fix(T, decls_fin([]), m, ctx, s, z, U, Ds))
   case tp_sel_a(p, L) =>
     (lookup(T, m).Some? && lookup(T, m).get==Ds && (Ds.decls_fin? ==> decl_seq_sorted(Ds.decls))) || 
-    (lookup(T, m).None? && exists S, U :: abstract_type_membership(ctx, p, L, S, U) && expansion_fix(T, decls_fin([]), m, ctx, z, U, Ds))
+    (lookup(T, m).None? && exists S, U :: abstract_type_membership(ctx, s, p, L, S, U) && expansion_fix(T, decls_fin([]), m, ctx, s, z, U, Ds))
   case tp_and(T1, T2) =>
-    exists Ds1, Ds2 :: expansion_iter(m, ctx, z, T1, Ds1) && expansion_iter(m, ctx, z, T2, Ds2) &&
+    exists Ds1, Ds2 :: expansion_iter(m, ctx, s, z, T1, Ds1) && expansion_iter(m, ctx, s, z, T2, Ds2) &&
     Ds==decls_and(Ds1, Ds2) &&
     (Ds.decls_fin? ==> decl_seq_sorted(Ds.decls))
   case tp_or(T1, T2) =>
-    exists Ds1, Ds2 :: expansion_iter(m, ctx, z, T1, Ds1) && expansion_iter(m, ctx, z, T2, Ds2) &&
+    exists Ds1, Ds2 :: expansion_iter(m, ctx, s, z, T1, Ds1) && expansion_iter(m, ctx, s, z, T2, Ds2) &&
     Ds==decls_or(Ds1, Ds2) &&
     (Ds.decls_fin? ==> decl_seq_sorted(Ds.decls))
   case tp_top => Ds==decls_fin([])
   case tp_bot => Ds==decls_bot
 }
-copredicate expansion_fix(selT: tp, selDs: decls, m: partial_map<tp, decls>, ctx: context, z: nat, T: tp, Ds: decls)
+copredicate expansion_fix(selT: tp, selDs: decls, m: partial_map<tp, decls>, ctx: context, s: store, z: nat, T: tp, Ds: decls)
   requires m_decl_seq_sorted(m);
   requires selDs.decls_fin? ==> decl_seq_sorted(selDs.decls);
-  ensures expansion_fix(selT, selDs, m, ctx, z, T, Ds) && Ds.decls_fin? ==> decl_seq_sorted(Ds.decls);
+  ensures expansion_fix(selT, selDs, m, ctx, s, z, T, Ds) && Ds.decls_fin? ==> decl_seq_sorted(Ds.decls);
 {
-  (selDs==Ds && expansion_iter(Extend(selT, selDs, m), ctx, z, T, Ds)) ||
-  (selDs!=Ds && exists Da :: expansion_iter(Extend(selT, selDs, m), ctx, z, T, Da) &&
-   expansion_fix(selT, Da, m, ctx, z, T, Ds))
+  (selDs==Ds && expansion_iter(Extend(selT, selDs, m), ctx, s, z, T, Ds)) ||
+  (selDs!=Ds && exists Da :: expansion_iter(Extend(selT, selDs, m), ctx, s, z, T, Da) &&
+   expansion_fix(selT, Da, m, ctx, s, z, T, Ds))
 }
-copredicate decl_sub(ctx: context, d1: decl, d2: decl)
+copredicate decl_sub(ctx: context, s: store, d1: decl, d2: decl)
   requires decl_eq(d1, d2);
 {
   match d1
-  case decl_tp_c(L, S, U) => subtype(ctx, d2.Sc, S) && subtype(ctx, U, d2.Uc)
-  case decl_tp_a(L, S, U) => subtype(ctx, d2.Sa, S) && subtype(ctx, U, d2.Ua)
-  case decl_tm(l, U) => subtype(ctx, U, d2.T)
-  case decl_mt(m, S, U) => subtype(ctx, d2.P, S) && subtype(ctx, U, d2.R)
+  case decl_tp_c(L, S, U) => subtype(ctx, s, d2.Sc, S) && subtype(ctx, s, U, d2.Uc)
+  case decl_tp_a(L, S, U) => subtype(ctx, s, d2.Sa, S) && subtype(ctx, s, U, d2.Ua)
+  case decl_tm(l, U) => subtype(ctx, s, U, d2.T)
+  case decl_mt(m, S, U) => subtype(ctx, s, d2.P, S) && subtype(ctx, s, U, d2.R)
 }
-copredicate decls_fin_sub(ctx: context, s1: seq<decl>, s2: seq<decl>)
+copredicate decls_fin_sub(ctx: context, s: store, s1: seq<decl>, s2: seq<decl>)
   requires decl_seq_sorted(s1);
   requires decl_seq_sorted(s2);
 {
   (s1 == [] && s2 == []) ||
   (|s1|>0 && |s2|>0 && (
-  (decl_eq(s1[0], s2[0]) && decl_sub(ctx, s1[0], s2[0]) &&
-   decls_fin_sub(ctx, s1[1..], s2[1..])) ||
-  (decl_lt(s1[0], s2[0]) && decls_fin_sub(ctx, s1[1..], s2))))
+  (decl_eq(s1[0], s2[0]) && decl_sub(ctx, s, s1[0], s2[0]) &&
+   decls_fin_sub(ctx, s, s1[1..], s2[1..])) ||
+  (decl_lt(s1[0], s2[0]) && decls_fin_sub(ctx, s, s1[1..], s2))))
 }
-copredicate decls_sub(ctx: context, Ds1: decls, Ds2: decls)
+copredicate decls_sub(ctx: context, s: store, Ds1: decls, Ds2: decls)
   requires Ds1.decls_fin? ==> decl_seq_sorted(Ds1.decls);
   requires Ds2.decls_fin? ==> decl_seq_sorted(Ds2.decls);
 {
@@ -1289,88 +1289,53 @@ copredicate decls_sub(ctx: context, Ds1: decls, Ds2: decls)
   case decls_fin(s1) =>
     (match Ds2
      case decls_bot => false
-     case decls_fin(s2) => decls_fin_sub(ctx, s1, s2))
+     case decls_fin(s2) => decls_fin_sub(ctx, s, s1, s2))
 }
-copredicate subtype(ctx: context, S: tp, T: tp)
+copredicate subtype(ctx: context, s: store, S: tp, T: tp)
 {
-  /* refl */    (S==T && wfe_type(ctx, T)) ||
-  /* <:-top */  (T.tp_top? && wfe_type(ctx, S)) ||
-  /* bot-<: */  (S.tp_bot? && wfe_type(ctx, T)) ||
-  /* <:-rfn */  (T.tp_rfn? && wfe_type(ctx, T) && subtype(ctx, S, T.base_tp) &&
-                 exists Ds' :: expansion(ctx, T.self, S, Ds') &&
+  /* refl */    (S==T && wfe_type(ctx, s, T)) ||
+  /* <:-top */  (T.tp_top? && wfe_type(ctx, s, S)) ||
+  /* bot-<: */  (S.tp_bot? && wfe_type(ctx, s, T)) ||
+  /* <:-rfn */  (T.tp_rfn? && wfe_type(ctx, s, T) && subtype(ctx, s, S, T.base_tp) &&
+                 exists Ds' :: expansion(ctx, s, T.self, S, Ds') &&
                  exists rfn_decls :: rfn_decls==decl_seq_sort(lst2seq(T.decls)) &&
                  decl_seq_sorted(rfn_decls) &&
-                 decls_sub(Context(Extend(T.self, S, ctx.m)), decls_fin(rfn_decls), Ds')) ||
-  /* rfn-<: */  (S.tp_rfn? && wfe_type(ctx, S) && subtype(ctx, S.base_tp, T)) ||
+                 decls_sub(Context(Extend(T.self, S, ctx.m)), s, decls_fin(rfn_decls), Ds')) ||
+  /* rfn-<: */  (S.tp_rfn? && wfe_type(ctx, s, S) && subtype(ctx, s, S.base_tp, T)) ||
   /* <:-selc */ (T.tp_sel_c? &&
-                 exists S', U' :: concrete_type_membership(ctx, T.pc, T.Lc, S', U') &&
-                 subtype(ctx, S', U') && subtype(ctx, S, S')) ||
+                 exists S', U' :: concrete_type_membership(ctx, s, T.pc, T.Lc, S', U') &&
+                 subtype(ctx, s, S', U') && subtype(ctx, s, S, S')) ||
   /* selc-<: */ (S.tp_sel_c? &&
-                 exists S', U' :: concrete_type_membership(ctx, S.pc, S.Lc, S', U') &&
-                 subtype(ctx, S', U') && subtype(ctx, U', T)) ||
+                 exists S', U' :: concrete_type_membership(ctx, s, S.pc, S.Lc, S', U') &&
+                 subtype(ctx, s, S', U') && subtype(ctx, s, U', T)) ||
   /* <:-sela */ (T.tp_sel_a? &&
-                 exists S', U' :: abstract_type_membership(ctx, T.pa, T.La, S', U') &&
-                 subtype(ctx, S', U') && subtype(ctx, S, S')) ||
+                 exists S', U' :: abstract_type_membership(ctx, s, T.pa, T.La, S', U') &&
+                 subtype(ctx, s, S', U') && subtype(ctx, s, S, S')) ||
   /* sela-<: */ (S.tp_sel_a? &&
-                 exists S', U' :: abstract_type_membership(ctx, S.pa, S.La, S', U') &&
-                 subtype(ctx, S', U') && subtype(ctx, U', T)) ||
-  /* <:-and */  (T.tp_and? && subtype(ctx, S, T.and1) && subtype(ctx, S, T.and2)) ||
-  /* and1-<: */ (S.tp_and? && wfe_type(ctx, S.and2) && subtype(ctx, S.and1, T)) ||
-  /* and2-<: */ (S.tp_and? && wfe_type(ctx, S.and1) && subtype(ctx, S.and2, T)) ||
-  /* <:-or1 */  (T.tp_or? && wfe_type(ctx, T.or2) && subtype(ctx, S, T.or1)) ||
-  /* <:-or2 */  (T.tp_or? && wfe_type(ctx, T.or1) && subtype(ctx, S, T.or2)) ||
-  /* or-<: */   (S.tp_or? && subtype(ctx, S.or1, T) && subtype(ctx, S.or2, T))
+                 exists S', U' :: abstract_type_membership(ctx, s, S.pa, S.La, S', U') &&
+                 subtype(ctx, s, S', U') && subtype(ctx, s, U', T)) ||
+  /* <:-and */  (T.tp_and? && subtype(ctx, s, S, T.and1) && subtype(ctx, s, S, T.and2)) ||
+  /* and1-<: */ (S.tp_and? && wfe_type(ctx, s, S.and2) && subtype(ctx, s, S.and1, T)) ||
+  /* and2-<: */ (S.tp_and? && wfe_type(ctx, s, S.and1) && subtype(ctx, s, S.and2, T)) ||
+  /* <:-or1 */  (T.tp_or? && wfe_type(ctx, s, T.or2) && subtype(ctx, s, S, T.or1)) ||
+  /* <:-or2 */  (T.tp_or? && wfe_type(ctx, s, T.or1) && subtype(ctx, s, S, T.or2)) ||
+  /* or-<: */   (S.tp_or? && subtype(ctx, s, S.or1, T) && subtype(ctx, s, S.or2, T))
 }
 
 // ### Properties of typing judgments ###
-
-ghost method lemma_field_mem__expansion_decl(ctx: context, t1: tm, T1: tp, l: nat, T: tp, ctx': context, z: nat, Ds: decls)
-  requires field_membership(ctx, t1, l, T);
-  requires typing(ctx, t1, T1);
-  requires expansion(ctx', z, T1, Ds) && Ds.decls_fin?;
-  ensures exists U :: decl_tm(l, U) in Ds.decls;
-{
-  assume exists U :: decl_tm(l, U) in Ds.decls; // TODO...
-}
 
 // -----------------
 // Logical Relations
 // -----------------
 
-function path_ev(t: tm, s: store): option<int>
-  requires path(t);
-  ensures path_ev(t, s).Some? ==> path_ev(t, s).get>=0 && path_ev(t, s).get in dom(s.m);
-{
-  match t
-  case tm_var(x) =>
-    if x in dom(s.m) then Some(x) else None
-  case tm_sel(t1, l) =>
-    if path_ev(t1, s).Some? && path_ev(t1, s).get in dom(s.m) &&
-       def_field_lookup(l, store_lookup(path_ev(t1, s).get, s)).Some? &&
-       def_field_lookup(l, store_lookup(path_ev(t1, s).get, s)).get.tm_var? &&
-       def_field_lookup(l, store_lookup(path_ev(t1, s).get, s)).get.x in dom(s.m)
-    then Some(def_field_lookup(l, store_lookup(path_ev(t1, s).get, s)).get.x)
-    else None
-}
-
-function path_ev_in_tp(T: tp, s: store): tp
-{
-  if (T.tp_sel_c? && path(T.pc) && path_ev(T.pc, s).Some?)
-  then tp_sel_c(tm_var(path_ev(T.pc, s).get), T.Lc)
-  else if (T.tp_sel_a? && path(T.pa) && path_ev(T.pa, s).Some?)
-  then tp_sel_a(tm_var(path_ev(T.pa, s).get), T.La)
-  else T // TODO: hmm, we probably need to recursively transform types...
-         //       ... and it's probably not enough, since these pahs can be hidden in other type selections.
-}
-
 predicate V(T: tp, t: tm, ctx: context, s: store)
 {
   t.tm_var? && t.x in dom(s.m) && t.x in dom(ctx.m) &&
-  (exists Tc, init, Dc :: P(Tc, init) == lookup(t.x, s.m).get && concrete(Tc) && wfe_type(ctx, Tc) && expansion(ctx, t.x, Tc, Dc) && Dc.decls_fin?) &&
-  forall Tc, init, Dc :: (P(Tc, init) == lookup(t.x, s.m).get && concrete(Tc) && wfe_type(ctx, Tc) && expansion(ctx, t.x, Tc, Dc) && Dc.decls_fin?) ==>
+  (exists Tc, init, Dc :: P(Tc, init) == lookup(t.x, s.m).get && concrete(Tc) && wfe_type(ctx, s, Tc) && expansion(ctx, s, t.x, Tc, Dc) && Dc.decls_fin?) &&
+  forall Tc, init, Dc :: (P(Tc, init) == lookup(t.x, s.m).get && concrete(Tc) && wfe_type(ctx, s, Tc) && expansion(ctx, s, t.x, Tc, Dc) && Dc.decls_fin?) ==>
   lookup(t.x, ctx.m).get==Tc &&
-  subtype(ctx, Tc, path_ev_in_tp(T, s)) &&
-  wf_init(ctx, Dc.decls, def_seq_sort(lst2seq(init)))
+  subtype(ctx, s, Tc, T) &&
+  wf_init(ctx, s, Dc.decls, def_seq_sort(lst2seq(init)))
 }
 
 predicate E(T: tp, t: tm, ctx: context, s: store)
@@ -1405,10 +1370,10 @@ ghost method lemma_V_value(T: tp, t: tm, ctx: context, s: store)
 
 ghost method lemma_V(T: tp, t: tm, ctx: context, s: store, Tc: tp, init: list<def>, Dc: decls)
   requires V(T, t, ctx, s);
-  requires P(Tc, init) == lookup(t.x, s.m).get && concrete(Tc) && wfe_type(ctx, Tc) && expansion(ctx, t.x, Tc, Dc) && Dc.decls_fin?;
+  requires P(Tc, init) == lookup(t.x, s.m).get && concrete(Tc) && wfe_type(ctx, s, Tc) && expansion(ctx, s, t.x, Tc, Dc) && Dc.decls_fin?;
   ensures lookup(t.x, ctx.m).get==Tc;
-  ensures subtype(ctx, Tc, path_ev_in_tp(T, s));
-  ensures wf_init(ctx, Dc.decls, def_seq_sort(lst2seq(init)));
+  ensures subtype(ctx, s, Tc, T);
+  ensures wf_init(ctx, s, Dc.decls, def_seq_sort(lst2seq(init)));
 {
 }
 
@@ -1430,7 +1395,7 @@ ghost method lemma_Xstore_in(ctx: context, s: store, x: nat, T: tp)
 }
 
 ghost method theorem_fundamental_R_var(T: tp, x: nat, ctx: context, s: store)
-  requires typing(ctx, tm_var(x), T);
+  requires typing(ctx, s, tm_var(x), T);
   requires Xstore(ctx, s);
 
   ensures E(T, tm_var(x), ctx, s);
@@ -1448,12 +1413,12 @@ ghost method theorem_fundamental_R_var(T: tp, x: nat, ctx: context, s: store)
 }
 
 ghost method theorem_fundamental_R_sel(T: tp, T1: tp, t1: tm, l: nat, ctx: context, s: store)
-  requires typing(ctx, tm_sel(t1, l), T);
+  requires typing(ctx, Store(Empty), tm_sel(t1, l), T);
   requires Xstore(ctx, s);
 
-  requires field_membership(ctx, t1, l, T);
-  requires membership(ctx, t1, l, decl_tm(l, T));
-  requires typing(ctx, t1, T1);
+  requires field_membership(ctx, Store(Empty), t1, l, T);
+  requires membership(ctx, Store(Empty), t1, l, decl_tm(l, T));
+  requires typing(ctx, Store(Empty), t1, T1);
   requires E(T1, t1, ctx, s);
 
   ensures E(T, tm_sel(t1, l), ctx, s);
@@ -1474,16 +1439,16 @@ ghost method theorem_fundamental_R_sel(T: tp, T1: tp, t1: tm, l: nat, ctx: conte
     lemma_mstep_sel(t1, l, t1', s, t1s, t1j);
     lemma_mstep_trans'(t, s, tm_sel(t1', l), t1s, t', s', t1j, j);
 
-    assert exists Tc, init, Dc :: P(Tc, init) == lookup(t1'.x, t1s.m).get && concrete(Tc) && wfe_type(t1ctx, Tc) && expansion(t1ctx, t1'.x, Tc, Dc) && Dc.decls_fin?;
-    parallel (Tc, init, Dc | P(Tc, init) == lookup(t1'.x, t1s.m).get && concrete(Tc) && wfe_type(t1ctx, Tc) && expansion(t1ctx, t1'.x, Tc, Dc) && Dc.decls_fin?)
+    assert exists Tc, init, Dc :: P(Tc, init) == lookup(t1'.x, t1s.m).get && concrete(Tc) && wfe_type(t1ctx, t1s, Tc) && expansion(t1ctx, t1s, t1'.x, Tc, Dc) && Dc.decls_fin?;
+    parallel (Tc, init, Dc | P(Tc, init) == lookup(t1'.x, t1s.m).get && concrete(Tc) && wfe_type(t1ctx, t1s, Tc) && expansion(t1ctx, t1s, t1'.x, Tc, Dc) && Dc.decls_fin?)
     ensures V(T, t', Xctx(ctx, s, s'), s');
     {
       lemma_V(T1, t1', t1ctx, t1s, Tc, init, Dc);
       assert lookup(t1'.x, t1ctx.m).get==Tc;
-      assert subtype(t1ctx, Tc, path_ev_in_tp(T1, t1s));
-      assert wf_init(t1ctx, Dc.decls, def_seq_sort(lst2seq(init)));
+      assert subtype(t1ctx, t1s, Tc, T1);
+      assert wf_init(t1ctx, t1s, Dc.decls, def_seq_sort(lst2seq(init)));
 
-      assert typing(t1ctx, t1', Tc);
+      assert typing(t1ctx, t1s, t1', Tc);
 
       assume V(T, t', Xctx(ctx, s, s'), s'); // TODO
     }
@@ -1494,7 +1459,7 @@ ghost method theorem_fundamental_R_sel(T: tp, T1: tp, t1: tm, l: nat, ctx: conte
 }
 
 ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
-  requires typing(ctx, t, T);
+  requires typing(ctx, Store(Empty), t, T);
   ensures R(ctx, t, T);
   decreases t;
 {
@@ -1507,17 +1472,17 @@ ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
     case tm_new(y, Tc, init, t1) =>
       assume E(T, t, ctx, s); // TODO
     case tm_sel(t1, l) =>
-      assert field_membership(ctx, t1, l, T);
-      assert membership(ctx, t1, l, decl_tm(l, T));
-      assert exists T1 :: typing(ctx, t1, T1);
-      parallel (T1 | typing(ctx, t1, T1))
+      assert field_membership(ctx, Store(Empty), t1, l, T);
+      assert membership(ctx, Store(Empty), t1, l, decl_tm(l, T));
+      assert exists T1 :: typing(ctx, Store(Empty), t1, T1);
+      parallel (T1 | typing(ctx, Store(Empty), t1, T1))
         ensures E(T, t, ctx, s);
       {
         theorem_fundamental_R(ctx, t1, T1);
         theorem_fundamental_R_sel(T, T1, t1, l, ctx, s);
       }
-      assert forall T1 :: typing(ctx, t1, T1) ==> E(T, t, ctx, s);
-      assert exists T1 :: typing(ctx, t1, T1);
+      assert forall T1 :: typing(ctx, Store(Empty), t1, T1) ==> E(T, t, ctx, s);
+      assert exists T1 :: typing(ctx, Store(Empty), t1, T1);
       assert E(T, t, ctx, s);
     case tm_msel(o, m, a) =>
       assume E(T, t, ctx, s); // TODO
@@ -1530,7 +1495,7 @@ ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
 // -----------
 predicate type_safety(t: tm, T: tp)
 {
-  typing(Context(Empty), t, T) ==>
+  typing(Context(Empty), Store(Empty), t, T) ==>
   forall t', s', n:nat :: mstep(t, Store(Empty), t', s', n) ==>
   value(t') || step(t', s').Some?
 }
@@ -1538,7 +1503,7 @@ predicate type_safety(t: tm, T: tp)
 ghost method corollary_type_safety(t: tm, T: tp)
   ensures type_safety(t, T);
 {
-  if (typing(Context(Empty), t, T)) {
+  if (typing(Context(Empty), Store(Empty), t, T)) {
     parallel (t', s', n:nat | mstep(t, Store(Empty), t', s', n))
       ensures value(t') || step(t', s').Some?;
     {
