@@ -1337,13 +1337,40 @@ ghost method lemma_field_mem__expansion_decl(ctx: context, t1: tm, T1: tp, l: na
 // Logical Relations
 // -----------------
 
+function path_ev(t: tm, s: store): option<int>
+  requires path(t);
+  ensures path_ev(t, s).Some? ==> path_ev(t, s).get>=0 && path_ev(t, s).get in dom(s.m);
+{
+  match t
+  case tm_var(x) =>
+    if x in dom(s.m) then Some(x) else None
+  case tm_sel(t1, l) =>
+    if path_ev(t1, s).Some? && path_ev(t1, s).get in dom(s.m) &&
+       def_field_lookup(l, store_lookup(path_ev(t1, s).get, s)).Some? &&
+       def_field_lookup(l, store_lookup(path_ev(t1, s).get, s)).get.tm_var? &&
+       def_field_lookup(l, store_lookup(path_ev(t1, s).get, s)).get.x in dom(s.m)
+    then Some(def_field_lookup(l, store_lookup(path_ev(t1, s).get, s)).get.x)
+    else None
+}
+
+function path_ev_in_tp(T: tp, s: store): tp
+{
+  if (T.tp_sel_c? && path(T.pc) && path_ev(T.pc, s).Some?)
+  then tp_sel_c(tm_var(path_ev(T.pc, s).get), T.Lc)
+  else if (T.tp_sel_a? && path(T.pa) && path_ev(T.pa, s).Some?)
+  then tp_sel_a(tm_var(path_ev(T.pa, s).get), T.La)
+  else T // TODO: hmm, we probably need to recursively transform types...
+         //       ... and it's probably not enough, since these pahs can be hidden in other type selections.
+}
+
 predicate V(T: tp, t: tm, ctx: context, s: store)
 {
-  t.tm_var? && t.x in dom(s.m) &&
+  t.tm_var? && t.x in dom(s.m) && t.x in dom(ctx.m) &&
   (exists Tc, init, Dc :: P(Tc, init) == lookup(t.x, s.m).get && concrete(Tc) && wfe_type(ctx, Tc) && expansion(ctx, t.x, Tc, Dc) && Dc.decls_fin?) &&
-  forall Tc, init, Dc :: P(Tc, init) == lookup(t.x, s.m).get && concrete(Tc) && wfe_type(ctx, Tc) && expansion(ctx, t.x, Tc, Dc) && Dc.decls_fin? ==>
-  subtype(ctx, Tc, T) &&
-  wf_init(Context(Extend(t.x, Tc, ctx.m)), Dc.decls, def_seq_sort(lst2seq(init)))
+  forall Tc, init, Dc :: (P(Tc, init) == lookup(t.x, s.m).get && concrete(Tc) && wfe_type(ctx, Tc) && expansion(ctx, t.x, Tc, Dc) && Dc.decls_fin?) ==>
+  lookup(t.x, ctx.m).get==Tc &&
+  subtype(ctx, Tc, path_ev_in_tp(T, s)) &&
+  wf_init(ctx, Dc.decls, def_seq_sort(lst2seq(init)))
 }
 
 predicate E(T: tp, t: tm, ctx: context, s: store)
@@ -1368,6 +1395,29 @@ predicate Xstore(ctx: context, s: store)
 predicate R(ctx: context, t: tm, T: tp)
 {
   forall s :: Xstore(ctx, s) ==> E(T, t, ctx, s)
+}
+
+ghost method lemma_V_value(T: tp, t: tm, ctx: context, s: store)
+  requires V(T, t, ctx, s);
+  ensures value(t);
+{
+}
+
+ghost method lemma_V(T: tp, t: tm, ctx: context, s: store, Tc: tp, init: list<def>, Dc: decls)
+  requires V(T, t, ctx, s);
+  requires P(Tc, init) == lookup(t.x, s.m).get && concrete(Tc) && wfe_type(ctx, Tc) && expansion(ctx, t.x, Tc, Dc) && Dc.decls_fin?;
+  ensures lookup(t.x, ctx.m).get==Tc;
+  ensures subtype(ctx, Tc, path_ev_in_tp(T, s));
+  ensures wf_init(ctx, Dc.decls, def_seq_sort(lst2seq(init)));
+{
+}
+
+ghost method lemma_E(T: tp, t: tm, ctx: context, s: store, j: nat, t': tm, s': store)
+  requires dom(ctx.m) == dom(s.m);
+  requires E(T, t, ctx, s);
+  requires mstep(t, s, t', s', j) && irred(t', s');
+  ensures prefix_of(s'.m, s.m) && V(T, t', Xctx(ctx, s, s'), s');
+{
 }
 
 ghost method lemma_Xstore_in(ctx: context, s: store, x: nat, T: tp)
@@ -1408,7 +1458,39 @@ ghost method theorem_fundamental_R_sel(T: tp, T1: tp, t1: tm, l: nat, ctx: conte
 
   ensures E(T, tm_sel(t1, l), ctx, s);
 {
-  assume E(T, tm_sel(t1, l), ctx, s); // TODO
+  var t := tm_sel(t1, l);
+
+  parallel (j:nat, t', s' | mstep(t, s, t', s', j) && irred(t', s'))
+  ensures prefix_of(s'.m, s.m) && V(T, t', Xctx(ctx, s, s'), s');
+  {
+    lemma_mstep__prefix(t, s, t', s', j);
+    assert prefix_of(s'.m, s.m);
+
+    var t1', t1s, t1j := lemma_sel_irred__o_mstep_irred(t1, l, t', s, s', j);
+    var t1ctx := Xctx(ctx, s, t1s);
+    lemma_E(T1, t1, ctx, s, t1j, t1', t1s);
+    lemma_V_value(T1, t1', t1ctx, t1s);
+
+    lemma_mstep_sel(t1, l, t1', s, t1s, t1j);
+    lemma_mstep_trans'(t, s, tm_sel(t1', l), t1s, t', s', t1j, j);
+
+    assert exists Tc, init, Dc :: P(Tc, init) == lookup(t1'.x, t1s.m).get && concrete(Tc) && wfe_type(t1ctx, Tc) && expansion(t1ctx, t1'.x, Tc, Dc) && Dc.decls_fin?;
+    parallel (Tc, init, Dc | P(Tc, init) == lookup(t1'.x, t1s.m).get && concrete(Tc) && wfe_type(t1ctx, Tc) && expansion(t1ctx, t1'.x, Tc, Dc) && Dc.decls_fin?)
+    ensures V(T, t', Xctx(ctx, s, s'), s');
+    {
+      lemma_V(T1, t1', t1ctx, t1s, Tc, init, Dc);
+      assert lookup(t1'.x, t1ctx.m).get==Tc;
+      assert subtype(t1ctx, Tc, path_ev_in_tp(T1, t1s));
+      assert wf_init(t1ctx, Dc.decls, def_seq_sort(lst2seq(init)));
+
+      assert typing(t1ctx, t1', Tc);
+
+      assume V(T, t', Xctx(ctx, s, s'), s'); // TODO
+    }
+
+    assert V(T, t', Xctx(ctx, s, s'), s');
+  }
+  assert E(T, tm_sel(t1, l), ctx, s);
 }
 
 ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
