@@ -242,7 +242,7 @@
                (fun- f ((: (ca Y) ,typeX ,typeX)) (d Top) (sel f (ca Y)) (as (sel f (ca Y)) u)))))))))
 )
 
-(test-predicate type-safety
+(test-predicate preservation
  (term
   (valnew
    (b ((rfn Top z
@@ -278,7 +278,7 @@
                (fun d Top (sel (sel a (cv i)) (ca X)) x))
           (sel (sel a (cv i)) (cv l))))))))
 
-(test-predicate type-safety
+(test-predicate big-step-preservation
  (term
    (valnew
     (b ((rfn Top z

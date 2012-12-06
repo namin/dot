@@ -8,29 +8,13 @@
    (where x ,(variable-not-in (term (any_1 ...)) 'x))])
 
 (define-judgment-form dot
-  #:mode (path-ev I I O)
-  #:contract (path-ev env p loc)
-  [(path-ev env loc loc)]
-  [(path-ev (Gamma store) (sel p_o l) (location i_f))
-   (path-ev (Gamma store) p_o (location i_o))
-   (where c (store-lookup store i_o))
-   (found c #t)
-   (where (location i_f) (value-label-lookup c l))])
-
-(define-metafunction dot
-  path-ev-in-type : env T -> T
-  [(path-ev-in-type env (sel p Lt)) (sel loc Lt)
-   (judgment-holds (path-ev env p loc))]
-  [(path-ev-in-type env T) T])
-
-(define-judgment-form dot
   #:mode (lrV I I I)
   #:contract (lrV T e env)
   [(lrV T (location i) (Gamma store))
    (where c (store-lookup store i))
    (found c #t)
    (where (Tc (l_c vx_c) ... (m_c x_c e_c) ...) c)
-   (subtype (Gamma store) Tc (path-ev-in-type (Gamma store) T))
+   (subtype (Gamma store) Tc T)
    (where x (fresh-var T Gamma store))
    (expansion (Gamma store) x Tc (((: Lt S U) ...) (Dl ...) (Dm ...)))
    (where ((l_s vx_s) ...) (sorted-assigns ((l_c vx_c) ...)))
@@ -46,7 +30,7 @@
 
 (define (lrE T e store_beg)
   (redex-let dot ([(e_ev store_ev) (term (ev ,store_beg ,e))])
-             (and (judgment-holds (lrV ,T e_ev (() store_ev))) (term (path-ev-in-type (() store_ev) ,T)))))
+             (and (judgment-holds (lrV ,T e_ev (() store_ev))) T)))
 
 (define (test-lr e)
   (if (and (well-formed? e) (typecheck (term (() ())) e))

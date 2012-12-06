@@ -473,6 +473,16 @@
   [(subdecls env (D_1 D_rest1 ...) (D_2 D_rest2 ...))
    (subdecls env (D_rest1 ...) (D_2 D_rest2 ...))])
 
+(define-judgment-form dot
+  #:mode (path-red I I O)
+  #:contract (path-red env p p)
+  [(path-red (Gamma store) (sel (location i_1) l) (location i_2))
+   (where c (store-lookup store i_1))
+   (found c #t)
+   (where (location i_2) (value-label-lookup c l))]
+  [(path-red env (sel p_1 l) (sel p_2 l))
+   (path-red env p_1 p_2)])
+
 (define-metafunction dot
   is_subtype : ((T T) ...) env S T -> bool
   [(is_subtype ((T_a T_b) ...) env S T) #f
@@ -525,6 +535,10 @@
   [(is_subtype ((T_a T_b) ...) env T_o (T_1 ∨ T_2)) #t
    (judgment-holds (wfe-type env T_1))
    (side-condition (term (is_subtype ((T_a T_b) ... (T_o (T_1 ∨ T_2))) env T_o T_2)))]
+  [(is_subtype ((T_a T_b) ...) env T (sel p_1 Lt)) #t
+   (judgment-holds (path-red env p_1 p_2))
+   (judgment-holds (wfe-type env (sel p_1 Lt)))
+   (side-condition (term (is_subtype ((T_a T_b) ... (T (sel p_1 Lt))) env T (sel p_2 Lt))))]
   [(is_subtype ((T_a T_b) ...) env S T) #f])
 
 (define-judgment-form dot
