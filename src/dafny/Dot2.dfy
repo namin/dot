@@ -1382,6 +1382,7 @@ ghost method lemma_Xstore_in(ctx: context, s: store, x: nat, T: tp)
 ghost method theorem_fundamental_R_var(T: tp, x: nat, ctx: context, s: store)
   requires typing(ctx, tm_var(x), T);
   requires Xstore(ctx, s);
+
   ensures E(T, tm_var(x), ctx, s);
 {
     lemma_Xstore_in(ctx, s, x, T);
@@ -1394,6 +1395,20 @@ ghost method theorem_fundamental_R_var(T: tp, x: nat, ctx: context, s: store)
       assert s'==s;
       assert Xctx(ctx, s, s')==ctx;
     }
+}
+
+ghost method theorem_fundamental_R_sel(T: tp, T1: tp, t1: tm, l: nat, ctx: context, s: store)
+  requires typing(ctx, tm_sel(t1, l), T);
+  requires Xstore(ctx, s);
+
+  requires field_membership(ctx, t1, l, T);
+  requires membership(ctx, t1, l, decl_tm(l, T));
+  requires typing(ctx, t1, T1);
+  requires E(T1, t1, ctx, s);
+
+  ensures E(T, tm_sel(t1, l), ctx, s);
+{
+  assume E(T, tm_sel(t1, l), ctx, s); // TODO
 }
 
 ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
@@ -1410,7 +1425,18 @@ ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
     case tm_new(y, Tc, init, t1) =>
       assume E(T, t, ctx, s); // TODO
     case tm_sel(t1, l) =>
-      assume E(T, t, ctx, s); // TODO
+      assert field_membership(ctx, t1, l, T);
+      assert membership(ctx, t1, l, decl_tm(l, T));
+      assert exists T1 :: typing(ctx, t1, T1);
+      parallel (T1 | typing(ctx, t1, T1))
+        ensures E(T, t, ctx, s);
+      {
+        theorem_fundamental_R(ctx, t1, T1);
+        theorem_fundamental_R_sel(T, T1, t1, l, ctx, s);
+      }
+      assert forall T1 :: typing(ctx, t1, T1) ==> E(T, t, ctx, s);
+      assert exists T1 :: typing(ctx, t1, T1);
+      assert E(T, t, ctx, s);
     case tm_msel(o, m, a) =>
       assume E(T, t, ctx, s); // TODO
     }

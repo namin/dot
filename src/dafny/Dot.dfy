@@ -1679,11 +1679,10 @@ ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
       {
         theorem_fundamental_R(ctx, t1, T1);
         theorem_fundamental_R_sel(ctx, T, T1, t1, l, k);
-
-        assert forall T1 :: typing(ctx, t1, T1) ==> E(T, t, k, ctx, s, ctx_prev);
-        assert exists T1 :: typing(ctx, t1, T1);
-        assert E(T, t, k, ctx, s, ctx_prev);
       }
+      assert forall T1 :: typing(ctx, t1, T1) ==> E(T, t, k, ctx, s, ctx_prev);
+      assert exists T1 :: typing(ctx, t1, T1);
+      assert E(T, t, k, ctx, s, ctx_prev);
     case tm_msel(o, m, a) =>
       assume E(T, t, k, ctx, Store(Empty), Context(Empty)); // TODO
     }
