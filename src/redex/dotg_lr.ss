@@ -37,6 +37,11 @@
       (lrE (typecheck (term (() ())) e) e (term ()))
       #t))
 
+(define (test-lr-fund s e)
+  (if (typecheck (term (() ,s)) e)
+      (lrE (typecheck (term (() ,s)) e) e s)
+      #t))
+
 ;; Examples
 
 (test-lr (term (val u = new (Top) in u)))
@@ -69,3 +74,10 @@
   (cast Top
         (cast (sel (sel a (cv i)) (ca X))
               (sel (sel a (cv i)) (cv l))))))))
+
+;; Counterexample to Fundamental Theorem :-(
+(test-lr-fund
+   (term (((rfn Top z (: (ca X) Top Top) (: (cv l) (sel z (ca X)))) ((cv l) (location 0)))
+          ((rfn Top z (: (cv i) (rfn Top z (: (ca X) Bot Top) (: (cv l) (sel z (ca X)))))) ((cv i) (location 0)))))
+   (term (cast (sel (sel (location 1) (cv i)) (ca X))
+               (sel (sel (location 1) (cv i)) (cv l)))))
