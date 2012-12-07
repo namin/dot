@@ -1337,6 +1337,92 @@ copredicate subtype(ctx: context, s: store, S: tp, T: tp)
 
 // ### Properties of typing judgments ###
 
+ghost method lemma_membership_narrowing(ctx: context, ctx': context, s': store,
+  T: tp, T': tp, t: tm, t': tm, l: nat, d: decl) returns (d': decl)
+  //requires prefix_of(ctx'.m, ctx.m);
+  //requires Xstore(ctx', s');
+  requires typing(ctx, Store(Empty), t, T);
+  requires typing(ctx', s', t', T');
+  requires subtype(ctx', s', T', T);
+  requires membership(ctx, Store(Empty), t, l, d);
+  requires t'.tm_var?;
+  ensures membership(ctx', s', t', l, d') && decl_eq(d', d) && decl_sub(ctx', s', d', d);
+{
+  // TODO...
+  d' := *;
+  assume membership(ctx', s', t', l, d') && decl_eq(d', d) && decl_sub(ctx', s', d', d);
+}
+
+ghost method lemma_field_membership_narrowing(ctx: context, ctx': context, s': store,
+  T: tp, T': tp, t: tm, t': tm, l: nat, Tl: tp) returns (Tl': tp)
+  //requires prefix_of(ctx'.m, ctx.m);
+  //requires Xstore(ctx', s');
+  requires typing(ctx, Store(Empty), t, T);
+  requires typing(ctx', s', t', T');
+  requires subtype(ctx', s', T', T);
+  requires field_membership(ctx, Store(Empty), t, l, Tl);
+  requires t'.tm_var?;
+  ensures field_membership(ctx', s', t', l, Tl') && subtype(ctx', s', Tl', Tl);
+{
+  assert membership(ctx, Store(Empty), t, l, decl_tm(l, Tl));
+  var d' := lemma_membership_narrowing(ctx, ctx', s', T, T', t, t', l, decl_tm(l, Tl));
+  Tl' := d'.T;
+}
+
+ghost method lemma_member_in_expansion(ctx: context, s: store, T: tp, t: tm, l: nat, d: decl, Ds: decls)
+  //requires Xstore(ctx, s);
+  requires typing(ctx, s, t, T);
+  requires t.tm_var?;
+  requires t.x in dom(s.m);
+  requires lookup(t.x, s.m).get.fst==T;
+  requires membership(ctx, s, t, l, d);
+  requires expansion(ctx, s, t.x, T, Ds);
+  requires Ds.decls_fin?;
+  ensures d in Ds.decls;
+{
+  // TODO...
+  assume d in Ds.decls;
+}
+
+ghost method lemma_field_member_in_expansion(ctx: context, s: store, T: tp, t: tm, l: nat, Tl: tp, Ds: decls)
+  //requires Xstore(ctx, s);
+  requires typing(ctx, s, t, T);
+  requires t.tm_var?;
+  requires t.x in dom(s.m);
+  requires lookup(t.x, s.m).get.fst==T;
+  requires field_membership(ctx, s, t, l, Tl);
+  requires expansion(ctx, s, t.x, T, Ds);
+  requires Ds.decls_fin?;
+  ensures decl_tm(l, Tl) in Ds.decls;
+{
+  lemma_member_in_expansion(ctx, s, T, t, l, decl_tm(l, Tl), Ds);
+}
+
+ghost method lemma_wf_init_field(ctx: context, s: store, T: tp, t: tm, l: nat, Tl: tp, Ds: decls, init: list<def>)
+  returns (Tl': tp)
+  //requires Xstore(ctx, s);
+  requires typing(ctx, s, t, T);
+  requires t.tm_var?;
+  requires t.x in dom(s.m);
+  requires lookup(t.x, s.m).get==P(T,init);
+  requires field_membership(ctx, s, t, l, Tl);
+  requires expansion(ctx, s, t.x, T, Ds);
+  requires Ds.decls_fin?;
+  requires decl_tm(l, Tl) in Ds.decls;
+  requires wf_init(ctx, s, Ds.decls, def_seq_sort(lst2seq(init)));
+  ensures def_field_lookup(l, init).Some? &&
+          value(def_field_lookup(l, init).get) &&
+          typing(ctx, s, def_field_lookup(l, init).get, Tl') &&
+          subtype(ctx, s, Tl', Tl);
+{
+  // TODO...
+  Tl' := *;
+  assume  def_field_lookup(l, init).Some? &&
+          value(def_field_lookup(l, init).get) &&
+          typing(ctx, s, def_field_lookup(l, init).get, Tl') &&
+          subtype(ctx, s, Tl', Tl);
+}
+
 // -----------------
 // Logical Relations
 // -----------------
@@ -1462,6 +1548,10 @@ ghost method theorem_fundamental_R_sel(T: tp, T1: tp, t1: tm, l: nat, ctx: conte
       assert wf_init(t1ctx, t1s, Dc.decls, def_seq_sort(lst2seq(init)));
 
       assert typing(t1ctx, t1s, t1', Tc);
+
+      var T' := lemma_field_membership_narrowing(ctx, t1ctx, t1s, T1, Tc, t1, t1', l, T);
+      lemma_field_member_in_expansion(t1ctx, t1s, Tc, t1', l, T', Dc);
+      var T'' := lemma_wf_init_field(t1ctx, t1s, Tc, t1', l, T', Dc, init);
 
       assume V(T, t', Xctx(ctx, s, s'), s'); // TODO
     }
