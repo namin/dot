@@ -1291,6 +1291,15 @@ copredicate decls_sub(ctx: context, s: store, Ds1: decls, Ds2: decls)
      case decls_bot => false
      case decls_fin(s2) => decls_fin_sub(ctx, s, s1, s2))
 }
+copredicate path_red(ctx: context, s: store, p1: tm, p2: tm)
+{
+  path(p1) && path(p2) && (
+  (p1.tm_sel? && p1.t.tm_var? && p2.tm_var? && p1.t.x in dom(s.m) &&
+   def_field_lookup(p1.l, store_lookup(p1.t.x, s)).Some? &&
+   p2==def_field_lookup(p1.l, store_lookup(p1.t.x, s)).get) ||
+  (p1.tm_sel? && p2.tm_sel? && p1.l==p2.l && path_red(ctx, s, p1.t, p2.t)))
+}
+
 copredicate subtype(ctx: context, s: store, S: tp, T: tp)
 {
   /* refl */    (S==T && wfe_type(ctx, s, T)) ||
@@ -1319,7 +1328,11 @@ copredicate subtype(ctx: context, s: store, S: tp, T: tp)
   /* and2-<: */ (S.tp_and? && wfe_type(ctx, s, S.and1) && subtype(ctx, s, S.and2, T)) ||
   /* <:-or1 */  (T.tp_or? && wfe_type(ctx, s, T.or2) && subtype(ctx, s, S, T.or1)) ||
   /* <:-or2 */  (T.tp_or? && wfe_type(ctx, s, T.or1) && subtype(ctx, s, S, T.or2)) ||
-  /* or-<: */   (S.tp_or? && subtype(ctx, s, S.or1, T) && subtype(ctx, s, S.or2, T))
+  /* or-<: */   (S.tp_or? && subtype(ctx, s, S.or1, T) && subtype(ctx, s, S.or2, T)) ||
+  /* pathredc */(T.tp_sel_c? && wfe_type(ctx, s, T) && exists p :: path_red(ctx, s, T.pc, p) &&
+                 subtype(ctx, s, S, tp_sel_c(p, T.Lc))) ||
+  /* pathreda */(T.tp_sel_a? && wfe_type(ctx, s, T) && exists p :: path_red(ctx, s, T.pa, p) &&
+                 subtype(ctx, s, S, tp_sel_a(p, T.La)))
 }
 
 // ### Properties of typing judgments ###
