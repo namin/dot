@@ -274,6 +274,48 @@ ghost method lemma_build__dom<K,V>(m: partial_map<K,V>, r: partial_map<K,V>)
     assert rev(dom(rest))+[x]==rev([x]+dom(rest));
   }
 }
+ghost method lemma_extend_prefix<K,V>(m: partial_map<K,V>, m_prev: partial_map<K,V>, x: K, v: V)
+  requires prefix_of(m, Extend(x, v, m_prev));
+  ensures prefix_of(m, m_prev);
+{
+  assert m.Extend?;
+}
+ghost method lemma_build__prefixes<K,V>(r: partial_map<K,V>)
+  ensures forall m :: prefix_of(build(m, r), m);
+  decreases r;
+{
+  match r {
+  case Empty =>
+  case Extend(x, v, r') =>
+    lemma_build__prefixes(r');
+    assert forall m :: prefix_of(build(m, r'), m);
+    parallel (m: partial_map<K,V>)
+      ensures prefix_of(build(m, r), m);
+    {
+      lemma_build__prefix0(m, r');
+      assert prefix_of(build(m, r'), m);
+      lemma_build__prefix0(Extend(x, v, m), r');
+      assert prefix_of(build(Extend(x, v, m), r'), Extend(x, v, m));
+      assert build(Extend(x, v, m), r')==build(m, Extend(x, v, r'));
+      assert prefix_of(build(m, Extend(x, v, r')), Extend(x, v, m));
+      assert build(m, Extend(x, v, r'))==build(m, r);
+      assert prefix_of(build(m, r), Extend(x, v, m));
+      lemma_extend_prefix(build(m, r), m, x, v);
+      assert prefix_of(build(m, r), m);
+    }
+  }
+}
+ghost method lemma_build__prefix0<K,V>(m: partial_map<K,V>, r: partial_map<K,V>)
+  requires forall m :: prefix_of(build(m, r), m);
+  ensures prefix_of(build(m, r), m);
+{
+}
+ghost method lemma_build__prefix<K,V>(m: partial_map<K,V>, r: partial_map<K,V>)
+  ensures prefix_of(build(m, r), m);
+{
+  lemma_build__prefixes(r);
+  lemma_build__prefix0(m, r);
+}
 ghost method lemma_prefix_of_trans<K,V>(m1: partial_map<K,V>, m2: partial_map<K,V>, m3: partial_map<K,V>)
   requires prefix_of(m3, m2);
   requires prefix_of(m2, m1);
@@ -1339,8 +1381,8 @@ copredicate subtype(ctx: context, s: store, S: tp, T: tp)
 
 ghost method lemma_membership_narrowing(ctx: context, ctx': context, s': store,
   T: tp, T': tp, t: tm, t': tm, l: nat, d: decl) returns (d': decl)
-  //requires prefix_of(ctx'.m, ctx.m);
-  //requires Xstore(ctx', s');
+  requires prefix_of(ctx'.m, ctx.m);
+  requires Xstore(ctx', s');
   requires typing(ctx, Store(Empty), t, T);
   requires typing(ctx', s', t', T');
   requires subtype(ctx', s', T', T);
@@ -1355,8 +1397,8 @@ ghost method lemma_membership_narrowing(ctx: context, ctx': context, s': store,
 
 ghost method lemma_field_membership_narrowing(ctx: context, ctx': context, s': store,
   T: tp, T': tp, t: tm, t': tm, l: nat, Tl: tp) returns (Tl': tp)
-  //requires prefix_of(ctx'.m, ctx.m);
-  //requires Xstore(ctx', s');
+  requires prefix_of(ctx'.m, ctx.m);
+  requires Xstore(ctx', s');
   requires typing(ctx, Store(Empty), t, T);
   requires typing(ctx', s', t', T');
   requires subtype(ctx', s', T', T);
@@ -1370,7 +1412,7 @@ ghost method lemma_field_membership_narrowing(ctx: context, ctx': context, s': s
 }
 
 ghost method lemma_member_in_expansion(ctx: context, s: store, T: tp, t: tm, l: nat, d: decl, Ds: decls)
-  //requires Xstore(ctx, s);
+  requires Xstore(ctx, s);
   requires typing(ctx, s, t, T);
   requires t.tm_var?;
   requires t.x in dom(s.m);
@@ -1385,7 +1427,7 @@ ghost method lemma_member_in_expansion(ctx: context, s: store, T: tp, t: tm, l: 
 }
 
 ghost method lemma_field_member_in_expansion(ctx: context, s: store, T: tp, t: tm, l: nat, Tl: tp, Ds: decls)
-  //requires Xstore(ctx, s);
+  requires Xstore(ctx, s);
   requires typing(ctx, s, t, T);
   requires t.tm_var?;
   requires t.x in dom(s.m);
@@ -1400,7 +1442,7 @@ ghost method lemma_field_member_in_expansion(ctx: context, s: store, T: tp, t: t
 
 ghost method lemma_wf_init_field(ctx: context, s: store, T: tp, t: tm, l: nat, Tl: tp, Ds: decls, init: list<def>)
   returns (Tl': tp)
-  //requires Xstore(ctx, s);
+  requires Xstore(ctx, s);
   requires typing(ctx, s, t, T);
   requires t.tm_var?;
   requires t.x in dom(s.m);
@@ -1438,13 +1480,15 @@ predicate V(T: tp, t: tm, ctx: context, s: store)
 }
 
 predicate E(T: tp, t: tm, ctx: context, s: store)
-  requires dom(ctx.m) == dom(s.m);
+  requires Xstore(ctx, s);
 {
-  forall j:nat, t', s' :: mstep(t, s, t', s', j) && irred(t', s') ==> prefix_of(s'.m, s.m) && V(T, t', Xctx(ctx, s, s'), s')
+  forall j:nat, t', s' :: (mstep(t, s, t', s', j) && irred(t', s')) ==> (
+    prefix_of(s'.m, s.m) && Xstore(Xctx(ctx, s, s'), s') && 
+    V(T, t', Xctx(ctx, s, s'), s'))
 }
 
 function Xctx(ctx: context, s: store, s': store): context
-  requires prefix_of(s'.m, s.m) && dom(ctx.m) == dom(s.m);
+  requires prefix_of(s'.m, s.m) && Xstore(ctx, s);
 {
   var s_todo := map_complement(s'.m, s.m, Empty);
   var tp_todo := map_fst(s_todo);
@@ -1459,6 +1503,16 @@ predicate Xstore(ctx: context, s: store)
 predicate R(ctx: context, t: tm, T: tp)
 {
   forall s :: Xstore(ctx, s) ==> E(T, t, ctx, s)
+}
+
+ghost method lemma_Xctx_prefix(ctx: context, s: store, ctx': context, s': store)
+  requires prefix_of(s'.m, s.m) && Xstore(ctx, s);
+  requires Xctx(ctx, s, s')==ctx';
+  ensures prefix_of(ctx'.m, ctx.m);
+{
+  var s_todo := map_complement(s'.m, s.m, Empty);
+  var tp_todo := map_fst(s_todo);
+  lemma_build__prefix(ctx.m, tp_todo);
 }
 
 ghost method lemma_V_value(T: tp, t: tm, ctx: context, s: store)
@@ -1477,10 +1531,10 @@ ghost method lemma_V(T: tp, t: tm, ctx: context, s: store, Tc: tp, init: list<de
 }
 
 ghost method lemma_E(T: tp, t: tm, ctx: context, s: store, j: nat, t': tm, s': store)
-  requires dom(ctx.m) == dom(s.m);
+  requires Xstore(ctx, s);
   requires E(T, t, ctx, s);
   requires mstep(t, s, t', s', j) && irred(t', s');
-  ensures prefix_of(s'.m, s.m) && V(T, t', Xctx(ctx, s, s'), s');
+  ensures prefix_of(s'.m, s.m) && Xstore(Xctx(ctx, s, s'), s') && V(T, t', Xctx(ctx, s, s'), s');
 {
 }
 
@@ -1525,13 +1579,14 @@ ghost method theorem_fundamental_R_sel(T: tp, T1: tp, t1: tm, l: nat, ctx: conte
   var t := tm_sel(t1, l);
 
   parallel (j:nat, t', s' | mstep(t, s, t', s', j) && irred(t', s'))
-  ensures prefix_of(s'.m, s.m) && V(T, t', Xctx(ctx, s, s'), s');
+  ensures prefix_of(s'.m, s.m) && Xstore(Xctx(ctx, s, s'), s') && V(T, t', Xctx(ctx, s, s'), s');
   {
     lemma_mstep__prefix(t, s, t', s', j);
     assert prefix_of(s'.m, s.m);
 
     var t1', t1s, t1j := lemma_sel_irred__o_mstep_irred(t1, l, t', s, s', j);
     var t1ctx := Xctx(ctx, s, t1s);
+    lemma_Xctx_prefix(ctx, s, t1ctx, t1s);
     lemma_E(T1, t1, ctx, s, t1j, t1', t1s);
     lemma_V_value(T1, t1', t1ctx, t1s);
 
@@ -1556,6 +1611,7 @@ ghost method theorem_fundamental_R_sel(T: tp, T1: tp, t1: tm, l: nat, ctx: conte
       assume V(T, t', Xctx(ctx, s, s'), s'); // TODO
     }
 
+    assume Xstore(Xctx(ctx, s, s'), s'); // TODO
     assert V(T, t', Xctx(ctx, s, s'), s');
   }
   assert E(T, tm_sel(t1, l), ctx, s);
