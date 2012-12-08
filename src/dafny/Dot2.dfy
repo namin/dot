@@ -280,41 +280,25 @@ ghost method lemma_extend_prefix<K,V>(m: partial_map<K,V>, m_prev: partial_map<K
 {
   assert m.Extend?;
 }
-ghost method lemma_build__prefixes<K,V>(r: partial_map<K,V>)
-  ensures forall m :: prefix_of(build(m, r), m);
+ghost method lemma_build__prefix<K,V>(m: partial_map<K,V>, r: partial_map<K,V>)
+  ensures prefix_of(build(m, r), m);
   decreases r;
 {
   match r {
   case Empty =>
+    assert build(m, Empty)==m;
   case Extend(x, v, r') =>
-    lemma_build__prefixes(r');
-    assert forall m :: prefix_of(build(m, r'), m);
-    parallel (m: partial_map<K,V>)
-      ensures prefix_of(build(m, r), m);
-    {
-      lemma_build__prefix0(m, r');
-      assert prefix_of(build(m, r'), m);
-      lemma_build__prefix0(Extend(x, v, m), r');
-      assert prefix_of(build(Extend(x, v, m), r'), Extend(x, v, m));
-      assert build(Extend(x, v, m), r')==build(m, Extend(x, v, r'));
-      assert prefix_of(build(m, Extend(x, v, r')), Extend(x, v, m));
-      assert build(m, Extend(x, v, r'))==build(m, r);
-      assert prefix_of(build(m, r), Extend(x, v, m));
-      lemma_extend_prefix(build(m, r), m, x, v);
-      assert prefix_of(build(m, r), m);
-    }
+    lemma_build__prefix(m, r');
+    assert prefix_of(build(m, r'), m);
+    lemma_build__prefix(Extend(x, v, m), r');
+    assert prefix_of(build(Extend(x, v, m), r'), Extend(x, v, m));
+    assert build(Extend(x, v, m), r')==build(m, Extend(x, v, r'));
+    assert prefix_of(build(m, Extend(x, v, r')), Extend(x, v, m));
+    assert build(m, Extend(x, v, r'))==build(m, r);
+    assert prefix_of(build(m, r), Extend(x, v, m));
+    lemma_extend_prefix(build(m, r), m, x, v);
+    assert prefix_of(build(m, r), m);
   }
-}
-ghost method lemma_build__prefix0<K,V>(m: partial_map<K,V>, r: partial_map<K,V>)
-  requires forall m :: prefix_of(build(m, r), m);
-  ensures prefix_of(build(m, r), m);
-{
-}
-ghost method lemma_build__prefix<K,V>(m: partial_map<K,V>, r: partial_map<K,V>)
-  ensures prefix_of(build(m, r), m);
-{
-  lemma_build__prefixes(r);
-  lemma_build__prefix0(m, r);
 }
 ghost method lemma_prefix_of_trans<K,V>(m1: partial_map<K,V>, m2: partial_map<K,V>, m3: partial_map<K,V>)
   requires prefix_of(m3, m2);
