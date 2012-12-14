@@ -213,6 +213,51 @@ y \notin \fn(T') \\
 {\Gamma \ts \new y {T_c \ldefs{\seq{d}}} {t'} \typ T'}
 \end{frame}
 
+\begin{frame}[fragile]{Membership \fbox{$\Gamma \ts t \ni D$}}
+      \infrule[\textsc{path-$\ni$}]
+      {\Gamma \ts p \typ T \spcomma T \expand_z \seq D}
+      {\Gamma \ts p \ni \subst p z {D_i}}
+
+      \infrule[\textsc{term-$\ni$}]
+      {z \not\in \fn(D_i) \andalso \Gamma \ts t \typ T \spcomma T \expand_z \seq D}
+      {\Gamma \ts t \ni D_i}
+\end{frame}
+
+\begin{frame}[fragile]{(...) Expansion \fbox{$\Gamma \ts T \expand_z \seq D$}}
+      \infrule[\textsc{rfn-$\expand$}]
+      {\Gamma \ts T \expand_z {\seq {D'}}}
+      {\Gamma \ts T \refine z {\seq D} \expand_z \seq {D'} \tand \seq D}
+
+      \begin{align*}
+      (D \tand D')(L) =&
+        \Ldecl L {(S \tor S')} {(U \tand U')} \\& \ \mbox{if~} (\Ldecl L S U) \in \seq{D} \;\mbox{and}\; (\Ldecl L {S'} {U'}) \in \seq{D'} \\
+        =& D(L) \ \mbox{if~} L \notin \dom(\seq{D'}) \\
+        =& D'(L) \ \mbox{if~} L \notin \dom(\seq{D}) \\
+      \end{align*}
+\end{frame}
+
+\begin{frame}[fragile]{(...) Path-dependent types}
+      \infrule[\textsc{$\sub$-tsel}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma S' \sub S }
+      {\Gamma \ts S' \sub p.L}
+
+      \infrule[\textsc{tsel-$\sub$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma U \sub U'}
+      {\Gamma \ts p.L \sub U'}
+
+      \infrule[\textsc{tsel-$\expand$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma U \expand_z \seq D}
+      {\Gamma \ts p.L \expand_z \seq D}
+
+      \infrule[\textsc{tsel-wf$_1$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \wf \spcomma U \wf}
+      {\Gamma \ts p.L \wf}
+
+      \infrule[\textsc{tsel-wf$_2$}]
+      {\Gamma \ts p \ni \Ldecl L \Bot U}
+      {\Gamma \ts p.L \wf}
+\end{frame}
+
 \section{Revisiting glbs and lubs}
 
 \begin{frame}[fragile]{Revisiting LUB Computation}
