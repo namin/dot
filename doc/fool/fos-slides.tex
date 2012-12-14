@@ -109,6 +109,10 @@ c.eat(g) // g.type <: c.Meal so g.type <: Grass
 \item[object creations] $\new y c {t'}$\\
 $c$ is a constructor $T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}$
 \end{description}
+\end{itemize}
+\begin{columns}
+\begin{column}[t]{6cm}
+\begin{itemize}
 \item types
 \begin{description}[type intersections]
 \item[type selections] $p.L$
@@ -119,6 +123,18 @@ $c$ is a constructor $T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}$
 \item[a bottom type] $\Bot$
 \end{description}
 \end{itemize}
+\end{column}
+\begin{column}[t]{6cm}
+\begin{itemize}
+\item declarations
+\begin{description}[method]
+\item[type] $\Ldecl L S U$
+\item[value]$\ldecl l T$
+\item[method]$\mdecl m S U$
+\end{description}
+\end{itemize}
+\end{column}
+\end{columns}
 \end{frame}
 
 \begin{frame}[fragile]
