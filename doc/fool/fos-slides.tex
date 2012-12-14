@@ -1,0 +1,493 @@
+\documentclass{beamer}
+
+\input{dot_macros}
+\usepackage{bcprules}
+
+\usepackage{minted}
+\usemintedstyle{eclipse}
+
+\useoutertheme{infolines}
+\setbeamertemplate{headline}{}
+\setbeamertemplate{footline}{
+  \hfill
+  \usebeamercolor[fg]{page number in head/foot}
+  \usebeamerfont{page number in head/foot}
+  \insertpagenumber\kern1em\vskip10pt
+}
+\setbeamertemplate{navigation symbols}{}
+
+\title{Dependent Object Types}
+\subtitle{Towards a foundation for Scala's type system}
+\author{Nada Amin, Adriaan Moors, Martin Odersky}
+\institute{FOOL 2012}
+\date{October 22, 2012}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\section{Introduction}
+
+\begin{frame}
+\frametitle{DOT: Dependent Object Types}
+
+The DOT calculus proposes a new \emph{type-theoretic foundation} for Scala
+and languages like it. It models
+\begin{itemize}
+\item path-dependent types
+\item abstract type members
+\item mixture of nominal and structural typing via refinement types
+\end{itemize}
+
+It does not model
+\begin{itemize}
+\item inheritance and mixin composition
+\item what's currently in Scala
+\end{itemize}
+
+DOT normalizes Scala's type system by
+\begin{itemize}
+\item unifying the constructs for type members
+\item providing classical intersection and union types
+\end{itemize}
+
+\end{frame}
+
+\section{Differences with Scala}
+
+\begin{frame}[fragile]{Classical Intersection and Union Types}
+\begin{itemize}
+\item form a lattice wrt subtyping
+\item simplify glb and lub computations
+\end{itemize}
+\begin{minted}{scala}
+trait A { type T <: A }
+trait B { type T <: B }
+trait C extends A with B { type T <: C }
+trait D extends A with B { type T <: D }
+// in Scala, lub(C, D) is an infinite sequence
+A with B { type T <: A with B { type T <: A with B {
+  type T <: ...
+}}}
+// type inference needs to compute glbs and lubs
+if (cond) ((a: A) => c: C) else ((b: B) => d: D)
+// lub(A => C, B => D) <: glb(A, B) => lub(C, D)
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Constructs for Type Members}
+\begin{minted}{scala}
+trait Food
+trait Animal {
+  // in DOT, abstract Meal: Bot .. Food
+  type Meal <: Food
+  def eat(meal: Meal) {}
+}
+// in Dot, concrete Grass: Bot .. Food
+trait Grass extends Food
+trait Cow extends Animal {
+  // in DOT, abstract Meal: Grass .. Grass
+  type Meal = Grass
+}
+val a = new Animal {}
+val c = new Cow {}
+val g = new Grass {}
+a.eat(???) // ???.type <: a.Meal so ???.type <: Bot
+c.eat(g) // g.type <: c.Meal so g.type <: Grass
+\end{minted}
+\end{frame}
+
+\section{Formalities}
+
+\begin{frame}[fragile]{DOT: Syntax}
+\begin{itemize}
+\item terms
+\begin{description}[method invocations]
+\item[variables] $x$, $y$, $z$
+\item[selections] $t.l$
+\item[method invocations] $t.m(t)$
+\item[object creations] $\new y c {t'}$\\
+$c$ is a constructor $T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}$
+\end{description}
+\item types
+\begin{description}[type intersections]
+\item[type selections] $p.L$
+\item[refinement types] $T \refine z {\seq D}$
+\item[type intersections] $T \tand T'$
+\item[type unions] $T \tor T'$
+\item[a top type] $\Top$
+\item[a bottom type] $\Bot$
+\end{description}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{DOT: Judgments}
+\begin{columns}
+\begin{column}[t]{5cm}
+\begin{block}{Typing Judgments}
+\begin{itemize}
+\item type assignment\\$\Gamma \ts t \typ T$
+\item subtyping\\$\Gamma \ts S \sub T$
+\item well-formedness\\$\Gamma \ts T \wf$
+\item membership\\$\Gamma \ts t \ni D$
+\item expansion\\$\Gamma \ts T \expand_z \seq{D}$
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}[t]{5cm}
+\begin{block}{Small-Step Operational Semantics}
+\begin{itemize}
+\item reduction\\$\reduction t s {t'} {s'}$
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+\section{Revisiting glbs and lubs}
+
+\begin{frame}[fragile]
+\frametitle{Functions as Sugar}
+\begin{align*}
+\arrow S T &\iff {\Top \refine z {\mdecl {\mi{apply}} S T}}\\
+\fun x S T t &\iff \new z {{\arrow S T}\ldefs{\mi{apply}(x) = t}} z\\
+\app f x &\iff \mapp f {\mi{apply}} x\\
+\cast T t&\iff \app {(\fun x T T x)} t
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]{Revisiting LUB Computation}
+\begin{itemize}
+\item Suppose $f$ has type ${T_f} = {(\arrow {A} {C})} \tor {(\arrow {B} {D})}$
+\item $T_f = {\Top \refine z {\mdecl {\mi{apply}} A C}} \tor {\Top \refine z {\mdecl {\mi{apply}} B D}}$
+\item Let's type-check $y = \app f x = \mapp f {\mi{apply}} x$
+\item $T_f \expand_f \{\mdecl {\mi{apply}} {A \tand B} {C \tor D}\}$
+\item $f \ni {\mdecl {\mi{apply}} {A \tand B} {C \tor D}}$
+\item $T_x \sub A \tand B$
+\item $T_y = C \tor D$
+\end{itemize}
+\end{frame}
+
+\section{Revisiting refined type members}
+
+\begin{frame}[fragile]{Revisiting Refined Type Members}
+\begin{minted}{scala}
+trait Food
+trait Animal {
+  // in DOT, abstract Meal: Bot .. Food
+  type Meal <: Food
+  def eat(meal: Meal) {}
+}
+// in Dot, concrete Grass: Bot .. Food
+trait Grass extends Food
+trait Cow extends Animal {
+  // in DOT, abstract Meal: Grass .. Grass
+  type Meal = Grass
+}
+\end{minted}
+\begin{align*}
+{\mi{Cow}} &\expand_c \{{\Ldecl {\mi{Meal}} {{\mi{Grass}} \tor {\mi{Bot}}} {{\mi{Grass}} \tand {\mi{Food}}}}, {\mdecl {\mi{eat}} {c.\mi{Meal}} {\mi{Unit}}}\}\\
+{\mi{Cow}} &\expand_c \{{\Ldecl {\mi{Meal}} {{\mi{Grass}}} {{\mi{Grass}}}}, {\mdecl {\mi{eat}} {c.\mi{Meal}} {\mi{Unit}}}\}
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]{Why not alias Meal to Food in Animal?}
+\begin{minted}{scala}
+trait Food
+trait Animal {
+  // in DOT, abstract Meal: Food .. Food
+  type Meal = Food
+  def eat(meal: Meal) {}
+}
+
+trait Grass extends Food
+trait Cow extends Animal {
+  // in DOT, abstract Meal: Grass .. Grass
+  type Meal = Grass
+}
+\end{minted}
+\begin{align*}
+{\mi{Cow}} &\expand_c \{{\Ldecl {\mi{Meal}} {{\mi{Grass}} \tor {\mi{Food}}} {{\mi{Grass}} \tand {\mi{Food}}}}, {\mdecl {\mi{eat}} {c.\mi{Meal}} {\mi{Unit}}}\}\\
+{\mi{Cow}} &\expand_c \{{\color{red}{\Ldecl {\mi{Meal}} {{\mi{Food}}} {{\mi{Grass}}}}}, {\mdecl {\mi{eat}} {c.\mi{Meal}} {\mi{Unit}}}\}
+\end{align*}
+\end{frame}
+
+
+\section{Type-Safety?}
+
+\begin{frame}{Type-Safety?}
+\begin{itemize}
+\item Type safety usually proven as a corollary of the standard theorems of preservation and progress.
+\item In DOT, preservation (also known as subject reduction) doesn't hold, because of
+\begin{itemize}
+\item narrowing: after substitution, a term can have a more precise type
+\item need for path-equality provisitions
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\section{Counterexamples to Preservation}
+
+\begin{frame}[fragile]
+\frametitle{Counterexample: \texorpdfstring{\textsc{term-$\ni$}}{Term-Mem} Restriction}
+Let $X$ be a shorthand for the type:
+\begin{align*}
+\Top \mlrefine z {
+\ \Ldecl {L_a} \Top \Top
+\ \ldecl l {z.L_a}
+}
+\end{align*}
+
+Let $Y$ be a shorthand for the type:
+\begin{align*}
+\Top \mlrefine z {
+\ \ldecl l \Top
+}
+\end{align*}
+
+Now, consider the term
+\begin{align*}
+&\mlnew u {X \ldefs{ l = u }}{
+\app {(\fun y {\arrow \Top Y} {Y} {\app y u})} {(\fun d \Top Y {\cast X u})}.l
+}
+\end{align*}
+
+\begin{itemize}
+\item How to type ${\cast X u}$.l?
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Counterexample: (Expansion and) Well-Formedness Lost}
+\begin{align*}
+&\mlnew v {\Top \refine z {\Ldecl L \Bot {{\color{red}{\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B {z.A} {z.A}}}}\ }} \ldefs{}}{
+\mlapp {(\fun x {\Top \refine z {\Ldecl L \Bot {\Top \refine z {\Ldecl A \Bot \Top, \Ldecl B \Bot \Top}}}} \Top {\\&\gap
+\mlnew z {\Top \mlrefine z {\\&\gap\gap\gap
+\mdecl l {x.L \tand {\color{red}{\Top \refine z {\Ldecl A {z.B} {z.B}, \Ldecl B \Bot \Top}}}} \Top}\mlldefs{\\&\gap\gap\gap
+l(y) = \fun a {y.A} \Top a}}{
+\gap \cast {\top} z
+}})}{\ v}}
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]{Counterexample: Path Equality}
+\begin{align*}
+&\mlnew b {\Top \mlrefine z {&&\Ldecl X \Top \Top&\\
+&&&\ \ldecl l {z.X}&}\ldefs{l = b}}{
+\mlnew a {\Top \mlrefine z {\ldecl i {\Top \mlrefine z {&&&\\
+&&&\Ldecl X \Bot \Top\\
+&&&\ldecl l {z.X}}}&}\ldefs{i = b}}}{
+{\cast \Top {\cast {a.i.X} {a.i.l}}}}
+\end{align*}
+
+\begin{itemize}
+\item $a.i.l$ reduces to $b.l$.
+\item $b.l$ has type $b.X$, so we need $b.X <: a.i.X$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Type-Safety}
+A well-typed term doesn't get stuck:
+\begin{itemize}
+\item If
+\begin{itemize}
+  \item $\emptyset \ts t \typ T$ \ \ \ \ \ \ \ \ \ \ \ \ and
+  \item $\reductionl t \emptyset {t'} {s'} *$
+\end{itemize}
+\item then
+\begin{itemize}
+  \item $t'$ is a value \ \ \ \ \ \ \ \ \ \ \ or
+  \item $\exists t'', s''. \reduction {t'} {s'} {t''} {s''}$.
+\end{itemize}
+\end{itemize}
+
+Observations:
+\begin{itemize}
+\item Type-safety is stronger than progress, which states that a
+  well-typed term can take \emph{a} step or is a value.
+\item But progress + preservation is stronger than type-safety. In
+  particular, we don't need to type-check intermediary terms for
+  type-safety!
+\item But how to get a strong enough induction hypothesis without
+  preservation? Use logical relations.
+\end{itemize}
+\end{frame}
+
+\section{Summary}
+
+\begin{frame}[fragile]{DOT: Dependent Object Types}
+\begin{itemize}
+\item DOT is a core calculus for path-dependent types.
+\item DOT aims to normalize Scala's type system.
+\item DOT does not satisfy the standard theorem of preservation. Can and should we live with that?
+\item See the paper for the entire formalism, examples,
+  counterexamples to preservation, and discussion of type-safety,
+  design decisions and variants.
+\end{itemize}
+\end{frame}
+
+\section{Extra Slides}
+
+\begin{frame}
+\frametitle{Extra Slides}
+\end{frame}
+
+\begin{frame}[fragile]{Some DOT Rules}
+      \infrule[\textsc{$\sub$-tsel}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma S' \sub S }
+      {\Gamma \ts S' \sub p.L}
+
+      \infrule[\textsc{tsel-$\sub$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma U \sub U'}
+      {\Gamma \ts p.L \sub U'}
+
+      \infrule[\textsc{rfn-$\expand$}]
+      {\Gamma \ts T \expand_z {\seq {D'}}}
+      {\Gamma \ts T \refine z {\seq D} \expand_z \seq {D'} \tand \seq D}
+
+      \begin{align*}
+      (D \tand D')(L) =&
+        \Ldecl L {(S \tor S')} {(U \tand U')} \\& \ \mbox{if~} (\Ldecl L S U) \in \seq{D} \;\mbox{and}\; (\Ldecl L {S'} {U'}) \in \seq{D'} \\
+        =& D(L) \ \mbox{if~} L \notin \dom(\seq{D'}) \\
+        =& D'(L) \ \mbox{if~} L \notin \dom(\seq{D}) \\
+      \end{align*}
+\end{frame}
+
+\begin{frame}[fragile]{Some more DOT Rules}
+
+      \infrule[\textsc{path-$\ni$}]
+      {\Gamma \ts p \typ T \spcomma T \expand_z \seq D}
+      {\Gamma \ts p \ni \subst p z {D_i}}
+
+      \infrule[\textsc{term-$\ni$}]
+      {z \not\in \fn(D_i) \andalso \Gamma \ts t \typ T \spcomma T \expand_z \seq D}
+      {\Gamma \ts t \ni D_i}
+
+      \infrule[\textsc{tsel-$\expand$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma U \expand_z \seq D}
+      {\Gamma \ts p.L \expand_z \seq D}
+
+      \infrule[\textsc{tsel-wf$_1$}]
+      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \wf \spcomma U \wf}
+      {\Gamma \ts p.L \wf}
+
+      \infrule[\textsc{tsel-wf$_2$}]
+      {\Gamma \ts p \ni \Ldecl L \Bot U}
+      {\Gamma \ts p.L \wf}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example: Class Hierarchies}
+\begin{minted}[fontsize=\footnotesize]{scala}
+object pets {
+  trait Pet
+  trait Cat extends Pet
+  trait Dog extends Pet
+  trait Poodle extends Dog
+  trait Dalmatian extends Dog
+}
+\end{minted}
+\begin{align*}
+\mlnew {&\mi{pets}} {\Top \mlrefine z {\\
+&\ \Ldecl {\mi{Pet_c}} \Bot \Top\\
+&\ \Ldecl {\mi{Cat_c}} \Bot {z.{\mi{Pet_c}}}\\
+&\ \Ldecl {\mi{Dog_c}} \Bot {z.{\mi{Pet_c}}}\\
+&\ \Ldecl {\mi{Poodle_c}} \Bot {z.{\mi{Dog_c}}}\\
+&\ \Ldecl {\mi{Dalmatian_c}} \Bot {z.{\mi{Dog_c}}}\\
+} \ldefs{}}{}
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example: Abstract Type Members}
+\begin{minted}[fontsize=\footnotesize]{scala}
+object choices {
+  trait Alt {
+    type C
+    type A <: C
+    type B <: C
+    val choose : A => B => C
+  }
+}
+\end{minted}
+\begin{align*}
+&\new {\mi{choices}} {\Top \mlrefine z {\\
+&\gap\Ldecl {\mi{Alt_c}} {\Bot} {\Top \mlrefine a {\\
+&\gap\gap\Ldecl C \Bot \Top\\
+&\gap\gap\Ldecl A \Bot {a.C}\\
+&\gap\gap\Ldecl B \Bot {a.C}\\
+&\gap\gap\mdecl {\mi{choose}} {a.A} {\arrow {a.B} {a.A \tor a.B}}\\
+&\gap}}\\
+&}\ldefs{}}{}
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]{Subtyping of $\mi{choices}$}
+\begin{align*}
+&{\mi{choices.Alt_c} \refine a {\Ldecl C \Bot {\mi{pets.Dog_c}}}}\\
+\sub\gap&{\mi{choices.Alt_c} \refine a {\Ldecl C \Bot {\mi{pets.Pet_c}}}}
+\end{align*}
+but
+\begin{align*}
+&{\mi{choices.Alt_c} \refine a {\Ldecl C {\mi{pets.Dog_c}} {\mi{pets.Dog_c}}}}\\
+\not\sub\gap&{\mi{choices.Alt_c} \refine a {\Ldecl C {\mi{pets.Pet_c}} {\mi{pets.Pet_c}}}}
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example: F-bounded Quantification}
+\begin{minted}[fontsize=\footnotesize]{scala}
+trait MetaAlt extends choices.Alt {
+  type C = MetaAlt
+  type A = C
+  type B = C
+}
+\end{minted}
+\begin{align*}
+&\mlnew m {\Top \mlrefine m {\\
+&\gap\Ldecl {\mi{MetaAlt_c}} {\Bot} {{\mi{choices.Alt_c}} \mlrefine a {\\
+&\gap\gap\Ldecl C {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}}\\
+&\gap\gap\Ldecl A {\mi{a.C}} {\mi{a.C}}\\
+&\gap\gap\Ldecl B {\mi{a.C}} {\mi{a.C}}\\
+&\gap}}\\
+&}\ldefs{}}{}
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]{Example: Polymorphic Operators as Sugar}
+We translate
+\begin{align*}
+\textbf{val } x^a = \textbf{pickLast}(T^C, T^A, T^B); e^a
+\end{align*}
+to
+\begin{align*}
+&\mlnew {x^a} {\mi{choices.Alt_c} \mlrefine {x^a} {\\
+&\gap\Ldecl C {T^C} {T^C}\\
+&\gap\Ldecl A {T^A} {T^A}\\
+&\gap\Ldecl B {T^B} {T^B}\\
+&\gap\mdecl {\mi{choose}} {x^a.A} {\arrow {x^a.B} {x^a.B}}\\
+&}\ldefs{\mi{choose}(a)=\fun b {x^a.B} {x^a.B} b}}
+{e^a}
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]{Some ${\mi{MetaAlt_c}}$ instances}
+\begin{minted}[fontsize=\footnotesize]{scala}
+val f = new MetaAlt {
+  val choose: C => C => C = a => b => a
+}
+val rl = new MetaAlt {
+  val choose: C => C => C = a => b => b.choose(a)(b)
+}
+\end{minted}
+\begin{align*}
+&\mlnew f {{\mi{m.MetaAlt_c}}\mlldefs{\\
+&\gap\gap\mi{choose}(a)=\fun b {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}} a}}{
+\mlnew {\mi{rl}} {{\mi{m.MetaAlt_c}}\mlldefs{\\
+&\gap\gap\mi{choose}(a)=\fun b {\mi{m.MetaAlt_c}} {\mi{m.MetaAlt_c}} {\\
+&\gap\gap\gap \app {{\mi{b.choose}}(a)} b}}}{
+}}
+\end{align*}
+\end{frame}
+
+\end{document}
