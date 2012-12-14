@@ -138,6 +138,16 @@ $c$ is a constructor $T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}$
 \end{frame}
 
 \begin{frame}[fragile]
+\frametitle{Functions as Sugar}
+\begin{align*}
+\arrow S T &\iff {\Top \refine z {\mdecl {\mi{apply}} S T}}\\
+\fun x S T t &\iff \new z {{\arrow S T}\ldefs{\mi{apply}(x) = t}} z\\
+\app f x &\iff \mapp f {\mi{apply}} x\\
+\cast T t&\iff \app {(\fun x T T x)} t
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]
 \frametitle{DOT: Judgments}
 \begin{columns}
 \begin{column}[t]{5cm}
@@ -162,16 +172,6 @@ $c$ is a constructor $T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}$
 \end{frame}
 
 \section{Revisiting glbs and lubs}
-
-\begin{frame}[fragile]
-\frametitle{Functions as Sugar}
-\begin{align*}
-\arrow S T &\iff {\Top \refine z {\mdecl {\mi{apply}} S T}}\\
-\fun x S T t &\iff \new z {{\arrow S T}\ldefs{\mi{apply}(x) = t}} z\\
-\app f x &\iff \mapp f {\mi{apply}} x\\
-\cast T t&\iff \app {(\fun x T T x)} t
-\end{align*}
-\end{frame}
 
 \begin{frame}[fragile]{Revisiting LUB Computation}
 \begin{itemize}
