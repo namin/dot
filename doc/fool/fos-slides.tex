@@ -416,6 +416,17 @@ Observations:
 \end{itemize}
 \end{frame}
 
+
+%\section{Logical Relations}
+
+%\begin{frame}[fragile]{A taste of step-indexed logical relations}
+%\begin{itemize}
+%\item $V_k[TBool] = \{ true, false \}$
+%\item $V_k[T1 \Rightarrow T2] = \{ {\lambda}x.t | \forall j \leq k, v \in V_j[T1] . E_j[T2, {\subst v x t}]\}$
+%\item $E_k[T] = \{ t | \forall i, j, t'. i+j<k \Rightarrow (t \rightarrow^i t' \andl \text{irred}(t')) \Rightarrow t' \in V_j[T] \}$
+%\end{itemize}
+%\end{frame}
+
 \section{Summary}
 
 \begin{frame}[fragile]{DOT: Dependent Object Types}
@@ -423,9 +434,10 @@ Observations:
 \item DOT is a core calculus for path-dependent types.
 \item DOT aims to normalize Scala's type system.
 \item DOT does not satisfy the standard theorem of preservation. Can and should we live with that?
-\item See the paper for the entire formalism, examples,
+\item See the FOOL 2012 paper for the entire formalism, examples,
   counterexamples to preservation, and discussion of type-safety,
   design decisions and variants.
+\item Current work involves both metatheory and practical compiler implementation. Projects available!
 \end{itemize}
 \end{frame}
 
@@ -433,50 +445,6 @@ Observations:
 
 \begin{frame}
 \frametitle{Extra Slides}
-\end{frame}
-
-\begin{frame}[fragile]{Some DOT Rules}
-      \infrule[\textsc{$\sub$-tsel}]
-      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma S' \sub S }
-      {\Gamma \ts S' \sub p.L}
-
-      \infrule[\textsc{tsel-$\sub$}]
-      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma U \sub U'}
-      {\Gamma \ts p.L \sub U'}
-
-      \infrule[\textsc{rfn-$\expand$}]
-      {\Gamma \ts T \expand_z {\seq {D'}}}
-      {\Gamma \ts T \refine z {\seq D} \expand_z \seq {D'} \tand \seq D}
-
-      \begin{align*}
-      (D \tand D')(L) =&
-        \Ldecl L {(S \tor S')} {(U \tand U')} \\& \ \mbox{if~} (\Ldecl L S U) \in \seq{D} \;\mbox{and}\; (\Ldecl L {S'} {U'}) \in \seq{D'} \\
-        =& D(L) \ \mbox{if~} L \notin \dom(\seq{D'}) \\
-        =& D'(L) \ \mbox{if~} L \notin \dom(\seq{D}) \\
-      \end{align*}
-\end{frame}
-
-\begin{frame}[fragile]{Some more DOT Rules}
-
-      \infrule[\textsc{path-$\ni$}]
-      {\Gamma \ts p \typ T \spcomma T \expand_z \seq D}
-      {\Gamma \ts p \ni \subst p z {D_i}}
-
-      \infrule[\textsc{term-$\ni$}]
-      {z \not\in \fn(D_i) \andalso \Gamma \ts t \typ T \spcomma T \expand_z \seq D}
-      {\Gamma \ts t \ni D_i}
-
-      \infrule[\textsc{tsel-$\expand$}]
-      {\Gamma \ts p \ni \Ldecl L S U \spcomma U \expand_z \seq D}
-      {\Gamma \ts p.L \expand_z \seq D}
-
-      \infrule[\textsc{tsel-wf$_1$}]
-      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \wf \spcomma U \wf}
-      {\Gamma \ts p.L \wf}
-
-      \infrule[\textsc{tsel-wf$_2$}]
-      {\Gamma \ts p \ni \Ldecl L \Bot U}
-      {\Gamma \ts p.L \wf}
 \end{frame}
 
 \begin{frame}[fragile]
