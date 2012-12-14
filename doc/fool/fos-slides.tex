@@ -171,6 +171,26 @@ $c$ is a constructor $T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}$
 \end{columns}
 \end{frame}
 
+
+\begin{frame}[fragile]{Reduction \fbox{$\reduction t s {t'} {s'}$}}
+\infrule[\textsc{msel}]
+{y \mapsto T_c \ldefs{\seq{l = v'}\;\seq{m(x)=t}} \in s}
+{\reduction {\mapp y {m_i} v} s {\subst v {x_i} {t_i}} s}
+
+\infrule[\textsc{sel}]
+{y \mapsto T_c \ldefs{\seq{l = v}\;\seq{m(x)=t}} \in s}
+{\reduction {y.l_i} s {v_i} s}
+
+\infax[\textsc{new}]
+{\reduction {\new x c t} s t {s \envplus{x \mapsto c}}}
+
+\infrule[\textsc{context}]
+{\reduction t s {t'} {s'}}
+{\reduction {e[t]} s {e[t']} s'}
+
+\hfill {\bf where} evaluation context $\gap e ::= [\,] ~|~ \mapp e m t ~|~ \mapp v m e ~|~ e.l\hspace{2cm}$
+\end{frame}
+
 \section{Revisiting glbs and lubs}
 
 \begin{frame}[fragile]{Revisiting LUB Computation}
