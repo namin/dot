@@ -419,7 +419,7 @@ Observations:
 
 \section{Logical Relations}
 
-\begin{frame}{A taste of step-indexed logical relations}
+\begin{frame}{A taste of step-indexed logical relations: STLC}
 \begin{description}[123456789012]
 \item[$V_k\lbrack \text{Bool}\rbrack$] $\{ true, false \}$
 \item[$V_k\lbrack T_1 \Rightarrow T_2\rbrack$] $\{ {\lambda}x.t | \forall j \leq k, v \in V_j[T_1] . E_j[T_2, {\subst v x t}]\}$
@@ -427,6 +427,14 @@ Observations:
 \item[$\gamma_k\lbrack \Gamma\rbrack$] $\{\sigma | \forall x \in \dom(\Gamma). \sigma(x) \in V_k[\Gamma(x)]\}$
 \item[$\Gamma \ds t : T$] $\forall k, \sigma \in \gamma_k[\Gamma]. \sigma(t) \in V_k[T]$
 \end{description}
+\end{frame}
+
+\begin{frame}{Fundamental Theorem (completeness of the logic. rel.)}
+\begin{itemize}
+\item A well-typed term is in the logical relation.
+\item $\Gamma \ts t : T \Rightarrow \Gamma \ds t : T$
+\item Proof by induction on the typing derivation.
+\end{itemize}
 \end{frame}
 
 \section{Summary}
