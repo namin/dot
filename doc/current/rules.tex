@@ -445,7 +445,7 @@ D ::= & \lindent\mbox{Declaration} \\
 {
 y \notin \fn(T') \\
 \Gamma \ts T_c \wfe \spcomma T_c \expand_y \seq{\Ldecl L S U}, \seq{D} \\
-\Gamma \envplus{y: T_c} \ts \seq{S <: U} \spcomma \seq{d} \typ \seq{D} \spcomma {t'} \typ {T'}}
+\Gamma \envplus{y: T_c} \ts \seq{S <: U} \spcomma \seq{d \typ D} \spcomma {t'} \typ {T'}}
 {\Gamma \ts \new y {T_c \ldefs{\seq{d}}} {t'} \typ T'}
 
 \end{multicols}
