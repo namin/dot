@@ -120,6 +120,8 @@ trait DotSugarFunctions extends DotParsing with DotTyper with DotPrettyPrint {
          eu <- Infer[Type]("lambdaBodyTp");
          _ <- assume(x, s)(ofT(body, eu));
          u <- !eu;
+         _ <- some(List(check(u fresh(x))),
+                   pos(body, "cannot have return type (" + u.pp + ") of λ-body ("+ body.pp + ") path-dependent on λ-parameter " + x.pp));
          _ <- pt := LambdaType(s, u)) yield ()
      case _ => super.ofT(tm, pt)
    }
