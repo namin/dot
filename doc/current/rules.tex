@@ -486,31 +486,52 @@ y \notin \fn(T') \\
 
    \linesep
 
-    \begin{multicols}{2}[\judgement{Expansion}{\fbox{$\Gamma \ts T \expand_z \seq D$}}]  
-
-      \infrule[\textsc{rfn-$\expand$}]
-      {\Gamma \ts T \expand_z {\seq {D'}}}
-      {\Gamma \ts T \refine z {\seq D} \expand_z \seq {D'} \tand \seq D}
-
-      \infrule[\textsc{$\tand$-$\expand$}]
-      {\Gamma \ts T_1 \expand_z {\seq D_1} \spcomma T_2 \expand_z {\seq D_2}}
-      {\Gamma \ts T_1 \tand T_2 \expand_z {\seq D_1 \tand \seq D_2}}
-
-      \infax[\textsc{$\Top$-$\expand$}]
-      {\Gamma \ts \Top \expand_z \{\}}
-
-      \infrule[\textsc{tsel-$\expand$}]
-      {\Gamma \ts p \ni \Ldecl L S U \spcomma U \expand_z \seq D}
-      {\Gamma \ts p.L \expand_z \seq D}
-
-      \infrule[\textsc{$\tor$-$\expand$}]
-      {\Gamma \ts T_1 \expand_z {\seq D_1} \spcomma T_2 \expand_z {\seq D_2}}
-      {\Gamma \ts T_1 \tor T_2 \expand_z {\seq D_1 \tor \seq D_2}}
-
-      \infax[\textsc{$\Bot$-$\expand$}]
-      {\Gamma \ts \Bot \expand_z \seq{D_\Bot}}
+    \begin{multicols}{2}[\judgement{Expansion}{\fbox{$\Gamma \ts T \expand_z \seq D$}}]
+      \infrule[\textsc{any-$\expand$}]
+      {\Gamma \ts \emptyset / T \expand'_z \seq D}
+      {\Gamma \ts \expand_z T \seq D}
     \end{multicols}
 
+    \begin{multicols}{2}[\judgement{Expansion'}{\fbox{$\Gamma \ts M / T \expand'_z \seq D$}}]  
+      \infax[\textsc{$\Top$-$\expand'$}]
+      {\Gamma \ts M/\Top \expand'_z \{\}}
+
+      \infrule[\textsc{$\tand$-$\expand'$}]
+      {\Gamma \ts M/T_1 \expand'_z {\seq D_1} \spcomma M/T_2 \expand'_z {\seq D_2}}
+      {\Gamma \ts M/T_1 \tand T_2 \expand'_z {\seq D_1 \tand \seq D_2}}
+
+      \infrule[\textsc{rfn-$\expand'$}]
+      {\Gamma \ts M/T \expand'_z {\seq {D'}}}
+      {\Gamma \ts M/T \refine z {\seq D} \expand'_z \seq {D'} \tand \seq D}
+
+      \infrule[\textsc{tsel-$\expand'_1$}]
+      {p.L \mapsto {\seq D} \in M}
+      {\Gamma \ts M / p.L \expand_z \seq D}
+
+      \infax[\textsc{$\Bot$-$\expand'$}]
+      {\Gamma \ts M/\Bot \expand'_z \seq{D_\Bot}}
+
+      \infrule[\textsc{$\tor$-$\expand'$}]
+      {\Gamma \ts M/T_1 \expand'_z {\seq D_1} \spcomma M/T_2 \expand'_z {\seq D_2}}
+      {\Gamma \ts M/T_1 \tor T_2 \expand'_z {\seq D_1 \tor \seq D_2}}
+
+      \infrule[\textsc{tsel-$\expand'_2$}]
+      {{\Gamma \ts p \ni \Ldecl L S U}\\
+       {\Gamma \ts p.L / \{\} / M / U \expand^*_z \seq D}}
+      {\Gamma \ts M / p.L \expand'_z \seq D}
+    \end{multicols}
+
+    \begin{multicols}{2}[\judgement{Expansion*}{\fbox{$\Gamma \ts p.L / \seq {D^s} / M / T \expand^*_z \seq D$}}]  
+      \infrule[\textsc{tsel-$\expand^*_1$}]
+      {\Gamma \ts {M \envplus{p.L \mapsto \seq D}} / T \expand'_z \seq D}
+      {\Gamma \ts p.L / \seq D / M / T \expand^*_z \seq D}
+
+      \infrule[\textsc{tsel-$\expand^*_2$}]
+      {{\Gamma \ts {M \envplus{p.L \mapsto \seq {D^s}}} / T \expand'_z \seq {D^t}}\\
+       {\seq {D^s} \neq \seq {D^t}}\\
+       {\Gamma \ts p.L / \seq {D^t} / M / T \expand^*_z \seq D}}
+      {\Gamma \ts p.L / \seq {D^s} / M / T \expand^*_z \seq D}
+    \end{multicols}
 }
 \caption{The DOT Calculus : Membership and Expansion}\label{dot-two}
 \end{figure}
@@ -608,14 +629,13 @@ y \notin \fn(T') \\
   \figurebox{
        \begin{multicols}{2}[\judgement{Well-formed types}{\fbox{$\Gamma \ts T \wf$}}]
 
+      \infax[\textsc{$\Top$-wf}]
+      {\Gamma \ts \Top \wf}
+
       \infrule[\textsc{rfn-wf}]
       {\Gamma \ts T \wf \\ 
        \Gamma \envplus {z: T \refine z {\seq D}} \ts \seq {D \wf}}
       {\Gamma \ts T \refine z {\seq D} \wf}
-
-      \infrule[\textsc{tsel-wf$_1$}]
-      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \wf \spcomma U \wf}
-      {\Gamma \ts p.L \wf}
 
       \infrule[\textsc{$\tand$-wf}]
       {\Gamma \ts T \wf \spcomma T' \wf}
@@ -623,14 +643,11 @@ y \notin \fn(T') \\
 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-      \infax[\textsc{$\Top$-wf}]
-      {\Gamma \ts \Top \wf}
-
       \infax[\textsc{$\Bot$-wf}]
       {\Gamma \ts \Bot \wf}
 
-      \infrule[\textsc{tsel-wf$_2$}]
-      {\Gamma \ts p \ni \Ldecl L \Bot U}
+      \infrule[\textsc{tsel-wf}]
+      {\Gamma \ts p \ni \Ldecl L S U}
       {\Gamma \ts p.L \wf}
 
       \infrule[\textsc{$\tor$-wf}]
