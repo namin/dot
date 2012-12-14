@@ -417,15 +417,17 @@ Observations:
 \end{frame}
 
 
-%\section{Logical Relations}
+\section{Logical Relations}
 
-%\begin{frame}[fragile]{A taste of step-indexed logical relations}
-%\begin{itemize}
-%\item $V_k[TBool] = \{ true, false \}$
-%\item $V_k[T1 \Rightarrow T2] = \{ {\lambda}x.t | \forall j \leq k, v \in V_j[T1] . E_j[T2, {\subst v x t}]\}$
-%\item $E_k[T] = \{ t | \forall i, j, t'. i+j<k \Rightarrow (t \rightarrow^i t' \andl \text{irred}(t')) \Rightarrow t' \in V_j[T] \}$
-%\end{itemize}
-%\end{frame}
+\begin{frame}[fragile]{A taste of step-indexed logical relations}
+\begin{itemize}
+\item $V_k[Bool] = \{ true, false \}$
+\item $V_k[T1 \Rightarrow T2] = \{ {\lambda}x.t | \forall j \leq k, v \in V_j[T1] . E_j[T2, {\subst v x t}]\}$
+\item $E_k[T] = \{ t | \forall i, j, t'. i+j<k \Rightarrow (t \rightarrow^i t' \andl \text{irred}(t')) \Rightarrow t' \in V_j[T] \}$
+\item $\gamma_k[\Gamma] = \{\sigma | \forall x \in \dom(\Gamma). \sigma(x) \in V_k[\Gamma(x)]\}$
+\item $\Gamma \ds t : T = FV(e) \in \dom(\Gamma) \andl \forall k, \sigma \in \gamma_k[\Gamma]. \sigma(t) \in V_k[T]$
+\end{itemize}
+\end{frame}
 
 \section{Summary}
 
