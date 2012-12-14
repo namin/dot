@@ -191,6 +191,28 @@ $c$ is a constructor $T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}}$
 \hfill {\bf where} evaluation context $\gap e ::= [\,] ~|~ \mapp e m t ~|~ \mapp v m e ~|~ e.l\hspace{2cm}$
 \end{frame}
 
+\begin{frame}[fragile]{Type Assignment \fbox{$\Gamma \ts t \typ T$}}
+\infrule[\textsc{var}]
+{x \typ T \in \Gamma}
+{\Gamma \ts x \typ T}
+
+\infrule[\textsc{msel}]
+{\Gamma \ts t \ni m \typ {S \tfun T} \\
+ \Gamma \ts t' \typ T' \spcomma T' \sub S}
+{\Gamma \ts \mapp t m {t'} \typ T}
+
+\infrule[\textsc{sel}]
+{\Gamma \ts t \ni l \typ T'}
+{\Gamma \ts t.l \typ T'}
+
+\infrule[\textsc{new}]
+{
+y \notin \fn(T') \\
+\Gamma \ts T_c \wfe \spcomma T_c \expand_y \seq{\Ldecl L S U}, \seq{D} \\
+\Gamma \envplus{y: T_c} \ts \seq{S <: U} \spcomma \seq{d} \typ \seq{D} \spcomma {t'} \typ {T'}}
+{\Gamma \ts \new y {T_c \ldefs{\seq{d}}} {t'} \typ T'}
+\end{frame}
+
 \section{Revisiting glbs and lubs}
 
 \begin{frame}[fragile]{Revisiting LUB Computation}
