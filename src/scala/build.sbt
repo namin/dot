@@ -2,12 +2,12 @@ name := "dot"
 
 version := "0.1"
 
-scalaVersion := "2.10.0-RC2"
+scalaVersion := "2.10.0"
 
 scalacOptions += "-deprecation"
 
-libraryDependencies <+= scalaVersion { v => "com.googlecode.kiama" % ("kiama_"+v) % "1.4.0-B3"  }
+libraryDependencies += "com.googlecode.kiama" %% "kiama" % "1.4.0"
 
-libraryDependencies <+= scalaVersion { v => "org.scalatest" % ("scalatest_"+v) % "1.8" % "test" }
+libraryDependencies <+= scalaVersion { v => "org.scalatest" % ("scalatest_"+v) % "2.0.M5" % "test" }
 
 libraryDependencies += "junit" % "junit" % "4.8.1" % "test"
