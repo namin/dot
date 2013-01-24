@@ -37,6 +37,7 @@
   [(intersection Bot T_2) Bot]
   [(intersection T_1 Top) T_1]
   [(intersection Top T_2) T_2]
+  [(intersection T T) T]
   [(intersection T_1 T_2) (T_1 ∧ T_2)])
 
 (define-metafunction dot
@@ -45,6 +46,7 @@
   [(union Bot T_2) T_2]
   [(union T_1 Top) Top]
   [(union Top T_2) Top]
+  [(union T T) T]
   [(union T_1 T_2) (T_1 ∨ T_2)])
 
 (define-metafunction dot
@@ -286,9 +288,11 @@
   #:mode (wf-type I I)
   #:contract (wf-type env T)
   [(wf-type env T) (found (is_wf-type () env T) #t)])
- 
+
+(define (decl-key x)
+  (symbol->string (cadr (cadr x))))
 (define (sort-decls ds)
-  (sort ds #:key (lambda (x) (symbol->string (cadr (cadr x)))) string<?))
+  (sort ds #:key decl-key string<?))
 (define-metafunction dot
   sorted-decls : (D ...) -> (D ...)
   [(sorted-decls (D_1 ...)) ,(sort-decls (term (D_1 ...)))])
@@ -305,47 +309,35 @@
 (define-metafunction dot
   decl-intersection : (D ...) (D ...) -> (D ...)
   [(decl-intersection ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))
-   ,(cons (term (: l (T_1 ∧ T_2)))
+   ,(cons (term (: l (intersection T_1 T_2)))
           (term (decl-intersection (Dl_1 ...) (Dl_2 ...))))]
-  [(decl-intersection ((: l T_1) Dl_1 ...) (Dl_before ... (: l T_2) Dl_2 ...))
-   ,(append (term (Dl_before ...))
-            (term (decl-intersection ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))))]
-  [(decl-intersection (Dl_before ... (: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))
-   ,(append (term (Dl_before ...))
-            (term (decl-intersection ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))))]
   [(decl-intersection ((: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))
    ,(cons (term (: Lm (union S_1 S_2) (intersection U_1 U_2)))
           (term (decl-intersection (DLm_1 ...) (DLm_2 ...))))]
-  [(decl-intersection ((: Lm S_1 U_1) DLm_1 ...) (DLm_before ... (: Lm S_2 U_2) DLm_2 ...))
-   ,(append (term (DLm_before ...))
-            (term (decl-intersection ((: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))))]
-  [(decl-intersection (DLm_before ... (: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))
-   ,(append (term (DLm_before ...))
-            (term (decl-intersection ((: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))))]
-  [(decl-intersection (Dl_1 ...) (Dl_2 ...))
-   (Dl_1 ... Dl_2 ...)]
-  [(decl-intersection (DLm_1 ...) (DLm_2 ...))
-   (DLm_1 ... DLm_2 ...)])
+  [(decl-intersection (D_1 D_r1 ...) (D_2 D_r2 ...))
+   ,(cons (term D_1) (term (decl-intersection (D_r1 ...) (D_2 D_r2 ...))))
+   (side-condition (string<? (decl-key (term D_1)) (decl-key (term D_2))))]
+  [(decl-intersection (D_1 D_r1 ...) (D_2 D_r2 ...))
+   ,(cons (term D_2) (term (decl-intersection (D_1 D_r1 ...) (D_r2 ...))))
+   (side-condition (string<? (decl-key (term D_2)) (decl-key (term D_1))))]
+  [(decl-intersection (D_1 ...) (D_2 ...))
+   (D_1 ... D_2 ...)])
 
 (define-metafunction dot
   decl-union : (D ...) (D ...) -> (D ...)
   [(decl-union ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))
-   ,(cons (term (: l (T_1 ∨ T_2)))
+   ,(cons (term (: l (union T_1 T_2)))
           (term (decl-union (Dl_1 ...) (Dl_2 ...))))]
-  [(decl-union ((: l T_1) Dl_1 ...) (Dl_before ... (: l T_2) Dl_2 ...))
-   (decl-union ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))]
-  [(decl-union (Dl_before ... (: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))
-   (decl-union ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))]
   [(decl-union ((: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))
    ,(cons (term (: Lm (intersection S_1 S_2) (union U_1 U_2)))
           (term (decl-union (DLm_1 ...) (DLm_2 ...))))]
-  [(decl-union ((: Lm S_1 U_1) DLm_1 ...) (DLm_before ... (: Lm S_2 U_2) DLm_2 ...))
-   (decl-union ((: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))]
-  [(decl-union (DLm_before ... (: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))
-   (decl-union ((: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))]
-  [(decl-union (Dl_1 ...) (Dl_2 ...))
-   ()]
-  [(decl-union (DLm_1 ...) (DLm_2 ...))
+  [(decl-union (D_1 D_r1 ...) (D_2 D_r2 ...))
+   (decl-union (D_r1 ...) (D_2 D_r2 ...))
+   (side-condition (string<? (decl-key (term D_1)) (decl-key (term D_2))))]
+  [(decl-union (D_1 D_r1 ...) (D_2 D_r2 ...))
+   (decl-union (D_1 D_r1 ...) (D_r2 ...))
+   (side-condition (string<? (decl-key (term D_2)) (decl-key (term D_1))))]
+  [(decl-union (D_1 ...) (D_2 ...))
    ()])
 
 (define-metafunction dot

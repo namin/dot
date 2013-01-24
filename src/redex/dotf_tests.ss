@@ -491,4 +491,24 @@
                   (sel u (cv v))))))))))
 )
 
+(test-equal
+ (judgment-holds
+  (expansion (()())
+             self
+             (intersection (rfn Top a (: (cv l) Top))
+                           (rfn Top b (: (cv l) Top)))
+             ((DLt ...) (Dl ...) (Dm ...)))
+  ((DLt ...) (Dl ...) (Dm ...)))
+ '((() ((: (cv l) Top)) ())))
+
+(test-equal
+ (judgment-holds
+  (expansion (()())
+             self
+             (intersection (rfn Top a (: (cv l1) Top) (: (cv l3) Top))
+                           (rfn Top b (: (cv l2) Top) (: (cv l3) Bot)))
+             ((DLt ...) (Dl ...) (Dm ...)))
+  ((DLt ...) (Dl ...) (Dm ...)))
+ '((() ((: (cv l1) Top) (: (cv l2) Top) (: (cv l3) Bot)) ())))
+
 (test-results)
