@@ -12,21 +12,21 @@ class TestDotSyntaxWithSugarFunctions extends TestDotSyntax with DotSugarFunctio
 
   val f = Name("f")
 
-  def testApp() = App(Var(f), Var(x)) match {
+  test("App") { App(Var(f), Var(x)) match {
     case App(t1, t2) =>
       expectResult(Var(f))(t1)
       expectResult(Var(x))(t2)
-  }
-  def testLambdaType() = LambdaType(Bottom, Top) match {
+  }}
+  test("LambdaType") { LambdaType(Bottom, Top) match {
     case LambdaType(ty1, ty2) =>
       expectResult(Bottom)(ty1)
       expectResult(Top)(ty2)
-  }
-  def testCast() = Cast(Var(x), Top) match {
+  }}
+  test("Cast") { Cast(Var(x), Top) match {
     case Cast(t, ty) =>
       expectResult(Var(x))(t)
       expectResult(Top)(ty)
-  }
+  }}
 }
 
 @RunWith(classOf[JUnitRunner])
@@ -38,68 +38,68 @@ class TestDotParserWithSugarFunctions extends TestDotParser with DotSugarFunctio
   val x = Name("x")
   val y = Name("y")
 
-  def testLambda1() = {
+  test("Lambda1") {
     ok(Parser.term, Some(Lambda(Top, x\\Var(x))))("\\x:Top.x")
   }
-  def testLambda1a() = {
+  test("Lambda1a") {
     ok(Parser.term, Some(Lambda(Top, x\\Var(x))))("(\\x:Top.x)")
   }
-  def testLambda2() = {
+  test("Lambda2") {
     ok(Parser.term, Some(Lambda(Top, x\\Var(x))))("λx:Top.x")
   }
-  def testLambda3() {
+  test("Lambda3") {
     ok(Parser.term, Some(Lambda(Top, x\\Lambda(Top, y\\Var(x)))))("λx:Top.λy:Top.x")
   }
-  def testCast1() = {
+  test("Cast1") {
     ok(Parser.term, Some(Cast(Lambda(Top, x\\Var(x)), Top)))("(\\x:Top.x):Top")
   }
-  def testCast2() = {
+  test("Cast2") {
     ok(Parser.term, Some(Cast(Cast(Lambda(Top, x\\Var(x)), Top), Top)))("(\\x:Top.x):Top:Top")
   }
-  def testApp1() = {
+  test("App1") {
     ok(Parser.term, Some(App(Lambda(Top, x\\Var(x)), Lambda(Top, x\\Var(x)))))("(\\x:Top.x) \\x:Top.x")
   }
-  def testApp2() = {
+  test("App2") {
     ok(Parser.term, Some(Lambda(Top, x\\App(Var(x), Lambda(Top, x\\Var(x))))))("\\x:Top.x \\x:Top.x")
   }
-  def testApp3() = {
+  test("App3") {
     ok(Parser.term, Some(App(App(Lambda(Top, x\\Var(x)), Lambda(Top, x\\Var(x))), Lambda(Top, x\\Var(x)))))("(\\x:Top.x) (\\x:Top.x) (\\x:Top.x)")
   }
-  def testLambdaType1() = {
+  test("LambdaType1") {
     ok(Parser.typ, Some(LambdaType(Top, Top)))("Top => Top")
   }
-  def testLambdaType2() = {
+  test("LambdaType2") {
     ok(Parser.typ, Some(LambdaType(Top, LambdaType(Top, Top))))("Top => Top => Top")
   }
 }
 
 @RunWith(classOf[JUnitRunner])
 class TestDotPrettyPrinterWithSugarFunctions extends TestDotPrettyPrinter with DotSugarFunctions {
-  def testLambda1() = {
+  test("Lambda1") {
     ok("λx:⊤.x")
   }
-  def testApp1() = {
+  test("App1") {
     ok("(λx:⊤.x) (λx:⊤.x)")
   }
-  def testApp2() = {
+  test("App2") {
     ok("(λx:⊤.x) (λx:⊤.x) (λx:⊤.x)")
   }
-  def testApp3() = {
+  test("App3") {
     ok("(λx:⊤.x) ((λx:⊤.x) (λx:⊤.x))")
   }
-  def testCast1() = {
+  test("Cast1") {
     ok("(λx:⊤.x):(⊤)")
   }
-  def testLambdaType1() = {
+  test("LambdaType1") {
     ok("(λx:⊤.x):(⊤ ⇒ ⊤)")
   }
-  def testLambdaType2() = {
+  test("LambdaType2") {
     ok("(λx:⊤.λx:⊤.x):(⊤ ⇒ ⊤ ⇒ ⊤)")
   }
-  def testLambdaType3() = {
+  test("LambdaType3") {
     ok("(λx:⊤ ⇒ ⊤.x):((⊤ ⇒ ⊤) ⇒ ⊤)")
   }
-  def testAll1() = {
+  test("All1") {
     ok("(λf:⊤ ⇒ ⊤.λx:⊤.f x) (λx:⊤.x) (λx:⊤.x)")
   }
 }
@@ -112,15 +112,15 @@ class TestDotTyperWithSugarFunctions extends TestDotTyper with DotSugarFunctions
 class TestDotWithSugarFunctions extends TestDot with DotSugarFunctions {
   import Types._
 
-  def testLambda1() = expectResult(LambdaType(Top, Top)){check("\\x:Top.x")}
-  def testLambda2() = expectResult(LambdaType(LambdaType(Top,Top),Top)){check("\\f:Top=>Top.f f")}
-  def testCast1() = expectResult(Top){check("(\\x:Top.x):Top")}
+  test("Lambda1") { expectResult(LambdaType(Top, Top)){check("\\x:Top.x")} }
+  test("Lambda2") { expectResult(LambdaType(LambdaType(Top,Top),Top)){check("\\f:Top=>Top.f f")} }
+  test("Cast1") { expectResult(Top){check("(\\x:Top.x):Top")} }
 }
 
 @RunWith(classOf[JUnitRunner])
 class TestDotShellWithSugar extends TestDotShell with DotShellWithSugar { sh =>
-  def testLambda1() = ok(List(
+  test("Lambda1") { ok(List(
       ("λx:Top.x", "===> λx:⊤.x : ⊤ ⇒ ⊤"),
       ("(λx:Top.x) (λx:Top.x)", "===> (λx:⊤.x) (λx:⊤.x) : ⊤"),
-      ("(λx:Top=>Top.x) (λx:Top.x)", "===> (λx:⊤ ⇒ ⊤.x) (λx:⊤.x) : ⊤ ⇒ ⊤")))
+      ("(λx:Top=>Top.x) (λx:Top.x)", "===> (λx:⊤ ⇒ ⊤.x) (λx:⊤.x) : ⊤ ⇒ ⊤"))) }
 }

@@ -48,18 +48,18 @@ trait LambdaSubstitution extends LambdaNominalSyntax {
 }
 
 @RunWith(classOf[JUnitRunner])
-class TestBindingSyntax extends Suite with LambdaNominalSyntax with LambdaSubstitution {
+class TestBindingSyntax extends FunSuite with LambdaNominalSyntax with LambdaSubstitution {
   val x = Name("x")
   val y = Name("y")
   val z = Name("z")
   val ty = T("*")
 
-  def testAlphaEquivalence() = {
+  test("AlphaEquivalence") {
     expectResult(true)(Lam(ty, x\\Var(y)) == Lam(ty, z\\Var(y)))
     expectResult(false)(Lam(ty, x\\Var(y)) == Lam(ty, y\\Var(x)))
     expectResult(true)(Lam(ty, x\\Var(x)) == Lam(ty, y\\Var(y)))
   }
-  def testSubstitution() = {
+  test("Substitution") {
     expectResult(Lam(ty, y\\Var(z)))(Lam(ty, y\\Var(x)) subst(x, Var(z)))
     expectResult(Lam(ty, x\\Var(x)))(Lam(ty, x\\Var(x)) subst(x, Var(z)))
   }

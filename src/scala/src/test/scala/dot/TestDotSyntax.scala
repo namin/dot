@@ -5,7 +5,7 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class TestDotSyntax extends Suite with DotNominalSyntax with DotSubstitution {
+class TestDotSyntax extends FunSuite with DotNominalSyntax with DotSubstitution {
   import Terms._
   import Types._
   import Members._
@@ -14,7 +14,7 @@ class TestDotSyntax extends Suite with DotNominalSyntax with DotSubstitution {
   val y = Name("y")
   val z = Name("z")
 
-  def testAlphaEquivalence() = {
+  test("AlphaEquivalence") {
     expectResult(false)(Var(x) == Var(y))
     expectResult(true)(New(Top, x\\(Defs(List()), Var(x))) == New(Top, z\\(Defs(List()), Var(z))))
     expectResult(true)(Refine(Top, x\\(Decls(List()))) == Refine(Top, z\\Decls(List())))
@@ -30,7 +30,7 @@ class TestDotSyntax extends Suite with DotNominalSyntax with DotSubstitution {
       New(Top, z\\(Defs(List(MethodDef(MethodLabel("m"), Method(x\\Msel(Var(z), MethodLabel("m"), Var(x)))))), Var(z))))
   }
 
-  def testSubstitution() = {
+  test("Substitution") {
     expectResult(Var(x))(Var(y) subst(y, Var(x)))
     expectResult {
       New(Top, z\\(Defs(List(ValueDef(ValueLabel("l"), Var(x)))), Sel(Var(z), ValueLabel("l"))))

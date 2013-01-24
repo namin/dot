@@ -15,7 +15,7 @@ class IntStateMonad[A](override val initState: HashMap[Int, Int], override val s
 }
 
 @RunWith(classOf[JUnitRunner])
-class TestMonads extends Suite {
+class TestMonads extends FunSuite {
   import IntStateMonadCompanion._
 
   type M[X] = IntStateMonad[X]
@@ -27,7 +27,7 @@ class TestMonads extends Suite {
                   r2 <- fib(n-2)) yield r1+r2
   }
 
-  def testFib() = {
+  test("Fib") {
     expectResult(144)(fib(12).run)
   }
 }

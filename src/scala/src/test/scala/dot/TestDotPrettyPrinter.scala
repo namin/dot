@@ -5,29 +5,29 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class TestDotPrettyPrinter extends Suite with DotPrettyPrint with DotNominalSyntax with DotParsing {
+class TestDotPrettyPrinter extends FunSuite with DotPrettyPrint with DotNominalSyntax with DotParsing {
   def ok(in: String) = phrase(Parser.term)(new lexical.Scanner(in)) match {
     case Success(tm, _) => expectResult(in.trim){tm.pp}
     case r@_ => sys.error("parsing failed: " + r)
   }
 
-  def test1() = ok("val x = new ⊤; x")
-  def test2() = ok("val x = new ⊤; val y = new ⊤; val z = new ⊤; z")
-  def test3() = ok("val x = new ⊤ { z ⇒ }; x")
-  def test4() = ok("val x = new ⊤ { z ⇒ L: ⊥ .. ⊤ }; x")
+  test("1") { ok("val x = new ⊤; x") }
+  test("2") { ok("val x = new ⊤; val y = new ⊤; val z = new ⊤; z") }
+  test("3") { ok("val x = new ⊤ { z ⇒ }; x") }
+  test("4") { ok("val x = new ⊤ { z ⇒ L: ⊥ .. ⊤ }; x") }
 
-  def test5() = ok("""
+  test("5") { ok("""
 val x = new ⊤ { z ⇒ L: ⊥ .. ⊤ } ∧
-            ⊤ { z ⇒ L: ⊥ .. ⊤ }; x""")
+            ⊤ { z ⇒ L: ⊥ .. ⊤ }; x""") }
 
-  def test6() = ok("""
+  test("6") { ok("""
 val x = new ⊤ { x ⇒ !L: ⊥ .. ⊤; L: ⊥ .. ⊤ };
 val y = new x.!L;
 val id = new ⊤ { id ⇒ app: ⊤ → ⊤ } ( app(x) = x );
 id.app(y)
-""")
+""") }
 
-  def test7() = ok(
+  test("7") { ok(
 """
 val sugar = new ⊤ { s ⇒
    !Arrow: ⊥ .. ⊤ { f ⇒ app: ⊥ → ⊤ };
@@ -82,17 +82,18 @@ val root = new ⊤ { r ⇒
    ); ss
 );
 id.app(root.zero(unit).succ(unit).pred(unit).isZero(unit))
-""")
+""") }
 
-  def testGrouping1() = ok("val x = new ⊤ { z ⇒ L: ⊤ .. ⊤ ∧ ⊤ ∨ ⊤ }; x")
-  def testGrouping2() = ok("val x = new ⊤ { z ⇒ L: ⊤ .. ⊤ ∧ (⊤ ∨ ⊤) }; x")
-  def testGrouping3() = ok("val x = new ⊤ { z ⇒ L: ⊤ .. ⊤ ∧ ⊤ ∨ ⊤ ∧ ⊤ ∨ ⊤ }; x")
-  def testGrouping4() = ok("""
+  test("Grouping1") { ok("val x = new ⊤ { z ⇒ L: ⊤ .. ⊤ ∧ ⊤ ∨ ⊤ }; x") }
+  test("Grouping2") { ok("val x = new ⊤ { z ⇒ L: ⊤ .. ⊤ ∧ (⊤ ∨ ⊤) }; x") }
+  test("Grouping3") { ok("val x = new ⊤ { z ⇒ L: ⊤ .. ⊤ ∧ ⊤ ∨ ⊤ ∧ ⊤ ∨ ⊤ }; x") }
+  test("Grouping4") { ok("""
 val x = new ⊤ { z ⇒
    L: ⊤ .. (⊤ ∨ ⊤) ∧ (⊤ ∨ ⊤) ∧ (⊤ ∨ ⊤)
 }; x
-""")
-  def testGrouping5() = ok("""
+""") }
+
+  test("Grouping5") { ok("""
 val x = new ⊤ { z ⇒
    L: ⊤ .. (⊤ ∨ ⊤) ∧
            (⊤ ∨ ⊤) ∧
@@ -104,5 +105,5 @@ val x = new ⊤ { z ⇒
            (⊤ ∨ ⊤) ∧
            (⊤ ∨ ⊤)
 }; x
-""")
+""") }
 }

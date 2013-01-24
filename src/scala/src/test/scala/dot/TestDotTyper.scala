@@ -9,7 +9,7 @@ class TestLooseDotTyper extends TestDotTyper with LooseDotTyper {
 }
 
 @RunWith(classOf[JUnitRunner])
-class TestDotTyper extends Suite with DotTyper {
+class TestDotTyper extends FunSuite with DotTyper {
   def bad[A](r: Result[A]) {
     assert(r.isInstanceOf[TyperFailure[_]])
   }
@@ -23,53 +23,61 @@ class TestDotTyper extends Suite with DotTyper {
   val z = Name("z")
   val nodefs = Defs(List())
 
-  def testTC1() = expectResult(TyperSuccess(Top))(typecheck(New(Top,x\\(nodefs, Var(x)))))
+  test("TC1") { expectResult(TyperSuccess(Top))(typecheck(New(Top,x\\(nodefs, Var(x))))) }
 
-  def testTC2() =
+  test("TC2") {
     expectResult {
       TyperSuccess(Refine(Top, z\\Decls(List(TypeDecl(AbstractTypeLabel("L"), TypeBounds(Bottom, Top))))))
     } {
       typecheck(New(Refine(Top, z\\Decls(List(TypeDecl(AbstractTypeLabel("L"), TypeBounds(Bottom, Top))))), x\\(nodefs, Var(x))))
     }
+  }
 
-  def testTC2BadBounds() =
+  test("TC2BadBounds") {
     expectResult {
       TyperFailure("⊤ is not a subtype of ⊥")
     } {
       typecheck(New(Refine(Top, z\\Decls(List(TypeDecl(AbstractTypeLabel("L"), TypeBounds(Top, Bottom))))), x\\(nodefs, Var(x))))
     }
+  }
 
-  def testTC_Sel() =
+  test("TC_Sel") {
     expectResult(TyperSuccess(Top))(typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Top)))), x\\(Defs(List(ValueDef(ValueLabel("l"), Var(x)))), Sel(Var(x), ValueLabel("l"))))))
+  }
 
-  def testTC_Sel_Bad() =
+  test("TC_Sel_Bad") {
     expectResult {
       TyperFailure("undeclared ValueLabel(l')")
     } {
       typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Top)))), x\\(Defs(List(ValueDef(ValueLabel("l"), Var(x)))), Sel(Var(x), ValueLabel("l'")))))
     }
+  }
 
-  def testTC_Sel_BadInit() =
+  test("TC_Sel_BadInit") {
     expectResult {
       TyperFailure("uninitialized value for label l")
     } {
       typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Top)))), x\\(nodefs, Sel(Var(x), ValueLabel("l")))))
     }
+  }
 
-  def testTC_Sel_BadInitTC() =
+  test("TC_Sel_BadInitTC") {
     bad(typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Bottom)))), x\\(Defs(List(ValueDef(ValueLabel("l"), Var(x)))), Sel(Var(x), ValueLabel("l"))))))
+  }
 
-  def testTc_Msel1() =
+  test("Tc_Msel1") {
     expectResult(TyperSuccess(Top))(typecheck(New(Refine(Top, z\\Decls(List(MethodDecl(MethodLabel("m"), ArrowType(Top, Top))))),
                                             z\\(Defs(List(MethodDef(MethodLabel("m"),
                                                                     Method(x\\Var(x))))),
                                         Msel(Var(z), MethodLabel("m"), Var(z))))))
+  }
 
-  def testTc_Msel2() =
+  test("Tc_Msel2") {
     expectResult(TyperSuccess(Top))(typecheck(New(Refine(Top, z\\Decls(List(MethodDecl(MethodLabel("m"), ArrowType(Top, Top))))),
                                             z\\(Defs(List(MethodDef(MethodLabel("m"),
                                                                     Method(x\\Msel(Var(z), MethodLabel("m"), Var(x)))))),
                                         Msel(Var(z), MethodLabel("m"), Var(z))))))
+  }
 
   val decls1 = Decls(List(
     TypeDecl(AbstractTypeLabel("L1"), TypeBounds(Tsel(Var(x), AbstractTypeLabel("S1")), Tsel(Var(x), AbstractTypeLabel("U1")))),
@@ -80,7 +88,7 @@ class TestDotTyper extends Suite with DotTyper {
     TypeDecl(AbstractTypeLabel("L'"), TypeBounds(Tsel(Var(x), AbstractTypeLabel("S2'")), Tsel(Var(x), AbstractTypeLabel("U2'")))),
     TypeDecl(AbstractTypeLabel("L"), TypeBounds(Tsel(Var(x), AbstractTypeLabel("S2")), Tsel(Var(x), AbstractTypeLabel("U2"))))))
 
-  def testMeet1() =
+  test("Meet1") {
     expectResult {
       Decls(List(
         TypeDecl(AbstractTypeLabel("L"),  TypeBounds(Union(Tsel(Var(x), AbstractTypeLabel("S1")), Tsel(Var(x), AbstractTypeLabel("S2"))),
@@ -92,8 +100,9 @@ class TestDotTyper extends Suite with DotTyper {
     } {
       meet(decls1, decls2)
     }
+  }
 
-  def testJoin1() =
+  test("Join1") {
     expectResult {
       Decls(List(
         TypeDecl(AbstractTypeLabel("L"),  TypeBounds(Intersect(Tsel(Var(x), AbstractTypeLabel("S1")), Tsel(Var(x), AbstractTypeLabel("S2"))),
@@ -103,4 +112,5 @@ class TestDotTyper extends Suite with DotTyper {
     } {
       join(decls1, decls2)
     }
+  }
 }

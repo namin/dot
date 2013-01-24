@@ -36,7 +36,7 @@ trait LambdaParsing extends StdTokenParsers with BindingParsers with PackratPars
 }
 
 @RunWith(classOf[JUnitRunner])
-class TestBindingParsers extends Suite with LambdaParsing {
+class TestBindingParsers extends FunSuite with LambdaParsing {
   def parse(in: String) = phrase(Parser.term)(new lexical.Scanner(in))
 
   val x = Name("x")
@@ -54,15 +54,15 @@ class TestBindingParsers extends Suite with LambdaParsing {
     case _@r => fail("expected failure, got " + r)
   }
 
-  def testOK1() = ok(Lam(ty, x\\Var(x)))("\\x:*.x")
-  def testOK2() = ok(Lam(ty, x\\Lam(ty, y\\Var(x))))("\\x:*.\\y:*.x")
-  def testOK3() = ok(Lam(ty, x\\Lam(ty, y\\App(Var(x), Var(y)))))("\\x:*.\\y:*.(x y)")
-  def testOK4() = ok(Lam(ty, x\\Lam(ty, y\\App(App(Var(x), Var(y)), Var(x)))))("\\x:*.\\y:*.(x y) x")
-  def testOK3a() = ok(Lam(ty, x\\Lam(ty, y\\App(Var(x), Var(y)))))("\\x:*.\\y:*.x y")
-  def testOK4a() = ok(Lam(ty, x\\Lam(ty, y\\App(App(Var(x), Var(y)), Var(x)))))("\\x:*.\\y:*.x y x")
-  def testOK5() = ok(Lam(Fun(ty, Fun(ty, ty)), x\\Var(x)))("\\x:*->*->*.x")
+  test("OK1") { ok(Lam(ty, x\\Var(x)))("\\x:*.x") }
+  test("OK2") { ok(Lam(ty, x\\Lam(ty, y\\Var(x))))("\\x:*.\\y:*.x") }
+  test("OK3") { ok(Lam(ty, x\\Lam(ty, y\\App(Var(x), Var(y)))))("\\x:*.\\y:*.(x y)") }
+  test("OK4") { ok(Lam(ty, x\\Lam(ty, y\\App(App(Var(x), Var(y)), Var(x)))))("\\x:*.\\y:*.(x y) x") }
+  test("OK3a") { ok(Lam(ty, x\\Lam(ty, y\\App(Var(x), Var(y)))))("\\x:*.\\y:*.x y") }
+  test("OK4a") { ok(Lam(ty, x\\Lam(ty, y\\App(App(Var(x), Var(y)), Var(x)))))("\\x:*.\\y:*.x y x") }
+  test("OK5") { ok(Lam(Fun(ty, Fun(ty, ty)), x\\Var(x)))("\\x:*->*->*.x") }
 
-  def testBad1() = bad("Unbound variable: x")("x")
-  def testBad2() = bad("Unbound variable: x")("\\y:*.x")
-  def testBad3() = bad("Unbound variable: x")("(\\y:*.x) (\\x:*.x)")
+  test("Bad1") { bad("Unbound variable: x")("x") }
+  test("Bad2") { bad("Unbound variable: x")("\\y:*.x") }
+  test("Bad3") { bad("Unbound variable: x")("(\\y:*.x) (\\x:*.x)") }
 }

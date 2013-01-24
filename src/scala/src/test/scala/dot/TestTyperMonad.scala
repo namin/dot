@@ -54,14 +54,14 @@ trait LambdaTyperSyntax extends MetaVariablesNominal with LambdaSyntax {
 }
 
 @RunWith(classOf[JUnitRunner])
-class TestTyperMonad extends Suite with LambdaTyper {
+class TestTyperMonad extends FunSuite with LambdaTyper {
   val x = Name("x")
   val y = Name("y")
   val z = Name("z")
   val f = Name("f")
   val ty = T("*")
 
-  def test1() = expectResult(TyperSuccess(Fun(ty, ty)))(typecheck(Lam(ty, x\\Var(x))))
-  def test2() = expectResult(TyperSuccess(Fun(Fun(ty, ty), Fun(ty, ty))))(typecheck(Lam(Fun(ty, ty), f\\Lam(ty, x\\App(Var(f), Var(x))))))
-  def test3() = expectResult(TyperFailure(""))(typecheck(Lam(Fun(ty, ty), f\\Lam(ty, x\\App(Var(x), Var(f))))))
+  test("1") { expectResult(TyperSuccess(Fun(ty, ty)))(typecheck(Lam(ty, x\\Var(x)))) }
+  test("2") { expectResult(TyperSuccess(Fun(Fun(ty, ty), Fun(ty, ty))))(typecheck(Lam(Fun(ty, ty), f\\Lam(ty, x\\App(Var(f), Var(x)))))) }
+  test("3") { expectResult(TyperFailure(""))(typecheck(Lam(Fun(ty, ty), f\\Lam(ty, x\\App(Var(x), Var(f)))))) }
 }
