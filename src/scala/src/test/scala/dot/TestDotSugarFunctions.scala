@@ -14,18 +14,18 @@ class TestDotSyntaxWithSugarFunctions extends TestDotSyntax with DotSugarFunctio
 
   def testApp() = App(Var(f), Var(x)) match {
     case App(t1, t2) =>
-      expect(Var(f))(t1)
-      expect(Var(x))(t2)
+      expectResult(Var(f))(t1)
+      expectResult(Var(x))(t2)
   }
   def testLambdaType() = LambdaType(Bottom, Top) match {
     case LambdaType(ty1, ty2) =>
-      expect(Bottom)(ty1)
-      expect(Top)(ty2)
+      expectResult(Bottom)(ty1)
+      expectResult(Top)(ty2)
   }
   def testCast() = Cast(Var(x), Top) match {
     case Cast(t, ty) =>
-      expect(Var(x))(t)
-      expect(Top)(ty)
+      expectResult(Var(x))(t)
+      expectResult(Top)(ty)
   }
 }
 
@@ -112,9 +112,9 @@ class TestDotTyperWithSugarFunctions extends TestDotTyper with DotSugarFunctions
 class TestDotWithSugarFunctions extends TestDot with DotSugarFunctions {
   import Types._
 
-  def testLambda1() = expect(LambdaType(Top, Top)){check("\\x:Top.x")}
-  def testLambda2() = expect(LambdaType(LambdaType(Top,Top),Top)){check("\\f:Top=>Top.f f")}
-  def testCast1() = expect(Top){check("(\\x:Top.x):Top")}
+  def testLambda1() = expectResult(LambdaType(Top, Top)){check("\\x:Top.x")}
+  def testLambda2() = expectResult(LambdaType(LambdaType(Top,Top),Top)){check("\\f:Top=>Top.f f")}
+  def testCast1() = expectResult(Top){check("(\\x:Top.x):Top")}
 }
 
 @RunWith(classOf[JUnitRunner])

@@ -13,11 +13,11 @@ class TestDotParser extends Suite with DotParsing {
   def parse[T](p: Parser[T])(in: String) = phrase(p)(new lexical.Scanner(in))
 
   def ok[T](p: Parser[T], expected: Option[T] = None)(in: String) = parse(p)(in) match {
-    case Success(actual, _) => expected.foreach(e => expect(e)(actual))
+    case Success(actual, _) => expected.foreach(e => expectResult(e)(actual))
     case _@r => fail("expected success, got " + r)
   }
   def bad[T](p: Parser[T], expectedMsg: Option[String] = None)(in: String) = parse(p)(in) match {
-    case Failure(msg, _) => expectedMsg.foreach(e => expect(e)(msg))
+    case Failure(msg, _) => expectedMsg.foreach(e => expectResult(e)(msg))
     case _@r => fail("expected failure, got " + r)
   }
     

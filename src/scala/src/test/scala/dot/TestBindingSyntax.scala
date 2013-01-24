@@ -55,12 +55,12 @@ class TestBindingSyntax extends Suite with LambdaNominalSyntax with LambdaSubsti
   val ty = T("*")
 
   def testAlphaEquivalence() = {
-    expect(true)(Lam(ty, x\\Var(y)) == Lam(ty, z\\Var(y)))
-    expect(false)(Lam(ty, x\\Var(y)) == Lam(ty, y\\Var(x)))
-    expect(true)(Lam(ty, x\\Var(x)) == Lam(ty, y\\Var(y)))
+    expectResult(true)(Lam(ty, x\\Var(y)) == Lam(ty, z\\Var(y)))
+    expectResult(false)(Lam(ty, x\\Var(y)) == Lam(ty, y\\Var(x)))
+    expectResult(true)(Lam(ty, x\\Var(x)) == Lam(ty, y\\Var(y)))
   }
   def testSubstitution() = {
-    expect(Lam(ty, y\\Var(z)))(Lam(ty, y\\Var(x)) subst(x, Var(z)))
-    expect(Lam(ty, x\\Var(x)))(Lam(ty, x\\Var(x)) subst(x, Var(z)))
+    expectResult(Lam(ty, y\\Var(z)))(Lam(ty, y\\Var(x)) subst(x, Var(z)))
+    expectResult(Lam(ty, x\\Var(x)))(Lam(ty, x\\Var(x)) subst(x, Var(z)))
   }
 }

@@ -9,7 +9,7 @@ class TestDotShell extends Suite with DotShell { sh =>
   def ok(cmds: List[(String, String)]): Unit = cmds match {
     case Nil => ()
     case (in,out)::rest =>
-      expect(out)(sh.tc(in))
+      expectResult(out)(sh.tc(in))
       ok(rest)
   }
 

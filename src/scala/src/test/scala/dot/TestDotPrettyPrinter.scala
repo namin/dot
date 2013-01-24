@@ -7,7 +7,7 @@ import org.scalatest.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class TestDotPrettyPrinter extends Suite with DotPrettyPrint with DotNominalSyntax with DotParsing {
   def ok(in: String) = phrase(Parser.term)(new lexical.Scanner(in)) match {
-    case Success(tm, _) => expect(in.trim){tm.pp}
+    case Success(tm, _) => expectResult(in.trim){tm.pp}
     case r@_ => sys.error("parsing failed: " + r)
   }
 

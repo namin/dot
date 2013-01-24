@@ -28,6 +28,6 @@ class TestMonads extends Suite {
   }
 
   def testFib() = {
-    expect(144)(fib(12).run)
+    expectResult(144)(fib(12).run)
   }
 }

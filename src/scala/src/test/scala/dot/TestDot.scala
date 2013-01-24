@@ -25,7 +25,7 @@ class TestDot extends Suite with DotParsing with DotTyper {
   
   import Types._
  
-  def test1() = expect(Top){check(
+  def test1() = expectResult(Top){check(
     """
       val x = new ⊤ { x ⇒
         !L : ⊥..⊤
@@ -39,7 +39,7 @@ class TestDot extends Suite with DotParsing with DotTyper {
     """
   )}
 
-  def testFBoundedAbstractionDeclared() = expect(Top){check(
+  def testFBoundedAbstractionDeclared() = expectResult(Top){check(
     """
       val x = new ⊤ { x ⇒ A: ⊥..⊤; !L : ⊥..x.A { a ⇒ B : ⊥..x.!L } }
       val y = new Top
@@ -47,7 +47,7 @@ class TestDot extends Suite with DotParsing with DotTyper {
     """
   )}
 
-  def testFBoundedAbstractionUsed() = expect(Top){check(
+  def testFBoundedAbstractionUsed() = expectResult(Top){check(
     """
       val x = new ⊤ { x ⇒ A: ⊥..⊤; !L : ⊥..x.A { a ⇒ B : ⊥..x.!L } }
       val y = new x.!L
@@ -58,7 +58,7 @@ class TestDot extends Suite with DotParsing with DotTyper {
     """
   )}
 
-  def testUnit() = expect(Top){check(
+  def testUnit() = expectResult(Top){check(
     """
       val id = new ⊤ { id ⇒
         apply : ⊤→⊤
@@ -72,7 +72,7 @@ class TestDot extends Suite with DotParsing with DotTyper {
     """
   )}
 
-  def testFunctions() = expect(Top){check(
+  def testFunctions() = expectResult(Top){check(
     """
       val sugar = new ⊤ { s ⇒
         !Arrow: ⊥..⊤ { f ⇒
@@ -84,7 +84,7 @@ class TestDot extends Suite with DotParsing with DotTyper {
     """
   )}
 
-  def testLabelMixupError1() = expect(
+  def testLabelMixupError1() = expectResult(
 """undeclared ClassLabel(L)
       val y = new x.!L
 
@@ -96,7 +96,7 @@ class TestDot extends Suite with DotParsing with DotTyper {
     """
   ))
 
-  def testLabelMixupError2() = expect(
+  def testLabelMixupError2() = expectResult(
 """undeclared ValueLabel(a)
       val y = new x.a.!L
 
@@ -108,7 +108,7 @@ class TestDot extends Suite with DotParsing with DotTyper {
     """
   ))
 
-  def testLabelMixupError3() = expect(
+  def testLabelMixupError3() = expectResult(
 """undeclared ValueLabel(a)
       x.a.b
 
@@ -120,14 +120,14 @@ class TestDot extends Suite with DotParsing with DotTyper {
     """
   ))
 
-  def testBottom() = expect(Bottom)(check(
+  def testBottom() = expectResult(Bottom)(check(
     """
       val root = new ⊤ { root => error:  ⊤ -> ⊥ } ( error(x) = root.error(x) )
       root.error(root)
     """
   ))
 
-  def testBottomFun() = expect(Bottom)(check(
+  def testBottomFun() = expectResult(Bottom)(check(
     """
       val sugar = new ⊤ { s ⇒
         !Arrow: ⊥ .. ⊤ { f ⇒
@@ -139,7 +139,7 @@ class TestDot extends Suite with DotParsing with DotTyper {
     """
   ))
 
-  def testPeano() = expect(Top){check(
+  def testPeano() = expectResult(Top){check(
     """
       val sugar = new ⊤ { s ⇒
         !Arrow: ⊥ .. ⊤ { f ⇒
@@ -189,7 +189,7 @@ class TestDot extends Suite with DotParsing with DotTyper {
     """
   )}
 
-  def testScopeFresh() = expect(
+  def testScopeFresh() = expectResult(
 """cannot have type (x.L) of new scope (x.l) path-dependent on x
     x.l
 
@@ -200,7 +200,7 @@ class TestDot extends Suite with DotParsing with DotTyper {
     """
   )}
 
-  def testMemTermRestriction() = expect(
+  def testMemTermRestriction() = expectResult(
 """mem-term restriction fails for z in l: z.L
 (val x = new Top { x => L: Top..Top; l: x.L }(l=x); x).l
 
@@ -210,7 +210,7 @@ class TestDot extends Suite with DotParsing with DotTyper {
 """
   )}
 
-  def testTooRecursive() = expect("stuck in infinite derivation"){checkfail(
+  def testTooRecursive() = expectResult("stuck in infinite derivation"){checkfail(
       "val x = new Top {x => l: x.L; L: Bot .. x.l.L} (l=x); x")
   }
 }

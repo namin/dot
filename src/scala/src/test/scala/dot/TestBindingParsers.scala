@@ -45,12 +45,12 @@ class TestBindingParsers extends Suite with LambdaParsing {
   val ty = T("*")
 
   def ok(expected: Term)(in: String) = parse(in) match {
-    case Success(actual, _) => expect(expected)(actual)
+    case Success(actual, _) => expectResult(expected)(actual)
     case _@r => fail("expected success, got " + r)
   }
 
   def bad(expectedMsg: String)(in: String) = parse(in) match {
-    case Failure(msg, _) => expect(expectedMsg)(msg)
+    case Failure(msg, _) => expectResult(expectedMsg)(msg)
     case _@r => fail("expected failure, got " + r)
   }
 

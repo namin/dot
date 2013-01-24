@@ -11,7 +11,7 @@ class TestLooseDotTyper extends TestDotTyper with LooseDotTyper {
 @RunWith(classOf[JUnitRunner])
 class TestDotTyper extends Suite with DotTyper {
   def bad[A](r: Result[A]) {
-    assert(r.isInstanceOf[TyperFailure[A]])
+    assert(r.isInstanceOf[TyperFailure[_]])
   }
 
   import Terms._
@@ -23,34 +23,34 @@ class TestDotTyper extends Suite with DotTyper {
   val z = Name("z")
   val nodefs = Defs(List())
 
-  def testTC1() = expect(TyperSuccess(Top))(typecheck(New(Top,x\\(nodefs, Var(x)))))
+  def testTC1() = expectResult(TyperSuccess(Top))(typecheck(New(Top,x\\(nodefs, Var(x)))))
 
   def testTC2() =
-    expect {
+    expectResult {
       TyperSuccess(Refine(Top, z\\Decls(List(TypeDecl(AbstractTypeLabel("L"), TypeBounds(Bottom, Top))))))
     } {
       typecheck(New(Refine(Top, z\\Decls(List(TypeDecl(AbstractTypeLabel("L"), TypeBounds(Bottom, Top))))), x\\(nodefs, Var(x))))
     }
 
   def testTC2BadBounds() =
-    expect {
+    expectResult {
       TyperFailure("⊤ is not a subtype of ⊥")
     } {
       typecheck(New(Refine(Top, z\\Decls(List(TypeDecl(AbstractTypeLabel("L"), TypeBounds(Top, Bottom))))), x\\(nodefs, Var(x))))
     }
 
   def testTC_Sel() =
-    expect(TyperSuccess(Top))(typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Top)))), x\\(Defs(List(ValueDef(ValueLabel("l"), Var(x)))), Sel(Var(x), ValueLabel("l"))))))
+    expectResult(TyperSuccess(Top))(typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Top)))), x\\(Defs(List(ValueDef(ValueLabel("l"), Var(x)))), Sel(Var(x), ValueLabel("l"))))))
 
   def testTC_Sel_Bad() =
-    expect {
+    expectResult {
       TyperFailure("undeclared ValueLabel(l')")
     } {
       typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Top)))), x\\(Defs(List(ValueDef(ValueLabel("l"), Var(x)))), Sel(Var(x), ValueLabel("l'")))))
     }
 
   def testTC_Sel_BadInit() =
-    expect {
+    expectResult {
       TyperFailure("uninitialized value for label l")
     } {
       typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Top)))), x\\(nodefs, Sel(Var(x), ValueLabel("l")))))
@@ -60,13 +60,13 @@ class TestDotTyper extends Suite with DotTyper {
     bad(typecheck(New(Refine(Top, z\\Decls(List(ValueDecl(ValueLabel("l"), Bottom)))), x\\(Defs(List(ValueDef(ValueLabel("l"), Var(x)))), Sel(Var(x), ValueLabel("l"))))))
 
   def testTc_Msel1() =
-    expect(TyperSuccess(Top))(typecheck(New(Refine(Top, z\\Decls(List(MethodDecl(MethodLabel("m"), ArrowType(Top, Top))))),
+    expectResult(TyperSuccess(Top))(typecheck(New(Refine(Top, z\\Decls(List(MethodDecl(MethodLabel("m"), ArrowType(Top, Top))))),
                                             z\\(Defs(List(MethodDef(MethodLabel("m"),
                                                                     Method(x\\Var(x))))),
                                         Msel(Var(z), MethodLabel("m"), Var(z))))))
 
   def testTc_Msel2() =
-    expect(TyperSuccess(Top))(typecheck(New(Refine(Top, z\\Decls(List(MethodDecl(MethodLabel("m"), ArrowType(Top, Top))))),
+    expectResult(TyperSuccess(Top))(typecheck(New(Refine(Top, z\\Decls(List(MethodDecl(MethodLabel("m"), ArrowType(Top, Top))))),
                                             z\\(Defs(List(MethodDef(MethodLabel("m"),
                                                                     Method(x\\Msel(Var(z), MethodLabel("m"), Var(x)))))),
                                         Msel(Var(z), MethodLabel("m"), Var(z))))))
@@ -81,7 +81,7 @@ class TestDotTyper extends Suite with DotTyper {
     TypeDecl(AbstractTypeLabel("L"), TypeBounds(Tsel(Var(x), AbstractTypeLabel("S2")), Tsel(Var(x), AbstractTypeLabel("U2"))))))
 
   def testMeet1() =
-    expect {
+    expectResult {
       Decls(List(
         TypeDecl(AbstractTypeLabel("L"),  TypeBounds(Union(Tsel(Var(x), AbstractTypeLabel("S1")), Tsel(Var(x), AbstractTypeLabel("S2"))),
                                                      Intersect(Tsel(Var(x), AbstractTypeLabel("U1")), Tsel(Var(x), AbstractTypeLabel("U2"))))),
@@ -94,7 +94,7 @@ class TestDotTyper extends Suite with DotTyper {
     }
 
   def testJoin1() =
-    expect {
+    expectResult {
       Decls(List(
         TypeDecl(AbstractTypeLabel("L"),  TypeBounds(Intersect(Tsel(Var(x), AbstractTypeLabel("S1")), Tsel(Var(x), AbstractTypeLabel("S2"))),
                                                      Union(Tsel(Var(x), AbstractTypeLabel("U1")), Tsel(Var(x), AbstractTypeLabel("U2"))))),
