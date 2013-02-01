@@ -1,6 +1,6 @@
 #lang racket
 (require redex)
-(require "dotf.ss")
+(require "doti.ss")
 
 (define-metafunction dot
   valnew : (x c) e -> e
@@ -59,14 +59,14 @@
             'Top)
 (test-equal (typecheck (term (() ())) (term (valnew (u ((rfn Top u (: (cm l) Top Top)) [(cm l) x u])) (sel u (cm l) u))))
             'Top)
-(test-equal (typecheck (term (() ())) (term (valnew (u ((rfn Top u (: (cc l) Top Top)))) u)))
-            (term (rfn Top u (: (cc l) Top Top))))
-(test-equal (typecheck (term (() ())) (term (valnew (u ((rfn Top u (: (cc l) Top Top))))
-                                                    (valnew (w ((rfn Top w (: (cm f) (sel u (cc l)) Top))
+(test-equal (typecheck (term (() ())) (term (valnew (u ((rfn Top u (: (ca l) Top Top)))) u)))
+            (term (rfn Top u (: (ca l) Top Top))))
+(test-equal (typecheck (term (() ())) (term (valnew (u ((rfn Top u (: (ca l) Top Top))))
+                                                    (valnew (w ((rfn Top w (: (cm f) (sel u (ca l)) Top))
                                                                 [(cm f) x x]))
                                                             (sel w (cm f) u)))))
             'Top)
-(test-equal (typecheck (term (() ())) (term (valnew (u ((rfn Top u (: (cc l) Top Top) (: (cm f) (sel u (cc l)) Top))
+(test-equal (typecheck (term (() ())) (term (valnew (u ((rfn Top u (: (ca l) Top Top) (: (cm f) (sel u (ca l)) Top))
                                                         [(cm f) x x]))
                                                     (sel u (cm f) u))))
             'Top)
@@ -90,19 +90,19 @@
 (test-predicate preservation (term (valnew (u (Top)) u)))
 (test-predicate preservation (term (app (fun x Top Top x) (fun x Top Top x))))
 (test-predicate preservation (term (valnew (u ((rfn Top u (: (cm l) Top Top)) [(cm l) x u])) (sel u (cm l) u))))
-(test-predicate preservation (term (valnew (u ((rfn Top u (: (cc l) Top Top)))) (app (fun x (sel u (cc l)) Top u) u))))
+(test-predicate preservation (term (valnew (u ((rfn Top u (: (ca l) Top Top)))) (app (fun x (sel u (ca l)) Top u) u))))
 ;(test-predicate preservation (dotExample))
 
 (test-predicate big-step-preservation (term (valnew (u (Top)) u)))
 (test-predicate big-step-preservation (term (app (fun x Top Top x) (fun x Top Top x))))
 (test-predicate big-step-preservation (term (valnew (u ((rfn Top u (: (cm l) Top Top)) [(cm l) x u])) (sel u (cm l) u))))
-(test-predicate big-step-preservation (term (valnew (u ((rfn Top u (: (cc l) Top Top)))) (app (fun x (sel u (cc l)) Top u) u))))
+(test-predicate big-step-preservation (term (valnew (u ((rfn Top u (: (ca l) Top Top)))) (app (fun x (sel u (ca l)) Top u) u))))
 ;(test-predicate big-step-preservation (dotExample))
 
 (test-predicate type-safety (term (valnew (u (Top)) u)))
 (test-predicate type-safety (term (app (fun x Top Top x) (fun x Top Top x))))
 (test-predicate type-safety (term (valnew (u ((rfn Top u (: (cm l) Top Top)) [(cm l) x u])) (sel u (cm l) u))))
-(test-predicate type-safety (term (valnew (u ((rfn Top u (: (cc l) Top Top)))) (app (fun x (sel u (cc l)) Top u) u))))
+(test-predicate type-safety (term (valnew (u ((rfn Top u (: (ca l) Top Top)))) (app (fun x (sel u (ca l)) Top u) u))))
 ;(test-predicate type-safety (dotExample))
 
 
@@ -134,40 +134,40 @@
 
 (check-true
 (let ([env (term (([u (rfn Top self 
-                           (: (cc Bad) Bot (sel self (cc Bad))) 
-                           (: (cc BadBounds) Top (sel self (cc Bad))) 
-                           (: (cc Mix) (sel self (cc BadBounds)) Top))])
+                           (: (ca Bad) Bot (sel self (ca Bad)))
+                           (: (ca BadBounds) Top (sel self (ca Bad)))
+                           (: (ca Mix) (sel self (ca BadBounds)) Top))])
                   ()))]
-      [s (term (sel u (cc BadBounds)))]
-      [t (term (sel u (cc Mix)))]
-      [u (term (rfn (sel u (cc Mix)) z))])
+      [s (term (sel u (ca BadBounds)))]
+      [t (term (sel u (ca Mix)))]
+      [u (term (rfn (sel u (ca Mix)) z))])
   (subtyping-transitive env s t u))
 )
 
 (check-true
 (let ([env (term (([u (rfn Top self
-                           (: (cc Bad) Bot (sel self (cc Bad)))
-                           (: (cc Good) (rfn Top z (: (cc L) Bot Top)) (rfn Top z (: (cc L) Bot Top)))
-                           (: (cc Lower) ((sel self (cc Bad)) ∧ (sel self (cc Good))) (sel self (cc Good)))
-                           (: (cc Upper) (sel self (cc Good)) ((sel self (cc Bad)) ∨ (sel self (cc Good))))
-                           (: (cc X) (sel self (cc Lower)) (sel self (cc Upper))))])
+                           (: (ca Bad) Bot (sel self (ca Bad)))
+                           (: (ca Good) (rfn Top z (: (ca L) Bot Top)) (rfn Top z (: (ca L) Bot Top)))
+                           (: (ca Lower) ((sel self (ca Bad)) ∧ (sel self (ca Good))) (sel self (ca Good)))
+                           (: (ca Upper) (sel self (ca Good)) ((sel self (ca Bad)) ∨ (sel self (ca Good))))
+                           (: (ca X) (sel self (ca Lower)) (sel self (ca Upper))))])
                   ()))]
-      [s (term ((sel u (cc Bad)) ∧ (sel u (cc Good))))]
-      [t (term (sel u (cc Lower)))]
-      [u (term (rfn (sel u (cc X)) z (: (cc L) Bot Top)))])
+      [s (term ((sel u (ca Bad)) ∧ (sel u (ca Good))))]
+      [t (term (sel u (ca Lower)))]
+      [u (term (rfn (sel u (ca X)) z (: (ca L) Bot Top)))])
   (subtyping-transitive env s t u))
 )
 
 (check-true
 (let ([Tc (term (rfn Top self
-                     (: (cc Bad) Bot (sel self (cc Bad)))
-                     (: (cc Good) (rfn Top z (: (cc L) Bot Top)) (rfn Top z (: (cc L) Bot Top)))
-                     (: (cc Lower) ((sel self (cc Bad)) ∧ (sel self (cc Good))) (sel self (cc Good)))
-                     (: (cc Upper) (sel self (cc Good)) ((sel self (cc Bad)) ∨ (sel self (cc Good))))
-                     (: (cc X) (sel self (cc Lower)) (sel self (cc Upper)))))]
-      [s (term ((sel u (cc Bad)) ∧ (sel u (cc Good))))]
-      [t (term (sel u (cc Lower)))]
-      [u (term (rfn (sel u (cc X)) z (: (cc L) Bot Top)))])
+                     (: (ca Bad) Bot (sel self (ca Bad)))
+                     (: (ca Good) (rfn Top z (: (ca L) Bot Top)) (rfn Top z (: (ca L) Bot Top)))
+                     (: (ca Lower) ((sel self (ca Bad)) ∧ (sel self (ca Good))) (sel self (ca Good)))
+                     (: (ca Upper) (sel self (ca Good)) ((sel self (ca Bad)) ∨ (sel self (ca Good))))
+                     (: (ca X) (sel self (ca Lower)) (sel self (ca Upper)))))]
+      [s (term ((sel u (ca Bad)) ∧ (sel u (ca Good))))]
+      [t (term (sel u (ca Lower)))]
+      [u (term (rfn (sel u (ca X)) z (: (ca L) Bot Top)))])
   (preservation (term (valnew (u (,Tc)) (cast Top
     (cast (arrow ,s ,u)
           (cast (arrow ,s ,t)
@@ -186,10 +186,10 @@
 
 (test-equal
 (typecheck (term (() ())) (term (valnew (u ((rfn Top self 
-                                                 (: (cc Bar) Bot (rfn Top self (: (cc T) Bot Top) (: (cm some) Top (sel self (cc T)))))
-                                                 (: (cc Foo) Bot (rfn (sel self (cc Bar)) z (: (cc T) (sel self (cc Foo)) Top)))
+                                                 (: (cc Bar) Bot (rfn Top self (: (ca T) Bot Top) (: (cm some) Top (sel self (ca T)))))
+                                                 (: (cc Foo) Bot (rfn (sel self (cc Bar)) z (: (ca T) (sel self (cc Foo)) Top)))
                                                  (: (cm foo) Top (arrow Top (sel self (cc Foo)))))
-                                            ((cm foo) dummy (fun x Top (sel u (cc Foo)) (valnew (foo ((sel u (cc Foo)) ((cm some) dummy (as (sel foo (cc T)) foo)))) foo)))))
+                                            ((cm foo) dummy (fun x Top (sel u (cc Foo)) (valnew (foo ((sel u (cc Foo)) ((cm some) dummy (as (sel foo (ca T)) foo)))) foo)))))
                                         (cast Top (sel u (cm foo) (as Top u))))))
 'Top)
 
@@ -350,6 +350,7 @@
                     (cast Top z)))
        (as (rfn Top z (: (ca L) Bot (rfn Top z (: (ca A) Bot Top) (: (ca B) Bot Top)))) v)))))
 
+#;
 (test-predicate type-safety
  (term
   (valnew (x00 ((rfn Top z (: (ca L) Bot
@@ -455,6 +456,7 @@
              v))))))
 )
 
+#;
 (test-predicate preservation
  (term
   (valnew (a ((rfn Top z
