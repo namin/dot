@@ -392,10 +392,11 @@ S,T,U,V,W ::= & \lindent\mbox{Type}\\
 \gap T \tor T & \mbox{union type} \\
 \gap \Top  & \mbox{top type} \\
 \gap \Bot  & \mbox{bottom type} \\[0.2em]
-S_c, T_c ::= & \lindent \mbox{Concrete type} \\
+S_c, T_c, U_c ::= & \lindent \mbox{Concrete type} \\
 \multicolumn{2}{l}{\gap p.L_c ~|~ T_c \refine z {\seq D} ~|~ T_c \wedge T_c  ~|~ \Top} \\[0.2em]
 D ::= & \lindent\mbox{Declaration} \\
-\gap \Ldecl L S U & \mbox{type declaration} \\
+\gap \Ldecl {L_a} S U & \mbox{abstract type decl.} \\
+\gap \Ldecl {L_c} \Bot {U_c} & \mbox{{\it unique} class decl.} \\
 \gap \ldecl l T   & \mbox{value declaration} \\
 \gap \mdecl m S U & \mbox{method declaration}
 \ea
