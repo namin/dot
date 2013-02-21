@@ -226,6 +226,16 @@
 )
 
 (check-not-false
+(type-safety
+ (term
+  (app (fun p (rfn Top p (: (ca X) (rfn Top a (: (ca A) Top Top ) (: (cv l) Top)) (rfn Top a (: (ca A) Top Top ) (: (cv l) Top)))) Top
+            (val a = new ((rfn Top a (: (ca A) Top Top ) (: (cv l) (sel a (ca A)))) ((cv l) a)) in
+            (val b = new ((rfn Top b (: (cv l) (sel p (ca X)))) ((cv l) a)) in
+            (sel (sel b (cv l)) (cv l)))))
+       (val p = new ((rfn Top p (: (ca X) (rfn Top a (: (ca A) Top Top ) (: (cv l) (sel a (ca A)))) (rfn Top a (: (ca A) Top Top ) (: (cv l) (sel a (ca A))))))) in p))))
+)
+
+(check-not-false
 (let ((typeX (term (rfn Top z
                         (: (ca A) Top Top)
                         (: (cm l) Top (sel z (ca A))))))
