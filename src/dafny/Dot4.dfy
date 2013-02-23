@@ -889,54 +889,47 @@ predicate subtype'(ctx: context, s: store, S: tp, T: tp)
 }
 
 // ### Properties about typing-related judgments ###
-function typing_n(ctx: context, s: store, t: tm, T: tp): int
+function typing_n(ctx: context, s: store, t: tm, T: tp): nat
   requires typing'(ctx, s, t, T);
-  ensures typing_n(ctx, s, t, T)>=0;
   ensures typing(typing_n(ctx, s, t, T), ctx, s, t, T);
 {
-  var n :| n>=0 && typing(n, ctx, s, t, T); n
+  var n:nat :| typing(n, ctx, s, t, T); n
 }
-function wf_init_n(ctx: context, s: store, decls: seq<decl>, defs: seq<def>): int
+function wf_init_n(ctx: context, s: store, decls: seq<decl>, defs: seq<def>): nat
   requires wf_init'(ctx, s, decls, defs);
-  ensures wf_init_n(ctx, s, decls, defs)>=0;
   ensures wf_init(wf_init_n(ctx, s, decls, defs), ctx, s, decls, defs);
 {
-  var n :| n>=0 && wf_init(n, ctx, s, decls, defs); n
+  var n:nat :| wf_init(n, ctx, s, decls, defs); n
 }
-function wfe_type_n(ctx: context, s: store, T: tp): int
+function wfe_type_n(ctx: context, s: store, T: tp): nat
   requires wfe_type'(ctx, s, T);
-  ensures wfe_type_n(ctx, s, T)>=0;
   ensures wfe_type(wfe_type_n(ctx, s, T), ctx, s, T);
 {
-  var n :| n>=0 && wfe_type(n, ctx, s, T); n
+  var n:nat :| wfe_type(n, ctx, s, T); n
 }
-function field_membership_n(ctx: context, s: store, t: tm, l: nat, T: tp): int
+function field_membership_n(ctx: context, s: store, t: tm, l: nat, T: tp): nat
   requires field_membership'(ctx, s, t, l, T);
-  ensures field_membership_n(ctx, s, t, l, T)>=0;
   ensures field_membership(field_membership_n(ctx, s, t, l, T), ctx, s, t, l, T);
 {
-  var n :| n>=0 && field_membership(n, ctx, s, t, l, T); n
+  var n:nat :| field_membership(n, ctx, s, t, l, T); n
 }
-function method_membership_n(ctx: context, s: store, t: tm, m: nat, P: tp, R: tp): int
+function method_membership_n(ctx: context, s: store, t: tm, m: nat, P: tp, R: tp): nat
   requires method_membership'(ctx, s, t, m, P, R);
-  ensures method_membership_n(ctx, s, t, m, P, R)>=0;
   ensures method_membership(method_membership_n(ctx, s, t, m, P, R), ctx, s, t, m, P, R);
 {
-  var n :| n>0 && method_membership(n, ctx, s, t, m, P, R); n
+  var n:nat :| method_membership(n, ctx, s, t, m, P, R); n
 }
-function expansion_n(ctx: context, s: store, z: nat, T: tp, Ds: decls): int
+function expansion_n(ctx: context, s: store, z: nat, T: tp, Ds: decls): nat
   requires expansion'(ctx, s, z, T, Ds);
-  ensures expansion_n(ctx, s, z, T, Ds)>=0;
   ensures expansion(expansion_n(ctx, s, z, T, Ds), ctx, s, z, T, Ds);
 {
-  var n :| n>=0 && expansion(n, ctx, s, z, T, Ds); n
+  var n:nat :| expansion(n, ctx, s, z, T, Ds); n
 }
-function subtype_n(ctx: context, s: store, S: tp, T: tp): int
+function subtype_n(ctx: context, s: store, S: tp, T: tp): nat
   requires subtype'(ctx, s, S, T);
-  ensures subtype_n(ctx, s, S, T)>=0;
   ensures subtype(subtype_n(ctx, s, S, T), ctx, s, S, T);
 {
-  var n :| n>=0 && subtype(n, ctx, s, S, T); n
+  var n:nat :| subtype(n, ctx, s, S, T); n
 }
 
 ghost method lemma_typing_monotonic(n: nat, ctx: context, s: store, t: tm, T: tp)
