@@ -446,7 +446,7 @@ D ::= & \lindent\mbox{Declaration} \\
 {
 y \notin \fn(T') \\
 \Gamma \ts T_c \wfe \spcomma T_c \expand_y \seq{\Ldecl L S U}, \seq{D} \\
-\Gamma \envplus{y: T_c} \ts \seq{S <: U} \spcomma \seq{d \typ D} \spcomma {t'} \typ {T'}}
+\Gamma \envplus{y: T_c} \ts \seq{S <: U} \spcomma \seq{d \typ D} \spcomma {t'} \typ {T} \spcomma T <: T'}
 {\Gamma \ts \new y {T_c \ldefs{\seq{d}}} {t'} \typ T'}
 
 \end{multicols}
@@ -481,7 +481,8 @@ y \notin \fn(T') \\
       {\Gamma \ts p \ni \subst p z {D_i}}
 
       \infrule[\textsc{term-$\ni$}]
-      {z \not\in \fn(D_i) \andalso \Gamma \ts t \typ T \spcomma T \expand_z \seq D}
+      {\forall p, t \neq p \andalso z \not\in \fn(D_i)\\
+       \Gamma \ts t \typ T \spcomma T <: T' \spcomma T' \expand_z \seq D}
       {\Gamma \ts t \ni D_i}
    \end{multicols}
 
