@@ -991,11 +991,11 @@ ghost method lemma_typing_monotonic(n: nat, ctx: context, s: store, t: tm, T: tp
       typing(n, ctx, s, t.a, T') &&
       subtype(n, ctx, s, T', S);
 
-      lemma_assert_exists_helper1(n, ctx, s, t, T, S, T');
+      helper_assert_exists_method_membership(n, ctx, s, t, T, S, T');
     }
   }
 }
-ghost method lemma_assert_exists_helper1(n: nat, ctx: context, s: store, t: tm, T: tp, S: tp, T': tp)
+ghost method helper_assert_exists_method_membership(n: nat, ctx: context, s: store, t: tm, T: tp, S: tp, T': tp)
   requires t.tm_msel?;
   requires method_membership(n, ctx, s, t.o, t.m, S, T) &&
       typing(n, ctx, s, t.a, T') &&
@@ -1062,4 +1062,100 @@ predicate store_well_typed1(s: store, loc: nat, y: nat, Tc: tp, init: seq<def>)
 predicate store_well_typed(s: store)
 {
   forall l:nat :: l < |s.m| ==> store_well_typed1(s, l, fresh_from([]), store_lookup_type(l, s), store_lookup(l, s))
+}
+ghost method lemma_store_invariance_typing(n: nat, ctx: context, s: store, s': store, t: tm, T: tp)
+  requires store_extends(s', s);
+  requires typing(n, ctx, s, t, T);
+  ensures typing(n, ctx, s', t, T);
+  decreases t;
+{
+  if (t.tm_sel?) {
+    lemma_store_invariance_membership(n-2, ctx, s, s', t.t, t.l, decl_tm(t.l, T));
+  } else if (t.tm_msel?) {
+    var S, T' :| method_membership(n-1, ctx, s, t.o, t.m, S, T) &&
+    typing(n-1, ctx, s, t.a, T') &&
+    subtype(n-1, ctx, s, T', S);
+    lemma_store_invariance_membership(n-2, ctx, s, s', t.o, t.m, decl_mt(t.m, S, T));
+    lemma_store_invariance_typing(n-1, ctx, s, s', t.a, T');
+    lemma_store_invariance_subtype(n-1, ctx, s, s', T', S);
+    assert method_membership(n-1, ctx, s', t.o, t.m, S, T) &&
+    typing(n-1, ctx, s', t.a, T') &&
+    subtype(n-1, ctx, s', T', S);
+    helper_assert_exists_method_membership(n-1, ctx, s', t, T, S, T');
+  } else if (t.tm_new?) {
+    var Ds:decls, T' :| Ds.decls_fin? &&
+    wfe_type(n-1, ctx, s, t.Tc) &&
+    expansion(n-1, ctx, s, t.y, t.Tc, Ds) && 
+    wf_init(n-1, false, context_extend(ctx, t.y, t.Tc), s, lst2seq(Ds.decls), def_seq_sort(lst2seq(t.init))) &&
+    !tp_fn(t.y, T) &&
+    typing(n-1, context_extend(ctx, t.y, t.Tc), s, t.t', T') &&
+    subtype(n-1, context_extend(ctx, t.y, t.Tc), s, T', T);
+    lemma_store_invariance_wfe_type(n-1, ctx, s, s', t.Tc);
+    lemma_store_invariance_expansion(n-1, ctx, s, s', t.y, t.Tc, Ds); 
+    lemma_store_invariance_wf_init(n-1, false, context_extend(ctx, t.y, t.Tc), s, s', lst2seq(Ds.decls), def_seq_sort(lst2seq(t.init)));
+    lemma_store_invariance_typing(n-1, context_extend(ctx, t.y, t.Tc), s, s', t.t', T');
+    lemma_store_invariance_subtype(n-1, context_extend(ctx, t.y, t.Tc), s, s', T', T);
+    assert Ds.decls_fin? &&
+    wfe_type(n-1, ctx, s', t.Tc) &&
+    expansion(n-1, ctx, s', t.y, t.Tc, Ds) && 
+    wf_init(n-1, false, context_extend(ctx, t.y, t.Tc), s', lst2seq(Ds.decls), def_seq_sort(lst2seq(t.init))) &&
+    !tp_fn(t.y, T) &&
+    typing(n-1, context_extend(ctx, t.y, t.Tc), s', t.t', T') &&
+    subtype(n-1, context_extend(ctx, t.y, t.Tc), s', T', T);
+    helper_assert_exists_new(n-1, ctx, s', t, T, Ds, T');
+  } else {
+  }
+}
+ghost method helper_assert_exists_new(n: nat, ctx: context, s: store, t: tm, T: tp, Ds: decls, T': tp)
+  requires t.tm_new?;
+  requires Ds.decls_fin? &&
+    wfe_type(n, ctx, s, t.Tc) &&
+    expansion(n, ctx, s, t.y, t.Tc, Ds) && 
+    wf_init(n, false, context_extend(ctx, t.y, t.Tc), s, lst2seq(Ds.decls), def_seq_sort(lst2seq(t.init))) &&
+    !tp_fn(t.y, T) &&
+    typing(n, context_extend(ctx, t.y, t.Tc), s, t.t', T') &&
+    subtype(n, context_extend(ctx, t.y, t.Tc), s, T', T);
+  ensures exists Ds:decls, T' :: Ds.decls_fin? &&
+    wfe_type(n, ctx, s, t.Tc) &&
+    expansion(n, ctx, s, t.y, t.Tc, Ds) && 
+    wf_init(n, false, context_extend(ctx, t.y, t.Tc), s, lst2seq(Ds.decls), def_seq_sort(lst2seq(t.init))) &&
+    !tp_fn(t.y, T) &&
+    typing(n, context_extend(ctx, t.y, t.Tc), s, t.t', T') &&
+    subtype(n, context_extend(ctx, t.y, t.Tc), s, T', T);
+{
+}
+ghost method lemma_store_invariance_membership(n: nat, ctx: context, s: store, s': store, t: tm, l: nat, d: decl)
+  requires store_extends(s', s);
+  requires membership(n, ctx, s, t, l, d);
+  ensures membership(n, ctx, s', t, l, d);
+{
+  assume membership(n, ctx, s', t, l, d); // TODO
+}
+ghost method lemma_store_invariance_subtype(n: nat, ctx: context, s: store, s': store, S: tp, T: tp)
+  requires store_extends(s', s);
+  requires subtype(n, ctx, s, S, T);
+  ensures subtype(n, ctx, s', S, T);
+{
+  assume subtype(n, ctx, s', S, T); // TODO
+}
+ghost method lemma_store_invariance_wfe_type(n: nat, ctx: context, s: store, s': store, T: tp)
+  requires store_extends(s', s);
+  requires wfe_type(n, ctx, s, T);
+  ensures wfe_type(n, ctx, s', T);
+{
+  assume wfe_type(n, ctx, s', T); // TODO
+}
+ghost method lemma_store_invariance_expansion(n: nat, ctx: context, s: store, s': store, z: nat, T: tp, Ds: decls)
+  requires store_extends(s', s');
+  requires expansion(n, ctx, s, z, T, Ds);
+  ensures expansion(n, ctx, s', z, T, Ds);
+{
+  assume expansion(n, ctx, s', z, T, Ds);
+}
+ghost method lemma_store_invariance_wf_init(n: nat, already_in_store: bool, ctx: context, s: store, s': store, decls: seq<decl>, defs: seq<def>)
+  requires store_extends(s', s');
+  requires wf_init(n, already_in_store, ctx, s, decls, defs);
+  ensures wf_init(n, already_in_store, ctx, s', decls, defs);
+{
+  assume wf_init(n, already_in_store, ctx, s', decls, defs);
 }
