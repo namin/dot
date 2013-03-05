@@ -1276,3 +1276,19 @@ ghost method lemma_free_in_context_wfe_type(x: nat, n: nat, ctx: context, s: sto
 {
   assume context_lookup(ctx, x).Some?; // TODO (really!)
 }
+
+ghost method corollary_typable_empty__closed(n: nat, s: store, t: tm, T: tp)
+  requires typing(n, Context([]), s, t, T);
+  ensures closed(t);
+{
+  parallel (x: nat)
+    ensures !tm_fn(x, t);
+  {
+    if (tm_fn(x, t)) {
+      lemma_free_in_context_typing(x, n, Context([]), s, t, T);
+      assert context_lookup(Context([]), x).Some?;
+      assert false;
+    }
+    assert !tm_fn(x, t);
+  }
+}
