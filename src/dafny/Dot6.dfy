@@ -81,6 +81,10 @@ predicate value(t: tm)
 {
   t.tm_loc?
 }
+predicate syn_value(t: tm)
+{
+  t.tm_loc? || t.tm_var?
+}
 
 // ### Store ###
 datatype store = Store(m: seq<pair<tp, seq<def>>>);
@@ -653,7 +657,7 @@ predicate typing(n: nat, ctx: context, s: store, t: tm, T: tp)
     exists Ds:decls :: Ds.decls_fin? &&
     wfe_type(n-1, ctx, s, Tc) &&
     expansion(n-1, ctx, s, y, Tc, Ds) && 
-    wf_init(n-1, context_extend(ctx, y, Tc), s, lst2seq(Ds.decls), def_seq_sort(lst2seq(init))) &&
+    wf_init(n-1, false, context_extend(ctx, y, Tc), s, lst2seq(Ds.decls), def_seq_sort(lst2seq(init))) &&
     !tp_fn(y, T) &&
     exists T' :: typing(n-1, context_extend(ctx, y, Tc), s, t', T') &&
     subtype(n-1, context_extend(ctx, y, Tc), s, T', T)
@@ -665,22 +669,22 @@ predicate typing(n: nat, ctx: context, s: store, t: tm, T: tp)
     subtype(n-1, ctx, s, T', S)
   case tm_loc(loc) => loc < |s.m| && store_lookup_type(loc, s)==T
 }
-predicate wf_init(n: nat, ctx: context, s: store, decls: seq<decl>, defs: seq<def>)
+predicate wf_init(n: nat, already_in_store: bool, ctx: context, s: store, decls: seq<decl>, defs: seq<def>)
   decreases n;
 {
   n>0 && (
   (decls==[] && defs==[]) || (|decls|>0 && (
     ((decls[0].decl_tp? && subtype(n-1, ctx, s, decls[0].S, decls[0].U)) &&
-     wf_init(n-1, ctx, s, decls[1..], defs)) || (|defs|>0 && (
+     wf_init(n-1, already_in_store, ctx, s, decls[1..], defs)) || (|defs|>0 && (
     ((decls[0].decl_tm? && defs[0].def_tm? && decls[0].l==defs[0].l &&
-      value(defs[0].t) &&
+      (if already_in_store then value(defs[0].t) else syn_value(defs[0].t)) &&
       exists T :: typing(n-1, ctx, s, defs[0].t, T) &&
       subtype(n-1, ctx, s, T, decls[0].T)) ||
      (decls[0].decl_mt? && defs[0].def_mt? && decls[0].m==defs[0].m &&
       wfe_type(n-1, ctx, s, decls[0].P) &&
       exists T' :: typing(n-1, context_extend(ctx, defs[0].param, decls[0].P), s, defs[0].body, T') &&
       subtype(n-1, context_extend(ctx, defs[0].param, decls[0].P), s, T', decls[0].R))) &&
-     wf_init(n-1, ctx, s, decls[1..], defs[1..])))))
+     wf_init(n-1, already_in_store, ctx, s, decls[1..], defs[1..])))))
   )
 }
 predicate wf_decl(n: nat, ctx: context, s: store, d: decl)
@@ -866,9 +870,9 @@ predicate typing'(ctx: context, s: store, t: tm, T: tp)
 {
   exists n:nat :: typing(n, ctx, s, t, T)
 }
-predicate wf_init'(ctx: context, s: store, decls: seq<decl>, defs: seq<def>)
+predicate wf_init'(already_in_store: bool, ctx: context, s: store, decls: seq<decl>, defs: seq<def>)
 {
-  exists n:nat :: wf_init(n, ctx, s, decls, defs)
+  exists n:nat :: wf_init(n, already_in_store, ctx, s, decls, defs)
 }
 predicate wfe_type'(ctx: context, s: store, T: tp)
 {
@@ -907,11 +911,11 @@ function typing_n(ctx: context, s: store, t: tm, T: tp): nat
 {
   var n:nat :| typing(n, ctx, s, t, T); n
 }
-function wf_init_n(ctx: context, s: store, decls: seq<decl>, defs: seq<def>): nat
-  requires wf_init'(ctx, s, decls, defs);
-  ensures wf_init(wf_init_n(ctx, s, decls, defs), ctx, s, decls, defs);
+function wf_init_n(already_in_store: bool, ctx: context, s: store, decls: seq<decl>, defs: seq<def>): nat
+  requires wf_init'(already_in_store, ctx, s, decls, defs);
+  ensures wf_init(wf_init_n(already_in_store, ctx, s, decls, defs), already_in_store, ctx, s, decls, defs);
 {
-  var n:nat :| wf_init(n, ctx, s, decls, defs); n
+  var n:nat :| wf_init(n, already_in_store, ctx, s, decls, defs); n
 }
 function wfe_type_n(ctx: context, s: store, T: tp): nat
   requires wfe_type'(ctx, s, T);
@@ -955,7 +959,7 @@ ghost method lemma_typing_monotonic(n: nat, ctx: context, s: store, t: tm, T: tp
       var Ds:decls :| Ds.decls_fin? &&
       wfe_type(n-1, ctx, s, t.Tc) &&
       expansion(n-1, ctx, s, t.y, t.Tc, Ds) && 
-      wf_init(n-1, context_extend(ctx, t.y, t.Tc), s, lst2seq(Ds.decls), def_seq_sort(lst2seq(t.init))) &&
+      wf_init(n-1, false, context_extend(ctx, t.y, t.Tc), s, lst2seq(Ds.decls), def_seq_sort(lst2seq(t.init))) &&
       !tp_fn(t.y, T) &&
       exists T' :: typing(n-1, context_extend(ctx, t.y, t.Tc), s, t.t', T') &&
       subtype(n-1, context_extend(ctx, t.y, t.Tc), s, T', T);
@@ -965,7 +969,7 @@ ghost method lemma_typing_monotonic(n: nat, ctx: context, s: store, t: tm, T: tp
 
       lemma_wfe_type_monotonic(n-1, ctx, s, t.Tc);
       lemma_expansion_monotonic(n-1, ctx, s, t.y, t.Tc, Ds); 
-      lemma_wf_init_monotonic(n-1, context_extend(ctx, t.y, t.Tc), s, lst2seq(Ds.decls), def_seq_sort(lst2seq(t.init)));
+      lemma_wf_init_monotonic(n-1, false, context_extend(ctx, t.y, t.Tc), s, lst2seq(Ds.decls), def_seq_sort(lst2seq(t.init)));
       lemma_typing_monotonic(n-1, context_extend(ctx, t.y, t.Tc), s, t.t', T');
       lemma_subtype_monotonic(n-1, context_extend(ctx, t.y, t.Tc), s, T', T);
     }
@@ -1001,11 +1005,11 @@ ghost method lemma_assert_exists_helper1(n: nat, ctx: context, s: store, t: tm, 
       subtype(n, ctx, s, T', S);
 {
 }
-ghost method lemma_wf_init_monotonic(n: nat, ctx: context, s: store, decls: seq<decl>, defs: seq<def>)
-  requires wf_init(n, ctx, s, decls, defs);
-  ensures wf_init(n+1, ctx, s, decls, defs);
+ghost method lemma_wf_init_monotonic(n: nat, already_in_store: bool, ctx: context, s: store, decls: seq<decl>, defs: seq<def>)
+  requires wf_init(n, already_in_store, ctx, s, decls, defs);
+  ensures wf_init(n+1, already_in_store, ctx, s, decls, defs);
 {
-  assume wf_init(n+1, ctx, s, decls, defs); // TODO
+  assume wf_init(n+1, already_in_store, ctx, s, decls, defs); // TODO
 }
 ghost method lemma_wfe_type_monotonic(n: nat, ctx: context, s: store, T: tp)
   requires wfe_type(n, ctx, s, T);
@@ -1036,4 +1040,26 @@ ghost method lemma_subtype_monotonic(n: nat, ctx: context, s: store, S: tp, T: t
   ensures subtype(n+1, ctx, s, S, T);
 {
   assume subtype(n+1, ctx, s, S, T); // TODO
+}
+
+// ----------
+// Properties
+// ----------
+
+predicate store_extends<A>(s': store, s: store)
+{
+  |s.m|<=|s'.m| && forall l:nat :: l < |s.m| ==> s.m[l]==s'.m[l]
+}
+predicate store_well_typed1(s: store, loc: nat, y: nat, Tc: tp, init: seq<def>)
+{
+    exists n:nat :: n>0 &&
+    is_concrete(Tc) &&
+    exists Ds:decls :: Ds.decls_fin? &&
+    wfe_type(n-1, Context([]), s, Tc) &&
+    expansion(n-1, Context([]), s, y, Tc, Ds) && 
+    wf_init(n-1, true, Context([]), s, lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), def_seq_sort(init))
+}
+predicate store_well_typed(s: store)
+{
+  forall l:nat :: l < |s.m| ==> store_well_typed1(s, l, fresh_from([]), store_lookup_type(l, s), store_lookup(l, s))
 }
