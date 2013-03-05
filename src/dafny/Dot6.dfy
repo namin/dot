@@ -1220,3 +1220,59 @@ ghost method lemma_store_extends_well_typed(s: store, s': store, Tc: tp, init: s
   }
 }
 
+predicate closed(t: tm)
+{
+  forall x: nat :: !tm_fn(x, t)
+}
+
+ghost method lemma_free_in_context_typing(x:nat, n: nat, ctx: context, s: store, t: tm, T: tp)
+  requires tm_fn(x, t);
+  requires typing(n, ctx, s, t, T);
+  ensures context_lookup(ctx, x).Some?;
+  requires typing(n, ctx, s, t, T);
+{
+  if (t.tm_var?) {
+  } else if (t.tm_loc?) {
+  } else if (t.tm_sel?) {
+    assert membership(n-2, ctx, s, t.t, t.l, decl_tm(t.l, T));
+    var To :| typing(n-3, ctx, s, t.t, To);
+    lemma_free_in_context_typing(x, n-3, ctx, s, t.t, To);
+  } else if (t.tm_msel?) {
+    var S, T' :| method_membership(n-1, ctx, s, t.o, t.m, S, T) &&
+    typing(n-1, ctx, s, t.a, T') &&
+    subtype(n-1, ctx, s, T', S);
+    assert membership(n-2, ctx, s, t.o, t.m, decl_mt(t.m, S, T));
+    var To :| typing(n-3, ctx, s, t.o, To);
+    assert tm_fn(x, t.o) || tm_fn(x, t.a);
+    if (tm_fn(x, t.o)) {
+      lemma_free_in_context_typing(x, n-3, ctx, s, t.o, To);
+    }
+    if (tm_fn(x, t.a)) {
+      lemma_free_in_context_typing(x, n-1, ctx, s, t.a, T');
+    }
+  } else if (t.tm_new?) {
+    if (t.y == x || tp_fn(x, t.Tc)) {
+     assert tp_fn(x, t.Tc);
+     assert wfe_type(n-1, ctx, s, t.Tc);
+     lemma_free_in_context_wfe_type(x, n-1, ctx, s, t.Tc);
+    } else {
+      assert defs_fn(x, t.init) || tm_fn(x, t.t');
+      if (tm_fn(x, t.t')) {
+        var T' :| typing(n-1, context_extend(ctx, t.y, t.Tc), s, t.t', T');
+        lemma_free_in_context_typing(x, n-1, context_extend(ctx, t.y, t.Tc), s, t.t', T');
+      }
+      if (defs_fn(x, t.init)) {
+        assume context_lookup(ctx, x).Some?; // TODO (really!)
+      }
+    }
+  } else {
+  }
+}
+ghost method lemma_free_in_context_wfe_type(x: nat, n: nat, ctx: context, s: store, T: tp)
+  requires tp_fn(x, T);
+  requires wfe_type(n, ctx, s, T);
+  ensures context_lookup(ctx, x).Some?;
+  ensures wfe_type(n, ctx, s, T);
+{
+  assume context_lookup(ctx, x).Some?; // TODO (really!)
+}
