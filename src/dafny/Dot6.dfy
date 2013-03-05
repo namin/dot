@@ -1146,16 +1146,77 @@ ghost method lemma_store_invariance_wfe_type(n: nat, ctx: context, s: store, s':
   assume wfe_type(n, ctx, s', T); // TODO
 }
 ghost method lemma_store_invariance_expansion(n: nat, ctx: context, s: store, s': store, z: nat, T: tp, Ds: decls)
-  requires store_extends(s', s');
+  requires store_extends(s', s);
   requires expansion(n, ctx, s, z, T, Ds);
   ensures expansion(n, ctx, s', z, T, Ds);
 {
   assume expansion(n, ctx, s', z, T, Ds);
 }
 ghost method lemma_store_invariance_wf_init(n: nat, already_in_store: bool, ctx: context, s: store, s': store, decls: seq<decl>, defs: seq<def>)
-  requires store_extends(s', s');
+  requires store_extends(s', s);
   requires wf_init(n, already_in_store, ctx, s, decls, defs);
   ensures wf_init(n, already_in_store, ctx, s', decls, defs);
 {
   assume wf_init(n, already_in_store, ctx, s', decls, defs);
 }
+ghost method lemma_store_invariance_well_typed1(s: store, s': store, loc: nat, y: nat, Tc: tp, init: seq<def>)
+  requires store_extends(s', s);
+  requires store_well_typed1(s, loc, y, Tc, init);
+  ensures store_well_typed1(s', loc, y, Tc, init);
+{
+  var n:nat, Ds:decls :| n>0 &&
+    is_concrete(Tc) &&
+    Ds.decls_fin? &&
+    wfe_type(n-1, Context([]), s, Tc) &&
+    expansion(n-1, Context([]), s, y, Tc, Ds) && 
+    wf_init(n-1, true, Context([]), s, lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), def_seq_sort(init));
+  lemma_store_invariance_wfe_type(n-1, Context([]), s, s', Tc);
+  lemma_store_invariance_expansion(n-1, Context([]), s, s', y, Tc, Ds); 
+  lemma_store_invariance_wf_init(n-1, true, Context([]), s, s', lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), def_seq_sort(init));
+  assert n>0 &&
+    is_concrete(Tc) &&
+    Ds.decls_fin? &&
+    wfe_type(n-1, Context([]), s', Tc) &&
+    expansion(n-1, Context([]), s', y, Tc, Ds) && 
+    wf_init(n-1, true, Context([]), s', lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), def_seq_sort(init));
+  helper_assert_exists_store_well_typed1(s', loc, y, Tc, init, n, Ds);
+}
+ghost method helper_assert_exists_store_well_typed1(s: store, loc: nat, y: nat, Tc: tp, init: seq<def>, n: nat, Ds: decls)
+  requires n>0 &&
+    is_concrete(Tc) &&
+    Ds.decls_fin? &&
+    wfe_type(n-1, Context([]), s, Tc) &&
+    expansion(n-1, Context([]), s, y, Tc, Ds) && 
+    wf_init(n-1, true, Context([]), s, lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), def_seq_sort(init));
+  ensures exists n:nat, Ds:decls :: n>0 &&
+    is_concrete(Tc) &&
+    Ds.decls_fin? &&
+    wfe_type(n-1, Context([]), s, Tc) &&
+    expansion(n-1, Context([]), s, y, Tc, Ds) && 
+    wf_init(n-1, true, Context([]), s, lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), def_seq_sort(init));
+{
+}
+
+ghost method lemma_store_extends_well_typed(s: store, s': store, Tc: tp, init: seq<def>)
+  requires store_well_typed(s);
+  requires s'==Store(s.m+[P(Tc, init)]);
+  requires store_well_typed1(s', |s.m|, fresh_from([]), Tc, init);
+  ensures store_extends(s', s);
+  ensures store_well_typed(s');
+{
+  parallel (l:nat | l < |s'.m|)
+  ensures store_well_typed1(s', l, fresh_from([]), store_lookup_type(l, s'), store_lookup(l, s'));
+  {
+    if (l == |s.m|) {
+    } else {
+      assert l < |s.m|;
+      var initl := store_lookup(l, s);
+      var Tcl := store_lookup_type(l, s); 
+      assert store_well_typed1(s, l, fresh_from([]), Tcl, initl);
+      assert store_lookup(l, s') == initl;
+      assert store_lookup_type(l, s') == Tcl;
+      lemma_store_invariance_well_typed1(s, s', l, fresh_from([]), Tcl, initl);
+    }
+  }
+}
+
