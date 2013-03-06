@@ -1416,70 +1416,24 @@ ghost method lemma_substitution_preserves_typing(ctx: context, st: store, x: nat
   } else if (t.tm_sel?) {
     assert field_membership(n-1, context_extend(ctx, x, S), st, t.t, t.l, T);
     assert membership(n-2, context_extend(ctx, x, S), st, t.t, t.l, decl_tm(t.l, T));
-    /*
-    assert exists To :: typing(n-3, context_extend(ctx, x, S), st, t.t, To) &&
-    forall z:nat :: !tp_fn(z, To) && context_lookup(context_extend(ctx, x, S), z).None? && !tm_fn(z, t.t) ==>
+    var d := decl_tm(t.l, T);
+    var z:nat := fresh_in_context(context_extend(ctx, x, S));
+    assert decl_label(d)==t.l &&
+    exists To :: typing(n-3, context_extend(ctx, x, S), st, t.t, To) &&
     exists Ds ::
     expansion(n-3, context_extend(ctx, x, S), st, z, To, Ds) &&
     ((Ds.decls_fin? &&
-       ((path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && decl_tm(t.l, T)==decl_subst(z, t.t, d')) ||
-       (!path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && !decl_fn(z, d') &&
-         decl_eq(d', decl_tm(t.l, T)) && decl_sub(n-3, context_extend(context_extend(ctx, x, S), z, To), st, d', decl_tm(t.l, T))))) ||
-    (Ds.decls_bot? && decl_bot(decl_tm(t.l, T))));
-    var To :| typing(n-3, context_extend(ctx, x, S), st, t.t, To) &&
-    forall z:nat :: !tp_fn(z, To) && context_lookup(context_extend(ctx, x, S), z).None? && !tm_fn(z, t.t) ==>
-    exists Ds ::
+     ((path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, t.t, d')) ||
+     (!path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && !decl_fn(z, d') &&
+       decl_eq(d', d) && decl_sub(n-3, context_extend(context_extend(ctx, x, S), z, To), st, d', d)))) ||
+     (Ds.decls_bot? && decl_bot(d)));
+    var To, Ds :| typing(n-3, context_extend(ctx, x, S), st, t.t, To) &&
     expansion(n-3, context_extend(ctx, x, S), st, z, To, Ds) &&
     ((Ds.decls_fin? &&
-       ((path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && decl_tm(t.l, T)==decl_subst(z, t.t, d')) ||
-       (!path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && !decl_fn(z, d') &&
-         decl_eq(d', decl_tm(t.l, T)) && decl_sub(n-3, context_extend(context_extend(ctx, x, S), z, To), st, d', decl_tm(t.l, T))))) ||
-    (Ds.decls_bot? && decl_bot(decl_tm(t.l, T))));
-    var no' := lemma_substitution_preserves_typing(ctx, st, x, s, S, ns, t.t, To, n-3);
-    parallel (z:nat | !tp_fn(z, To) && context_lookup(context_extend(ctx, x, S), z).None? && !tm_fn(z, t.t))
-    ensures exists nz:nat, Ds:decls ::
-    expansion(nz, ctx, st, z, To, Ds) &&
-    ((Ds.decls_fin? &&
-       ((path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && decl_tm(t.l, T)==decl_subst(z, t.t, d')) ||
-       (!path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && !decl_fn(z, d') &&
-         decl_eq(d', decl_tm(t.l, T)) && decl_sub(nz, context_extend(ctx, z, To), st, d', decl_tm(t.l, T))))) ||
-    (Ds.decls_bot? && decl_bot(decl_tm(t.l, T))));
-    {
-      assert exists Ds ::
-        expansion(n-3, context_extend(ctx, x, S), st, z, To, Ds) &&
-       ((Ds.decls_fin? &&
-         ((path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && decl_tm(t.l, T)==decl_subst(z, t.t, d')) ||
-         (!path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && !decl_fn(z, d') &&
-           decl_eq(d', decl_tm(t.l, T)) && decl_sub(n-3, context_extend(context_extend(ctx, x, S), z, To), st, d', decl_tm(t.l, T))))) ||
-       (Ds.decls_bot? && decl_bot(decl_tm(t.l, T))));
-      var Ds :|
-        expansion(n-3, context_extend(ctx, x, S), st, z, To, Ds) &&
-       ((Ds.decls_fin? &&
-         ((path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && decl_tm(t.l, T)==decl_subst(z, t.t, d')) ||
-         (!path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && !decl_fn(z, d') &&
-           decl_eq(d', decl_tm(t.l, T)) && decl_sub(n-3, context_extend(context_extend(ctx, x, S), z, To), st, d', decl_tm(t.l, T))))) ||
-       (Ds.decls_bot? && decl_bot(decl_tm(t.l, T))));
-      var ne' := lemma_substitution_preserves_expansion(ctx, st, x, s, S, ns, t.t, To, n-3, no', z, Ds, n-3);
-      var ns' := 0;
-      if (Ds.decls_fin? && !path(t.t)) {
-         assert exists d' :: d' in lst2seq(Ds.decls) && !decl_fn(z, d') &&
-           decl_eq(d', decl_tm(t.l, T)) && decl_sub(n-3, context_extend(context_extend(ctx, x, S), z, To), st, d', decl_tm(t.l, T));
-         var d' :| d' in lst2seq(Ds.decls) && !decl_fn(z, d') &&
-           decl_eq(d', decl_tm(t.l, T)) && decl_sub(n-3, context_extend(context_extend(ctx, x, S), z, To), st, d', decl_tm(t.l, T));
-         assume exists ns'':nat :: decl_sub(ns'', context_extend(ctx, z, To), st, d', decl_tm(t.l, T)); // TODO
-         var ns'':nat :| decl_sub(ns'', context_extend(ctx, z, To), st, d', decl_tm(t.l, T)); 
-         ns' := ns'';
-      }
-      var n'' := no'+ne'+ns';
-    }
-    assert forall z:nat :: (!tp_fn(z, To) && context_lookup(context_extend(ctx, x, S), z).None? && !tm_fn(z, t.t)) ==>
-    exists nz:nat, Ds:decls ::
-    expansion(nz, ctx, st, z, To, Ds) &&
-    ((Ds.decls_fin? &&
-       ((path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && decl_tm(t.l, T)==decl_subst(z, t.t, d')) ||
-       (!path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && !decl_fn(z, d') &&
-         decl_eq(d', decl_tm(t.l, T)) && decl_sub(nz, context_extend(ctx, z, To), st, d', decl_tm(t.l, T))))) ||
-    (Ds.decls_bot? && decl_bot(decl_tm(t.l, T))));*/
+     ((path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, t.t, d')) ||
+     (!path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && !decl_fn(z, d') &&
+       decl_eq(d', d) && decl_sub(n-3, context_extend(context_extend(ctx, x, S), z, To), st, d', d)))) ||
+     (Ds.decls_bot? && decl_bot(d)));
   } else if (t.tm_msel?) {
   } else if (t.tm_new?) {
   } else {
