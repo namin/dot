@@ -408,11 +408,11 @@ ghost method lemma_decl_seq_merging(s1: seq<decl>, s2: seq<decl>)
   if (s1 == []) {}
   else if (s2 == []) {}
   else if (decl_le(s1[0], s2[0])) {
-    parallel (n | 0 <= n < |s1|)
+    forall (n | 0 <= n < |s1|)
       ensures decl_le(s1[0], s1[n]);
     {
     }
-    parallel (n | 0 <= n < |s2|)
+    forall (n | 0 <= n < |s2|)
       ensures decl_le(s1[0], s2[n]);
     {
       lemma_decl_le_trans(s1[0], s2[0], s2[n]);
@@ -421,7 +421,7 @@ ghost method lemma_decl_seq_merging(s1: seq<decl>, s2: seq<decl>)
     lemma_decl_seq_merging(s1[1..], s2);
     var s := [s1[0]]+sm;
     assert decl_le(s1[0], sm[0]);
-    parallel (m,n | 0 <= m < n < |s|)
+    forall (m,n | 0 <= m < n < |s|)
       ensures decl_le(s[m], s[n]);
     {
       if (m==0) {
@@ -430,11 +430,11 @@ ghost method lemma_decl_seq_merging(s1: seq<decl>, s2: seq<decl>)
     }
   } else {
     lemma_decl_le_comparable(s1[0], s2[0]);
-    parallel (n | 0 <= n < |s2|)
+    forall (n | 0 <= n < |s2|)
       ensures decl_le(s2[0], s2[n]);
     {
     }
-    parallel (n | 0 <= n < |s1|)
+    forall (n | 0 <= n < |s1|)
       ensures decl_le(s2[0], s1[n]);
     {
       lemma_decl_le_trans(s2[0], s1[0], s1[n]);
@@ -443,7 +443,7 @@ ghost method lemma_decl_seq_merging(s1: seq<decl>, s2: seq<decl>)
     lemma_decl_seq_merging(s1, s2[1..]);
     var s := [s2[0]]+sm;
     assert decl_le(s2[0], sm[0]);
-    parallel (m,n | 0 <= m < n < |s|)
+    forall (m,n | 0 <= m < n < |s|)
       ensures decl_le(s[m], s[n]);
     {
       if (m==0) {
@@ -524,11 +524,11 @@ ghost method lemma_def_seq_merging(s1: seq<def>, s2: seq<def>)
   if (s1 == []) {}
   else if (s2 == []) {}
   else if (def_le(s1[0], s2[0])) {
-    parallel (n | 0 <= n < |s1|)
+    forall (n | 0 <= n < |s1|)
       ensures def_le(s1[0], s1[n]);
     {
     }
-    parallel (n | 0 <= n < |s2|)
+    forall (n | 0 <= n < |s2|)
       ensures def_le(s1[0], s2[n]);
     {
       lemma_def_le_trans(s1[0], s2[0], s2[n]);
@@ -537,7 +537,7 @@ ghost method lemma_def_seq_merging(s1: seq<def>, s2: seq<def>)
     lemma_def_seq_merging(s1[1..], s2);
     var s := [s1[0]]+sm;
     assert def_le(s1[0], sm[0]);
-    parallel (m,n | 0 <= m < n < |s|)
+    forall (m,n | 0 <= m < n < |s|)
       ensures def_le(s[m], s[n]);
     {
       if (m==0) {
@@ -546,11 +546,11 @@ ghost method lemma_def_seq_merging(s1: seq<def>, s2: seq<def>)
     }
   } else {
     lemma_def_le_comparable(s1[0], s2[0]);
-    parallel (n | 0 <= n < |s2|)
+    forall (n | 0 <= n < |s2|)
       ensures def_le(s2[0], s2[n]);
     {
     }
-    parallel (n | 0 <= n < |s1|)
+    forall (n | 0 <= n < |s1|)
       ensures def_le(s2[0], s1[n]);
     {
       lemma_def_le_trans(s2[0], s1[0], s1[n]);
@@ -559,7 +559,7 @@ ghost method lemma_def_seq_merging(s1: seq<def>, s2: seq<def>)
     lemma_def_seq_merging(s1, s2[1..]);
     var s := [s2[0]]+sm;
     assert def_le(s2[0], sm[0]);
-    parallel (m,n | 0 <= m < n < |s|)
+    forall (m,n | 0 <= m < n < |s|)
       ensures def_le(s[m], s[n]);
     {
       if (m==0) {
@@ -1432,7 +1432,7 @@ ghost method lemma_Xs_monotonic(ctx': context, s': store, k: nat, j: nat, ctx: c
   requires j <= k;
   ensures Xs(ctx', s', j, ctx, s, ctx_prev);
 {
-  parallel (x:nat | lookup(x, ctx.m).Some?)
+  forall (x:nat | lookup(x, ctx.m).Some?)
     ensures lookup(x, ctx'.m)==Some(lookup(x, ctx.m).get) && V(lookup(x, ctx.m).get, tm_var(x), j, ctx', s');
   {
     lemma_V_monotonic(lookup(x, ctx.m).get, tm_var(x), k, j, ctx', s');
@@ -1539,7 +1539,7 @@ ghost method theorem_fundamental_R_var(ctx: context, T: tp, x: nat, k: nat)
 
       assert lookup(x, ctx.m) == Some(T);
       if (k>0) {
-        parallel (
+        forall (
           i:nat, j:nat,
           ctx', s':store,
           t', s'':store,
@@ -1581,7 +1581,7 @@ ghost method theorem_fundamental_R_sel(ctx: context, T: tp, T1: tp, t1: tm, l: n
   var t := tm_sel(t1, l);
 
   if (k>0) {
-    parallel (
+    forall (
       i:nat, j:nat,
       ctx', s':store,
       t', s'':store,
@@ -1601,7 +1601,7 @@ ghost method theorem_fundamental_R_sel(ctx: context, T: tp, T1: tp, t1: tm, l: n
       lemma_mstep_sel(t1, l, t1', s', t1s, t1j);
       lemma_mstep_trans'(t, s', tm_sel(t1', l), t1s, t', s'', t1j, j);
  
-      parallel (Tc, init, Ds |
+      forall (Tc, init, Ds |
         P(Tc, init) == lookup(t1'.x, t1s.m).get &&
         expansion(t1ctx, t1'.x, T1, Ds) && Ds.decls_fin?)
         ensures V(T, t', i, ctx'', s'');
@@ -1656,7 +1656,7 @@ ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
   var ctx_prev := Context(Empty);
   var s := Store(Empty);
 
-  parallel (k: nat)
+  forall (k: nat)
     ensures
       A(k, ctx_prev, s) &&
       As(k, ctx, s, ctx_prev) &&
@@ -1674,7 +1674,7 @@ ghost method theorem_fundamental_R(ctx: context, t: tm, T: tp)
       assert field_membership(ctx, t1, l, T);
       assert membership(ctx, t1, l, decl_tm(l, T));
       assert exists T1 :: typing(ctx, t1, T1);
-      parallel (T1 | typing(ctx, t1, T1))
+      forall (T1 | typing(ctx, t1, T1))
         ensures E(T, t, k, ctx, s, ctx_prev);
       {
         theorem_fundamental_R(ctx, t1, T1);
@@ -1703,7 +1703,7 @@ ghost method corollary_type_safety(t: tm, T: tp)
   ensures type_safety(t, T);
 {
   if (typing(Context(Empty), t, T)) {
-    parallel (t', s', n:nat | mstep(t, Store(Empty), t', s', n))
+    forall (t', s', n:nat | mstep(t, Store(Empty), t', s', n))
       ensures value(t') || step(t', s').Some?;
     {
       theorem_fundamental_R(Context(Empty), t, T);

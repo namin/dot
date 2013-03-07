@@ -1239,7 +1239,7 @@ ghost method lemma_store_extends_well_typed(s: store, s': store, Tc: tp, init: s
   ensures store_extends(s', s);
   ensures store_well_typed(s');
 {
-  parallel (l:nat | l < |s'.m|)
+  forall (l:nat | l < |s'.m|)
   ensures store_well_typed1(s', l, fresh_from([]), store_lookup_type(l, s'), store_lookup(l, s'));
   {
     if (l == |s.m|) {
@@ -1373,7 +1373,7 @@ ghost method corollary_typable_empty__closed(n: nat, s: store, t: tm, T: tp)
   requires typing(n, Context([]), s, t, T);
   ensures closed(t);
 {
-  parallel (x: nat)
+  forall (x: nat)
     ensures !tm_fn(x, t);
   {
     if (tm_fn(x, t)) {
