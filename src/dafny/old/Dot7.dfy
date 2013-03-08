@@ -1443,6 +1443,7 @@ ghost method lemma_substitution_preserves_typing(ctx: context, st: store, x: nat
       ((path(t.t) && To'==To && exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, t.t, d')) ||
        (!path(t.t) && d in lst2seq(Ds.decls) && !decl_fn(z, d)))) ||
      (Ds.decls_bot? && decl_bot(d)));
+    var no', To'', nos' := lemma_substitution_preserves_typing(ctx, st, x, s, S, ns, t.t, To', n-3);
   } else if (t.tm_msel?) {
   } else if (t.tm_new?) {
   } else {
