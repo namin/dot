@@ -753,11 +753,12 @@ predicate membership(n: nat, ctx: context, s: store, t: tm, l: nat, d: decl)
   var z:nat := fresh_in_context(ctx);
   decl_label(d)==l &&
   n>0 && exists T, T' :: typing(n-1, ctx, s, t, T') &&
+  subtype(n-1, ctx, s, T', T) &&
   exists Ds ::
   expansion(n-1, ctx, s, z, T, Ds) &&
   ((Ds.decls_fin? &&
      ((path(t) && T'==T && exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, t, d')) ||
-      (!path(t) && subtype(n-1, ctx, s, T', T) && d in lst2seq(Ds.decls) && !decl_fn(z, d)))) ||
+      (!path(t) && d in lst2seq(Ds.decls) && !decl_fn(z, d)))) ||
    (Ds.decls_bot? && decl_bot(d)))
 }
 predicate field_membership(n: nat, ctx: context, s: store, t: tm, l: nat, T: tp)
@@ -1425,6 +1426,23 @@ ghost method lemma_substitution_preserves_typing(ctx: context, st: store, x: nat
     assert membership(n-2, context_extend(ctx, x, S), st, t.t, t.l, decl_tm(t.l, T));
     var d := decl_tm(t.l, T);
     var z:nat := fresh_in_context(context_extend(ctx, x, S));
+    helper_assert_membership(n-2, context_extend(ctx, x, S), st, t.t, t.l, d, z);
+    assert decl_label(d)==t.l &&
+    n-2>0 && exists To:tp, To':tp :: typing(n-3, context_extend(ctx, x, S), st, t.t, To') &&
+    subtype(n-3, context_extend(ctx, x, S), st, To', To) &&
+    exists Ds ::
+    expansion(n-3, context_extend(ctx, x, S), st, z, To, Ds) &&
+    ((Ds.decls_fin? &&
+      ((path(t.t) && To'==To && exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, t.t, d')) ||
+       (!path(t.t) && d in lst2seq(Ds.decls) && !decl_fn(z, d)))) ||
+     (Ds.decls_bot? && decl_bot(d)));
+    var To:tp, To':tp, Ds:decls :| typing(n-3, context_extend(ctx, x, S), st, t.t, To') &&
+    subtype(n-3, context_extend(ctx, x, S), st, To', To) &&
+    expansion(n-3, context_extend(ctx, x, S), st, z, To, Ds) &&
+    ((Ds.decls_fin? &&
+      ((path(t.t) && To'==To && exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, t.t, d')) ||
+       (!path(t.t) && d in lst2seq(Ds.decls) && !decl_fn(z, d)))) ||
+     (Ds.decls_bot? && decl_bot(d)));
   } else if (t.tm_msel?) {
   } else if (t.tm_new?) {
   } else {
@@ -1435,4 +1453,18 @@ ghost method lemma_substitution_preserves_typing(ctx: context, st: store, x: nat
   n' := n'';
   T' := T'';
   ns' := ns'';
+}
+ghost method helper_assert_membership(n: nat, ctx: context, s: store, t: tm, l: nat, d: decl, z: nat)
+  requires z == fresh_in_context(ctx);
+  requires membership(n, ctx, s, t, l, d);
+  ensures decl_label(d)==l &&
+  n>0 && exists T, T' :: typing(n-1, ctx, s, t, T') &&
+  subtype(n-1, ctx, s, T', T) &&
+  exists Ds ::
+  expansion(n-1, ctx, s, z, T, Ds) &&
+  ((Ds.decls_fin? &&
+     ((path(t) && T'==T && exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, t, d')) ||
+      (!path(t) && d in lst2seq(Ds.decls) && !decl_fn(z, d)))) ||
+   (Ds.decls_bot? && decl_bot(d)));
+{
 }
