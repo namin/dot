@@ -491,7 +491,7 @@ y \notin \fn(T') \\
     \begin{multicols}{2}[\judgement{Expansion}{\fbox{$\Gamma \ts T \expand_z \seq D$}}]
       \infrule[\textsc{any-$\expand$}]
       {\Gamma \ts \emptyset / T \expand'_z \seq D}
-      {\Gamma \ts \expand_z T \seq D}
+      {\Gamma \ts T \expand_z \seq D}
     \end{multicols}
 
     \begin{multicols}{2}[\judgement{Expansion'}{\fbox{$\Gamma \ts M / T \expand'_z \seq D$}}]  
@@ -508,7 +508,7 @@ y \notin \fn(T') \\
 
       \infrule[\textsc{tsel-$\expand'_1$}]
       {p.L \mapsto {\seq D} \in M}
-      {\Gamma \ts M / p.L \expand_z \seq D}
+      {\Gamma \ts M / p.L \expand'_z \seq D}
 
       \infax[\textsc{$\Bot$-$\expand'$}]
       {\Gamma \ts M/\Bot \expand'_z \seq{D_\Bot}}
