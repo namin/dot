@@ -1394,13 +1394,13 @@ ghost method lemma_context_invariance(n: nat, ctx: context, ctx': context, s: st
   assume typing(n, ctx', s, t, T); // TODO (really!)
 }
 
-ghost method lemma_substitution_preserves_typing(ctx: context, st: store, x: nat, s: tm, S: tp, ns: nat, t: tm, T: tp, n: nat) returns (n': nat, T': tp, ns': nat)
+// NOTE: no narrowing yet
+ghost method lemma_substitution_preserves_typing(ctx: context, st: store, x: nat, s: tm, S: tp, ns: nat, t: tm, T: tp, n: nat) returns (n': nat)
+  requires value(s);
   requires typing(ns, Context([]), st, s, S);
   requires context_lookup(ctx, x).None?;
   requires typing(n, context_extend(ctx, x, S), st, t, T);
-  requires path(s);
-  ensures typing(n', ctx, st, tm_subst(x, s, t), T');
-  ensures subtype(ns', context_extend(ctx, x, S), st, T', T);
+  ensures typing(n', ctx, st, tm_subst(x, s, t), tp_subst(x, s, T));
   decreases t;
 {
   if (t.tm_var?) {
@@ -1409,18 +1409,11 @@ ghost method lemma_substitution_preserves_typing(ctx: context, st: store, x: nat
       corollary_typable_empty__closed(ns, st, s, S);
       lemma_context_invariance(ns, Context([]), ctx, st, s, S);
       n' := ns;
-      T' := T;
-      assert typing(n', ctx, st, tm_subst(x, s, t), T');
-      ns' := 1;
     } else {
       n' := 0;
-      T' := T;
-      ns' := 1;
     }
   } else if (t.tm_loc?) {
     n' := 0;
-    T' := T;
-    ns' := 1;
   } else if (t.tm_sel?) {
     assert field_membership(n-1, context_extend(ctx, x, S), st, t.t, t.l, T);
     assert membership(n-2, context_extend(ctx, x, S), st, t.t, t.l, decl_tm(t.l, T));
@@ -1448,11 +1441,9 @@ ghost method lemma_substitution_preserves_typing(ctx: context, st: store, x: nat
   } else {
   }
   // TODO (absolutely!)
-  assume exists n'':nat, T'':tp, ns'':nat :: typing(n'', ctx, st, tm_subst(x, s, t), T'') && subtype(ns'', context_extend(ctx, x, S), st, T'', T);
-  var n'':nat, T'':tp, ns'':nat :| typing(n'', ctx, st, tm_subst(x, s, t), T'') && subtype(ns'', context_extend(ctx, x, S), st, T'', T);
+  assume exists n'':nat :: typing(n'', ctx, st, tm_subst(x, s, t), tp_subst(x, s, T));
+  var n'':nat :| typing(n'', ctx, st, tm_subst(x, s, t), tp_subst(x, s, T));
   n' := n'';
-  T' := T'';
-  ns' := ns'';
 }
 ghost method helper_assert_membership(n: nat, ctx: context, s: store, t: tm, l: nat, d: decl, z: nat)
   requires z == fresh_in_context(ctx);
