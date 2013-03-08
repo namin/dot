@@ -752,13 +752,12 @@ predicate membership(n: nat, ctx: context, s: store, t: tm, l: nat, d: decl)
 {
   var z:nat := fresh_in_context(ctx);
   decl_label(d)==l &&
-  n>0 && exists T :: typing(n-1, ctx, s, t, T) &&
+  n>0 && exists T, T' :: typing(n-1, ctx, s, t, T') &&
   exists Ds ::
   expansion(n-1, ctx, s, z, T, Ds) &&
   ((Ds.decls_fin? &&
-     ((path(t) && exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, t, d')) ||
-     (!path(t) && exists d' :: d' in lst2seq(Ds.decls) && !decl_fn(z, d') &&
-       decl_eq(d', d) && decl_sub(n-1, context_extend(ctx, z, T), s, d', d)))) ||
+     ((path(t) && T'==T && exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, t, d')) ||
+      (!path(t) && subtype(n-1, ctx, s, T', T) && d in lst2seq(Ds.decls) && !decl_fn(z, d)))) ||
    (Ds.decls_bot? && decl_bot(d)))
 }
 predicate field_membership(n: nat, ctx: context, s: store, t: tm, l: nat, T: tp)
@@ -1426,22 +1425,6 @@ ghost method lemma_substitution_preserves_typing(ctx: context, st: store, x: nat
     assert membership(n-2, context_extend(ctx, x, S), st, t.t, t.l, decl_tm(t.l, T));
     var d := decl_tm(t.l, T);
     var z:nat := fresh_in_context(context_extend(ctx, x, S));
-    assert decl_label(d)==t.l &&
-    exists To :: typing(n-3, context_extend(ctx, x, S), st, t.t, To) &&
-    exists Ds ::
-    expansion(n-3, context_extend(ctx, x, S), st, z, To, Ds) &&
-    ((Ds.decls_fin? &&
-     ((path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, t.t, d')) ||
-     (!path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && !decl_fn(z, d') &&
-       decl_eq(d', d) && decl_sub(n-3, context_extend(context_extend(ctx, x, S), z, To), st, d', d)))) ||
-     (Ds.decls_bot? && decl_bot(d)));
-    var To, Ds :| typing(n-3, context_extend(ctx, x, S), st, t.t, To) &&
-    expansion(n-3, context_extend(ctx, x, S), st, z, To, Ds) &&
-    ((Ds.decls_fin? &&
-     ((path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, t.t, d')) ||
-     (!path(t.t) && exists d' :: d' in lst2seq(Ds.decls) && !decl_fn(z, d') &&
-       decl_eq(d', d) && decl_sub(n-3, context_extend(context_extend(ctx, x, S), z, To), st, d', d)))) ||
-     (Ds.decls_bot? && decl_bot(d)));
   } else if (t.tm_msel?) {
   } else if (t.tm_new?) {
   } else {
