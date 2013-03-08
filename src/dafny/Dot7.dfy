@@ -1394,7 +1394,6 @@ ghost method lemma_context_invariance(n: nat, ctx: context, ctx': context, s: st
   assume typing(n, ctx', s, t, T); // TODO (really!)
 }
 
-// NOTE: no narrowing yet
 ghost method lemma_substitution_preserves_typing(ctx: context, st: store, x: nat, s: tm, S: tp, ns: nat, t: tm, T: tp, n: nat) returns (n': nat, T': tp, ns': nat)
   requires typing(ns, Context([]), st, s, S);
   requires context_lookup(ctx, x).None?;
@@ -1447,7 +1446,7 @@ ghost method lemma_substitution_preserves_typing(ctx: context, st: store, x: nat
   } else if (t.tm_new?) {
   } else {
   }
-    // TODO (absolutely!)
+  // TODO (absolutely!)
   assume exists n'':nat, T'':tp, ns'':nat :: typing(n'', ctx, st, tm_subst(x, s, t), T'') && subtype(ns'', context_extend(ctx, x, S), st, T'', T);
   var n'':nat, T'':tp, ns'':nat :| typing(n'', ctx, st, tm_subst(x, s, t), T'') && subtype(ns'', context_extend(ctx, x, S), st, T'', T);
   n' := n'';
