@@ -1116,6 +1116,10 @@ predicate store_well_typed(s: store)
 {
   forall l:nat :: l < |s.m| ==> store_well_typed1(s, l, fresh_from([]), store_lookup_type(l, s), store_lookup(l, s))
 }
+predicate env_well_typed(ctx: context, s: store)
+{
+  store_well_typed(s) && forall x:nat :: context_lookup(ctx, x).Some? ==> wfe_type'(ctx, s, context_lookup(ctx, x).get)
+}
 ghost method lemma_store_invariance_typing(n: nat, ctx: context, s: store, s': store, t: tm, T: tp)
   requires store_extends(s', s);
   requires typing(n, ctx, s, t, T);
@@ -1388,6 +1392,7 @@ ghost method lemma_free_in_context_wfe_type(x: nat, n: nat, ctx: context, s: sto
 }
 ghost method lemma_typing__wfe(n: nat, ctx: context, s: store, t: tm, T: tp) returns (n': nat)
   requires typing(n, ctx, s, t, T);
+  requires env_well_typed(ctx, s);
   ensures wfe_type(n', ctx, s, T);
 {
   assume exists n'':nat :: wfe_type(n'', ctx, s, T); // TODO
@@ -1397,6 +1402,7 @@ ghost method lemma_typing__wfe(n: nat, ctx: context, s: store, t: tm, T: tp) ret
 
 ghost method corollary_typable_empty__closed(n: nat, s: store, t: tm, T: tp)
   requires typing(n, Context([]), s, t, T);
+  requires env_well_typed(Context([]), s);
   ensures tm_closed(t);
   ensures tp_closed(T);
 {
@@ -1438,6 +1444,7 @@ ghost method lemma_case_msel_substitution_preserves_typing(ctx: context, st: sto
   requires value(s);
   requires typing(ns, Context([]), st, s, S);
   requires context_lookup(ctx, x).None?;
+  requires env_well_typed(ctx, st);
   requires typing(nt+1, context_extend(ctx, x, S), st, t, T);
   ensures typing(n', ctx, st, tm_subst(x, s, t), tp_subst(x, s, T));
   decreases nt;
@@ -1485,6 +1492,7 @@ ghost method lemma_substitution_preserves_typing(ctx: context, st: store, x: nat
   requires value(s);
   requires typing(ns, Context([]), st, s, S);
   requires context_lookup(ctx, x).None?;
+  requires env_well_typed(ctx, st);
   requires typing(n, context_extend(ctx, x, S), st, t, T);
   ensures typing(n', ctx, st, tm_subst(x, s, t), tp_subst(x, s, T));
   decreases n;
@@ -1554,6 +1562,7 @@ ghost method lemma_substitution_preserves_subtype(ctx: context, st: store, x: na
   requires value(s);
   requires typing(ns, Context([]), st, s, S);
   requires context_lookup(ctx, x).None?;
+  requires env_well_typed(ctx, st);
   requires subtype(n, context_extend(ctx, x, S), st, T', T);
   ensures subtype(n', ctx, st, tp_subst(x, s, T'), tp_subst(x, s, T));
 {
@@ -1573,6 +1582,7 @@ ghost method lemma_substitution_preserves_expansion(ctx: context, st: store, x: 
   requires typing(ns, Context([]), st, s, S);
   requires context_lookup(ctx, x).None?;
   requires context_lookup(ctx, z).None?;
+  requires env_well_typed(ctx, st);
   requires expansion(n, context_extend(ctx, x, S), st, z, T, Ds);
   ensures decls_subst_p(x, s, Ds, Ds');
   ensures expansion(n', ctx, st, z, tp_subst(x, s, T), Ds');
