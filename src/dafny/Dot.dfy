@@ -194,10 +194,12 @@ function decls_size(decls: list<decl>): nat
 function tm_subst(x: nat, v: tm, t: tm): tm
   decreases tm_size(t), t;
   ensures v.tm_var? ==> tm_size(t)==tm_size(tm_subst(x, v, t));
+  ensures !tm_fn(x, t) ==> tm_subst(x, v, t)==t;
 {
   match t
   case tm_var(x') => if x'==x then v else t
   case tm_new(y, Tc, init, t1) =>
+    if !tm_fn(x, t) then t else
     if y==x then tm_new(y, tp_subst(x, v, Tc), init, t1) else
     var y' := fresh_from([x]+tm_vars(v)+tm_vars(t));
     var init' := defs_subst(y, tm_var(y'), init);
@@ -210,10 +212,12 @@ function tm_subst(x: nat, v: tm, t: tm): tm
 function tp_subst(x: nat, v: tm, T: tp): tp
   decreases tp_size(T), T;
   ensures v.tm_var? ==> tp_size(T)==tp_size(tp_subst(x, v, T));
+  ensures !tp_fn(x, T) ==> tp_subst(x, v, T)==T;
 {
   match T
   case tp_sel(p, L, concrete) => tp_sel(tm_subst(x, v, p), L, concrete)
   case tp_rfn(base_tp, self, decls) =>
+    if !tp_fn(x, T) then T else
     if self==x then tp_rfn(tp_subst(x, v, base_tp), self, decls) else
     var self' := fresh_from([x]+tm_vars(v)+tp_vars(T));
     var decls' := decls_subst(self, tm_var(self'), decls);
@@ -226,18 +230,21 @@ function tp_subst(x: nat, v: tm, T: tp): tp
 function def_subst(x: nat, v: tm, d: def): def
   decreases def_size(d), d;
   ensures v.tm_var? ==> def_size(d)==def_size(def_subst(x, v, d));
+  ensures !def_fn(x, d) ==> def_subst(x, v, d)==d;
 {
   match d
   case def_tm(l, t1) => def_tm(l, tm_subst(x, v, t1))
   case def_mt(m, param, body) =>
+    if !def_fn(x, d) then d else
     if param==x then d else
-    var param' := if (tm_fn(param, v)) then fresh_from([x]+tm_vars(v)+def_vars(d)) else param;
-    var body' := if (param==param') then body else tm_subst(param, tm_var(param'), body);
+    var param' := fresh_from([x]+tm_vars(v)+def_vars(d));
+    var body' := tm_subst(param, tm_var(param'), body);
     def_mt(m, param', tm_subst(x, v, body'))
 }
 function decl_subst(x: nat, v: tm, d: decl): decl
   decreases decl_size(d), d;
   ensures v.tm_var? ==> decl_size(d)==decl_size(decl_subst(x, v, d));
+  ensures !decl_fn(x, d) ==> decl_subst(x, v, d)==d;
 {
   match d
   case decl_tp(L, S, U, concrete) => decl_tp(L, tp_subst(x, v, S), tp_subst(x, v, U), concrete)
@@ -247,6 +254,7 @@ function decl_subst(x: nat, v: tm, d: decl): decl
 function defs_subst(x: nat, v: tm, defs: list<def>): list<def>
   decreases defs_size(defs), defs;
   ensures v.tm_var? ==> defs_size(defs)==defs_size(defs_subst(x, v, defs));
+  ensures !defs_fn(x, defs) ==> defs_subst(x, v, defs)==defs;
 {
   match defs
   case Nil => Nil
@@ -255,6 +263,7 @@ function defs_subst(x: nat, v: tm, defs: list<def>): list<def>
 function decls_subst(x: nat, v: tm, decls: list<decl>): list<decl>
   decreases decls_size(decls), decls;
   ensures v.tm_var? ==> decls_size(decls)==decls_size(decls_subst(x, v, decls));
+  ensures !decls_fn(x, decls) ==> decls_subst(x, v, decls)==decls;
 {
   match decls
   case Nil => Nil
@@ -1275,7 +1284,8 @@ ghost method lemma_free_after_tm_subst(x: nat, y_: nat, y: nat, t_: tm)
   } else if (t_.tm_sel?) {
   } else if (t_.tm_msel?) {
   } else if (t_.tm_new?) {
-    if (t_.y==y_) {
+    if (!tm_fn(y_, t_)) {
+    } else if (t_.y==y_) {
       assert tm_subst(y_, tm_var(y), t_) == tm_new(t_.y, tp_subst(y_, tm_var(y), t_.Tc), t_.init, t_.t');
       if (tp_fn(x, t_.Tc)) {
         lemma_free_after_tp_subst(x, y_, y, t_.Tc);
@@ -1407,7 +1417,6 @@ ghost method lemma_not_fn__subst_idem(x: nat, s: tm, T: tp)
   requires !tp_fn(x, T);
   ensures tp_subst(x, s, T)==T;
 {
-  assume tp_subst(x, s, T)==T; // TODO (really!)
 }
 
 ghost method lemma_context_invariance(n: nat, ctx: context, ctx': context, s: store, t: tm, T: tp)
