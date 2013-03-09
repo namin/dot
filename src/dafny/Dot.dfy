@@ -1085,7 +1085,18 @@ ghost method lemma_subtype_monotonic(n: nat, ctx: context, s: store, S: tp, T: t
 // ----------
 // Properties
 // ----------
-
+predicate tm_closed(t: tm)
+{
+  forall x: nat :: !tm_fn(x, t)
+}
+predicate tp_closed(T: tp)
+{
+  forall x: nat :: !tp_fn(x, T)
+}
+predicate def_closed(d: def)
+{
+  forall x:nat :: !def_fn(x, d)
+}
 predicate store_extends<A>(s': store, s: store)
 {
   |s.m|<=|s'.m| && forall l:nat :: l < |s.m| ==> s.m[l]==s'.m[l]
@@ -1097,7 +1108,9 @@ predicate store_well_typed1(s: store, loc: nat, y: nat, Tc: tp, init: seq<def>)
     exists Ds:decls :: Ds.decls_fin? &&
     wfe_type(n-1, Context([]), s, Tc) &&
     expansion(n-1, Context([]), s, y, Tc, Ds) && 
-    wf_init(n-1, true, Context([]), s, lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), def_seq_sort(init))
+    wf_init(n-1, true, Context([]), s, lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), init) &&
+    tp_closed(Tc) &&
+    forall d :: d in init ==> def_closed(d)
 }
 predicate store_well_typed(s: store)
 {
@@ -1213,16 +1226,16 @@ ghost method lemma_store_invariance_well_typed1(s: store, s': store, loc: nat, y
     Ds.decls_fin? &&
     wfe_type(n-1, Context([]), s, Tc) &&
     expansion(n-1, Context([]), s, y, Tc, Ds) && 
-    wf_init(n-1, true, Context([]), s, lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), def_seq_sort(init));
+    wf_init(n-1, true, Context([]), s, lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), init);
   lemma_store_invariance_wfe_type(n-1, Context([]), s, s', Tc);
   lemma_store_invariance_expansion(n-1, Context([]), s, s', y, Tc, Ds); 
-  lemma_store_invariance_wf_init(n-1, true, Context([]), s, s', lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), def_seq_sort(init));
+  lemma_store_invariance_wf_init(n-1, true, Context([]), s, s', lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), init);
   assert n>0 &&
     is_concrete(Tc) &&
     Ds.decls_fin? &&
     wfe_type(n-1, Context([]), s', Tc) &&
     expansion(n-1, Context([]), s', y, Tc, Ds) && 
-    wf_init(n-1, true, Context([]), s', lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), def_seq_sort(init));
+    wf_init(n-1, true, Context([]), s', lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), init);
   helper_assert_exists_store_well_typed1(s', loc, y, Tc, init, n, Ds);
 }
 ghost method helper_assert_exists_store_well_typed1(s: store, loc: nat, y: nat, Tc: tp, init: seq<def>, n: nat, Ds: decls)
@@ -1231,13 +1244,13 @@ ghost method helper_assert_exists_store_well_typed1(s: store, loc: nat, y: nat, 
     Ds.decls_fin? &&
     wfe_type(n-1, Context([]), s, Tc) &&
     expansion(n-1, Context([]), s, y, Tc, Ds) && 
-    wf_init(n-1, true, Context([]), s, lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), def_seq_sort(init));
+    wf_init(n-1, true, Context([]), s, lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), init);
   ensures exists n:nat, Ds:decls :: n>0 &&
     is_concrete(Tc) &&
     Ds.decls_fin? &&
     wfe_type(n-1, Context([]), s, Tc) &&
     expansion(n-1, Context([]), s, y, Tc, Ds) && 
-    wf_init(n-1, true, Context([]), s, lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), def_seq_sort(init));
+    wf_init(n-1, true, Context([]), s, lst2seq(decls_subst(y, tm_loc(loc), Ds.decls)), init);
 {
 }
 
@@ -1262,15 +1275,6 @@ ghost method lemma_store_extends_well_typed(s: store, s': store, Tc: tp, init: s
       lemma_store_invariance_well_typed1(s, s', l, fresh_from([]), Tcl, initl);
     }
   }
-}
-
-predicate tm_closed(t: tm)
-{
-  forall x: nat :: !tm_fn(x, t)
-}
-predicate tp_closed(T: tp)
-{
-  forall x: nat :: !tp_fn(x, T)
 }
 
 ghost method lemma_free_after_tm_subst(x: nat, y_: nat, y: nat, t_: tm)
