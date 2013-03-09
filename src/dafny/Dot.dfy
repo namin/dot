@@ -194,6 +194,7 @@ function decls_size(decls: list<decl>): nat
 function tm_subst(x: nat, v: tm, t: tm): tm
   decreases tm_size(t), t;
   ensures v.tm_var? ==> tm_size(t)==tm_size(tm_subst(x, v, t));
+  ensures path(v) && path(t) ==> path(tm_subst(x, v, t));
   ensures !tm_fn(x, t) ==> tm_subst(x, v, t)==t;
 {
   match t
@@ -1438,8 +1439,104 @@ ghost method lemma_context_invariance(n: nat, ctx: context, ctx': context, s: st
   assume typing(n, ctx', s, t, T); // TODO (really!)
 }
 
+ghost method lemma_decl_bot__subst_idem(x: nat, s: tm, d: decl)
+  requires decl_bot(d);
+  ensures decl_bot(decl_subst(x, s, d));
+  ensures decl_eq(d, decl_subst(x, s, d));
+{
+}
+ghost method lemma_path_subst2(x: nat, s: tm, z: nat, o: tm, t: tm)
+  requires x!=z;
+  requires value(s);
+  requires path(o);
+  ensures tm_subst(x, s, tm_subst(z, o, t))==tm_subst(z, tm_subst(x, s, o), tm_subst(x, s, t));
+{
+  match t {
+  case tm_var(x') =>
+  case tm_new(y, Tc, init, t1) =>
+    // TODO, but not important for decls
+    assume tm_subst(x, s, tm_subst(z, o, t))==tm_subst(z, tm_subst(x, s, o), tm_subst(x, s, t));
+  case tm_sel(t1, l) =>
+  case tm_msel(o, m, a) =>
+  case tm_loc(loc) =>
+  }
+}
+ghost method lemma_tp_subst2(x: nat, s: tm, z: nat, o: tm, T: tp)
+  requires x!=z;
+  requires value(s);
+  requires path(o);
+  ensures tp_subst(x, s, tp_subst(z, o, T))==tp_subst(z, tm_subst(x, s, o), tp_subst(x, s, T)); // TODO: maybe this is only true up to alpha-equivalence? need to be more cautious in subst.
+{
+  match T {
+  case tp_sel(p, L, concrete) =>
+    lemma_path_subst2(x, s, z, o, p);
+  case tp_rfn(base_tp, self, decls) =>
+    if (!tp_fn(x, tp_subst(z, o, T))) {
+      assert tp_subst(x, s, tp_subst(z, o, T))==tp_subst(z, o, T);
+      if (!tp_fn(z, T)) {
+      } else if (self==z) {
+        // TODO
+        assume tp_subst(x, s, tp_subst(z, o, T))==tp_subst(z, tm_subst(x, s, o), tp_subst(x, s, T));
+      } else {
+        assert tp_fn(z, T);
+        // TODO
+        assume tp_subst(x, s, tp_subst(z, o, T))==tp_subst(z, tm_subst(x, s, o), tp_subst(x, s, T));
+      }
+    } else if (self==x) {
+       // TODO
+       assume tp_subst(x, s, tp_subst(z, o, T))==tp_subst(z, tm_subst(x, s, o), tp_subst(x, s, T));
+    } else {
+       // TODO
+       assume tp_subst(x, s, tp_subst(z, o, T))==tp_subst(z, tm_subst(x, s, o), tp_subst(x, s, T));
+    }
+  case tp_and(and1, and2) =>
+  case tp_or(or1, or2) =>
+  case tp_top =>
+  case tp_bot =>
+  }
+}
+ghost method lemma_decl_subst2(x: nat, s: tm, z: nat, o: tm, d: decl)
+  requires x!=z;
+  requires value(s);
+  requires path(o);
+  ensures decl_subst(x, s, decl_subst(z, o, d))==decl_subst(z, tm_subst(x, s, o), decl_subst(x, s, d));  
+{
+  match d {
+  case decl_tp(L, S, U, concrete) =>
+    lemma_tp_subst2(x, s, z, o, S);
+    lemma_tp_subst2(x, s, z, o, U);
+  case decl_tm(l, T) =>
+    lemma_tp_subst2(x, s, z, o, T);
+  case decl_mt(m, P, R) =>
+    lemma_tp_subst2(x, s, z, o, P);
+    lemma_tp_subst2(x, s, z, o, R);
+  }
+}
+
+ghost method lemma_decl_fn_subst(z: nat, x: nat, s: tm, d: decl)
+  requires !decl_fn(z, d);
+  requires value(s);
+  ensures !decl_fn(z, decl_subst(x, s, d));
+{
+  assert !tm_fn(z, s);
+  assume !decl_fn(z, decl_subst(x, s, d)); // TODO
+}
+
+ghost method lemma_not_path_subst(x: nat, s: tm, t: tm)
+  requires value(s);
+  requires !path(t);
+  ensures !path(tm_subst(x, s, t));
+{
+}
+ghost method lemma_path_subst(x: nat, s: tm, t: tm)
+  requires value(s);
+  requires path(t);
+  ensures path(tm_subst(x, s, t));
+{
+}
+
 // NOTE: no narrowing yet
-ghost method lemma_case_msel_substitution_preserves_typing(ctx: context, st: store, x: nat, s: tm, S: tp, ns: nat, t: tm, T: tp, nt: nat) returns (n': nat)
+ghost method lemma_case_sel_substitution_preserves_typing(ctx: context, st: store, x: nat, s: tm, S: tp, ns: nat, t: tm, T: tp, nt: nat) returns (n': nat)
   requires t.tm_sel?;
   requires value(s);
   requires typing(ns, Context([]), st, s, S);
@@ -1477,11 +1574,47 @@ ghost method lemma_case_msel_substitution_preserves_typing(ctx: context, st: sto
     assert typing(no', ctx, st, tm_subst(x, s, t.t), tp_subst(x, s, To'));
     assert subtype(nos', ctx, st, tp_subst(x, s, To'), tp_subst(x, s, To));
     assert expansion(nox', ctx, st, z, tp_subst(x, s, To), Ds');
-    /*assert ((Ds'.decls_fin? &&
+    assert decls_subst_p(x, s, Ds, Ds');
+    if (Ds.decls_fin?) {
+      assert Ds'.decls_fin?;
+      if (path(t.t)) {
+        lemma_path_subst(x, s, t.t);
+        assert path(tm_subst(x, s, t.t));
+        assert To'==To && exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, t.t, d');
+        assert tp_subst(x, s, To')==tp_subst(x, s, To);
+        var d' :| d' in lst2seq(Ds.decls) && d==decl_subst(z, t.t, d');
+        assert decl_subst(x, s, d') in lst2seq(Ds'.decls);
+        lemma_decl_subst2(x, s, z, t.t, d');
+        assert d==decl_subst(z, t.t, d');
+        assert decl_subst(x, s, d)==decl_subst(x, s, decl_subst(z, t.t, d'));
+        assert decl_subst(x, s, decl_subst(z, t.t, d'))==decl_subst(z, tm_subst(x, s, t.t), decl_subst(x, s, d'));
+        assert decl_subst(x, s, d)==decl_subst(z, tm_subst(x, s, t.t), decl_subst(x, s, d'));
+        assert path(tm_subst(x, s, t.t)) && tp_subst(x, s, To')==tp_subst(x, s, To) && decl_subst(x, s, d') in lst2seq(Ds'.decls) && decl_subst(x, s, d)==decl_subst(z, tm_subst(x, s, t.t), decl_subst(x, s, d'));
+        assert exists d'' :: d'' in lst2seq(Ds'.decls) && decl_subst(x, s, d)==decl_subst(z, tm_subst(x, s, t.t), d'');
+        assert (path(tm_subst(x, s, t.t)) && tp_subst(x, s, To')==tp_subst(x, s, To) && exists d'' :: d'' in lst2seq(Ds'.decls) && decl_subst(x, s, d)==decl_subst(z, tm_subst(x, s, t.t), d''));
+      } else {
+        assert !path(t.t);
+        lemma_not_path_subst(x, s, t.t);
+        assert !path(tm_subst(x, s, t.t));
+        assert d in lst2seq(Ds.decls) && !decl_fn(z, d);
+        assert decl_subst(x, s, d) in lst2seq(Ds'.decls);
+        lemma_decl_fn_subst(z, x, s, d);
+        assert !decl_fn(z, decl_subst(x, s, d));
+        assert !path(tm_subst(x, s, t.t)) && decl_subst(x, s, d) in lst2seq(Ds'.decls) && !decl_fn(z, decl_subst(x, s, d));
+      }
+    } else if (Ds.decls_bot?) {
+      assert Ds'.decls_bot?;
+      assert decl_bot(d);
+      lemma_decl_bot__subst_idem(x, s, d);
+      assert decl_bot(decl_subst(x, s, d));
+    } else {
+      assert false;
+    }
+    assert ((Ds'.decls_fin? &&
       ((path(tm_subst(x, s, t.t)) && tp_subst(x, s, To')==tp_subst(x, s, To) && exists d' :: d' in lst2seq(Ds'.decls) && decl_subst(x, s, d)==decl_subst(z, tm_subst(x, s, t.t), d')) ||
        (!path(tm_subst(x, s, t.t)) && decl_subst(x, s, d) in lst2seq(Ds'.decls) && !decl_fn(z, decl_subst(x, s, d))))) ||
-     (Ds'.decls_bot? && decl_bot(d)));*/
-
+     (Ds'.decls_bot? && decl_bot(decl_subst(x, s, d))));
+ 
     // TODO
     assume exists n'':nat :: typing(n'', ctx, st, tm_subst(x, s, t), tp_subst(x, s, T));
     var n'':nat :| typing(n'', ctx, st, tm_subst(x, s, t), tp_subst(x, s, T));
@@ -1530,7 +1663,7 @@ ghost method lemma_substitution_preserves_typing(ctx: context, st: store, x: nat
       lemma_not_fn__subst_idem(x, s, T);
     }
   } else if (t.tm_sel?) {
-    n' := lemma_case_msel_substitution_preserves_typing(ctx, st, x, s, S, ns, t, T, n-1);
+    n' := lemma_case_sel_substitution_preserves_typing(ctx, st, x, s, S, ns, t, T, n-1);
   } else if (t.tm_msel?) {
     // TODO
     assume exists n'':nat :: typing(n'', ctx, st, tm_subst(x, s, t), tp_subst(x, s, T));
@@ -1572,6 +1705,8 @@ ghost method lemma_substitution_preserves_subtype(ctx: context, st: store, x: na
   n' := n'';
 }
 predicate decls_subst_p(x: nat, s: tm, Ds: decls, Ds': decls)
+  ensures decls_subst_p(x, s, Ds, Ds') ==> (Ds.decls_bot? <==> Ds'.decls_bot?);
+  ensures decls_subst_p(x, s, Ds, Ds') ==> (Ds.decls_fin? <==> Ds'.decls_fin?);
 {
   match Ds
   case decls_bot => Ds'.decls_bot?
@@ -1584,8 +1719,8 @@ ghost method lemma_substitution_preserves_expansion(ctx: context, st: store, x: 
   requires context_lookup(ctx, z).None?;
   requires env_well_typed(ctx, st);
   requires expansion(n, context_extend(ctx, x, S), st, z, T, Ds);
-  ensures decls_subst_p(x, s, Ds, Ds');
   ensures expansion(n', ctx, st, z, tp_subst(x, s, T), Ds');
+  ensures decls_subst_p(x, s, Ds, Ds');
 {
   // TODO 
   assume exists n'':nat, Ds'':decls :: decls_subst_p(x, s, Ds, Ds'') && expansion(n'', ctx, st, z, tp_subst(x, s, T), Ds'');
