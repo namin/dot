@@ -1730,9 +1730,13 @@ ghost method lemma_case_sel_substitution_preserves_typing(ctx: context, st: stor
   assert field_membership(maxn+2, ctx, st, tm_subst(x, s, t).t, tm_subst(x, s, t).l, tp_subst(x, s, T));
   assert typing(maxn+3, ctx, st, tm_subst(x, s, t), tp_subst(x, s, T));   
   n' := maxn+3;
-  assume exists n'':nat :: typing(n'', ctx, st, tm_subst(x, s, t), tp_subst(x, s, T)); // TODO: why do we still need this :-(
-  var n'':nat :| typing(n'', ctx, st, tm_subst(x, s, t), tp_subst(x, s, T));
-  n' := n'';
+  helper_assert_exists_typing(maxn, n', ctx, st, x, s, S, t, T);
+}
+ghost method helper_assert_exists_typing(maxn: nat, n': nat, ctx: context, st: store, x: nat, s: tm, S: tp, t: tm, T: tp)
+  requires typing(maxn+3, ctx, st, tm_subst(x, s, t), tp_subst(x, s, T));
+  requires maxn+3==n';
+  ensures typing(n', ctx, st, tm_subst(x, s, t), tp_subst(x, s, T));
+{
 }
 
 ghost method lemma_substitution_preserves_typing(ctx: context, st: store, x: nat, s: tm, S: tp, ns: nat, t: tm, T: tp, n: nat) returns (n': nat)
