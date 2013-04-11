@@ -1378,7 +1378,6 @@ ghost method lemma_free_in_context_typing(x:nat, n: nat, ctx: context, s: store,
   requires tm_fn(x, t);
   requires typing(n, ctx, s, t, T);
   ensures context_lookup(ctx, x).Some?;
-  requires typing(n, ctx, s, t, T);
 {
   if (t.tm_var?) {
   } else if (t.tm_loc?) {
