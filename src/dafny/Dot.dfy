@@ -1426,6 +1426,18 @@ ghost method lemma_free_in_context_wfe_type(x: nat, n: nat, ctx: context, s: sto
 {
   assume context_lookup(ctx, x).Some?; // TODO (really!)
 }
+ghost method lemma_wfe_type_not_in_context(x: nat, n: nat, ctx: context, st: store, T: tp)
+  requires context_lookup(ctx, x).None?;
+  requires wfe_type(n, ctx, st, T);
+  ensures wfe_type(n, ctx, st, T);
+  ensures !tp_fn(x, T);
+{
+  if (tp_fn(x, T)) {
+    lemma_free_in_context_wfe_type(x, n, ctx, st, T);
+    assert false;
+  }
+}
+
 ghost method lemma_typing__wfe(n: nat, ctx: context, s: store, t: tm, T: tp) returns (n': nat)
   requires typing(n, ctx, s, t, T);
   requires env_well_typed(ctx, s);
@@ -1433,6 +1445,16 @@ ghost method lemma_typing__wfe(n: nat, ctx: context, s: store, t: tm, T: tp) ret
 {
   assume exists n'':nat :: wfe_type(n'', ctx, s, T); // TODO
   var n'':nat :| wfe_type(n'', ctx, s, T);
+  n' := n'';
+}
+ghost method lemma_subtype__wfe(n: nat, ctx: context, s: store, S: tp, T: tp) returns (n': nat)
+  requires subtype(n, ctx, s, S, T);
+  requires env_well_typed(ctx, s);
+  ensures wfe_type(n', ctx, s, S);
+  ensures wfe_type(n', ctx, s, T);
+{
+  assume exists n'':nat :: wfe_type(n'', ctx, s, S) && wfe_type(n'', ctx, s, T); // TODO
+  var n'':nat :| wfe_type(n'', ctx, s, S) && wfe_type(n'', ctx, s, T);
   n' := n'';
 }
 
@@ -1913,15 +1935,85 @@ ghost method lemma_substitution_preserves_typing_with_narrowing(ctx: context, st
   ensures subtype(n', ctx, st, Ts, tp_subst(x, s, T));
   decreases n;
 {
-  // TODO
+  if (t.tm_var?) {
+    if (t.x==x) {
+      assert tm_subst(x, s, t)==s;
+      corollary_typable_empty__closed(ns, st, s, S);
+      lemma_context_invariance(ns, Context([]), ctx, st, s, S);
+      assert typing(ns, ctx, st, s, S);
+      assert typing(ns, ctx, st, tm_subst(x, s, t), S);
+      assert typing(n, context_extend(ctx, x, S'), st, t, S');
+      assert S'==T;
+      var nwfe := lemma_subtype__wfe(nss, ctx, st, S, S');
+      lemma_wfe_type_not_in_context(x, nwfe, ctx, st, S');
+      lemma_not_fn__subst_idem(x, s, S');
+      assert tp_subst(x, s, S')==S';
+      Ts := S;
+      n' := ns;
+      if (n' < nss) {
+       n' := nss;
+      }
+      lemma_typing_monotonic_plus(ns, n', ctx, st, tm_subst(x, s, t), Ts);
+      lemma_subtype_monotonic_plus(nss, n', ctx, st, Ts, S');
+    } else {
+      assert tm_subst(x, s, t)==t;
+      assert typing(n, ctx, st, t, T);
+      var nwfe := lemma_typing__wfe(n, ctx, st, t, T);
+      lemma_wfe_type_not_in_context(x, nwfe, ctx, st, T);
+      lemma_not_fn__subst_idem(x, s, T);
+      Ts := T;
+      n' := n;
+      if (n' < nwfe+1) {
+        n' := nwfe+1;
+      }
+      lemma_typing_monotonic_plus(n, n', ctx, st, tm_subst(x, s, t), Ts);
+      lemma_subtype_monotonic_plus(nwfe+1, n', ctx, st, Ts, Ts);
+    }
+  } else if (t.tm_loc?) {
+    assert tm_subst(x, s, t)==t;
+    assert typing(n, ctx, st, t, T);
+    var nwfe := lemma_typing__wfe(n, ctx, st, t, T);
+    lemma_wfe_type_not_in_context(x, nwfe, ctx, st, T);
+    lemma_not_fn__subst_idem(x, s, T);
+    Ts := T;
+    n' := n;
+    if (n' < nwfe+1) {
+      n' := nwfe+1;
+    }
+    lemma_typing_monotonic_plus(n, n', ctx, st, tm_subst(x, s, t), Ts);
+    lemma_subtype_monotonic_plus(nwfe+1, n', ctx, st, Ts, Ts);
+  } else if (t.tm_sel?) {
+    // TODO
+    assume exists n'_:nat, Ts_:tp ::
+    typing(n'_, ctx, st, tm_subst(x, s, t), Ts_) &&
+    subtype(n'_, ctx, st, Ts_, tp_subst(x, s, T));
+    var n'_:nat, Ts_:tp :|
+    typing(n'_, ctx, st, tm_subst(x, s, t), Ts_) &&
+    subtype(n'_, ctx, st, Ts_, tp_subst(x, s, T)); 
+    n' := n'_;
+    Ts := Ts_;
+  } else if (t.tm_msel?) {
+    // TODO
+    assume exists n'_:nat, Ts_:tp ::
+    typing(n'_, ctx, st, tm_subst(x, s, t), Ts_) &&
+    subtype(n'_, ctx, st, Ts_, tp_subst(x, s, T));
+    var n'_:nat, Ts_:tp :|
+    typing(n'_, ctx, st, tm_subst(x, s, t), Ts_) &&
+    subtype(n'_, ctx, st, Ts_, tp_subst(x, s, T)); 
+    n' := n'_;
+    Ts := Ts_;
+  } else if (t.tm_new?) {
+    // TODO
   assume exists n'_:nat, Ts_:tp ::
     typing(n'_, ctx, st, tm_subst(x, s, t), Ts_) &&
     subtype(n'_, ctx, st, Ts_, tp_subst(x, s, T));
-  var n'_:nat, Ts_:tp :|
+    var n'_:nat, Ts_:tp :|
     typing(n'_, ctx, st, tm_subst(x, s, t), Ts_) &&
     subtype(n'_, ctx, st, Ts_, tp_subst(x, s, T)); 
-  n' := n'_;
-  Ts := Ts_;
+    n' := n'_;
+    Ts := Ts_;
+  } else {
+  }
 }
 
 ghost method corollary_sanity_check_substitution_preserves_typing(ctx: context, st: store, x: nat, s: tm, S: tp, ns: nat, t: tm, T: tp, n: nat) returns (n': nat)
