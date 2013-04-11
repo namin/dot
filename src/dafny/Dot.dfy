@@ -1901,3 +1901,65 @@ ghost method lemma_substitution_preserves_expansion(ctx: context, st: store, x: 
   n' := n'';
   Ds' := Ds'';
 }
+
+ghost method lemma_substitution_preserves_typing_with_narrowing(ctx: context, st: store, x: nat, s: tm, S: tp, S': tp, ns: nat, nss: nat, t: tm, T: tp, n: nat) returns (n': nat, Ts: tp)
+  requires value(s);
+  requires typing(ns, Context([]), st, s, S);
+  requires context_lookup(ctx, x).None?;
+  requires env_well_typed(ctx, st);
+  requires subtype(nss, ctx, st, S, S');
+  requires typing(n, context_extend(ctx, x, S'), st, t, T);
+  ensures typing(n', ctx, st, tm_subst(x, s, t), Ts);
+  ensures subtype(n', ctx, st, Ts, tp_subst(x, s, T));
+  decreases n;
+{
+  // TODO
+  assume exists n'_:nat, Ts_:tp ::
+    typing(n'_, ctx, st, tm_subst(x, s, t), Ts_) &&
+    subtype(n'_, ctx, st, Ts_, tp_subst(x, s, T));
+  var n'_:nat, Ts_:tp :|
+    typing(n'_, ctx, st, tm_subst(x, s, t), Ts_) &&
+    subtype(n'_, ctx, st, Ts_, tp_subst(x, s, T)); 
+  n' := n'_;
+  Ts := Ts_;
+}
+
+ghost method corollary_sanity_check_substitution_preserves_typing(ctx: context, st: store, x: nat, s: tm, S: tp, ns: nat, t: tm, T: tp, n: nat) returns (n': nat)
+  requires value(s);
+  requires typing(ns, Context([]), st, s, S);
+  requires context_lookup(ctx, x).None?;
+  requires env_well_typed(ctx, st);
+  requires typing(n, context_extend(ctx, x, S), st, t, T);
+  ensures typing(n', ctx, st, tm_subst(x, s, t), tp_subst(x, s, T));
+  decreases n;
+{
+  lemma_context_invariance(ns, Context([]), ctx, st, s, S);
+  var nss_ := lemma_typing__wfe(ns, ctx, st, s, S);
+  var n'_, Ts_ := lemma_substitution_preserves_typing_with_narrowing(ctx, st, x, s, S, S, ns, nss_+1, t, T, n);
+  assume Ts_ == tp_subst(x, s, T);
+  n' := n'_;
+}
+
+ghost method corollary_sanity_check_substitution_preserves_typing_with_narrowing(ctx: context, st: store, x: nat, s: tm, S: tp, S': tp, ns: nat, nss: nat, t: tm, T: tp, n: nat) returns (n': nat, Ts: tp)
+  requires value(s);
+  requires typing(ns, Context([]), st, s, S);
+  requires context_lookup(ctx, x).None?;
+  requires env_well_typed(ctx, st);
+  requires subtype(nss, ctx, st, S, S');
+  requires typing(n, context_extend(ctx, x, S'), st, t, T);
+  requires S==S';
+  ensures Ts==tp_subst(x, s, T);
+  ensures typing(n', ctx, st, tm_subst(x, s, t), Ts);
+  ensures subtype(n', ctx, st, Ts, tp_subst(x, s, T));
+  decreases n;
+{
+  Ts := tp_subst(x, s, T);
+  var n'_ := lemma_substitution_preserves_typing(ctx, st, x, s, S, ns, t, T, n);
+  var nss_ := lemma_typing__wfe(n'_, ctx, st, tm_subst(x, s, t), Ts);
+  n' := n'_;
+  if (n' < nss_+1) {
+    n' := nss_+1;
+  }
+  lemma_typing_monotonic_plus(n'_, n', ctx, st, tm_subst(x, s, t), Ts);
+  lemma_subtype_monotonic_plus(nss_+1, n', ctx, st, Ts, Ts);
+}
