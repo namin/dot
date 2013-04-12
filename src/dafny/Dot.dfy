@@ -2055,3 +2055,23 @@ ghost method corollary_sanity_check_substitution_preserves_typing_with_narrowing
   lemma_typing_monotonic_plus(n'_, n', ctx, st, tm_subst(x, s, t), Ts);
   lemma_subtype_monotonic_plus(nss_+1, n', ctx, st, Ts, Ts);
 }
+
+ghost method theorem_preservation(ctx: context, st: store, t: tm, T: tp, nt: nat) returns (n: nat, T': tp, st': store, t': tm)
+  requires typing(nt, ctx, st, t, T);
+  requires step(t, st).Some?;
+  ensures step(t, st) == Some(P(t', st'));
+  ensures typing(n, ctx, st', t', T');
+  ensures subtype(n, ctx, st', T', T);
+{
+  t' := step(t, st).get.fst;
+  st' := step(t, st).get.snd;
+
+  assume exists n_:nat, T'_:tp ::
+  typing(n_, ctx, st', t', T'_) &&
+  subtype(n_, ctx, st', T'_, T);
+  var n_:nat, T'_:tp :|
+  typing(n_, ctx, st', t', T'_) &&
+  subtype(n_, ctx, st', T'_, T);
+  n := n_;
+  T' := T'_;
+}
