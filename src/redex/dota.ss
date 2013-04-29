@@ -487,3 +487,38 @@
         ;(printf "trying ~a ~a ~a ~a\n" env s t u)
         (judgment-holds (subtype ,env ,s ,u)))
       #t))
+
+(define-judgment-form dot
+  #:mode (red I I O O)
+  #:contract (red store s s store)
+  [(red store (sel (location i) l) v store) ;; (Sel)
+   (where c (store-lookup store i))
+   (found c #t)
+   (where v (value-label-lookup c l))
+   (found v #t)]
+  [(red store_1 (sel p_1 l) (sel p_2 l) store_2)
+   (red store_1 p_1 p_2 store_2)]
+  [(red store (val x = (new c) in s) (subst s x loc_new) (store-extend store (subst c x loc_new)))
+   (where loc_new (store-fresh-location store))] ;; (New)
+  [(red store (val x_r = (snd (location i) m v) in s_r) (val x_r = (exe (location i) m (subst s x v)) in s_r) store) ;; (Sel/βv)
+   (where c (store-lookup store i))
+   (found c #t)
+   (where any_lookup (method-label-lookup c m))
+   (found any_lookup #t)
+   (where (x s) any_lookup)]
+  [(red store_1 (val x = (snd p_obj1 m p_arg) in s) (val x = (snd p_obj2 m p_arg) in s) store_2)
+   (red store_1 p_obj1 p_obj2 store_2)]
+  [(red store_1 (val x = (snd v_obj m p_arg1) in s) (val x = (snd v_obj m p_arg2) in s) store_2)
+   (red store_1 p_arg1 p_arg2 store_2)]
+  [(red store (val x = (exe v_o m v) in s) (subst s x v) store)]
+  [(red store_1 (val x_r = (exe v_o m s_1) in s_r) (val x_r = (exe v_o m s_2) in s_r) store_2)
+   (red store_1 s_1 s_2 store_2)])
+
+(define red-rr
+  (reduction-relation
+   dot
+   (--> (store_1 s_1) (store_2 s_2)
+        (judgment-holds (red store_1 s_1 s_2 store_2)))))
+
+(define (trace-dot stmt)
+  (traces red-rr (term (() ,stmt))))
