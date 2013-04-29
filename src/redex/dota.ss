@@ -10,9 +10,10 @@
   (loc (location i))
   (v loc)
   (vx v x)
-  (e vx (val x = new c in e) (sel e l) (sel e m e))
+  (b (new c) (snd p m p))
+  (s p (val x = b in s))
   (p x loc (sel p l))
-  (c (Tc (l vx) ... (m x e) ...))
+  (c (Tc (l vx) ... (m x s) ...))
   (Gamma ([x T] ...))
   (store (c ...))
   (env (Gamma store))
@@ -25,7 +26,6 @@
   (Dl (: l T))
   (Dm (: m S U))
   (D DLt Dl Dm)
-  (ec hole (sel ec l) (sel ec m e) (sel v m ec))
   (bool #t #f)
   (DLm DLt Dm)
   (Lm Lt m)
@@ -53,8 +53,8 @@
   ;; 1. x_1 bound
   [(subst (m_1 x_1 any_1) x_1 any_2)
    (m_1 x_1 any_1)]
-  [(subst (val x_1 = new c_1 in any_1) x_1 any_2)
-   (val x_1 = new c_1 in any_1)]
+  [(subst (val x_1 = b_1 in any_1) x_1 any_2)
+   (val x_1 = b_1 in any_1)]
   [(subst (rfn T_1 x_1 D_1 ...) x_1 any_2)
    (rfn (subst T_1 x_1 any_2) x_1 D_1 ...)]
   
@@ -64,10 +64,10 @@
         (subst (subst-var any_1 x_1 x_3) x_2 any_2))
    (where x_3 ,(variable-not-in (term (x_2 any_1 any_2))
                                 (term x_1)))]
-  [(subst (val x_1 = new c_1 in any_1) x_2 any_2)
-   (val x_3 = new (subst (subst-var c_1 x_1 x_3) x_2 any_2) in
+  [(subst (val x_1 = b_1 in any_1) x_2 any_2)
+   (val x_3 = (subst (subst-var b_1 x_1 x_3) x_2 any_2) in
         (subst (subst-var any_1 x_1 x_3) x_2 any_2))
-   (where x_3 ,(variable-not-in (term (x_2 c_1 any_1 any_2))
+   (where x_3 ,(variable-not-in (term (x_2 b_1 any_1 any_2))
                                 (term x_1)))]
   [(subst (rfn T_1 x_1 D_1 ...) x_2 any_2)
    (rfn (subst T_1 x_2 any_2) x_3 (subst (subst-var D_1 x_1 x_3) x_2 any_2) ...)
@@ -119,16 +119,16 @@
 
 (define-metafunction dot
   value-label-lookup : c l -> vx or #f
-  [(value-label-lookup (Tc (l_req vx_req) (l_after vx_after) ... (m_ignore x_ignore e_ignore) ...) l_req) vx_req]
-  [(value-label-lookup (Tc (l_first vx_first) (l_after vx_after) ... (m_ignore x_ignore e_ignore) ...) l_req)
+  [(value-label-lookup (Tc (l_req vx_req) (l_after vx_after) ... (m_ignore x_ignore s_ignore) ...) l_req) vx_req]
+  [(value-label-lookup (Tc (l_first vx_first) (l_after vx_after) ... (m_ignore x_ignore s_ignore) ...) l_req)
    (value-label-lookup (Tc (l_after vx_after) ...) l_req)]
-  [(value-label-lookup (Tc (m_ignore x_ignore e_ignore) ...) l_req) #f])
+  [(value-label-lookup (Tc (m_ignore x_ignore s_ignore) ...) l_req) #f])
 
 (define-metafunction dot
-  method-label-lookup : c m -> (x e) or #f
-  [(method-label-lookup (Tc (l_ignore vx_ignore) ... (m_req x_req e_req) (m_after x_after e_after) ...) m_req) (x_req e_req)]
-  [(method-label-lookup (Tc (l_ignore vx_ignore) ... (m_first x_first e_first) (m_after x_after e_after) ...) m_req)
-   (method-label-lookup (Tc (m_after x_after e_after) ...) m_req)]
+  method-label-lookup : c m -> (x s) or #f
+  [(method-label-lookup (Tc (l_ignore vx_ignore) ... (m_req x_req s_req) (m_after x_after s_after) ...) m_req) (x_req s_req)]
+  [(method-label-lookup (Tc (l_ignore vx_ignore) ... (m_first x_first s_first) (m_after x_after s_after) ...) m_req)
+   (method-label-lookup (Tc (m_after x_after s_after) ...) m_req)]
   [(method-label-lookup (Tc (l_ignore vx_ignore) ...) m_req) #f])
 
 (define-judgment-form dot
@@ -136,68 +136,6 @@
   #:contract (found any bool)
   [(found #f #f)]
   [(found (side-condition any (term any)) #t)])
-
-(define-judgment-form dot
-  #:mode (red I I O O)
-  #:contract (red store e e store)
-  [(red store (in-hole ec (sel (location i) m v)) (in-hole ec (subst e x v)) store) ;; (Sel/βv)
-   (where c (store-lookup store i))
-   (found c #t)
-   (where any_lookup (method-label-lookup c m))
-   (found any_lookup #t)
-   (where (x e) any_lookup)]
-  [(red store (in-hole ec (val x = new c in e)) (in-hole ec (subst e x loc_new)) (store-extend store (subst c x loc_new)))
-   (where loc_new (store-fresh-location store))] ;; (New)
-  [(red store (in-hole ec (sel (location i) l)) (in-hole ec v) store) ;; (Sel)
-   (where c (store-lookup store i))
-   (found c #t)
-   (where v (value-label-lookup c l))
-   (found v #t)])
-
-(define red-rr
-  (reduction-relation
-   dot
-   (--> (store_1 e_1) (store_2 e_2)
-        (judgment-holds (red store_1 e_1 e_2 store_2)))))
-
-(define (trace-dot expr)
-  (traces red-rr (term (() ,expr))))
-
-(define-metafunction dot
-  ev : store e -> (v store)
-  [(ev store v) (v store)]
-  [(ev store_i (sel e_i1 m_i e_i2)) (v_f store_f)
-   (where ((location i_1) store_1) (ev store_i e_i1))
-   (where c_1 (store-lookup store_1 i_1))
-   (judgment-holds (found c_1 #t))
-   (where any_lookup (method-label-lookup c_1 m_i))
-   (judgment-holds (found any_lookup #t))
-   (where (x e_11) any_lookup)
-   (where (v_2 store_2) (ev store_1 e_i2))
-   (where (v_f store_f) (ev store_2 (subst e_11 x v_2)))]
-  [(ev store_i (val x_i = new c_i in e_i)) (v_f store_f)
-   (where loc_new (store-fresh-location store_i))
-   (where e_s (subst e_i x_i loc_new))
-   (where store_s (store-extend store_i (subst c_i x_i loc_new)))
-   (where (v_f store_f) (ev store_s e_s))]
-  [(ev store_i (sel e_i l_i)) (v_f store_f)
-   (where ((location i_f) store_f) (ev store_i e_i))
-   (where c_f (store-lookup store_f i_f))
-   (judgment-holds (found c_f #t))
-   (where v_f (value-label-lookup c_f l_i))
-   (judgment-holds (found v_f #t))])
-
-(define value? (redex-match dot v))
-(define (single-step? e)
-  (= (length (apply-reduction-relation red-rr (term (() ,e))))
-     1))
-(define (steps-to store e)
-  (match (apply-reduction-relation red-rr (term (,store ,e)))
-    [(list) #f]
-    [(list any) any]
-    [_ (error 'steps-to
-              "multiple derivations for term ~a"
-              e)]))
 
 (define-metafunction dot
   fn : any x -> bool
@@ -292,8 +230,8 @@
   sorted-assigns : ((l vx) ...) -> ((l vx) ...)
   [(sorted-assigns ((l_1 vx_1) ...)) ,(sort-assigns (term ((l_1 vx_1) ...)))])
 (define-metafunction dot
-  sorted-method-assigns : ((m x e) ...) -> ((m x e) ...)
-  [(sorted-method-assigns ((m_1 x_1 e_1) ...)) ,(sort-assigns (term ((m_1 x_1 e_1) ...)))])
+  sorted-method-assigns : ((m x s) ...) -> ((m x s) ...)
+  [(sorted-method-assigns ((m_1 x_1 s_1) ...)) ,(sort-assigns (term ((m_1 x_1 s_1) ...)))])
 
 (define-metafunction dot
   decl-intersection : (D ...) (D ...) -> (D ...)
@@ -342,63 +280,45 @@
    ()])
 
 (define-metafunction dot
-  membership-type-lookup : env e Lt -> (S U) or #f
+  membership-type-lookup : env p Lt -> (S U) or #f
   [(membership-type-lookup env_1 p_1 Lt_1)
    (subst (S_1 U_1) z_1 p_1)
    (judgment-holds (typeof env_1 p_1 T_e))
-   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
+   (where z_1 ,(variable-not-in (term (env_1 p_1 T_e)) 'z))
    (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...) (Dm ...))))]
-  [(membership-type-lookup env_1 e_1 Lt_1)
-   (S_1 U_1)
-   (judgment-holds (typeof env_1 e_1 T_e))
-   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
-   (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...) (Dm ...))))
-   (judgment-holds (found (fn (S_1 U_1) z_1) #f))]
-  [(membership-type-lookup env_1 e_1 Lt_1)
+  [(membership-type-lookup env_1 p_1 Lt_1)
    (Top Bot)
-   (judgment-holds (typeof env_1 e_1 T_e))
+   (judgment-holds (typeof env_1 p_1 T_e))
    (judgment-holds (subtype env_1 T_e Bot))]  
-  [(membership-type-lookup env_1 e_1 Lt_1)
+  [(membership-type-lookup env_1 p_1 Lt_1)
    #f])
 
 (define-metafunction dot
-  membership-value-lookup : env e l -> T or #f
+  membership-value-lookup : env p l -> T or #f
   [(membership-value-lookup env_1 p_1 l_1)
    (subst T_1 z_1 p_1)
-   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
+   (where z_1 ,(variable-not-in (term (env_1 p_1 T_e)) 'z))
    (judgment-holds (typeof env_1 p_1 T_e))
    (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...) (Dm ...))))]
-  [(membership-value-lookup env_1 e_1 l_1)
-   T_1
-   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
-   (judgment-holds (typeof env_1 e_1 T_e))
-   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...) (Dm ...))))
-   (judgment-holds (found (fn T_1 z_1) #f))]
-  [(membership-value-lookup env_1 e_1 l_1)
+  [(membership-value-lookup env_1 p_1 l_1)
    Bot
-   (judgment-holds (typeof env_1 e_1 T_e))
+   (judgment-holds (typeof env_1 p_1 T_e))
    (judgment-holds (subtype env_1 T_e Bot))]
-  [(membership-value-lookup env_1 e_1 l_1)
+  [(membership-value-lookup env_1 p_1 l_1)
    #f])
 
 (define-metafunction dot
-  membership-method-lookup : env e m -> (S U) or #f
+  membership-method-lookup : env p m -> (S U) or #f
   [(membership-method-lookup env_1 p_1 m_1)
    (subst (S_1 U_1) z_1 p_1)
-   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
+   (where z_1 ,(variable-not-in (term (env_1 p_1 T_e)) 'z))
    (judgment-holds (typeof env_1 p_1 T_e))
    (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (Dl ...) (D_before ... (: m_1 S_1 U_1) D_after ...))))]
-  [(membership-method-lookup env_1 e_1 m_1)
-   (S_1 U_1)
-   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
-   (judgment-holds (typeof env_1 e_1 T_e))
-   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (Dl ...) (D_before ... (: m_1 S_1 U_1) D_after ...))))
-   (judgment-holds (found (fn (S_1 U_1) z_1) #f))]
-  [(membership-method-lookup env_1 e_1 m_1)
+  [(membership-method-lookup env_1 p_1 m_1)
    (Top Bot)
-   (judgment-holds (typeof env_1 e_1 T_e))
+   (judgment-holds (typeof env_1 p_1 T_e))
    (judgment-holds (subtype env_1 T_e Bot))]
-  [(membership-method-lookup env_1 e_1 m_1)
+  [(membership-method-lookup env_1 p_1 m_1)
    #f])
 
 (define max-iter 100)
@@ -548,217 +468,17 @@
 
 (define-judgment-form dot
   #:mode (typeof I I O)
-  #:contract (typeof env e T)
+  #:contract (typeof env p T)
   [(typeof (Gamma store) x T)
    (where T (gamma-lookup Gamma x))
    (found T #t)]
-  [(typeof (Gamma store) (val x = new (Tc (l vx) ... (m x_m e_m) ...) in e) T)
-   (wfe-type (Gamma store) Tc)
-   (expansion (Gamma store) x Tc (((: Lt S U) ...) (Dl ...) (Dm ...)))
-   (where ((l_s vx_s) ...) (sorted-assigns ((l vx) ...)))
-   (where ((: l_s V_d) ...) (sorted-decls (Dl ...)))
-   (where ((m_s y_ms e_ms) ...) (sorted-method-assigns ((m x_m e_m) ...)))
-   (where ((: m_s V_md W_md) ...) (sorted-decls (Dm ...)))
-   (where Gamma_Tc (gamma-extend Gamma x Tc))
-   (wfe-type (Gamma_Tc store) V_md) ...
-   (subtype (Gamma_Tc store) S U) ...
-   (typeof (Gamma_Tc store) vx_s V_s) ...
-   (subtype (Gamma_Tc store) V_s V_d) ...
-   (typeof ((gamma-extend Gamma_Tc y_ms V_md) store) e_ms W_ms) ...
-   (subtype ((gamma-extend Gamma_Tc y_ms V_md) store) W_ms W_md) ...
-   (typeof (Gamma_Tc store) e T)
-   (found (fn T x) #f)]
   [(typeof (Gamma store) (location i) Tc)
    (where c (store-lookup store i))
    (found c #t)
    (where Tc (constructor-type-lookup c))]
-  [(typeof env (sel e_1 l_1) T_1)
-   (where T_1 (membership-value-lookup env e_1 l_1))
-   (found T_1 #t)]
-  [(typeof env (sel e_1 m_1 e_2) T_1)
-   (where any_lookup (membership-method-lookup env e_1 m_1))
-   (found any_lookup #t)
-   (where (S_1 T_1) any_lookup)
-   (typeof env e_2 T_2)
-   (subtype env T_2 S_1)])
-
-(define (typecheck env e)
-  (match (judgment-holds (typeof ,env ,e T) T)
-    [(list) #f]
-    [(list T) T]
-    [_ (error 'typecheck
-              "multiple typing derivations for term ~a in environment ~a"
-              e env)]))
-
-(define-metafunction dot
-  arrow- : x (DLt ...) S T -> W
-  [(arrow- x (DLt ...) S T) (rfn Top x
-                              DLt ...
-                              (: (cm apply) S T))])
-
-(define-metafunction dot
-  fun- : x (DLt ...) (x S) T e -> e
-  [(fun- x_f (DLt ...) (x S) T e)
-   (val x_f = new ((arrow- x_f (DLt ...) S T) [(cm apply) x e]) in x_f)])
-
-(define-metafunction dot
-  arrow : S T -> W
-  [(arrow S T) (arrow- x_self () S T)
-   (where x_self ,(variable-not-in (term (S T)) 'self))])
-
-(define-metafunction dot
-  fun : x S T e -> e
-  [(fun x S T e) (fun- x_f () (x S) T e)
-   (where x_f ,(variable-not-in (term (x S T e)) 'f))])
-
-(define-metafunction dot
-  app : e e -> e
-  [(app e_1 e_2) (sel e_1 (cm apply) e_2)])
-
-(define-metafunction dot
-  cast : T e -> e
-  [(cast T e) (app (fun x T T x) e)
-   (where x ,(variable-not-in (term (T e)) 'id))])
-
-(define-metafunction dot
-  as : T e -> e
-  [(as T e) (cast T e)])
-
-(define (dotExample)
-  (term (val dummy = new (Top) in
-        (val root = new ((rfn
-                          Top rootThis
-                          (: (cc UnitClass) Bot Top)
-                          (: (cc BooleanClass) Bot (rfn
-                                                    Top this
-                                                    (: (cm ifNat) Top
-                                                       (arrow (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc NatClass)))
-                                                              (arrow (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc NatClass)))
-                                                                     (sel rootThis (cc NatClass)))))))
-                          (: (cc NatClass) Bot (rfn
-                                                Top this
-                                                (: (cm isZero) Top
-                                                   (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc BooleanClass))))
-                                                (: (cm pred) Top
-                                                   (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc NatClass))))
-                                                (: (cm succ) Top
-                                                   (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc NatClass))))))
-                          (: (cm unit) Top (arrow Top (sel rootThis (cc UnitClass))))
-                          (: (cm false) Top (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc BooleanClass))))
-                          (: (cm true) Top (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc BooleanClass))))
-                          (: (cm zero) Top (arrow (sel rootThis (cc UnitClass)) (sel rootThis (cc NatClass))))
-                          (: (cm successor) Top (arrow (sel rootThis (cc NatClass)) (sel rootThis (cc NatClass)))))
-                         [(cm unit) dummy (fun x Top (sel root (cc UnitClass)) (val u = new ((rfn (sel root (cc UnitClass)) this)) in u))]
-                         [(cm false) dummy
-                                     (fun u (sel root (cc UnitClass)) (sel root (cc BooleanClass))
-                                          (val ff = new ((rfn (sel root (cc BooleanClass)) this)
-                                                         [(cm ifNat) dummy
-                                                                     (fun t (arrow (sel root (cc UnitClass)) (sel root (cc NatClass)))
-                                                                          (arrow (arrow (sel root (cc UnitClass)) (sel root (cc NatClass))) (sel root (cc NatClass)))
-                                                                          (fun e (arrow (sel root (cc UnitClass)) (sel root (cc NatClass)))
-                                                                               (sel root (cc NatClass))
-                                                                               (app e (app (sel root (cm unit) dummy) (sel root (cm unit) dummy)))))]) in ff))]
-                         [(cm true) dummy
-                                    (fun u (sel root (cc UnitClass)) (sel root (cc BooleanClass))
-                                         (val tt = new ((rfn (sel root (cc BooleanClass)) this)
-                                                        [(cm ifNat) dummy
-                                                                    (fun t (arrow (sel root (cc UnitClass)) (sel root (cc NatClass)))
-                                                                         (arrow (arrow (sel root (cc UnitClass)) (sel root (cc NatClass))) (sel root (cc NatClass)))
-                                                                         (fun e (arrow (sel root (cc UnitClass)) (sel root (cc NatClass)))
-                                                                              (sel root (cc NatClass))
-                                                                              (app t (app (sel root (cm unit) dummy) (sel root (cm unit) dummy)))))]) in tt))]
-                         [(cm zero) dummy
-                                    (fun u (sel root (cc UnitClass)) (sel root (cc NatClass))
-                                         (val zz = new ((rfn (sel root (cc NatClass)) this)
-                                                        [(cm isZero) dummy (fun u (sel root (cc UnitClass)) (sel root (cc BooleanClass))
-                                                                                (app (sel root (cm true) dummy) (app (sel root (cm unit) dummy) (sel root (cm unit) dummy))))]
-                                                        [(cm succ) dummy (fun u (sel root (cc UnitClass)) (sel root (cc NatClass))
-                                                                              (app (sel root (cm successor) dummy) zz))]
-                                                        [(cm pred) dummy (fun u (sel root (cc UnitClass)) (sel root (cc NatClass)) zz)]) in zz))]
-                         [(cm successor) dummy
-                                         (fun n (sel root (cc NatClass)) (sel root (cc NatClass))
-                                              (val ss = new ((rfn (sel root (cc NatClass)) this)
-                                                             [(cm isZero) dummy (fun u (sel root (cc UnitClass)) (sel root (cc BooleanClass)) 
-                                                                                     (app (sel root (cm false) dummy) (app (sel root (cm unit) dummy) (sel root (cm unit) dummy))))]
-                                                             [(cm succ) dummy (fun u (sel root (cc UnitClass)) (sel root (cc NatClass))
-                                                                                   (app (sel root (cm successor) dummy) ss))]
-                                                             [(cm pred) dummy (fun u (sel root (cc UnitClass)) (sel root (cc NatClass)) n)]) in ss))]) in
-(app (fun x Top Top x)
-     (app (fun unit (sel root (cc UnitClass)) (sel root (cc BooleanClass))
-               (app (sel (app (sel (app (sel (app (sel root (cm zero) dummy) unit)
-                                             (cm succ) dummy) unit)
-                                   (cm pred) dummy) unit)
-                         (cm isZero) dummy) unit)
-               ) (app (sel root (cm unit) dummy) (sel root (cm unit) dummy))))))))
-
-(define-metafunction dot
-  wf-prog : any -> bool
-  [(wf-prog (rfn T z DLt ... Dl ... Dm ...)) #f
-   (side-condition (not (equal? (term (DLt ... Dl ... Dm ...)) (remove-duplicates (term (DLt ... Dl ... Dm ...)) #:key cadadr))))]
-  [(wf-prog (any_1 ...))
-   ,(andmap (lambda (x) x) (term ((wf-prog any_1) ...)))]
-  [(wf-prog any_1) #t]) 
-
-(define-metafunction dot
-  lc-decls : any -> (variable ...)
-  [(lc-decls (: (cc variable_1) S_1 U_1))
-   (variable_1)]
-  [(lc-decls (any_1 ...))
-   ,(apply append (term ((lc-decls any_1) ...)))]
-  [(lc-decls any_1)
-   ()])
-
-(define (well-formed? e)
-  (and (term (wf-prog ,e))
-       (let ((cs (term (lc-decls ,e))))
-         (equal? cs (remove-duplicates cs)))))
-
-(define (progress e)
-  (if (and (well-formed? e) (typecheck (term (() ())) e))
-      (begin
-        (printf "progress: trying ~a\n" e)
-        (or (value? e)
-            (single-step? e)))
-      #t))
-
-(define (preservation e)
-  (if (and (well-formed? e) (typecheck (term (() ())) e) (single-step? e))
-      (begin
-        ;(printf "preservation: trying ~a\n" e)
-        (let loop ((e e) (store (term ())) (t (typecheck (term (() ())) e)))
-          (or (and (value? e) t)
-              (match (steps-to store e)
-                [(list store_to e_to)
-                 (let ((t_new (typecheck (term (() ,store_to)) e_to)))
-                   (and t_new
-                        (judgment-holds (subtype (() ,store_to) ,t_new ,t))
-                        (loop e_to store_to t_new)))]
-                [_ (error 'preservation "expect match")]))))
-      #t))
-
-(define (big-step-preservation e)
-  (if (and (well-formed? e) (typecheck (term (() ())) e))
-      (begin
-        ;(printf "big-step preservation: trying ~a\n" e)
-        (redex-let dot ([(e_ev store_ev) (term (ev () ,e))])
-          (let ([t_e  (typecheck (term (() ())) e)]
-                [t_ev (typecheck (term (() store_ev)) (term e_ev))])
-            (and t_ev
-                 (judgment-holds (subtype (() store_ev) ,t_ev ,t_e))
-                 (term e_ev)))))
-      #t))
-
-(define (type-safety e)
-  (if (and (well-formed? e) (typecheck (term (() ())) e))
-      (begin
-        ;(printf "type-safety: trying ~a\n" e)
-        (let loop ((e e) (store (term ())))
-          (if (value? e) e
-              (match (steps-to store e)
-                [(list store_to e_to)
-                 (loop e_to store_to)]
-                [_ #f]))))
-      #t))
+  [(typeof env (sel p_1 l_1) T_1)
+   (where T_1 (membership-value-lookup env p_1 l_1))
+   (found T_1 #t)])
 
 (define (subtyping-transitive env s t u)
   (if (and (judgment-holds (wfe-type ,env ,s)) (judgment-holds (wfe-type ,env ,t)) (judgment-holds (wfe-type ,env ,u))
