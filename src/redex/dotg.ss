@@ -346,7 +346,7 @@
   [(membership-type-lookup env_1 p_1 Lt_1)
    (subst (S_1 U_1) z_1 p_1)
    (judgment-holds (typeof env_1 p_1 T_e))
-   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
+   (where z_1 ,(variable-not-in (term (env_1 p_1 T_e)) 'z))
    (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...) (Dm ...))))]
   [(membership-type-lookup env_1 e_1 Lt_1)
    (S_1 U_1)
@@ -365,7 +365,7 @@
   membership-value-lookup : env e l -> T or #f
   [(membership-value-lookup env_1 p_1 l_1)
    (subst T_1 z_1 p_1)
-   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
+   (where z_1 ,(variable-not-in (term (env_1 p_1 T_e)) 'z))
    (judgment-holds (typeof env_1 p_1 T_e))
    (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...) (Dm ...))))]
   [(membership-value-lookup env_1 e_1 l_1)
@@ -385,7 +385,7 @@
   membership-method-lookup : env e m -> (S U) or #f
   [(membership-method-lookup env_1 p_1 m_1)
    (subst (S_1 U_1) z_1 p_1)
-   (where z_1 ,(variable-not-in (term (env_1 e_1 T_e)) 'z))
+   (where z_1 ,(variable-not-in (term (env_1 p_1 T_e)) 'z))
    (judgment-holds (typeof env_1 p_1 T_e))
    (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (Dl ...) (D_before ... (: m_1 S_1 U_1) D_after ...))))]
   [(membership-method-lookup env_1 e_1 m_1)
