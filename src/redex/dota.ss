@@ -10,7 +10,7 @@
   (loc (location i))
   (v loc)
   (vx v x)
-  (b (new c) (snd p m p))
+  (b (new c) (snd p m p) (exe v m s))
   (s p (val x = b in s))
   (p x loc (sel p l))
   (c (Tc (l vx) ... (m x s) ...))
