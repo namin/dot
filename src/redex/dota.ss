@@ -48,6 +48,7 @@
   [(union Top T_2) Top]
   [(union T_1 T_2) (T_1 ∨ T_2)])
 
+;;; TODO: treat statement bindings accurately
 (define-metafunction dot
   subst : any x any -> any
   ;; 1. x_1 bound
@@ -522,3 +523,75 @@
 
 (define (trace-dot stmt)
   (traces red-rr (term (() ,stmt))))
+
+(define value? (redex-match dot v))
+(define (single-step? e)
+  (= (length (apply-reduction-relation red-rr (term (() ,e))))
+     1))
+(define (steps-to store e)
+  (match (apply-reduction-relation red-rr (term (,store ,e)))
+    [(list) #f]
+    [(list any) any]
+    [_ (error 'steps-to
+              "multiple derivations for term ~a"
+              e)]))
+
+(define-judgment-form dot
+  #:mode (typeok I I I)
+  #:contract (typeok env s T)
+  [(typeok env p T)
+   (typeof env p T_p)
+   (subtype env T_p T)]
+  [(typeok (Gamma store) (val x = (new (Tc (l vx) ... (m x_m s_m) ...)) in s) T)
+   (wfe-type (Gamma store) Tc)
+   (expansion (Gamma store) x Tc (((: Lt S U) ...) (Dl ...) (Dm ...)))
+   (where ((l_s vx_s) ...) (sorted-assigns ((l vx) ...)))
+   (where ((: l_s V_d) ...) (sorted-decls (Dl ...)))
+   (where ((m_s y_ms s_ms) ...) (sorted-method-assigns ((m x_m s_m) ...)))
+   (where ((: m_s V_md W_md) ...) (sorted-decls (Dm ...)))
+   (where Gamma_Tc (gamma-extend Gamma x Tc))
+   (wfe-type (Gamma_Tc store) V_md) ...
+   (subtype (Gamma_Tc store) S U) ...
+   (typeof (Gamma_Tc store) vx_s V_s) ...
+   (subtype (Gamma_Tc store) V_s V_d) ...
+   (typeok ((gamma-extend Gamma_Tc y_ms V_md) store) s_ms W_md) ...
+   (typeok (Gamma_Tc store) s T)]
+  [(typeok env (val x = (snd p_1 m_1 p_2) in s) T)
+   (where any_lookup (membership-method-lookup env p_1 m_1))
+   (found any_lookup #t)
+   (where (S_1 T_1) any_lookup)
+   (typeof env p_2 T_2)
+   (subtype env T_2 S_1)
+   (where (Gamma store) env)
+   (typeok ((gamma-extend Gamma x T_1) store) s T)]
+  [(typeok env (val x = (exe v_1 m_1 s_body) in s) T)
+   (where any_lookup (membership-method-lookup env v_1 m_1))
+   (found any_lookup #t)
+   (where (S_1 T_1) any_lookup)
+   (typeok env s_body T_1)
+   (where (Gamma store) env)
+   (typeok ((gamma-extend Gamma x T_1) store) s T)])
+
+(define (progress s)
+  (if (judgment-holds (typeok (() ()) ,s Top))
+      (begin
+        (printf "progress: trying ~a\n" s)
+        (or (value? s)
+            (single-step? s)))
+      #t))
+
+(define (preservation-with s T)
+  (if (and (judgment-holds (typeok (() ()) ,s ,T)) (single-step? s))
+      (begin
+        (printf "preservation: trying ~a\n" s)
+        (let loop ((s s) (store (term ())))
+          (or (value? s)
+              (match (steps-to store s)
+                [(list store_to s_to)
+                 (and (judgment-holds (typeok (() ,store_to) ,s_to ,T))
+                        (loop s_to store_to))]
+                [_ (error 'preservation "expect match")]))))
+      #t))
+
+(define (preservation s)
+  (preservation-with s (term Top)))
