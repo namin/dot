@@ -472,14 +472,17 @@
   #:contract (typeof env p T)
   [(typeof (Gamma store) x T)
    (where T (gamma-lookup Gamma x))
-   (found T #t)]
+   (found T #t)
+   "TP-VAR"]
   [(typeof (Gamma store) (location i) Tc)
    (where c (store-lookup store i))
    (found c #t)
-   (where Tc (constructor-type-lookup c))]
+   (where Tc (constructor-type-lookup c))
+   "TP-LOC"]
   [(typeof env (sel p_1 l_1) T_1)
    (where T_1 (membership-value-lookup env p_1 l_1))
-   (found T_1 #t)])
+   (found T_1 #t)
+   "TP-SEL"])
 
 (define (subtyping-transitive env s t u)
   (if (and (judgment-holds (wfe-type ,env ,s)) (judgment-holds (wfe-type ,env ,t)) (judgment-holds (wfe-type ,env ,u))
@@ -492,28 +495,36 @@
 (define-judgment-form dot
   #:mode (red I I O O)
   #:contract (red store s s store)
-  [(red store (sel (location i) l) v store) ;; (Sel)
+  [(red store (sel (location i) l) v store)
    (where c (store-lookup store i))
    (found c #t)
    (where v (value-label-lookup c l))
-   (found v #t)]
+   (found v #t)
+   "R-SEL"]
   [(red store_1 (sel p_1 l) (sel p_2 l) store_2)
-   (red store_1 p_1 p_2 store_2)]
+   (red store_1 p_1 p_2 store_2)
+   "R-SEL-C"]
   [(red store (val x = (new c) in s) (subst s x loc_new) (store-extend store (subst c x loc_new)))
-   (where loc_new (store-fresh-location store))] ;; (New)
-  [(red store (val x_r = (snd (location i) m v) in s_r) (val x_r = (exe (location i) m (subst s x v)) in s_r) store) ;; (Sel/βv)
+   (where loc_new (store-fresh-location store))
+   "R-NEW"]
+  [(red store (val x_r = (snd (location i) m v) in s_r) (val x_r = (exe (location i) m (subst s x v)) in s_r) store)
    (where c (store-lookup store i))
    (found c #t)
    (where any_lookup (method-label-lookup c m))
    (found any_lookup #t)
-   (where (x s) any_lookup)]
+   (where (x s) any_lookup)
+   "R-BETA"]
   [(red store_1 (val x = (snd p_obj1 m p_arg) in s) (val x = (snd p_obj2 m p_arg) in s) store_2)
-   (red store_1 p_obj1 p_obj2 store_2)]
+   (red store_1 p_obj1 p_obj2 store_2)
+   "R-NEW-C-OBJ"]
   [(red store_1 (val x = (snd v_obj m p_arg1) in s) (val x = (snd v_obj m p_arg2) in s) store_2)
-   (red store_1 p_arg1 p_arg2 store_2)]
-  [(red store (val x = (exe v_o m v) in s) (subst s x v) store)]
+   (red store_1 p_arg1 p_arg2 store_2)
+   "R-NEW-C-ARG"]
+  [(red store (val x = (exe v_o m v) in s) (subst s x v) store)
+   "R-EXE"]
   [(red store_1 (val x_r = (exe v_o m s_1) in s_r) (val x_r = (exe v_o m s_2) in s_r) store_2)
-   (red store_1 s_1 s_2 store_2)])
+   (red store_1 s_1 s_2 store_2)
+   "R-EXE-C"])
 
 (define red-rr
   (reduction-relation
@@ -541,7 +552,8 @@
   #:contract (typeok env s T)
   [(typeok env p T)
    (typeof env p T_p)
-   (subtype env T_p T)]
+   (subtype env T_p T)
+   "TS-PATH"]
   [(typeok (Gamma store) (val x = (new (Tc (l vx) ... (m x_m s_m) ...)) in s) T)
    (wfe-type (Gamma store) Tc)
    (expansion (Gamma store) x Tc (((: Lt S U) ...) (Dl ...) (Dm ...)))
@@ -555,7 +567,8 @@
    (typeof (Gamma_Tc store) vx_s V_s) ...
    (subtype (Gamma_Tc store) V_s V_d) ...
    (typeok ((gamma-extend Gamma_Tc y_ms V_md) store) s_ms W_md) ...
-   (typeok (Gamma_Tc store) s T)]
+   (typeok (Gamma_Tc store) s T)
+   "TS-NEW"]
   [(typeok env (val x = (snd p_1 m_1 p_2) in s) T)
    (where any_lookup (membership-method-lookup env p_1 m_1))
    (found any_lookup #t)
@@ -563,14 +576,16 @@
    (typeof env p_2 T_2)
    (subtype env T_2 S_1)
    (where (Gamma store) env)
-   (typeok ((gamma-extend Gamma x T_1) store) s T)]
+   (typeok ((gamma-extend Gamma x T_1) store) s T)
+   "TS-SND"]
   [(typeok env (val x = (exe v_1 m_1 s_body) in s) T)
    (where any_lookup (membership-method-lookup env v_1 m_1))
    (found any_lookup #t)
    (where (S_1 T_1) any_lookup)
    (typeok env s_body T_1)
    (where (Gamma store) env)
-   (typeok ((gamma-extend Gamma x T_1) store) s T)])
+   (typeok ((gamma-extend Gamma x T_1) store) s T)
+   "TS-EXE"])
 
 (define (progress s)
   (if (judgment-holds (typeok (() ()) ,s Top))
