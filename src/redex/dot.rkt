@@ -513,13 +513,13 @@
    (where any_lookup (method-label-lookup c m))
    (found any_lookup #t)
    (where (x s) any_lookup)
-   "R-BETA"]
+   "R-SND"]
   [(red store_1 (val x = (snd p_obj1 m p_arg) in s) (val x = (snd p_obj2 m p_arg) in s) store_2)
    (red store_1 p_obj1 p_obj2 store_2)
-   "R-NEW-C-OBJ"]
+   "R-SND-C-OBJ"]
   [(red store_1 (val x = (snd v_obj m p_arg1) in s) (val x = (snd v_obj m p_arg2) in s) store_2)
    (red store_1 p_arg1 p_arg2 store_2)
-   "R-NEW-C-ARG"]
+   "R-SND-C-ARG"]
   [(red store (val x = (exe v_o m v) in s) (subst s x v) store)
    "R-EXE"]
   [(red store_1 (val x_r = (exe v_o m s_1) in s_r) (val x_r = (exe v_o m s_2) in s_r) store_2)
