@@ -450,22 +450,22 @@ function decls_vars(decls: list<decl>): seq<int>
 }
 
 // ### Reduction ###
-function pt_step(p: pt, s: store): option<pair<pt, store>>
+function pt_step(p: pt, s: store): option<pt>
 {
   /* sel */
   if (p.pt_sel? && p.p.pt_loc? && p.p.loc < |s.m| &&
       def_field_lookup(p.l, store_lookup(p.p.loc, s)).Some?)
-  then Some(P(def_field_lookup(p.l, store_lookup(p.p.loc, s)).get, s))
+  then Some(def_field_lookup(p.l, store_lookup(p.p.loc, s)).get)
   /* sel-c */
   else if (p.pt_sel? && pt_step(p.p, s).Some?)
-  then Some(P(pt_sel(pt_step(p.p, s).get.fst, p.l), pt_step(p.p, s).get.snd))
+  then Some(pt_sel(pt_step(p.p, s).get, p.l))
   else None
 }
 
 function step(t: tm, s: store): option<pair<tm, store>>
 {
   if (t.tm_path? && pt_step(t.p, s).Some?)
-  then Some(P(tm_path(pt_step(t.p, s).get.fst), pt_step(t.p, s).get.snd))
+  then Some(P(tm_path(pt_step(t.p, s).get), s))
   /* new */
   else if (t.tm_bind? && t.b.bd_new?)
   then Some(P(tm_subst(t.y, pt_loc(|s.m|), t.t'),
@@ -482,10 +482,10 @@ function step(t: tm, s: store): option<pair<tm, store>>
               s))
   /* snd-c-obj */
   else if (t.tm_bind? && t.b.bd_snd? && pt_step(t.b.o, s).Some?)
-  then Some(P(tm_bind(t.y, bd_snd(pt_step(t.b.o, s).get.fst, t.b.m, t.b.a), t.t'), pt_step(t.b.o, s).get.snd))
+  then Some(P(tm_bind(t.y, bd_snd(pt_step(t.b.o, s).get, t.b.m, t.b.a), t.t'), s))
   /* snd-c-arg */
   else if (t.tm_bind? && t.b.bd_snd? && value(tm_path(t.b.o)) && pt_step(t.b.a, s).Some?)
-  then Some(P(tm_bind(t.y, bd_snd(t.b.o, t.b.m, pt_step(t.b.a, s).get.fst), t.t'), pt_step(t.b.a, s).get.snd))
+  then Some(P(tm_bind(t.y, bd_snd(t.b.o, t.b.m, pt_step(t.b.a, s).get), t.t'), s))
   /* exe */
   else if (t.tm_bind? && t.b.bd_exe? && value(t.b.t'))
   then Some(P(tm_subst(t.y, t.b.t'.p, t.t'), s))
