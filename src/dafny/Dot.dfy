@@ -1133,3 +1133,48 @@ ghost method lemma_decl_bot__subst_idem(x: nat, s: pt, d: decl)
   ensures decl_eq(d, decl_subst(x, s, d));
 {
 }
+
+// Typing statements
+
+predicate typeok(n: nat, ctx: context, s: store, t: tm, T: tp)
+  decreases n;
+{
+  match t
+  case tm_path(p) =>
+    n>0 && exists Tp :: typing(n-1, ctx, s, p, Tp) && subtype(n-1, ctx, s, Tp, T)
+  case tm_bind(y_, b, t'_) =>
+    (match b
+      case bd_new(Tc, init_) =>
+        var y := fresh_from(dom(ctx)+tm_vars(t)+tp_vars(T));
+        var t' := tm_subst(y_, pt_var(y), t'_);
+        var init := defs_subst(y_, pt_var(y), init_);
+        n>0 && is_concrete(Tc) &&
+        exists Ds:decls :: Ds.decls_fin? &&
+        wfe_type(n-1, ctx, s, Tc) &&
+        expansion(n-1, ctx, s, y, Tc, Ds) &&
+        wf_init(n-1, false, context_extend(ctx, y, Tc), s, lst2seq(Ds.decls), lst2seq(init)) &&
+        typeok(n-1, context_extend(ctx, y, Tc), s, t', T)
+      case bd_snd(o, m, a) =>
+        var y := fresh_from(dom(ctx)+tm_vars(t)+tp_vars(T));
+        var t' := tm_subst(y_, pt_var(y), t'_);
+        n>0 && exists P, R :: method_membership(n-1, ctx, s, o, m, P, R) &&
+        typeok(n-1, ctx, s, tm_path(a), P) &&
+        typeok(n-1, context_extend(ctx, y, R), s, t', T)
+      case bd_exe(ov, mv, tb) =>
+        var y := fresh_from(dom(ctx)+tm_vars(t)+tp_vars(T));
+        var t' := tm_subst(y_, pt_var(y), t'_);
+        n>0 && exists P, R :: method_membership(n-1, ctx, s, pt_loc(ov), mv, P, R) &&
+        typeok(n-1, ctx, s, tb, R) &&
+        typeok(n-1, context_extend(ctx, y, R), s, t', T)
+    )
+}
+predicate wf_init(n: nat, already_in_store: bool, ctx: context, s: store, decls: seq<decl>, defs: seq<def>)
+  decreases n;
+{
+  var p:nat := fresh_in_context(ctx);
+  n>0 && forall d :: d in decls ==> (
+  if (d.decl_tp?) then subtype(n-1, ctx, s, d.S, d.U)
+  else if (d.decl_tm?) then exists def :: def in defs && def.def_tm? && def.l==d.l && (if already_in_store then value(tm_path(def.v)) else syn_value(tm_path(def.v))) && typeok(n-1, ctx, s, tm_path(def.v), d.T)
+  else if (d.decl_mt?) then exists def :: def in defs && def.def_mt? && def.m==d.m && typeok(n-1, context_extend(ctx, p, d.P), s, tm_subst(def.param, pt_var(p), def.body), d.R)
+  else false)
+}
