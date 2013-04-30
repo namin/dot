@@ -325,9 +325,9 @@
 (define max-iter 100)
 
 (define-metafunction dot
-  member : any (any ...) -> #t or #f
-  [(member any_1 (any_0 ... any_1 any_2 ...)) #t]
-  [(member any_1 (any_0 ...)) #f])
+  is_member : any (any ...) -> #t or #f
+  [(is_member any_1 (any_0 ... any_1 any_2 ...)) #t]
+  [(is_member any_1 (any_0 ...)) #f])
 
 (define-judgment-form dot
   #:mode (expansion-fix I I I I I I O)
@@ -336,7 +336,7 @@
    (expansion-iter (((sel p_w Lt_w) Ds_w) ((sel p_0 Lt_0) Ds_0) ...) env z T Ds_w)]
   [(expansion-fix (sel p_w Lt_w) Ds_w (((sel p_0 Lt_0) Ds_0) ...) env z T Ds_o)
    (expansion-iter (((sel p_w Lt_w) Ds_w) ((sel p_0 Lt_0) Ds_0) ...) env z T Ds_a)
-   (found (member Ds_a (Ds_w)) #f)
+   (found (is_member Ds_a (Ds_w)) #f)
    (expansion-fix (sel p_w Lt_w) Ds_a (((sel p_0 Lt_0) Ds_0) ...) env z T Ds_o)])
 
 (define-judgment-form dot
@@ -362,7 +362,7 @@
    (expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z T_2 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
   [(expansion-iter (((sel p_0 Lt_0) Ds_0) ... ((sel p_w Lt_w) Ds_w) ((sel p_2 Lt_2) Ds_2) ...) env z (sel p_w Lt_w) Ds_w)]
   [(expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z (sel p_w Lt_w) Ds_u)
-   (found (member (sel p_w Lt_w) ((sel p_0 Lt_0) ...)) #f)
+   (found (is_member (sel p_w Lt_w) ((sel p_0 Lt_0) ...)) #f)
    (where any_bound (membership-type-lookup env p_w Lt_w))
    (found any_bound #t)
    (where (S_p U_p) any_bound)
@@ -407,7 +407,7 @@
 (define-metafunction dot
   is_subtype : ((T T) ...) env S T -> bool
   [(is_subtype ((T_a T_b) ...) env S T) #f
-   (judgment-holds (found (member (S T) ((T_a T_b) ...)) #t))]
+   (judgment-holds (found (is_member (S T) ((T_a T_b) ...)) #t))]
   [(is_subtype ((T_a T_b) ...) env T T) #t
    (judgment-holds (wfe-type env T))]
   [(is_subtype ((T_a T_b) ...) env T Top) #t
