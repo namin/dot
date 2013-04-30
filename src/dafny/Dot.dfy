@@ -1178,3 +1178,20 @@ predicate wf_init(n: nat, already_in_store: bool, ctx: context, s: store, decls:
   else if (d.decl_mt?) then exists def :: def in defs && def.def_mt? && def.m==d.m && typeok(n-1, context_extend(ctx, p, d.P), s, tm_subst(def.param, pt_var(p), def.body), d.R)
   else false)
 }
+
+predicate store_wf1(n: nat, s: store, loc: nat, y: nat, Tc: tp, init: seq<def>)
+{
+  n>0 &&
+  is_concrete(Tc) &&
+  exists Ds:decls :: Ds.decls_fin? &&
+  wfe_type(n-1, Context([]), s, Tc) &&
+  expansion(n-1, Context([]), s, y, Tc, Ds) && 
+  wf_init(n-1, true, Context([]), s, lst2seq(decls_subst(y, pt_loc(loc), Ds.decls)), init) &&
+  tp_closed(Tc) &&
+  forall d :: d in init ==> def_closed(d)
+}
+predicate store_wf(n: nat, s: store)
+{
+  forall l:nat :: l < |s.m| ==> store_wf1(n, s, l, fresh_from([]), store_lookup_type(l, s), store_lookup(l, s))
+}
+
