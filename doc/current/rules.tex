@@ -443,42 +443,42 @@ t' = {\subst o x t}
 
 \begin{figure}
 \figurebox{
-\begin{multicols}{2}[\judgement{Type Assignment}{\fbox{$\Gamma \ts t \typ T$}}]
+\begin{multicols}{2}[\judgement{Type Assignment}{\fbox{$\Gamma;s \ts t \typ T$}}]
 
 \infrule[\textsc{var}]
 {x \typ T \in \Gamma}
-{\Gamma \ts x \typ T}
+{\Gamma;s \ts x \typ T}
 
 \infrule[\textsc{msel}]
-{\Gamma \ts t \ni m \typ {S \tfun T} \\
- \Gamma \ts t' \typ T' \spcomma T' \sub S}
-{\Gamma \ts \mapp t m {t'} \typ T}
+{\Gamma;s \ts t \ni m \typ {S \tfun T} \\
+ \Gamma;s \ts t' \typ T' \spcomma T' \sub S}
+{\Gamma;s \ts \mapp t m {t'} \typ T}
 
 \infrule[\textsc{sel}]
-{\Gamma \ts t \ni l \typ T'}
-{\Gamma \ts t.l \typ T'}
+{\Gamma;s \ts t \ni l \typ T'}
+{\Gamma;s \ts t.l \typ T'}
 
 \infrule[\textsc{new}]
 {
 y \notin \fn(T') \\
-\Gamma \ts T_c \wfe \spcomma T_c \expand_y \seq{\Ldecl L S U}, \seq{D} \\
-\Gamma \envplus{y: T_c} \ts \seq{S <: U} \spcomma \seq{d \typ D} \spcomma {t'} \typ {T} \spcomma T <: T'}
-{\Gamma \ts \new y {T_c \ldefs{\seq{d}}} {t'} \typ T'}
+\Gamma;s \ts T_c \wfe \spcomma T_c \expand_y \seq{\Ldecl L S U}, \seq{D} \\
+\Gamma \envplus{y: T_c};s \ts \seq{S <: U} \spcomma \seq{d \typ D} \spcomma {t'} \typ {T} \spcomma T <: T'}
+{\Gamma;s \ts \new y {T_c \ldefs{\seq{d}}} {t'} \typ T'}
 
 \end{multicols}
 
 \linesep
 
-\begin{multicols}{2}[\judgement{Declaration Assignment}{\fbox{$\Gamma \ts d \typ D$}}]
+\begin{multicols}{2}[\judgement{Declaration Assignment}{\fbox{$\Gamma;s \ts d \typ D$}}]
 
 \infrule[\textsc{vdecl}]
-{\Gamma \ts w \typ {V'} \spcomma {V'} \sub V}
-{\Gamma \ts (l = w) \typ (\ldecl l V)}
+{\Gamma;s \ts w \typ {V'} \spcomma {V'} \sub V}
+{\Gamma;s \ts (l = w) \typ (\ldecl l V)}
 
 \infrule[\textsc{mdecl}]
-{\Gamma \ts S \wfe\\
- \Gamma \envplus{x : S} \ts t \typ {T'} \spcomma {T'} \sub T}
-{\Gamma \ts (m(x) = t) \typ (\mdecl m S T) }
+{\Gamma;s \ts S \wfe\\
+ \Gamma;s \envplus{x : S} \ts t \typ {T'} \spcomma {T'} \sub T}
+{\Gamma;s \ts (m(x) = t) \typ (\mdecl m S T) }
 
 \end{multicols}
 
@@ -490,65 +490,65 @@ y \notin \fn(T') \\
 \begin{figure}
  \figurebox{
 
-    \begin{multicols}{2}[\judgement{Membership}{\fbox{$\Gamma \ts t \ni D$}}]
+    \begin{multicols}{2}[\judgement{Membership}{\fbox{$\Gamma;s \ts t \ni D$}}]
 
       \infrule[\textsc{path-$\ni$}]
-      {\Gamma \ts p \typ T \spcomma T \expand_z \seq D}
-      {\Gamma \ts p \ni \subst p z {D_i}}
+      {\Gamma;s \ts p \typ T \spcomma T \expand_z \seq D}
+      {\Gamma;s \ts p \ni \subst p z {D_i}}
 
       \infrule[\textsc{term-$\ni$}]
       {\forall p, t \neq p \andalso z \not\in \fn(D_i)\\
-       \Gamma \ts t \typ T \spcomma T <: T' \spcomma T' \expand_z \seq D}
-      {\Gamma \ts t \ni D_i}
+       \Gamma;s \ts t \typ T \spcomma T <: T' \spcomma T' \expand_z \seq D}
+      {\Gamma;s \ts t \ni D_i}
    \end{multicols}
 
    \linesep
 
-    \begin{multicols}{2}[\judgement{Expansion}{\fbox{$\Gamma \ts T \expand_z \seq D$}}]
+    \begin{multicols}{2}[\judgement{Expansion}{\fbox{$\Gamma;s \ts T \expand_z \seq D$}}]
       \infrule[\textsc{any-$\expand$}]
-      {\Gamma \ts \emptyset / T \expand'_z \seq D}
-      {\Gamma \ts T \expand_z \seq D}
+      {\Gamma;s \ts \emptyset / T \expand'_z \seq D}
+      {\Gamma;s \ts T \expand_z \seq D}
     \end{multicols}
 
-    \begin{multicols}{2}[\judgement{Expansion'}{\fbox{$\Gamma \ts M / T \expand'_z \seq D$}}]  
+    \begin{multicols}{2}[\judgement{Expansion'}{\fbox{$\Gamma;s \ts M / T \expand'_z \seq D$}}]  
       \infax[\textsc{$\Top$-$\expand'$}]
-      {\Gamma \ts M/\Top \expand'_z \{\}}
+      {\Gamma;s \ts M/\Top \expand'_z \{\}}
 
       \infrule[\textsc{$\tand$-$\expand'$}]
-      {\Gamma \ts M/T_1 \expand'_z {\seq D_1} \spcomma M/T_2 \expand'_z {\seq D_2}}
-      {\Gamma \ts M/T_1 \tand T_2 \expand'_z {\seq D_1 \tand \seq D_2}}
+      {\Gamma;s \ts M/T_1 \expand'_z {\seq D_1} \spcomma M/T_2 \expand'_z {\seq D_2}}
+      {\Gamma;s \ts M/T_1 \tand T_2 \expand'_z {\seq D_1 \tand \seq D_2}}
 
       \infrule[\textsc{rfn-$\expand'$}]
-      {\Gamma \ts M/T \expand'_z {\seq {D'}}}
-      {\Gamma \ts M/T \refine z {\seq D} \expand'_z \seq {D'} \tand \seq D}
+      {\Gamma;s \ts M/T \expand'_z {\seq {D'}}}
+      {\Gamma;s \ts M/T \refine z {\seq D} \expand'_z \seq {D'} \tand \seq D}
 
       \infrule[\textsc{tsel-$\expand'_1$}]
       {p.L \mapsto {\seq D} \in M}
-      {\Gamma \ts M / p.L \expand'_z \seq D}
+      {\Gamma;s \ts M / p.L \expand'_z \seq D}
 
       \infax[\textsc{$\Bot$-$\expand'$}]
-      {\Gamma \ts M/\Bot \expand'_z \seq{D_\Bot}}
+      {\Gamma;s \ts M/\Bot \expand'_z \seq{D_\Bot}}
 
       \infrule[\textsc{$\tor$-$\expand'$}]
-      {\Gamma \ts M/T_1 \expand'_z {\seq D_1} \spcomma M/T_2 \expand'_z {\seq D_2}}
-      {\Gamma \ts M/T_1 \tor T_2 \expand'_z {\seq D_1 \tor \seq D_2}}
+      {\Gamma;s \ts M/T_1 \expand'_z {\seq D_1} \spcomma M/T_2 \expand'_z {\seq D_2}}
+      {\Gamma;s \ts M/T_1 \tor T_2 \expand'_z {\seq D_1 \tor \seq D_2}}
 
       \infrule[\textsc{tsel-$\expand'_2$}]
-      {{\Gamma \ts p \ni \Ldecl L S U}\\
-       {\Gamma \ts p.L / \{\} / M / U \expand^*_z \seq D}}
-      {\Gamma \ts M / p.L \expand'_z \seq D}
+      {{\Gamma;s \ts p \ni \Ldecl L S U}\\
+       {\Gamma;s \ts p.L / \{\} / M / U \expand^*_z \seq D}}
+      {\Gamma;s \ts M / p.L \expand'_z \seq D}
     \end{multicols}
 
-    \begin{multicols}{2}[\judgement{Expansion*}{\fbox{$\Gamma \ts p.L / \seq {D^s} / M / T \expand^*_z \seq D$}}]  
+    \begin{multicols}{2}[\judgement{Expansion*}{\fbox{$\Gamma;s \ts p.L / \seq {D'} / M / T \expand^*_z \seq D$}}]  
       \infrule[\textsc{tsel-$\expand^*_1$}]
-      {\Gamma \ts {M \envplus{p.L \mapsto \seq D}} / T \expand'_z \seq D}
-      {\Gamma \ts p.L / \seq D / M / T \expand^*_z \seq D}
+      {\Gamma;s \ts {M \envplus{p.L \mapsto \seq D}} / T \expand'_z \seq D}
+      {\Gamma;s \ts p.L / \seq D / M / T \expand^*_z \seq D}
 
       \infrule[\textsc{tsel-$\expand^*_2$}]
-      {{\Gamma \ts {M \envplus{p.L \mapsto \seq {D^s}}} / T \expand'_z \seq {D^t}}\\
-       {\seq {D^s} \neq \seq {D^t}}\\
-       {\Gamma \ts p.L / \seq {D^t} / M / T \expand^*_z \seq D}}
-      {\Gamma \ts p.L / \seq {D^s} / M / T \expand^*_z \seq D}
+      {{\Gamma;s \ts {M \envplus{p.L \mapsto \seq {D'}}} / T \expand'_z \seq {D''}}\\
+       {\seq {D'} \neq \seq {D''}}\\
+       {\Gamma;s \ts p.L / \seq {D''} / M / T \expand^*_z \seq D}}
+      {\Gamma;s \ts p.L / \seq {D'} / M / T \expand^*_z \seq D}
     \end{multicols}
 }
 \caption{The DOT Calculus : Membership and Expansion}\label{dot-two}
@@ -557,86 +557,86 @@ y \notin \fn(T') \\
 \begin{figure}
   \figurebox{
 
-    \begin{multicols}{2}[\judgement{Subtyping}{\fbox{$\Gamma \ts S \sub T$}}]
+    \begin{multicols}{2}[\judgement{Subtyping}{\fbox{$\Gamma;s \ts S \sub T$}}]
 
 %      \infrule[\textsc{trans}]
 %      {\Gamma \ts S \sub T \spcomma T \sub U}
 %      {\Gamma \ts S \sub U}
 
       \infrule[\textsc{refl}]
-      {\Gamma \ts T \wfe}
-      {\Gamma \ts T \sub T}
+      {\Gamma;s \ts T \wfe}
+      {\Gamma;s \ts T \sub T}
 
       \infrule[\textsc{$\sub$-rfn}]
-      {\Gamma \ts {T \refine z {\seq D}} \wfe
+      {\Gamma;s \ts {T \refine z {\seq D}} \wfe
        \spcomma S \sub T \spcomma S \expand_z \seq{D'} \\
-       \Gamma \envplus{z: S} \ts \seq{D' \sub D}}
-      {\Gamma \ts S \sub T \refine z {\seq D}}
+       \Gamma \envplus{z: S};s \ts \seq{D' \sub D}}
+      {\Gamma;s \ts S \sub T \refine z {\seq D}}
 
       \infrule[\textsc{$\sub$-tsel}]
-      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma S' \sub S }
-      {\Gamma \ts S' \sub p.L}
+      {\Gamma;s \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma S' \sub S }
+      {\Gamma;s \ts S' \sub p.L}
 
       \infrule[\textsc{$\sub$-$\tand$}]
-      {\Gamma \ts T \sub T_1 \spcomma T \sub T_2}
-      {\Gamma \ts T \sub T_1 \tand T_2}
+      {\Gamma;s \ts T \sub T_1 \spcomma T \sub T_2}
+      {\Gamma;s \ts T \sub T_1 \tand T_2}
 
       \infrule[\textsc{$\sub$-$\tor_1$}]
-      {\Gamma \ts T_2 \wfe \spcomma T \sub T_1}
-      {\Gamma \ts T \sub T_1 \tor T_2}
+      {\Gamma;s \ts T_2 \wfe \spcomma T \sub T_1}
+      {\Gamma;s \ts T \sub T_1 \tor T_2}
 
       \infrule[\textsc{$\sub$-$\tor_2$}]
-      {\Gamma \ts T_1 \wfe \spcomma T \sub T_2}
-      {\Gamma \ts T \sub T_1 \tor T_2}
+      {\Gamma;s \ts T_1 \wfe \spcomma T \sub T_2}
+      {\Gamma;s \ts T \sub T_1 \tor T_2}
       
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       \infrule[\textsc{$\sub$-$\Top$}]
-      {\Gamma \ts T \wfe}
-      {\Gamma \ts T \sub \Top}
+      {\Gamma;s \ts T \wfe}
+      {\Gamma;s \ts T \sub \Top}
 
       \infrule[\textsc{$\Bot$-$\sub$}]
-      {\Gamma \ts T \wfe}
-      {\Gamma \ts \Bot \sub T}
+      {\Gamma;s \ts T \wfe}
+      {\Gamma;s \ts \Bot \sub T}
 
       \infrule[\textsc{rfn-$\sub$}]
-      {\Gamma \ts {T \refine z {\seq D}} \wfe
+      {\Gamma;s \ts {T \refine z {\seq D}} \wfe
        \spcomma T \sub T'}
-      {\Gamma \ts T \refine z {\seq D} \sub T'}
+      {\Gamma;s \ts T \refine z {\seq D} \sub T'}
 
       \infrule[\textsc{tsel-$\sub$}]
-      {\Gamma \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma U \sub U'}
-      {\Gamma \ts p.L \sub U'}
+      {\Gamma;s \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma U \sub U'}
+      {\Gamma;s \ts p.L \sub U'}
 
       \infrule[\textsc{$\tor$-$\sub$}]
-      {\Gamma \ts T_1 \sub T \spcomma T_2 \sub T}
-      {\Gamma \ts T_1 \tor T_2 \sub T}
+      {\Gamma;s \ts T_1 \sub T \spcomma T_2 \sub T}
+      {\Gamma;s \ts T_1 \tor T_2 \sub T}
 
       \infrule[\textsc{$\tand_1$-$\sub$}]
-      {\Gamma \ts T_2 \wfe \spcomma T_1 \sub T}
-      {\Gamma \ts T_1 \tand T_2 \sub T}
+      {\Gamma;s \ts T_2 \wfe \spcomma T_1 \sub T}
+      {\Gamma;s \ts T_1 \tand T_2 \sub T}
 
       \infrule[\textsc{$\tand_2$-$\sub$}]
-      {\Gamma \ts T_1 \wfe \spcomma T_2 \sub T}
-      {\Gamma \ts T_1 \tand T_2 \sub T}
+      {\Gamma;s \ts T_1 \wfe \spcomma T_2 \sub T}
+      {\Gamma;s \ts T_1 \tand T_2 \sub T}
 
       \end{multicols}
 
     \linesep
 
-    \begin{multicols}{2}[\judgement{Declaration subsumption}{\fbox{$\Gamma \ts D \sub D'$}}]
+    \begin{multicols}{2}[\judgement{Declaration subsumption}{\fbox{$\Gamma;s \ts D \sub D'$}}]
 
     \infrule[\textsc{tdecl-$\sub$}]
-            {\Gamma \ts S' \sub S \spcomma T \sub T'}
-            {\Gamma \ts (\Ldecl L S T) \sub (\Ldecl L {S'} {T'})}
+            {\Gamma;s \ts S' \sub S \spcomma T \sub T'}
+            {\Gamma;s \ts (\Ldecl L S T) \sub (\Ldecl L {S'} {T'})}
 
     \infrule[\textsc{vdecl-$\sub$}]
-            {\Gamma \ts T \sub T'}
-            {\Gamma \ts (\ldecl l T) \sub (\ldecl l {T'})}
+            {\Gamma;s \ts T \sub T'}
+            {\Gamma;s \ts (\ldecl l T) \sub (\ldecl l {T'})}
 
     \infrule[\textsc{mdecl-$\sub$}]
-            {\Gamma \ts S' \sub S \spcomma T \sub T'}
-            {\Gamma \ts (\mdecl m S T) \sub (\mdecl m {S'} {T'})}
+            {\Gamma;s \ts S' \sub S \spcomma T \sub T'}
+            {\Gamma;s \ts (\mdecl m S T) \sub (\mdecl m {S'} {T'})}
 
     \end{multicols}
   }
@@ -645,58 +645,58 @@ y \notin \fn(T') \\
 
 \begin{figure}
   \figurebox{
-       \begin{multicols}{2}[\judgement{Well-formed types}{\fbox{$\Gamma \ts T \wf$}}]
+       \begin{multicols}{2}[\judgement{Well-formed types}{\fbox{$\Gamma;s \ts T \wf$}}]
 
       \infax[\textsc{$\Top$-wf}]
-      {\Gamma \ts \Top \wf}
+      {\Gamma;s \ts \Top \wf}
 
       \infrule[\textsc{rfn-wf}]
-      {\Gamma \ts T \wf \\ 
-       \Gamma \envplus {z: T \refine z {\seq D}} \ts \seq {D \wf}}
-      {\Gamma \ts T \refine z {\seq D} \wf}
+      {\Gamma;s \ts T \wf \\
+       \Gamma \envplus {z: T \refine z {\seq D}};s \ts \seq {D \wf}}
+      {\Gamma;s \ts T \refine z {\seq D} \wf}
 
       \infrule[\textsc{$\tand$-wf}]
-      {\Gamma \ts T \wf \spcomma T' \wf}
-      {\Gamma \ts T \tand T' \wf}
+      {\Gamma;s \ts T \wf \spcomma T' \wf}
+      {\Gamma;s \ts T \tand T' \wf}
 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       \infax[\textsc{$\Bot$-wf}]
-      {\Gamma \ts \Bot \wf}
+      {\Gamma;s \ts \Bot \wf}
 
       \infrule[\textsc{tsel-wf}]
-      {\Gamma \ts p \ni \Ldecl L S U}
-      {\Gamma \ts p.L \wf}
+      {\Gamma;s \ts p \ni \Ldecl L S U}
+      {\Gamma;s \ts p.L \wf}
 
       \infrule[\textsc{$\tor$-wf}]
-      {\Gamma \ts T \wf \spcomma T' \wf}
-      {\Gamma \ts T \tor T' \wf}
+      {\Gamma;s \ts T \wf \spcomma T' \wf}
+      {\Gamma;s \ts T \tor T' \wf}
 
     \end{multicols}
 
     \linesep
 
-    \begin{multicols}{2}[\judgement{Well-formed declarations}{\fbox{$\Gamma \ts D \wf$}}]
+    \begin{multicols}{2}[\judgement{Well-formed declarations}{\fbox{$\Gamma;s \ts D \wf$}}]
       \infrule[\textsc{tdecl-wf}]
-      {\Gamma \ts S \wf \spcomma U \wf}
-      {\Gamma \ts \Ldecl L S U \wf}
+      {\Gamma;s \ts S \wf \spcomma U \wf}
+      {\Gamma;s \ts \Ldecl L S U \wf}
 
       \infrule[\textsc{vdecl-wf}]
-      {\Gamma \ts T \wf}
-      {\Gamma \ts \ldecl l T \wf}
+      {\Gamma;s \ts T \wf}
+      {\Gamma;s \ts \ldecl l T \wf}
 
       \infrule[\textsc{mdecl-wf}]
-      {\Gamma \ts S \wf \spcomma U \wf}
-      {\Gamma \ts \mdecl m S U \wf}
+      {\Gamma;s \ts S \wf \spcomma U \wf}
+      {\Gamma;s \ts \mdecl m S U \wf}
 
     \end{multicols}
 
     \linesep
 
-    \begin{multicols}{2}[\judgement{Well-formed and expanding types}{\fbox{$\Gamma \ts T \wfe$}}]
+    \begin{multicols}{2}[\judgement{Well-formed and expanding types}{\fbox{$\Gamma;s \ts T \wfe$}}]
       \infrule[\textsc{wfe}]
-      {\Gamma \ts T \wf \spcomma T \expand_z \seq{D}}
-      {\Gamma \ts T \wfe}
+      {\Gamma;s \ts T \wf \spcomma T \expand_z \seq{D}}
+      {\Gamma;s \ts T \wfe}
     \end{multicols}
   }
 
