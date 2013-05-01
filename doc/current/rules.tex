@@ -511,13 +511,11 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 \begin{figure}
  \figurebox{
 
-    \begin{multicols}{2}[\judgement{Membership}{\fbox{$\Gamma;s \ts p \ni D$}}]
+      {\bf Membership}\hfill{\fbox{$\Gamma;s \ts p \ni D$}}
 
       \infrule[\textsc{path-$\ni$}]
       {\Gamma;s \ts p \typ T \spcomma T \expand_z \seq D}
       {\Gamma;s \ts p \ni \subst p z {D_i}}
-
-   \end{multicols}
 
    \linesep
 
