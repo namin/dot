@@ -561,6 +561,19 @@ y \notin \fn(T') \\
 \begin{figure}
   \figurebox{
 
+    \begin{multicols}{2}[\judgement{Path Reduction}{\fbox{$s \ts p_1 \reduces p_2$}}]
+
+      \infrule[\textsc{loc}]
+      {o \mapsto T_c \ldefs{\seq{l = o}\;\seq{m(x)=t}} \in s}
+      {s \ts o.l_i \reduces o_i}
+
+      \infrule[\textsc{rec}]
+      {s \ts p_1 \reduces p_2}
+      {s \ts p_1.l \reduces p_2.l}
+    \end{multicols}
+
+    \linesep
+
     \begin{multicols}{2}[\judgement{Subtyping}{\fbox{$\Gamma;s \ts S \sub T$}}]
 
 %      \infrule[\textsc{trans}]
@@ -577,10 +590,6 @@ y \notin \fn(T') \\
        \Gamma \envplus{z: S};s \ts \seq{D' \sub D}}
       {\Gamma;s \ts S \sub T \refine z {\seq D}}
 
-      \infrule[\textsc{$\sub$-tsel}]
-      {\Gamma;s \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma S' \sub S }
-      {\Gamma;s \ts S' \sub p.L}
-
       \infrule[\textsc{$\sub$-$\tand$}]
       {\Gamma;s \ts T \sub T_1 \spcomma T \sub T_2}
       {\Gamma;s \ts T \sub T_1 \tand T_2}
@@ -592,6 +601,15 @@ y \notin \fn(T') \\
       \infrule[\textsc{$\sub$-$\tor_2$}]
       {\Gamma;s \ts T_1 \wfe \spcomma T \sub T_2}
       {\Gamma;s \ts T \sub T_1 \tor T_2}
+
+      \infrule[\textsc{$\sub$-tsel}]
+      {\Gamma;s \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma S' \sub S }
+      {\Gamma;s \ts S' \sub p.L}
+
+      \infrule[\textsc{$\sub$-tsel-pathred}]
+      {s \ts p_1 \reduces p_2\\
+      \Gamma;s \ts T \sub p_2.L}
+      {\Gamma;s \ts T \sub p_1.L}
       
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -608,10 +626,6 @@ y \notin \fn(T') \\
        \spcomma T \sub T'}
       {\Gamma;s \ts T \refine z {\seq D} \sub T'}
 
-      \infrule[\textsc{tsel-$\sub$}]
-      {\Gamma;s \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma U \sub U'}
-      {\Gamma;s \ts p.L \sub U'}
-
       \infrule[\textsc{$\tor$-$\sub$}]
       {\Gamma;s \ts T_1 \sub T \spcomma T_2 \sub T}
       {\Gamma;s \ts T_1 \tor T_2 \sub T}
@@ -623,6 +637,10 @@ y \notin \fn(T') \\
       \infrule[\textsc{$\tand_2$-$\sub$}]
       {\Gamma;s \ts T_1 \wfe \spcomma T_2 \sub T}
       {\Gamma;s \ts T_1 \tand T_2 \sub T}
+
+      \infrule[\textsc{tsel-$\sub$}]
+      {\Gamma;s \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma U \sub U'}
+      {\Gamma;s \ts p.L \sub U'}
 
       \end{multicols}
 
@@ -644,7 +662,7 @@ y \notin \fn(T') \\
 
     \end{multicols}
   }
-\caption{The DOT Calculus : Subtyping and Declaration Subsumption}\label{dot-sub}
+\caption{The DOT Calculus : Path Reduction, Subtyping and Declaration Subsumption}\label{dot-sub}
 \end{figure}
 
 \begin{figure}
