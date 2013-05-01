@@ -1213,6 +1213,17 @@ ghost method lemma_store_wf_field_ok(n: nat, s: store, loc: nat, l: nat, nt: nat
   nt' := nt'_;
 }
 
+ghost method theorem_subtype_transitive(ctx: context, s: store, n12: nat, n23: nat, T1: tp, T2: tp, T3: tp) returns (n13: nat)
+  requires subtype(n12, ctx, s, T1, T2);
+  requires subtype(n23, ctx, s, T2, T3);
+  ensures subtype(n13, ctx, s, T1, T3);
+{
+  // TODO!
+  assume exists n13:nat :: subtype(n13, ctx, s, T1, T3);
+  var n13_:nat :| subtype(n13_, ctx, s, T1, T3);
+  n13 := n13_;
+}
+
 ghost method lemma_subtype_inversion(ctx: context, s: store, np: nat, p: pt, Tp: tp, np': nat, p': pt, Tp': tp, ns: nat, nm: nat, l: nat, d: decl) returns (d': decl, nm': nat)
   requires typing(np, ctx, s, p, Tp);
   requires typing(np', ctx, s, p', Tp');
@@ -1268,5 +1279,29 @@ ghost method theorem_pt_preservation(s: store, ns: nat, p: pt, T: tp, np: nat, p
     assert p'.loc == locl;
     T' := T'_;
     np' := np'_;
+  }
+}
+
+ghost method theorem_preservation(s: store, ns: nat, t: tm, T: tp, nt: nat, t': tm, s': store) returns (ns': nat, nt': nat)
+  requires store_wf(ns, s);
+  requires typeok(nt, Context([]), s, t, T);
+  requires step(t, s) == Some(P(t', s'));
+  ensures store_wf(ns', s');
+  ensures typeok(nt', Context([]), s', t', T);
+{
+  if (t.tm_path?) {
+    var Tp :| typing(nt-1, Context([]), s, t.p, Tp) && subtype(nt-1, Context([]), s, Tp, T);
+    var Tp'_, np'_ := theorem_pt_preservation(s, ns, t.p, Tp, nt-1, t'.p);
+    var nt'_ := theorem_subtype_transitive(Context([]), s, np'_, nt-1, Tp'_, Tp, T);
+    nt' := nt'_+np'_+1;
+    lemma_typing_monotonic_plus(np'_, nt'-1, Context([]), s, t'.p, Tp'_);
+    lemma_subtype_monotonic_plus(nt'_, nt'-1, Context([]), s, Tp'_, T);
+    ns' := ns;
+  } else {
+    // TODO!
+    assume exists ns':nat, nt':nat :: store_wf(ns', s') && typeok(nt', Context([]), s', t', T);
+    var ns'_:nat, nt'_:nat :| store_wf(ns'_, s') && typeok(nt'_, Context([]), s', t', T);
+    ns' := ns'_;
+    nt' := nt'_;
   }
 }
