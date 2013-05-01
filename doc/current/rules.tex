@@ -376,7 +376,10 @@ t ::=      & \lindent{\mbox{Term}} \\
 p ::= & \lindent \mbox{Path} \\
 \gap x & \mbox{variable} \\
 \gap p.l & \mbox{selection} \\
-c ::= T_c \ldefs{\seq{l = v}\;\seq{m(x) = t}} & \lindent{\mbox{Constructor}} \\[0.2em]
+d ::= & \lindent{\mbox{Initialization}} \\
+\gap l = v    & \mbox{field init.}\\
+\gap m(x) = t & \mbox{method init.}\\
+c ::= T_c \ldefs{\seq{d}} & \lindent{\mbox{Constructor}} \\[0.2em]
 \Gamma ::= \seq{x \typ T} & \lindent\mbox{Environment} \\
 s      ::= \seq{x \mapsto c} & \lindent\mbox{Store} \\
 \ea
