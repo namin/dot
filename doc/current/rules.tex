@@ -449,14 +449,18 @@ t' = {\subst o x t}
 {x \typ T \in \Gamma}
 {\Gamma;s \ts x \typ T}
 
+\infrule[\textsc{sel}]
+{\Gamma;s \ts t \ni l \typ T'}
+{\Gamma;s \ts t.l \typ T'}
+
 \infrule[\textsc{msel}]
 {\Gamma;s \ts t \ni m \typ {S \tfun T} \\
  \Gamma;s \ts t' \typ T' \spcomma T' \sub S}
 {\Gamma;s \ts \mapp t m {t'} \typ T}
 
-\infrule[\textsc{sel}]
-{\Gamma;s \ts t \ni l \typ T'}
-{\Gamma;s \ts t.l \typ T'}
+\infrule[\textsc{loc}]
+{o \mapsto T_c \ldefs{\seq{d}} \in s}
+{\Gamma;s \ts o \typ T_c}
 
 \infrule[\textsc{new}]
 {
