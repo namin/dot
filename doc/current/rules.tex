@@ -282,6 +282,7 @@
 \newcommand{\sub}{<:}
 % Type assignment
 \newcommand{\typ}{:}
+\newcommand{\approxtyp}{:\approx:}
 % reduction
 \newcommand{\reduces}{\;\rightarrow\;}
 % well-formedness
@@ -321,6 +322,8 @@
 \newcommand{\subst}[3]{[#1/#2]#3}
 % Object creation
 \newcommand{\new}[3]{\textbf{val }#1 = \textbf{new }#2 ;\; #3}
+\newcommand{\anfmapp}[5]{\textbf{val }#1 = {#2.#3(#4)} ;\; #5}
+\newcommand{\anfmexe}[5]{\textbf{val }#1 = {#2.#3\ldots\;#4} ;\; #5}
 %\renewcommand{\new}[3]{#1 \leftarrow #2 \,\textbf{in}\, #3}
 % Field declaration
 \newcommand{\Ldecl}[3]{#1 : #2..#3}%{#1 \operatorname{>:} #2 \operatorname{<:} #3}
@@ -376,10 +379,10 @@ p ::= & \lindent \mbox{Path} \\
 \gap w & \mbox{value} \\
 \gap p.l & \mbox{selection} \\
 t ::=      & \lindent{\mbox{Term}} \\
-\gap w     & \mbox{value} \\
+\gap p     & \mbox{path} \\
 \gap \new x c t & \mbox{new instance} \\
-\gap t.l  & \mbox{field selection} \\
-\gap \mapp t m t  & \mbox{method invocation} \\[0.2em]
+\gap \anfmapp x p m p t & \mbox{method invocation} \\[0.2em]
+\gap \anfmexe x p m t t & \mbox{pending met. exec.} \\[0.2em]
 d ::= & \lindent{\mbox{Initialization}} \\
 \gap l = w    & \mbox{field init.}\\
 \gap m(x) = t & \mbox{method init.}\\
@@ -412,30 +415,30 @@ D ::= & \lindent\mbox{Declaration} \\
 
 \linesep
 
-\begin{multicols}{2}[\judgement{Reduction}{\fbox{$\reduction t s {t'} {s'}$}}]
-
-\infrule[\textsc{msel}]
-{o \mapsto T_c \ldefs{\seq{l = v'}\;\seq{m(x)=t}} \in s}
-{\reduction {\mapp o {m_i} v} s {\subst v {x_i} {t_i}} s}
+{\bf Reduction}\hfill\fbox{$\reduction t s {t'} {s'}$} \fbox{$\reduction p s {p'} s$}
 
 \infrule[\textsc{sel}]
 {o \mapsto T_c \ldefs{\seq{l = v}\;\seq{m(x)=t}} \in s}
 {\reduction {o.l_i} s {v_i} s}
 
+\infrule[\textsc{mapp}]
+{o \mapsto T_c \ldefs{\seq{l = v'}\;\seq{m(x)=t}} \in s}
+{\reduction {\anfmapp y o {m_i} v t'} s {\anfmexe y o {m_i} {\subst v {x_i} {t_i}} t'} s}
+
+\infax[\textsc{mexe}]
+{\reduction {\anfmexe y o {m_i} v t'} s {\subst v {y} {t'}} s}
+
 \infrule[\textsc{new}]
 {o \notin \dom(s)\\
-c = T_c \ldefs{\seq{d}}\\
-c' = T_c \ldefs{\subst o x \seq{d}}\\
-t' = {\subst o x t}
+c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t}
 }
 {\reduction {\new x c t} s t' {s \envplus{o \mapsto c'}}}
 
 \infrule[\textsc{context}]
 {\reduction t s {t'} {s'}}
 {\reduction {e[t]} s {e[t']} s'}
-\end{multicols}
 
-\hfill {\bf where} evaluation context $\gap e ::= [\,] ~|~ \mapp e m t ~|~ \mapp v m e ~|~ e.l\hspace{2cm}$
+{\bf where} $e ::= [\,] ~|~ e.l ~|~ \anfmapp x e m p t ~|~ \anfmapp x v m e t ~|~ \anfmexe x v m e t \hspace{2cm}$
 }
 
 \caption{The DOT Calculus : Syntax and Reduction}\label{dot-one}
@@ -443,52 +446,66 @@ t' = {\subst o x t}
 
 \begin{figure}
 \figurebox{
-\begin{multicols}{2}[\judgement{Type Assignment}{\fbox{$\Gamma;s \ts t \typ T$}}]
+\begin{multicols}{2}[\judgement{Term Typing}{\fbox{$\Gamma;s \ts t \approxtyp T$}}]
+
+\infrule[\textsc{path}]
+{\Gamma;s \ts p \typ T' \spcomma T' \sub T}
+{\Gamma;s \ts p \approxtyp T}
+
+\infrule[\textsc{mapp}]
+{\Gamma;s \ts p \ni m \typ {S \tfun T} \spcomma p' \approxtyp S\\
+ \Gamma \envplus{y: T};s \ts {t'} \approxtyp T'}
+{\Gamma;s \ts {\anfmapp y p m {p'} {t'}} \approxtyp {T'}}
+
+\infrule[\textsc{new}]
+{
+\Gamma;s \ts T_c \wfe \spcomma T_c \expand_y \seq{\Ldecl L S U}, \seq{D} \\
+\Gamma \envplus{y: T_c};s \ts \seq{S <: U} \spcomma \seq{d \typ D} \spcomma {t'} \approxtyp {T'}}
+{\Gamma;s \ts \new y {T_c \ldefs{\seq{d}}} {t'} \approxtyp T'}
+
+\infrule[\textsc{mexe}]
+{\Gamma;s \ts v \ni m \typ {S \tfun T} \spcomma t \approxtyp T\\
+ \Gamma \envplus{y: T};s \ts {t'} \approxtyp {T'}}
+{\Gamma;s \ts {\anfmexe y v m {t} t'} \approxtyp {T'}}
+
+\end{multicols}
+
+\linesep
+
+\begin{multicols}{2}[\judgement{Path Typing}{\fbox{$\Gamma;s \ts p \typ T$}}]
 
 \infrule[\textsc{var}]
 {x \typ T \in \Gamma}
 {\Gamma;s \ts x \typ T}
 
 \infrule[\textsc{sel}]
-{\Gamma;s \ts t \ni l \typ T'}
-{\Gamma;s \ts t.l \typ T'}
-
-\infrule[\textsc{msel}]
-{\Gamma;s \ts t \ni m \typ {S \tfun T} \\
- \Gamma;s \ts t' \typ T' \spcomma T' \sub S}
-{\Gamma;s \ts \mapp t m {t'} \typ T}
+{\Gamma;s \ts p \ni l \typ T'}
+{\Gamma;s \ts p.l \typ T'}
 
 \infrule[\textsc{loc}]
 {o \mapsto T_c \ldefs{\seq{d}} \in s}
 {\Gamma;s \ts o \typ T_c}
 
-\infrule[\textsc{new}]
-{
-y \notin \fn(T') \\
-\Gamma;s \ts T_c \wfe \spcomma T_c \expand_y \seq{\Ldecl L S U}, \seq{D} \\
-\Gamma \envplus{y: T_c};s \ts \seq{S <: U} \spcomma \seq{d \typ D} \spcomma {t'} \typ {T} \spcomma T <: T'}
-{\Gamma;s \ts \new y {T_c \ldefs{\seq{d}}} {t'} \typ T'}
-
 \end{multicols}
 
 \linesep
 
-\begin{multicols}{2}[\judgement{Declaration Assignment}{\fbox{$\Gamma;s \ts d \typ D$}}]
+\begin{multicols}{2}[\judgement{Initialization Typing}{\fbox{$\Gamma;s \ts d \typ D$}}]
 
 \infrule[\textsc{vdecl}]
-{\Gamma;s \ts w \typ {V'} \spcomma {V'} \sub V}
+{\Gamma;s \ts w \approxtyp {V}}
 {\Gamma;s \ts (l = w) \typ (\ldecl l V)}
 
 \infrule[\textsc{mdecl}]
 {\Gamma;s \ts S \wfe\\
- \Gamma;s \envplus{x : S} \ts t \typ {T'} \spcomma {T'} \sub T}
+ \Gamma;s \envplus{x : S} \ts t \approxtyp {T}}
 {\Gamma;s \ts (m(x) = t) \typ (\mdecl m S T) }
 
 \end{multicols}
 
 }
 
-\caption{The DOT Calculus : Type / Declaration Assignment}\label{dot-one-bis}
+\caption{The DOT Calculus : Typing}\label{dot-one-bis}
 \end{figure}
 
 \begin{figure}
