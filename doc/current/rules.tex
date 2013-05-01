@@ -424,9 +424,13 @@ D ::= & \lindent\mbox{Declaration} \\
 \end{multicols}
 
 \hfill {\bf where} evaluation context $\gap e ::= [\,] ~|~ \mapp e m t ~|~ \mapp v m e ~|~ e.l\hspace{2cm}$
+}
 
-\linesep
+\caption{The DOT Calculus : Syntax and Reduction}\label{dot-one}
+\end{figure}
 
+\begin{figure}
+\figurebox{
 \begin{multicols}{2}[\judgement{Type Assignment}{\fbox{$\Gamma \ts t \typ T$}}]
 
 \infrule[\textsc{var}]
@@ -468,7 +472,7 @@ y \notin \fn(T') \\
 
 }
 
-\caption{The DOT Calculus : Syntax, Reduction, Type / Declaration Assignment}\label{dot-one}
+\caption{The DOT Calculus : Type / Declaration Assignment}\label{dot-one-bis}
 \end{figure}
 
 \begin{figure}
