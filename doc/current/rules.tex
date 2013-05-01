@@ -366,22 +366,26 @@ $\ba{l@{\hspace{0.2mm}}|@{\hspace{0.2mm}}l}
 x, y, z    & \lindent{\mbox{Variable}} \\
 l          & \lindent{\mbox{Value label}}\\
 m          & \lindent{\mbox{Method label}}\\[0.2em]
+o          & \lindent{\mbox{Store location}}\\
 v ::=      & \lindent{\mbox{Value}} \\
+\gap o     & \mbox{location} \\[0.2em]
+w ::=      & \lindent{\mbox{Syntactic Value}} \\
+\gap v     & \mbox{value} \\[0.2em]
 \gap x     & \mbox{variable} \\[0.2em]
+p ::= & \lindent \mbox{Path} \\
+\gap w & \mbox{value} \\
+\gap p.l & \mbox{selection} \\
 t ::=      & \lindent{\mbox{Term}} \\
-\gap v     & \mbox{value} \\
+\gap w     & \mbox{value} \\
 \gap \new x c t & \mbox{new instance} \\
 \gap t.l  & \mbox{field selection} \\
 \gap \mapp t m t  & \mbox{method invocation} \\[0.2em]
-p ::= & \lindent \mbox{Path} \\
-\gap x & \mbox{variable} \\
-\gap p.l & \mbox{selection} \\
 d ::= & \lindent{\mbox{Initialization}} \\
-\gap l = v    & \mbox{field init.}\\
+\gap l = w    & \mbox{field init.}\\
 \gap m(x) = t & \mbox{method init.}\\
 c ::= T_c \ldefs{\seq{d}} & \lindent{\mbox{Constructor}} \\[0.2em]
 \Gamma ::= \seq{x \typ T} & \lindent\mbox{Environment} \\
-s      ::= \seq{x \mapsto c} & \lindent\mbox{Store} \\
+s      ::= \seq{o \mapsto c} & \lindent\mbox{Store} \\
 \ea
 &
 \ba[t]{l@{\hspace{10mm}}l}
@@ -411,15 +415,20 @@ D ::= & \lindent\mbox{Declaration} \\
 \begin{multicols}{2}[\judgement{Reduction}{\fbox{$\reduction t s {t'} {s'}$}}]
 
 \infrule[\textsc{msel}]
-{y \mapsto T_c \ldefs{\seq{l = v'}\;\seq{m(x)=t}} \in s}
-{\reduction {\mapp y {m_i} v} s {\subst v {x_i} {t_i}} s}
+{o \mapsto T_c \ldefs{\seq{l = v'}\;\seq{m(x)=t}} \in s}
+{\reduction {\mapp o {m_i} v} s {\subst v {x_i} {t_i}} s}
 
 \infrule[\textsc{sel}]
-{y \mapsto T_c \ldefs{\seq{l = v}\;\seq{m(x)=t}} \in s}
-{\reduction {y.l_i} s {v_i} s}
+{o \mapsto T_c \ldefs{\seq{l = v}\;\seq{m(x)=t}} \in s}
+{\reduction {o.l_i} s {v_i} s}
 
-\infax[\textsc{new}]
-{\reduction {\new x c t} s t {s \envplus{x \mapsto c}}}
+\infrule[\textsc{new}]
+{o \notin \dom(s)\\
+c = T_c \ldefs{\seq{d}}\\
+c' = T_c \ldefs{\subst o x \seq{d}}\\
+t' = {\subst o x t}
+}
+{\reduction {\new x c t} s t' {s \envplus{o \mapsto c'}}}
 
 \infrule[\textsc{context}]
 {\reduction t s {t'} {s'}}
@@ -463,8 +472,8 @@ y \notin \fn(T') \\
 \begin{multicols}{2}[\judgement{Declaration Assignment}{\fbox{$\Gamma \ts d \typ D$}}]
 
 \infrule[\textsc{vdecl}]
-{\Gamma \ts v \typ {V'} \spcomma {V'} \sub V}
-{\Gamma \ts (l = v) \typ (\ldecl l V)}
+{\Gamma \ts w \typ {V'} \spcomma {V'} \sub V}
+{\Gamma \ts (l = w) \typ (\ldecl l V)}
 
 \infrule[\textsc{mdecl}]
 {\Gamma \ts S \wfe\\
