@@ -282,7 +282,7 @@
 \newcommand{\sub}{<:}
 % Type assignment
 \newcommand{\typ}{:}
-\newcommand{\approxtyp}{:_<}
+\newcommand{\approxtyp}{:_{<:}}
 % reduction
 \newcommand{\reduces}{\;\rightarrow\;}
 % well-formedness
@@ -460,7 +460,7 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 \infrule[\textsc{new}]
 {
 \Gamma;s \ts T_c \wfe \spcomma T_c \expand_y \seq{\Ldecl L S U}, \seq{D} \\
-\Gamma \envplus{y: T_c};s \ts \seq{S <: U} \spcomma \seq{d \typ D} \spcomma {t'} \approxtyp {T'}}
+\Gamma \envplus{y: T_c};s \ts \seq{S <: U} \spcomma \seq{d \approxtyp D} \spcomma {t'} \approxtyp {T'}}
 {\Gamma;s \ts \new y {T_c \ldefs{\seq{d}}} {t'} \approxtyp T'}
 
 \infrule[\textsc{mexe}]
@@ -490,16 +490,16 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 
 \linesep
 
-\begin{multicols}{2}[\judgement{Initialization Typing}{\fbox{$\Gamma;s \ts d \typ D$}}]
+\begin{multicols}{2}[\judgement{Initialization Typing}{\fbox{$\Gamma;s \ts d \approxtyp D$}}]
 
 \infrule[\textsc{vdecl}]
 {\Gamma;s \ts w \approxtyp {V}}
-{\Gamma;s \ts (l = w) \typ (\ldecl l V)}
+{\Gamma;s \ts (l = w) \approxtyp (\ldecl l V)}
 
 \infrule[\textsc{mdecl}]
 {\Gamma;s \ts S \wfe\\
  \Gamma;s \envplus{x : S} \ts t \approxtyp {T}}
-{\Gamma;s \ts (m(x) = t) \typ (\mdecl m S T) }
+{\Gamma;s \ts (m(x) = t) \approxtyp (\mdecl m S T) }
 
 \end{multicols}
 
