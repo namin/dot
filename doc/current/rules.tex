@@ -282,7 +282,7 @@
 \newcommand{\sub}{<:}
 % Type assignment
 \newcommand{\typ}{:}
-\newcommand{\approxtyp}{:\approx:}
+\newcommand{\approxtyp}{:_<}
 % reduction
 \newcommand{\reduces}{\;\rightarrow\;}
 % well-formedness
@@ -572,15 +572,15 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 \begin{figure}
   \figurebox{
 
-    \begin{multicols}{2}[\judgement{Path Reduction}{\fbox{$s \ts p_1 \reduces p_2$}}]
+    \begin{multicols}{2}[\judgement{Path Reduction}{\fbox{$s \ts p \reduces p'$}}]
 
       \infrule[\textsc{loc}]
       {o \mapsto T_c \ldefs{\seq{l = o}\;\seq{m(x)=t}} \in s}
       {s \ts o.l_i \reduces o_i}
 
       \infrule[\textsc{rec}]
-      {s \ts p_1 \reduces p_2}
-      {s \ts p_1.l \reduces p_2.l}
+      {s \ts p \reduces p'}
+      {s \ts p.l \reduces p'.l}
     \end{multicols}
 
     \linesep
