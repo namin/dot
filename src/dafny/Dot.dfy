@@ -1479,6 +1479,17 @@ ghost method helper_typeok_snd(t: tm, nm: nat, na: nat, nt': nat, ctx: context, 
   assert exists P_, R :: method_membership(nok-1, ctx, s, o, m, P_, R) && typeok(nok-1, ctx, s, tm_path(a), P_) && typeok(nok-1, context_extend(ctx, y, R), s, t'_, T);
 }
 
+ghost method helper_y_same(ctx: context, s: store, ns: nat, t: tm, t': tm, T: tp)
+  requires t.tm_bind? && t'.tm_bind?;
+  requires store_wf(ns, s);
+  requires step(t, s) == Some(P(t', s));
+  requires t.t' == t'.t';
+  ensures fresh_from(dom(ctx)+tm_vars(t)+tp_vars(T)) == fresh_from(dom(ctx)+tm_vars(t')+tp_vars(T));
+{
+  // TODO: follows from stepping of close sub-expressions
+  assume fresh_from(dom(ctx)+tm_vars(t)+tp_vars(T)) == fresh_from(dom(ctx)+tm_vars(t')+tp_vars(T));
+}
+
 ghost method theorem_preservation_snd(s: store, ns: nat, t: tm, T: tp, nt: nat, t': tm, s': store) returns (ns': nat, nt': nat)
   requires t.tm_bind? && t.b.bd_snd?;
   requires store_wf(ns, s);
@@ -1493,7 +1504,7 @@ ghost method theorem_preservation_snd(s: store, ns: nat, t: tm, T: tp, nt: nat, 
     assert t.y == t'.y;
     assert t.t' == t.t';
     var y := fresh_from(dom(ctx)+tm_vars(t)+tp_vars(T));
-    assume y == fresh_from(dom(ctx)+tm_vars(t')+tp_vars(T)); // TODO: follows from t.b.o and o' closed
+    helper_y_same(ctx, s, ns, t, t', T);
     var t'_ := tm_subst(t.y, pt_var(y), t.t');
     var P, R :| method_membership(nt-1, ctx, s, t.b.o, t.b.m, P, R) &&
       typeok(nt-1, ctx, s, tm_path(t.b.a), P) &&
@@ -1514,10 +1525,20 @@ ghost method theorem_preservation_snd(s: store, ns: nat, t: tm, T: tp, nt: nat, 
     assert typeok(nt'_, context_extend(ctx, y, R'), s, t'_, T);
     nt' := helper_typeok_snd(t', nm', na, nt'_, ctx, s, y, o', t.b.m, t.b.a, t'_, T, P', R');
   } else if (pt_step(t.b.a, s).Some?) {
-    // TODO!
-    assume exists nt':nat :: typeok(nt', Context([]), s', t', T);
-    var nt'_:nat :| typeok(nt'_, Context([]), s', t', T);
-    nt' := nt'_;
+    assert t.y == t'.y;
+    assert t.t' == t.t';
+    var y := fresh_from(dom(ctx)+tm_vars(t)+tp_vars(T));
+    helper_y_same(ctx, s, ns, t, t', T);
+    var t'_ := tm_subst(t.y, pt_var(y), t.t');
+    var P, R :| method_membership(nt-1, ctx, s, t.b.o, t.b.m, P, R) &&
+      typeok(nt-1, ctx, s, tm_path(t.b.a), P) &&
+      typeok(nt-1, context_extend(ctx, y, R), s, t'_, T);
+    var Ta :| typing(nt-2, ctx, s, t.b.a, Ta) && subtype(nt-2, ctx, s, Ta, P);
+    var a' := pt_step(t.b.a, s).get;
+    var Ta', na' := theorem_pt_preservation(s, ns, t.b.a, Ta, nt-2, a');
+    var na_ := theorem_subtype_transitive(ctx, s, na', nt-2, Ta', Ta, P);
+    var na := helper_typeok_path(na', na_, ctx, s, a', Ta', P);
+    nt' := helper_typeok_snd(t', nt-1, na, nt-1, ctx, s, y, t.b.o, t.b.m, a', t'_, T, P, R);
   } else {
     // TODO!
     assume exists nt':nat :: typeok(nt', Context([]), s', t', T);
