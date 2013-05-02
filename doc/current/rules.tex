@@ -25,6 +25,10 @@
 % Prooftree formatting
 \usepackage{prooftree}
 
+
+\usepackage[bookmarks=true]{hyperref}
+\usepackage{bookmark}
+
 % support for generating PDF files
 %\newif\ifpdf
 %    \ifx\pdfoutput\undefined
@@ -89,23 +93,23 @@
 
 %% set latex/pdflatex specific stuff
 %\ifpdf
-    \usepackage[pdftex,
-                hyperindex,
-                plainpages=false,
-                breaklinks,
-                colorlinks,
-                citecolor=black,
-                filecolor=black,
-                linkcolor=black,
-                pagecolor=black,
-                urlcolor=black]{hyperref}
-    \usepackage[pdftex]{graphicx}
-    \DeclareGraphicsExtensions{.jpg,.pdf}
-    \pdfcatalog {
-        /PageMode (/UseNone)
-    }
-    \usepackage{thumbpdf}
-    \usepackage[pdftex]{color}
+%    \usepackage[pdftex,
+%                hyperindex,
+%                plainpages=false,
+%                breaklinks,
+%                colorlinks,
+%                citecolor=black,
+%                filecolor=black,
+%                linkcolor=black,
+%                pagecolor=black,
+%                urlcolor=black]{hyperref}
+%    \usepackage[pdftex]{graphicx}
+%    \DeclareGraphicsExtensions{.jpg,.pdf}
+%    \pdfcatalog {
+%        /PageMode (/UseNone)
+%    }
+%    \usepackage{thumbpdf}
+%    \usepackage[pdftex]{color}
 %\else
 %    \usepackage[ps2pdf]{hyperref}
 %    \usepackage{graphicx}
@@ -362,6 +366,7 @@
 \begin{figure}
 \figurebox{
 %\renewcommand{\baselinestretch}{0.95}
+\pdfbookmark[0]{Syntax}{syntax}
 {\bf Syntax}\medskip
     
 $\ba{l@{\hspace{0.2mm}}|@{\hspace{0.2mm}}l}
@@ -415,6 +420,7 @@ D ::= & \lindent\mbox{Declaration} \\
 
 \linesep
 
+\pdfbookmark[0]{Reduction}{reduction}
 {\bf Reduction}\hfill\fbox{$\reduction t s {t'} {s'}$} \fbox{$\reduction p s {p'} s$}
 
 \infrule[\textsc{sel}]
@@ -446,6 +452,7 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 
 \begin{figure}
 \figurebox{
+\pdfbookmark[0]{Typing}{typing}
 \begin{multicols}{2}[\judgement{Term Typing}{\fbox{$\Gamma;s \ts t \approxtyp T$}}]
 
 \infrule[\textsc{path}]
@@ -510,7 +517,7 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 
 \begin{figure}
  \figurebox{
-
+\pdfbookmark[0]{Membership}{membership}
       {\bf Membership}\hfill{\fbox{$\Gamma;s \ts p \ni D$}}
 
       \infrule[\textsc{path-$\ni$}]
@@ -518,7 +525,7 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
       {\Gamma;s \ts p \ni \subst p z {D_i}}
 
    \linesep
-
+\pdfbookmark[0]{Expansion}{expansion}
     \begin{multicols}{2}[\judgement{Expansion}{\fbox{$\Gamma;s \ts T \expand_z \seq D$}}]
       \infrule[\textsc{any-$\expand$}]
       {\Gamma;s \ts \emptyset / T \expand'_z \seq D}
@@ -572,6 +579,7 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 \begin{figure}
   \figurebox{
 
+\pdfbookmark[0]{Path Reduction}{pathreduction}
     \begin{multicols}{2}[\judgement{Path Reduction}{\fbox{$s \ts p \reduces p'$}}]
 
       \infrule[\textsc{loc}]
@@ -585,6 +593,7 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 
     \linesep
 
+\pdfbookmark[0]{Subtyping}{subtyping}
     \begin{multicols}{2}[\judgement{Subtyping}{\fbox{$\Gamma;s \ts S \sub T$}}]
 
 %      \infrule[\textsc{trans}]
@@ -678,6 +687,7 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 
 \begin{figure}
   \figurebox{
+\pdfbookmark[0]{Well-formedness}{wf}
        \begin{multicols}{2}[\judgement{Well-formed types}{\fbox{$\Gamma;s \ts T \wf$}}]
 
       \infax[\textsc{$\Top$-wf}]
@@ -739,6 +749,7 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 
 \begin{figure}
 \figurebox{
+\pdfbookmark[0]{Declaration lattice}{lattice}
 \bda{lcl@{\gap}l}
     
       \dom(\seq D \tand \seq {D'}) &~=~& \dom(\seq{D}) \cup \dom(\seq{D'}) \\
