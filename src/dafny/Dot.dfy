@@ -1389,6 +1389,17 @@ ghost method lemma_store_invariance_typeok(ctx: context, s: store, s': store, ns
   nt' := nt'_;
 }
 
+ghost method lemma_store_invariance_method_membership(ctx: context, s: store, s': store, ns': nat, o: pt, m: nat, P: tp, R: tp, nm: nat) returns (nm': nat)
+  requires store_extends(s', s);
+  requires store_wf(ns', s');
+  requires method_membership(nm, ctx, s, o, m, P, R);
+  ensures method_membership(nm', ctx, s', o, m, P, R);
+{
+  // TODO!
+  assume exists nm':nat :: method_membership(nm', ctx, s', o, m, P, R);
+  var nm'_:nat :| method_membership(nm'_, ctx, s', o, m, P, R);
+  nm' := nm'_;
+}
 ghost method lemma_store_invariance_wfe_type(ctx: context, s: store, s': store, ns': nat, T: tp, nT: nat) returns (nT': nat)
   requires store_extends(s', s);
   requires store_wf(ns', s');
@@ -1431,6 +1442,7 @@ ghost method theorem_preservation_path(s: store, ns: nat, t: tm, T: tp, nt: nat,
   requires store_wf(ns, s);
   requires typeok(nt, Context([]), s, t, T);
   requires step(t, s) == Some(P(t', s'));
+  ensures store_extends(s', s);
   ensures store_wf(ns', s');
   ensures typeok(nt', Context([]), s', t', T);
 {
@@ -1448,6 +1460,7 @@ ghost method theorem_preservation_new(s: store, ns: nat, t: tm, T: tp, nt: nat, 
   requires store_wf(ns, s);
   requires typeok(nt, Context([]), s, t, T);
   requires step(t, s) == Some(P(t', s'));
+  ensures store_extends(s', s);
   ensures store_wf(ns', s');
   ensures typeok(nt', Context([]), s', t', T);
 {
@@ -1519,7 +1532,7 @@ ghost method helper_typeok_exe(t: tm, nm: nat, nb: nat, nt': nat, ctx: context, 
 ghost method helper_y_same(ctx: context, s: store, ns: nat, t: tm, t': tm, T: tp)
   requires t.tm_bind? && t'.tm_bind?;
   requires store_wf(ns, s);
-  requires step(t, s) == Some(P(t', s));
+  requires step(t, s).Some? && step(t, s).get.fst == t';
   requires t.t' == t'.t';
   ensures fresh_from(dom(ctx)+tm_vars(t)+tp_vars(T)) == fresh_from(dom(ctx)+tm_vars(t')+tp_vars(T));
 {
@@ -1532,6 +1545,7 @@ ghost method theorem_preservation_snd(s: store, ns: nat, t: tm, T: tp, nt: nat, 
   requires store_wf(ns, s);
   requires typeok(nt, Context([]), s, t, T);
   requires step(t, s) == Some(P(t', s'));
+  ensures store_extends(s', s);
   ensures store_wf(ns', s');
   ensures typeok(nt', Context([]), s', t', T);
 {
@@ -1579,6 +1593,7 @@ ghost method theorem_preservation(s: store, ns: nat, t: tm, T: tp, nt: nat, t': 
   requires store_wf(ns, s);
   requires typeok(nt, Context([]), s, t, T);
   requires step(t, s) == Some(P(t', s'));
+  ensures store_extends(s', s);
   ensures store_wf(ns', s');
   ensures typeok(nt', Context([]), s', t', T);
 {
@@ -1589,10 +1604,29 @@ ghost method theorem_preservation(s: store, ns: nat, t: tm, T: tp, nt: nat, t': 
   } else if (t.tm_bind? && t.b.bd_snd?) {
     ns', nt' := theorem_preservation_snd(s, ns, t, T, nt, t', s');
   } else {
-    // TODO!
-    assume exists ns':nat, nt':nat :: store_wf(ns', s') && typeok(nt', Context([]), s', t', T);
-    var ns'_:nat, nt'_:nat :| store_wf(ns'_, s') && typeok(nt'_, Context([]), s', t', T);
-    ns' := ns'_;
-    nt' := nt'_;
+    var y := fresh_from(dom(Context([]))+tm_vars(t)+tp_vars(T));
+    var t'_ := tm_subst(t.y, pt_var(y), t.t');
+    var P, R :| method_membership(nt-1, Context([]), s, pt_loc(t.b.ov), t.b.mv, P, R) &&
+      typeok(nt-1, Context([]), s, t.b.t', R) &&
+      typeok(nt-1, context_extend(Context([]), y, R), s, t'_, T);
+    if (step(t.b.t', s).Some?) {
+      helper_y_same(Context([]), s, ns, t, t', T);
+      var bt'_ := step(t.b.t', s).get.fst;
+      var bs'_ := step(t.b.t', s).get.snd;
+      assert s' == bs'_;
+      var nbs'_, nbt'_ := theorem_preservation(s, ns, t.b.t', R, nt-1, bt'_, bs'_);
+      ns' := nbs'_;
+      assert method_membership(nt-1, Context([]), s, pt_loc(t'.b.ov), t'.b.mv, P, R);
+      var nm_ := lemma_store_invariance_method_membership(Context([]), s, s', ns', pt_loc(t'.b.ov), t'.b.mv, P, R, nt-1);
+      assert method_membership(nm_, Context([]), s', pt_loc(t'.b.ov), t'.b.mv, P, R);
+      assert typeok(nbt'_, Context([]), s', t'.b.t', R);
+      assert typeok(nt-1, context_extend(Context([]), y, R), s, t'_, T);
+      var nt'_ := lemma_store_invariance_typeok(context_extend(Context([]), y, R), s, s', ns', t'_, T, nt-1);
+      nt' := helper_typeok_exe(t', nm_, nbt'_, nt'_, Context([]), s', y, t'_, T, P, R);
+    } else {
+      ns' := ns;
+      nt' := lemma_subst(s, ns, t'_, T, nt-1, y, R, t.b.t', nt-1);
+      lemma_fresh_subst_typeok(Context([]), s, t, T, t.b.t'.p, y, t'_, nt');
+    }
   }
 }
