@@ -1071,6 +1071,18 @@ ghost method lemma_method_membership_monotonic(n: nat, ctx: context, s: store, t
 {
   assume method_membership(n+1, ctx, s, t, m, P, R); // TODO
 }
+ghost method lemma_method_membership_monotonic_plus(m: nat, n: nat, ctx: context, s: store, t: pt, md: nat, P: tp, R: tp)
+  requires m<=n;
+  requires method_membership(m, ctx, s, t, md, P, R);
+  ensures method_membership(n, ctx, s, t, md, P, R);
+  decreases n-m;
+{
+  if (n==m) {}
+  else {
+    lemma_method_membership_monotonic(m, ctx, s, t, md, P, R);
+    lemma_method_membership_monotonic_plus(m+1, n, ctx, s, t, md, P, R);
+  }
+}
 ghost method lemma_expansion_monotonic_plus(m: nat, n: nat, ctx: context, s: store, z: nat, T: tp, Ds: decls)
   requires m <= n;
   requires expansion(m, ctx, s, z, T, Ds);
@@ -1179,6 +1191,26 @@ predicate wf_init(n: nat, already_in_store: bool, ctx: context, s: store, decls:
   else false)
 }
 
+ghost method lemma_typeok_monotonic_plus(m: nat, n: nat, ctx: context, s: store, t: tm,  T: tp)
+  requires m<=n;
+  requires typeok(m, ctx, s, t, T);
+  ensures typeok(n, ctx, s, t, T);
+  decreases n-m;
+{
+  if (n==m) {}
+  else {
+    lemma_typeok_monotonic(m, ctx, s, t, T);
+    lemma_typeok_monotonic_plus(m+1, n, ctx, s, t, T);
+  }
+}
+ghost method lemma_typeok_monotonic(n: nat, ctx: context, s: store, t: tm, T: tp)
+  requires typeok(n, ctx, s, t, T);
+  ensures typeok(n+1, ctx, s, t, T);
+{
+  // TODO
+  assume typeok(n+1, ctx, s, t, T);
+}
+
 predicate store_wf1(n: nat, s: store, loc: nat, y: nat, Tc: tp, init: seq<def>)
 {
   n>0 &&
@@ -1211,6 +1243,26 @@ ghost method lemma_store_wf_field_ok(n: nat, s: store, loc: nat, l: nat, nt: nat
   var T'_, nt'_:nat :| typing(nt'_, Context([]), s, pt_loc(locl), T'_) && subtype(nt'_, Context([]), s, T'_, T);
   T' := T'_;
   nt' := nt'_;
+}
+
+ghost method lemma_store_wf_method_ok(n: nat, s: store, loc: nat, m: nat, nt: nat, P_: tp, R: tp) returns (x: nat, body: tm, nbody: nat)
+  requires store_wf(n, s);
+  requires loc < |s.m|;
+  requires method_membership(nt, Context([]), s, pt_loc(loc), m, P_, R);
+  ensures def_method_lookup(m, store_lookup(loc, s)) == Some(P(x, body));
+  ensures typeok(nbody, context_extend(Context([]), x, P_), s, body, R);
+  ensures !tp_fn(x, P_) && !tp_fn(x, R);
+{
+  // TODO: not needed for preservation, but will be needed for progress
+  assume def_method_lookup(m, store_lookup(loc, s)).Some?;
+  x := def_method_lookup(m, store_lookup(loc, s)).get.fst;
+  body := def_method_lookup(m, store_lookup(loc, s)).get.snd;
+  // TODO
+  assume exists nbody:nat :: typeok(nbody, context_extend(Context([]), x, P_), s, body, R);
+  var nbody_:nat :| typeok(nbody_, context_extend(Context([]), x, P_), s, body, R);
+  nbody := nbody_;
+  // TODO: might need to change wf...
+  assume !tp_fn(x, P_) && !tp_fn(x, R);
 }
 
 ghost method theorem_subtype_transitive(ctx: context, s: store, n12: nat, n23: nat, T1: tp, T2: tp, T3: tp) returns (n13: nat)
@@ -1250,6 +1302,22 @@ ghost method lemma_subtype_inversion_field(ctx: context, s: store, np: nat, p: p
   T' := d'.T;
   nm' := nd'+1;
   lemma_subtype_monotonic_plus(nd'-1, nm', ctx, s, T', T);
+}
+
+ghost method lemma_subtype_inversion_method(ctx: context, s: store, np: nat, p: pt, Tp: tp, np': nat, p': pt, Tp': tp, ns: nat, nm: nat, m: nat, P: tp, R: tp) returns (P': tp, R': tp, nm': nat)
+  requires typing(np, ctx, s, p, Tp);
+  requires typing(np', ctx, s, p', Tp');
+  requires subtype(ns, ctx, s, Tp', Tp);
+  requires method_membership(nm, ctx, s, p, m, P, R);
+  ensures method_membership(nm', ctx, s, p', m, P', R') && subtype(nm', ctx, s, P, P') && subtype(nm', ctx, s, R', R);
+{
+  assert membership(nm-1, ctx, s, p, m, decl_mt(m, P, R));
+  var d', nd' := lemma_subtype_inversion(ctx, s, np, p, Tp, np', p', Tp', ns, nm-1, m, decl_mt(m, P, R));
+  P' := d'.P;
+  R' := d'.R;
+  nm' := nd'+1;
+  lemma_subtype_monotonic_plus(nd'-1, nm', ctx, s, P, P');
+  lemma_subtype_monotonic_plus(nd'-1, nm', ctx, s, R', R);
 }
 
 ghost method theorem_pt_preservation(s: store, ns: nat, p: pt, T: tp, np: nat, p': pt) returns (T': tp, np': nat)
@@ -1296,6 +1364,19 @@ ghost method lemma_subst(s: store, ns: nat, t: tm, T: tp, nt: nat, y: nat, S: tp
   nt' := nt'_;
 }
 
+ghost method lemma_subst_in_context(s: store, ns: nat, t: tm, T: tp, nt: nat, y: nat, S: tp, S': tp, nsub: nat) returns (nt': nat)
+  requires store_wf(ns, s);
+  requires !tp_fn(y, T);
+  requires typeok(nt, context_extend(Context([]), y, S), s, t, T);
+  requires subtype(nsub, Context([]), s, S', S);
+  ensures typeok(nt', context_extend(Context([]), y, S'), s, t, T);
+{
+  // TODO!
+  assume exists nt':nat :: typeok(nt', context_extend(Context([]), y, S'), s, t, T);
+  var nt'_:nat :| typeok(nt'_, context_extend(Context([]), y, S'), s, t, T);
+  nt' := nt'_;
+}
+
 ghost method lemma_store_invariance_typeok(ctx: context, s: store, s': store, ns': nat, t: tm, T: tp, nt: nat) returns (nt': nat)
   requires store_extends(s', s);
   requires store_wf(ns', s');
@@ -1308,6 +1389,17 @@ ghost method lemma_store_invariance_typeok(ctx: context, s: store, s': store, ns
   nt' := nt'_;
 }
 
+ghost method lemma_store_invariance_method_membership(ctx: context, s: store, s': store, ns': nat, o: pt, m: nat, P: tp, R: tp, nm: nat) returns (nm': nat)
+  requires store_extends(s', s);
+  requires store_wf(ns', s');
+  requires method_membership(nm, ctx, s, o, m, P, R);
+  ensures method_membership(nm', ctx, s', o, m, P, R);
+{
+  // TODO!
+  assume exists nm':nat :: method_membership(nm', ctx, s', o, m, P, R);
+  var nm'_:nat :| method_membership(nm'_, ctx, s', o, m, P, R);
+  nm' := nm'_;
+}
 ghost method lemma_store_invariance_wfe_type(ctx: context, s: store, s': store, ns': nat, T: tp, nT: nat) returns (nT': nat)
   requires store_extends(s', s);
   requires store_wf(ns', s');
@@ -1345,41 +1437,196 @@ ghost method lemma_fresh_subst_typeok(ctx: context, s: store, t: tm, T: tp, v: p
   assume typeok(nt, ctx, s, tm_subst(t.y, v, t.t'), T);
 }
 
+ghost method theorem_preservation_path(s: store, ns: nat, t: tm, T: tp, nt: nat, t': tm, s': store) returns (ns': nat, nt': nat)
+  requires t.tm_path?;
+  requires store_wf(ns, s);
+  requires typeok(nt, Context([]), s, t, T);
+  requires step(t, s) == Some(P(t', s'));
+  ensures store_extends(s', s);
+  ensures store_wf(ns', s');
+  ensures typeok(nt', Context([]), s', t', T);
+{
+  var Tp :| typing(nt-1, Context([]), s, t.p, Tp) && subtype(nt-1, Context([]), s, Tp, T);
+  var Tp'_, np'_ := theorem_pt_preservation(s, ns, t.p, Tp, nt-1, t'.p);
+  var nt'_ := theorem_subtype_transitive(Context([]), s, np'_, nt-1, Tp'_, Tp, T);
+  nt' := nt'_+np'_+1;
+  lemma_typing_monotonic_plus(np'_, nt'-1, Context([]), s, t'.p, Tp'_);
+  lemma_subtype_monotonic_plus(nt'_, nt'-1, Context([]), s, Tp'_, T);
+  ns' := ns;
+}
+
+ghost method theorem_preservation_new(s: store, ns: nat, t: tm, T: tp, nt: nat, t': tm, s': store) returns (ns': nat, nt': nat)
+  requires t.tm_bind? && t.b.bd_new?;
+  requires store_wf(ns, s);
+  requires typeok(nt, Context([]), s, t, T);
+  requires step(t, s) == Some(P(t', s'));
+  ensures store_extends(s', s);
+  ensures store_wf(ns', s');
+  ensures typeok(nt', Context([]), s', t', T);
+{
+  var ns'_ := lemma_store_wf_new(s, ns, s', t, T, nt, t');
+  ns' := ns'_;
+  var y := fresh_from(dom(Context([]))+tm_vars(t)+tp_vars(T));
+  var t'_ := tm_subst(t.y, pt_var(y), t.t');
+  assert typeok(nt-1, context_extend(Context([]), y, t.b.Tc), s, t'_, T);
+  var nt_ := lemma_store_invariance_typeok(context_extend(Context([]), y, t.b.Tc), s, s', ns', t'_, T, nt-1);
+  assert typing(0, Context([]), s', pt_loc(|s.m|), t.b.Tc);
+  assert wfe_type(nt-1, Context([]), s, t.b.Tc);
+  var nTwf_ := lemma_store_invariance_wfe_type(Context([]), s, s', ns', t.b.Tc, nt-1);
+  assert subtype(nTwf_+1, Context([]), s', t.b.Tc, t.b.Tc);
+  var nt'_ := lemma_subst(s', ns', t'_, T, nt_, y, t.b.Tc, tm_path(pt_loc(|s.m|)), nTwf_+2);
+  assert typeok(nt'_, Context([]), s', tm_subst(y, pt_loc(|s.m|), t'_), T);
+  nt' := nt'_;
+  lemma_fresh_subst_typeok(Context([]), s', t, T, pt_loc(|s.m|), y, t'_, nt');
+}
+
+ghost method helper_typeok_path(nt: nat, ns: nat, ctx: context, s: store, p: pt, T: tp, T': tp) returns (nok: nat)
+  requires typing(nt, ctx, s, p, T);
+  requires subtype(ns, ctx, s, T, T');
+  ensures typeok(nok, ctx, s, tm_path(p), T');
+{
+  nok := nt+ns+1;
+  lemma_typing_monotonic_plus(nt, nok-1, ctx, s, p, T);
+  lemma_subtype_monotonic_plus(ns, nok-1, ctx, s, T, T');
+  assert typing(nok-1, ctx, s, p, T) && subtype(nok-1, ctx, s, T, T');
+  assert exists T :: typing(nok-1, ctx, s, p, T) && subtype(nok-1, ctx, s, T, T');
+}
+
+ghost method helper_typeok_snd(t: tm, nm: nat, na: nat, nt': nat, ctx: context, s: store, y: nat, o: pt, m: nat, a: pt, t'_: tm, T: tp, P_: tp, R: tp) returns (nok: nat)
+  requires t.tm_bind? && t.b.bd_snd?;
+  requires y == fresh_from(dom(ctx)+tm_vars(t)+tp_vars(T));
+  requires t'_ == tm_subst(t.y, pt_var(y), t.t');
+  requires o==t.b.o;
+  requires m==t.b.m;
+  requires a==t.b.a;
+  requires method_membership(nm, ctx, s, o, m, P_, R);
+  requires typeok(na, ctx, s, tm_path(a), P_);
+  requires typeok(nt', context_extend(ctx, y, R), s, t'_, T);
+  ensures typeok(nok, ctx, s, t, T);
+{
+  nok := nm+na+nt'+1;
+  lemma_method_membership_monotonic_plus(nm, nok-1, ctx, s, o, m, P_, R);
+  lemma_typeok_monotonic_plus(na, nok-1, ctx, s, tm_path(a), P_);
+  lemma_typeok_monotonic_plus(nt', nok-1, context_extend(ctx, y, R), s, t'_, T);
+  assert method_membership(nok-1, ctx, s, o, m, P_, R) && typeok(nok-1, ctx, s, tm_path(a), P_) && typeok(nok-1, context_extend(ctx, y, R), s, t'_, T);
+  assert exists P_, R :: method_membership(nok-1, ctx, s, o, m, P_, R) && typeok(nok-1, ctx, s, tm_path(a), P_) && typeok(nok-1, context_extend(ctx, y, R), s, t'_, T);
+}
+
+ghost method helper_typeok_exe(t: tm, nm: nat, nb: nat, nt': nat, ctx: context, s: store, y: nat, t'_: tm, T: tp, P_: tp, R: tp) returns (nok: nat)
+  requires t.tm_bind? && t.b.bd_exe?;
+  requires y == fresh_from(dom(ctx)+tm_vars(t)+tp_vars(T));
+  requires t'_ == tm_subst(t.y, pt_var(y), t.t');
+  requires method_membership(nm, ctx, s, pt_loc(t.b.ov), t.b.mv, P_, R);
+  requires typeok(nb, ctx, s, t.b.t', R);
+  requires typeok(nt', context_extend(ctx, y, R), s, t'_, T);
+  ensures typeok(nok, ctx, s, t, T);
+{
+  nok := nm+nb+nt'+1;
+  lemma_method_membership_monotonic_plus(nm, nok-1, ctx, s, pt_loc(t.b.ov), t.b.mv, P_, R);
+  lemma_typeok_monotonic_plus(nb, nok-1, ctx, s, t.b.t', R);
+  lemma_typeok_monotonic_plus(nt', nok-1, context_extend(ctx, y, R), s, t'_, T);
+  assert method_membership(nok-1, ctx, s, pt_loc(t.b.ov), t.b.mv, P_, R) && typeok(nok-1, ctx, s, t.b.t', R) && typeok(nok-1, context_extend(ctx, y, R), s, t'_, T);
+  assert exists P_, R :: method_membership(nok-1, ctx, s, pt_loc(t.b.ov), t.b.mv, P_, R) && typeok(nok-1, ctx, s, t.b.t', R) && typeok(nok-1, context_extend(ctx, y, R), s, t'_, T);  
+}
+
+ghost method helper_y_same(ctx: context, s: store, ns: nat, t: tm, t': tm, T: tp)
+  requires t.tm_bind? && t'.tm_bind?;
+  requires store_wf(ns, s);
+  requires step(t, s).Some? && step(t, s).get.fst == t';
+  requires t.t' == t'.t';
+  ensures fresh_from(dom(ctx)+tm_vars(t)+tp_vars(T)) == fresh_from(dom(ctx)+tm_vars(t')+tp_vars(T));
+{
+  // TODO: follows from stepping of close sub-expressions
+  assume fresh_from(dom(ctx)+tm_vars(t)+tp_vars(T)) == fresh_from(dom(ctx)+tm_vars(t')+tp_vars(T));
+}
+
+ghost method theorem_preservation_snd(s: store, ns: nat, t: tm, T: tp, nt: nat, t': tm, s': store) returns (ns': nat, nt': nat)
+  requires t.tm_bind? && t.b.bd_snd?;
+  requires store_wf(ns, s);
+  requires typeok(nt, Context([]), s, t, T);
+  requires step(t, s) == Some(P(t', s'));
+  ensures store_extends(s', s);
+  ensures store_wf(ns', s');
+  ensures typeok(nt', Context([]), s', t', T);
+{
+  var ctx := Context([]);
+  ns' := ns;
+  assert t.y == t'.y;
+  assert t.t' == t.t';
+  var y := fresh_from(dom(ctx)+tm_vars(t)+tp_vars(T));
+  helper_y_same(ctx, s, ns, t, t', T);
+  var t'_ := tm_subst(t.y, pt_var(y), t.t');
+  var P, R :| method_membership(nt-1, ctx, s, t.b.o, t.b.m, P, R) &&
+    typeok(nt-1, ctx, s, tm_path(t.b.a), P) &&
+    typeok(nt-1, context_extend(ctx, y, R), s, t'_, T);
+  if (pt_step(t.b.o, s).Some?) {
+    assert membership(nt-2, ctx, s, t.b.o, t.b.m, decl_mt(t.b.m, P, R));
+    assert exists To :: typing(nt-3, ctx, s, t.b.o, To);
+    var To :| typing(nt-3, ctx, s, t.b.o, To);
+    var o' := pt_step(t.b.o, s).get;
+    var To', no' := theorem_pt_preservation(s, ns, t.b.o, To, nt-3, o');
+    var P', R', nm' := lemma_subtype_inversion_method(ctx, s, nt-3, t.b.o, To, no', o', To', no', nt-1, t.b.m, P, R);
+    assert method_membership(nm', ctx, s, o', t.b.m, P', R');
+    assert exists Ta :: typing(nt-2, ctx, s, t.b.a, Ta) && subtype(nt-2, ctx, s, Ta, P);
+    var Ta :| typing(nt-2, ctx, s, t.b.a, Ta) && subtype(nt-2, ctx, s, Ta, P);
+    var na_ := theorem_subtype_transitive(ctx, s, nt-2, nm', Ta, P, P');
+    var na := helper_typeok_path(nt-2, na_, ctx, s, t.b.a, Ta, P');
+    assert typeok(na, ctx, s, tm_path(t.b.a), P');
+    var nt'_ := lemma_subst_in_context(s, ns, t'_, T, nt-1, y, R, R', nm');
+    assert typeok(nt'_, context_extend(ctx, y, R'), s, t'_, T);
+    nt' := helper_typeok_snd(t', nm', na, nt'_, ctx, s, y, o', t.b.m, t.b.a, t'_, T, P', R');
+  } else if (pt_step(t.b.a, s).Some?) {
+    var Ta :| typing(nt-2, ctx, s, t.b.a, Ta) && subtype(nt-2, ctx, s, Ta, P);
+    var a' := pt_step(t.b.a, s).get;
+    var Ta', na' := theorem_pt_preservation(s, ns, t.b.a, Ta, nt-2, a');
+    var na_ := theorem_subtype_transitive(ctx, s, na', nt-2, Ta', Ta, P);
+    var na := helper_typeok_path(na', na_, ctx, s, a', Ta', P);
+    nt' := helper_typeok_snd(t', nt-1, na, nt-1, ctx, s, y, t.b.o, t.b.m, a', t'_, T, P, R);
+  } else {
+    var x, body, nbody := lemma_store_wf_method_ok(ns, s, t.b.o.loc, t.b.m, nt-1, P, R);
+    var nbody' := lemma_subst(s, ns, body, R, nbody, x, P, tm_path(t.b.a), nt-1);
+    nt' := helper_typeok_exe(t', nt-1, nbody', nt-1, ctx, s, y, t'_, T, P, R);
+  }
+}
+
 ghost method theorem_preservation(s: store, ns: nat, t: tm, T: tp, nt: nat, t': tm, s': store) returns (ns': nat, nt': nat)
   requires store_wf(ns, s);
   requires typeok(nt, Context([]), s, t, T);
   requires step(t, s) == Some(P(t', s'));
+  ensures store_extends(s', s);
   ensures store_wf(ns', s');
   ensures typeok(nt', Context([]), s', t', T);
 {
   if (t.tm_path?) {
-    var Tp :| typing(nt-1, Context([]), s, t.p, Tp) && subtype(nt-1, Context([]), s, Tp, T);
-    var Tp'_, np'_ := theorem_pt_preservation(s, ns, t.p, Tp, nt-1, t'.p);
-    var nt'_ := theorem_subtype_transitive(Context([]), s, np'_, nt-1, Tp'_, Tp, T);
-    nt' := nt'_+np'_+1;
-    lemma_typing_monotonic_plus(np'_, nt'-1, Context([]), s, t'.p, Tp'_);
-    lemma_subtype_monotonic_plus(nt'_, nt'-1, Context([]), s, Tp'_, T);
-    ns' := ns;
+    ns', nt' := theorem_preservation_path(s, ns, t, T, nt, t', s');
   } else if (t.tm_bind? && t.b.bd_new?) {
-    var ns'_ := lemma_store_wf_new(s, ns, s', t, T, nt, t');
-    ns' := ns'_;
+    ns', nt' := theorem_preservation_new(s, ns, t, T, nt, t', s');
+  } else if (t.tm_bind? && t.b.bd_snd?) {
+    ns', nt' := theorem_preservation_snd(s, ns, t, T, nt, t', s');
+  } else {
     var y := fresh_from(dom(Context([]))+tm_vars(t)+tp_vars(T));
     var t'_ := tm_subst(t.y, pt_var(y), t.t');
-    assert typeok(nt-1, context_extend(Context([]), y, t.b.Tc), s, t'_, T);
-    var nt_ := lemma_store_invariance_typeok(context_extend(Context([]), y, t.b.Tc), s, s', ns', t'_, T, nt-1);
-    assert typing(0, Context([]), s', pt_loc(|s.m|), t.b.Tc);
-    assert wfe_type(nt-1, Context([]), s, t.b.Tc);
-    var nTwf_ := lemma_store_invariance_wfe_type(Context([]), s, s', ns', t.b.Tc, nt-1);
-    assert subtype(nTwf_+1, Context([]), s', t.b.Tc, t.b.Tc);
-    var nt'_ := lemma_subst(s', ns', t'_, T, nt_, y, t.b.Tc, tm_path(pt_loc(|s.m|)), nTwf_+2);
-    assert typeok(nt'_, Context([]), s', tm_subst(y, pt_loc(|s.m|), t'_), T);
-    nt' := nt'_;
-    lemma_fresh_subst_typeok(Context([]), s', t, T, pt_loc(|s.m|), y, t'_, nt');
-  } else {
-    // TODO!
-    assume exists ns':nat, nt':nat :: store_wf(ns', s') && typeok(nt', Context([]), s', t', T);
-    var ns'_:nat, nt'_:nat :| store_wf(ns'_, s') && typeok(nt'_, Context([]), s', t', T);
-    ns' := ns'_;
-    nt' := nt'_;
+    var P, R :| method_membership(nt-1, Context([]), s, pt_loc(t.b.ov), t.b.mv, P, R) &&
+      typeok(nt-1, Context([]), s, t.b.t', R) &&
+      typeok(nt-1, context_extend(Context([]), y, R), s, t'_, T);
+    if (step(t.b.t', s).Some?) {
+      helper_y_same(Context([]), s, ns, t, t', T);
+      var bt'_ := step(t.b.t', s).get.fst;
+      var bs'_ := step(t.b.t', s).get.snd;
+      assert s' == bs'_;
+      var nbs'_, nbt'_ := theorem_preservation(s, ns, t.b.t', R, nt-1, bt'_, bs'_);
+      ns' := nbs'_;
+      assert method_membership(nt-1, Context([]), s, pt_loc(t'.b.ov), t'.b.mv, P, R);
+      var nm_ := lemma_store_invariance_method_membership(Context([]), s, s', ns', pt_loc(t'.b.ov), t'.b.mv, P, R, nt-1);
+      assert method_membership(nm_, Context([]), s', pt_loc(t'.b.ov), t'.b.mv, P, R);
+      assert typeok(nbt'_, Context([]), s', t'.b.t', R);
+      assert typeok(nt-1, context_extend(Context([]), y, R), s, t'_, T);
+      var nt'_ := lemma_store_invariance_typeok(context_extend(Context([]), y, R), s, s', ns', t'_, T, nt-1);
+      nt' := helper_typeok_exe(t', nm_, nbt'_, nt'_, Context([]), s', y, t'_, T, P, R);
+    } else {
+      ns' := ns;
+      nt' := lemma_subst(s, ns, t'_, T, nt-1, y, R, t.b.t', nt-1);
+      lemma_fresh_subst_typeok(Context([]), s, t, T, t.b.t'.p, y, t'_, nt');
+    }
   }
 }
