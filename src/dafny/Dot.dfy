@@ -858,7 +858,7 @@ predicate expansion(n: nat, ctx: context, s: store, z: nat, T: tp, Ds: decls)
 {
   n>0 && expansion_iter(n-1, [], ctx, s, z, T, Ds)
 }
-predicate expansion_iter(n: nat, m: seq<pair<tp, decls>>, ctx: context, s: store, z: nat, T: tp, Ds: decls)
+predicate expansion_iter(n: nat, m: seq<tp>, ctx: context, s: store, z: nat, T: tp, Ds: decls)
   decreases n;
 {
   match T
@@ -868,9 +868,9 @@ predicate expansion_iter(n: nat, m: seq<pair<tp, decls>>, ctx: context, s: store
     exists rfn_decls :: rfn_decls==decl_seq_sort(lst2seq(decls_subst(z', pt_var(z), Ds'))) &&
     Ds==decls_and(decls_fin(seq2lst(rfn_decls)), DsT')
   case tp_sel(p, L, concrete) =>
-    (lookup(T, m).Some? && lookup(T, m).get==Ds) || 
-    (n>0 && lookup(T, m).None? && exists S, U :: type_membership(n-1, ctx, s, p, L, concrete, S, U) &&
-    expansion_fix(n-1, T, decls_fin(Nil), m, ctx, s, z, U, Ds))
+    (T in m && Ds==decls_fin(Nil)) || 
+    (n>0 && T !in m && exists S, U :: type_membership(n-1, ctx, s, p, L, concrete, S, U) &&
+    expansion_iter(n-1, [T]+m, ctx, s, z, U, Ds))
   case tp_and(T1, T2) =>
     n>0 &&
     exists Ds1, Ds2 :: expansion_iter(n-1, m, ctx, s, z, T1, Ds1) &&
@@ -883,14 +883,6 @@ predicate expansion_iter(n: nat, m: seq<pair<tp, decls>>, ctx: context, s: store
     Ds==decls_or(Ds1, Ds2)
   case tp_top => Ds==decls_fin(Nil)
   case tp_bot => Ds==decls_bot
-}
-predicate expansion_fix(n: nat, selT: tp, selDs: decls, m: seq<pair<tp, decls>>, ctx: context, s: store, z: nat, T: tp, Ds: decls)
-  decreases n;
-{
-  n>0 && (
-  (selDs==Ds && expansion_iter(n-1, [P(selT, selDs)]+m, ctx, s, z, T, Ds)) ||
-  (selDs!=Ds && exists Da :: expansion_iter(n-1, [P(selT, selDs)]+m, ctx, s, z, T, Da) &&
-   expansion_fix(n-1, selT, Da, m, ctx, s, z, T, Ds)))
 }
 predicate decl_sub(n: nat, ctx: context, s: store, d1: decl, d2: decl)
   requires decl_eq(d1, d2);
