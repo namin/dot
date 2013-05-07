@@ -289,3 +289,8 @@ Ltac apply_fresh_base H gather_vars atom_name :=
   let L := gather_vars in
   let L := beautify_fset L in
   pick fresh x excluding L and apply H.
+
+(* SCW added this one for list support *)
+Set Implicit Arguments.
+Definition union_map (A:Set) (f:A -> vars) (l:list A) := 
+ (List.fold_right (fun t acc => f t \u acc) {}) l.

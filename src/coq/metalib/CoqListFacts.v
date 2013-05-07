@@ -9,7 +9,6 @@
 
 Require Import Coq.Lists.List.
 Require Import Coq.Lists.SetoidList.
-Require Import Coq.Classes.RelationClasses.
 
 Require Import CoqUniquenessTac.
 
@@ -128,7 +127,7 @@ Qed.
 Lemma InA_iff_In : forall (A : Type) (x : A) (xs : list A),
   InA (@eq _) x xs <-> In x xs.
 Proof. 
-  split; auto using InA_In. 
+  split; auto using InA_In.
   apply SetoidList.In_InA. apply eq_equivalence.
 Qed.
 
@@ -204,7 +203,7 @@ Section SortedListEquality.
     intros ? ? ? ? H.
     apply Sort_InA_eq...
     intros a; specialize (H a).
-    split; intros; apply In_InA; intuition...
+      split; intros; apply In_InA; intuition...
   Qed.
 
 End SortedListEquality.

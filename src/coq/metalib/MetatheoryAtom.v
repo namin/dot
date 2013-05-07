@@ -107,8 +107,6 @@ End AtomDT.
 Instance EqDec_atom : @EqDec atom eq eq_equivalence.
 Proof. exact eq_atom_dec. Defined.
 
-Instance EqDec_nat : @EqDec nat eq eq_equivalence.
-Proof. exact eq_nat_dec. Defined.
 
 (* ********************************************************************** *)
 (** * Finite sets of atoms *)
