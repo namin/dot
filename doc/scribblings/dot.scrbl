@@ -53,9 +53,6 @@
   @para{
    @(dot-judgment-form expansion-iter #f)
   }
-  @para{
-   @(dot-judgment-form expansion-fix #f)
-  }
 }
 
 @figure*["f:wf" @elem{Well-Formedness}]{

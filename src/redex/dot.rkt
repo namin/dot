@@ -330,44 +330,34 @@
   [(is_member any_1 (any_0 ...)) #f])
 
 (define-judgment-form dot
-  #:mode (expansion-fix I I I I I I O)
-  #:contract (expansion-fix (sel p Lt) Ds (((sel p Lt) Ds) ...) env z T Ds)
-  [(expansion-fix (sel p_w Lt_w) Ds_w (((sel p_0 Lt_0) Ds_0) ...) env z T Ds_w)
-   (expansion-iter (((sel p_w Lt_w) Ds_w) ((sel p_0 Lt_0) Ds_0) ...) env z T Ds_w)]
-  [(expansion-fix (sel p_w Lt_w) Ds_w (((sel p_0 Lt_0) Ds_0) ...) env z T Ds_o)
-   (expansion-iter (((sel p_w Lt_w) Ds_w) ((sel p_0 Lt_0) Ds_0) ...) env z T Ds_a)
-   (found (is_member Ds_a (Ds_w)) #f)
-   (expansion-fix (sel p_w Lt_w) Ds_a (((sel p_0 Lt_0) Ds_0) ...) env z T Ds_o)])
-
-(define-judgment-form dot
   #:mode (expansion-iter I I I I O)
-  #:contract (expansion-iter (((sel p Lt) Ds) ...) env z T Ds)
-  [(expansion-iter (((sel p Lt) Ds) ...) env z Top (() () ()))]
-  [(expansion-iter (((sel p Lt) Ds) ...) env z_1 (rfn T_1 z_2 DLt_1 ... Dl_1 ... Dm_1 ...)
+  #:contract (expansion-iter ((sel p Lt) ...) env z T Ds)
+  [(expansion-iter ((sel p Lt) ...) env z Top (() () ()))]
+  [(expansion-iter ((sel p Lt) ...) env z_1 (rfn T_1 z_2 DLt_1 ... Dl_1 ... Dm_1 ...)
                    ((decl-intersection (sorted-decls (subst (DLt_1 ...) z_2 z_1)) (sorted-decls (DLt_2 ...)))
                     (decl-intersection (sorted-decls (subst (Dl_1 ...) z_2 z_1)) (sorted-decls (Dl_2 ...)))
                     (decl-intersection (sorted-decls (subst (Dm_1  ...) z_2 z_1)) (sorted-decls (Dm_2  ...)))))
-   (expansion-iter (((sel p Lt) Ds) ...) env z_1 T_1 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
-  [(expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z (T_1 ∧ T_2)
+   (expansion-iter ((sel p Lt) ...) env z_1 T_1 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
+  [(expansion-iter ((sel p_0 Lt_0) ...) env z (T_1 ∧ T_2)
                    ((decl-intersection (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
                     (decl-intersection (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))
                     (decl-intersection (sorted-decls (Dm_1  ...)) (sorted-decls (Dm_2  ...)))))
-   (expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z T_1 ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
-   (expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z T_2 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
-  [(expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z (T_1 ∨ T_2)
+   (expansion-iter ((sel p_0 Lt_0) ...) env z T_1 ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
+   (expansion-iter ((sel p_0 Lt_0) ...) env z T_2 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
+  [(expansion-iter ((sel p_0 Lt_0) ...) env z (T_1 ∨ T_2)
                    ((decl-union (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
                     (decl-union (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))
                     (decl-union (sorted-decls (Dm_1  ...)) (sorted-decls (Dm_2  ...)))))
-   (expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z T_1 ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
-   (expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z T_2 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
-  [(expansion-iter (((sel p_0 Lt_0) Ds_0) ... ((sel p_w Lt_w) Ds_w) ((sel p_2 Lt_2) Ds_2) ...) env z (sel p_w Lt_w) Ds_w)]
-  [(expansion-iter (((sel p_0 Lt_0) Ds_0) ...) env z (sel p_w Lt_w) Ds_u)
-   (found (is_member (sel p_w Lt_w) ((sel p_0 Lt_0) ...)) #f)
+   (expansion-iter ((sel p_0 Lt_0) ...) env z T_1 ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
+   (expansion-iter ((sel p_0 Lt_0) ...) env z T_2 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
+  [(expansion-iter ((sel p_0 Lt_0) ... (sel p_w Lt_w) (sel p_2 Lt_2) ...) env z (sel p_w Lt_w) (() () ()))]
+  [(expansion-iter ((sel p_0 Lt_0) ...) env z (sel p_w Lt_w) Ds_u)
+   (found (member (sel p_w Lt_w) ((sel p_0 Lt_0) ...)) #f)
    (where any_bound (membership-type-lookup env p_w Lt_w))
    (found any_bound #t)
    (where (S_p U_p) any_bound)
-   (expansion-fix (sel p_w Lt_w) (()()()) (((sel p_0 Lt_0) Ds_0) ...) env z U_p Ds_u)]
-  [(expansion-iter (((sel p Lt) Ds) ...) env z Bot (((: (ca kludge) Top Bot)) () ()))]) ;; kludge
+   (expansion-iter ((sel p_w Lt_w) (sel p_0 Lt_0) ...) env z U_p Ds_u)]
+  [(expansion-iter ((sel p Lt) ...) env z Bot (((: (ca kludge) Top Bot)) () ()))]) ;; kludge
 
 (define-judgment-form dot
   #:mode (expansion I I I O)

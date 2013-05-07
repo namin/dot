@@ -545,8 +545,8 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
       {\Gamma;s \ts M/T \refine z {\seq D} \expand'_z \seq {D'} \tand \seq D}
 
       \infrule[\textsc{tsel-$\expand'_1$}]
-      {p.L \mapsto {\seq D} \in M}
-      {\Gamma;s \ts M / p.L \expand'_z \seq D}
+      {p.L \in M}
+      {\Gamma;s \ts M / p.L \expand'_z \{\}}
 
       \infax[\textsc{$\Bot$-$\expand'$}]
       {\Gamma;s \ts M/\Bot \expand'_z \seq{D_\Bot}}
@@ -556,21 +556,10 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
       {\Gamma;s \ts M/T_1 \tor T_2 \expand'_z {\seq D_1 \tor \seq D_2}}
 
       \infrule[\textsc{tsel-$\expand'_2$}]
-      {{\Gamma;s \ts p \ni \Ldecl L S U}\\
-       {\Gamma;s \ts p.L / \{\} / M / U \expand^*_z \seq D}}
+      {{p.L \not\in M}\\
+       {\Gamma;s \ts p \ni \Ldecl L S U}\\
+       {\Gamma;s \ts M,p.L / U \expand'_z \seq D}}
       {\Gamma;s \ts M / p.L \expand'_z \seq D}
-    \end{multicols}
-
-    \begin{multicols}{2}[\judgement{Expansion*}{\fbox{$\Gamma;s \ts p.L / \seq {D'} / M / T \expand^*_z \seq D$}}]  
-      \infrule[\textsc{tsel-$\expand^*_1$}]
-      {\Gamma;s \ts {M \envplus{p.L \mapsto \seq D}} / T \expand'_z \seq D}
-      {\Gamma;s \ts p.L / \seq D / M / T \expand^*_z \seq D}
-
-      \infrule[\textsc{tsel-$\expand^*_2$}]
-      {{\Gamma;s \ts {M \envplus{p.L \mapsto \seq {D'}}} / T \expand'_z \seq {D''}}\\
-       {\seq {D'} \neq \seq {D''}}\\
-       {\Gamma;s \ts p.L / \seq {D''} / M / T \expand^*_z \seq D}}
-      {\Gamma;s \ts p.L / \seq {D'} / M / T \expand^*_z \seq D}
     \end{multicols}
 }
 \caption{The DOT Calculus : Membership and Expansion}\label{dot-two}
