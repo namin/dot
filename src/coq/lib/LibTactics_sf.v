@@ -404,7 +404,7 @@ Ltac fast_rm_inside E :=
     In order for tactics to convert their arguments into natural numbers, 
     we provide a conversion tactic. *)
  
-Require Coq.NArith.BinPos Coq.ZArith.BinInt.
+Require Coq.PArith.BinPos Coq.ZArith.BinInt.
 
 Definition ltac_nat_from_int (x:BinInt.Z) : nat :=
   match x with
