@@ -14,16 +14,22 @@ FILES = \
 	Dot_Labels \
 	Dot_Syntax \
 	Dot_Definitions \
-        Dot_Rules \
+  Dot_Rules \
 	Dot_Tactics \
 	Dot_Lemmas \
-        Dot_Examples \
-        Dot_Transitivity \
-        Dot_Theorems \
-        Dot_Preservation \
+  Dot_Examples \
+  Dot_Transitivity \
+  Dot_Theorems \
+  Dot_Preservation \
 	Dot_Safety \
-        Dot_Rules_Fool \
-        Dot_Lemmas_Fool \
+  Dot_Rules_Fool \
+  Dot_Lemmas_Fool \
+	Dot_Anf_Syntax \
+	Dot_Anf_Definitions \
+	Dot_Anf_Rules \
+	Dot_Anf_Lemmas \
+	Dot_Anf_Transitivity \
+	Dot_Anf_Theorems \
 
 VFILES   = $(foreach i, $(FILES), $(i).v)
 VOFILES  = $(foreach i, $(FILES), $(i).vo)
