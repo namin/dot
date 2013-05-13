@@ -14,5 +14,6 @@ Since the FOOL presentation, we've been revising the formal model
 ([PDF](http://lampwww.epfl.ch/~amin/dot/current_rules.pdf)), in
 preparation for a mechanized type safety proof. The current model
 has been implemented in
+[Coq](https://github.com/namin/dot/tree/master/src/coq),
 [Dafny](https://github.com/namin/dot/tree/master/src/dafny) and
 [PLT Redex](https://github.com/namin/dot/tree/master/src/redex).
