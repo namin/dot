@@ -224,23 +224,47 @@ with wfe_tp : env -> tp -> Prop :=
       wfe_tp E T
 .
 
-(*
-Inductive typing_tm : env -> tm -> tp -> Prop :=
-  | typing_new : forall L L' E Tc args t T' ds,
-      wfe_tp E Tc ->
-      concrete Tc ->
-      E |= Tc ~< ds ->
-      lbl.uniq args ->
-      (forall l v, lbl.binds l v args -> (value_label l \/ method_label l) /\ (exists d, decls_binds l d ds)) ->
-      (forall x, x \notin L ->
-        (forall l d, decls_binds l d ds ->
-          (forall S U, d ^d^ x = decl_tp S U -> (ctx_bind E x Tc) |= S ~<: U) /\
-          (forall S U, d ^d^ x = decl_mt S U -> (exists t,
-            lbl.binds l t args /\ method_label l /\ (forall y, y \notin L' ->
-              wfe_tp E S /\
-              (exists U', (ctx_bind (ctx_bind E x Tc) y S) |= ((t ^ x) ^ y) ~: U' /\ (ctx_bind (ctx_bind E x Tc) y S) |= U' ~<: U)))) /\
-          (forall V, d ^d^ x = decl_tm V -> (exists v,
-            lbl.binds l v args /\ value_label l /\ value (v ^ x) /\ (exists V', (ctx_bind E x Tc) |= (v ^ x) ~: V' /\ (ctx_bind E x Tc) |= V' ~<: V))))) ->
-      (forall x, x \notin L -> (ctx_bind E x Tc) |= t ^ x ~: T') ->
-      E |= (new Tc args t) ~: T'
-*)
+(* ********************************************************************** *)
+(** * #<a name="auto"></a># Automation *)
+
+Scheme typing_indm         := Induction for typing Sort Prop
+  with mem_indm            := Induction for mem Sort Prop
+  with expands_indm        := Induction for expands Sort Prop
+  with expands_iter_indm   := Induction for expands_iter Sort Prop
+  with sub_tp_indm         := Induction for sub_tp Sort Prop
+  with sub_decl_indm       := Induction for sub_decl Sort Prop
+  with wf_tp_indm          := Induction for wf_tp Sort Prop
+  with wf_decl_indm        := Induction for wf_decl Sort Prop
+  with wfe_tp_indm         := Induction for wfe_tp Sort Prop
+.
+Combined Scheme typing_mutind from typing_indm, mem_indm, expands_indm, expands_iter_indm, sub_tp_indm, sub_decl_indm, wf_tp_indm, wf_decl_indm, wfe_tp_indm.
+
+Require Import LibTactics_sf.
+Ltac mutind_typing P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ P9_ :=
+  cut ((forall E t T (H: E |= t ~: T), (P1_ E t T H)) /\
+  (forall E t l d (H: E |= t ~mem~ l ~: d), (P2_ E t l d H)) /\
+  (forall E T DS (H: E |= T ~< DS), (P3_ E T DS H)) /\
+  (forall M E T DS (H: expands_iter M E T DS), (P4_ M E T DS H)) /\
+  (forall E T T' (H: E |= T ~<: T'), (P5_  E T T' H))  /\
+  (forall (e : env) (d d' : decl) (H : sub_decl e d d'), (P6_ e d d' H)) /\
+  (forall (e : env) (t : tp) (H : wf_tp e t), (P7_ e t H)) /\
+  (forall (e : env) (d : decl) (H : wf_decl e d), (P8_ e d H)) /\
+  (forall (e : env) (t : tp) (H : wfe_tp e t), (P9_ e t H))); [tauto |
+    apply (typing_mutind P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ P9_); try unfold P1_, P2_, P3_, P4_, P5_, P6_, P7_, P8_, P9_ in *; try clear P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ P9_; [  (* only try unfolding and clearing in case the PN_ aren't just identifiers *)
+      Case "typing_var" | Case "typing_ref" | Case "typing_sel" | Case "mem_path" | Case "expands_any" | Case "expands_iter_rfn" | Case "expands_iter_tsel_cache" | Case "expands_iter_tsel_fix" | Case "expands_iter_and" | Case "expands_iter_or" | Case "expands_iter_top" | Case "expands_iter_bot" | Case "sub_tp_refl" | Case "sub_tp_rfn_r" | Case "sub_tp_rfn_l" | Case "sub_tp_tsel_r" | Case "sub_tp_tsel_l" | Case "sub_tp_and_r" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_tp_or_l" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "wf_rfn" | Case "wf_tsel" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" | Case "wfe_any" ];
+      introv; eauto ].
+
+Section TestMutInd.
+(* mostly reusable boilerplate for the mutual induction: *)
+  Let Ptyp (E: env) (t: pt) (T: tp) (H: E |=  t ~: T) := True.
+  Let Pmem (E: env) (t: pt) (l: label) (d: decl) (H: E |= t ~mem~ l ~: d) := True.
+  Let Pexp (E: env) (T: tp) (DS : decls) (H: E |= T ~< DS) := True.
+  Let Pexi (M: list tp) (E: env) (T: tp) (DS : decls) (H: expands_iter M E T DS) := True.
+  Let Psub (E: env) (T T': tp) (H: E |= T ~<: T') := True.
+  Let Psbd (E: env) (d d': decl) (H: sub_decl E d d') := True.
+  Let Pwft (E: env) (t: tp) (H: wf_tp E t) := True.
+  Let Pwfd (E: env) (d: decl) (H: wf_decl E d) := True.
+  Let Pwfe (E: env) (t: tp) (H: wfe_tp E t) := True.
+Lemma EnsureMutindTypingTacticIsUpToDate : True.
+Proof. mutind_typing Ptyp Pmem Pexp Pexi Psub Psbd Pwft Pwfd Pwfe; intros; auto. Qed.
+End TestMutInd.
