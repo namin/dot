@@ -1269,6 +1269,7 @@ ghost method theorem_subtype_transitive(ctx: context, s: store, n12: nat, n23: n
 }
 
 ghost method lemma_subtype_inversion(ctx: context, s: store, np: nat, p: pt, Tp: tp, np': nat, p': pt, Tp': tp, ns: nat, nm: nat, l: nat, d: decl) returns (d': decl, nm': nat)
+  requires pt_step(p, s).Some? && pt_step(p, s).get==p';
   requires typing(np, ctx, s, p, Tp);
   requires typing(np', ctx, s, p', Tp');
   requires subtype(ns, ctx, s, Tp', Tp);
@@ -1283,6 +1284,7 @@ ghost method lemma_subtype_inversion(ctx: context, s: store, np: nat, p: pt, Tp:
 }
 
 ghost method lemma_subtype_inversion_field(ctx: context, s: store, np: nat, p: pt, Tp: tp, np': nat, p': pt, Tp': tp, ns: nat, nm: nat, l: nat, T: tp) returns (T': tp, nm': nat)
+  requires pt_step(p, s).Some? && pt_step(p, s).get==p';
   requires typing(np, ctx, s, p, Tp);
   requires typing(np', ctx, s, p', Tp');
   requires subtype(ns, ctx, s, Tp', Tp);
@@ -1297,6 +1299,7 @@ ghost method lemma_subtype_inversion_field(ctx: context, s: store, np: nat, p: p
 }
 
 ghost method lemma_subtype_inversion_method(ctx: context, s: store, np: nat, p: pt, Tp: tp, np': nat, p': pt, Tp': tp, ns: nat, nm: nat, m: nat, P: tp, R: tp) returns (P': tp, R': tp, nm': nat)
+  requires pt_step(p, s).Some? && pt_step(p, s).get==p';
   requires typing(np, ctx, s, p, Tp);
   requires typing(np', ctx, s, p', Tp');
   requires subtype(ns, ctx, s, Tp', Tp);
