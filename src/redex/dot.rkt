@@ -360,7 +360,7 @@
    (expansion-iter ((sel p_0 Lt_0) ...) env z T_2 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
   [(expansion-iter ((sel p_0 Lt_0) ... (sel p_w Lt_w) (sel p_2 Lt_2) ...) env z (sel p_w Lt_w) (() () ()))]
   [(expansion-iter ((sel p_0 Lt_0) ...) env z (sel p_w Lt_w) Ds_u)
-   (found (member (sel p_w Lt_w) ((sel p_0 Lt_0) ...)) #f)
+   (found (is_member (sel p_w Lt_w) ((sel p_0 Lt_0) ...)) #f)
    (where any_bound (membership-type-lookup env p_w Lt_w))
    (found any_bound #t)
    (where (S_p U_p) any_bound)
@@ -608,3 +608,6 @@
 
 (define (preservation s)
   (preservation-with s (term Top)))
+
+(define (typechecks s)
+  (judgment-holds (typeok (() ()) ,s Top)))
