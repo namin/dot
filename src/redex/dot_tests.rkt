@@ -19,12 +19,20 @@
 (test-predicate preservation (term (val u = (new ((rfn Top u (:: (cm l) Top Top)) [(cm l) x u])) in (val r = (snd u (cm l) u) in r))))
 
 (test-predicate
- typechecks
+ preservation
  (term
   (val b = (new ((rfn Top b
                       (:: (ca X) (rfn Top z (:: (cv l) Top)) (rfn Top z (:: (cv l) Top)))
-                      (:: (cv l) Top)
+                      (:: (cv l) (sel b (ca X)))
                       (:: (cm m) (sel b (ca X)) Top))
-                 [(cv l) b] [(cm m) x x])) in b)))
+                 [(cv l) b] [(cm m) x (sel x (cv l))])) in
+  (val a = (new ((rfn Top a
+                      (:: (cv b) (rfn Top b
+                                      (:: (ca X) Bot Top)
+                                      (:: (cv l) (sel b (ca X)))
+                                      (:: (cm m) (sel b (ca X)) Top))))
+                 [(cv b) b])) in
+  (val r = (snd (sel a (cv b)) (cm m) (sel (sel a (cv b)) (cv l))) in
+  r)))))
 
 (test-results)
