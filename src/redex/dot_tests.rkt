@@ -35,4 +35,24 @@
   (val r = (snd (sel a (cv b)) (cm m) (sel (sel a (cv b)) (cv l))) in
   r)))))
 
+(test-predicate
+ preservation-in
+ (term (
+  (((rfn Top b (:: (ca X) (rfn Top z (:: (cv l) Top)) (rfn Top z (:: (cv l) Top))) (:: (cv l) (sel b (ca X))) (:: (cm m) (sel b (ca X)) Top)) ((cv l) (location 0)) ((cm m) x1 (sel x1 (cv l))))
+   ((rfn Top a1 (:: (cv b) (rfn Top b (:: (ca X) Bot Top) (:: (cv l) (sel b (ca X))) (:: (cm m) (sel b (ca X)) Top)))) ((cv b) (location 0))))
+  (val d = (new (Top)) in
+  (val f = (new ((rfn Top f
+                      (:: (cm e) Top (sel (sel (location 1) (cv b)) (ca X))))
+                 [(cm e) d (sel (sel (location 1) (cv b)) (cv l))])) in
+  (val c = (new ((rfn Top c
+                      (:: (cm c)
+                          (rfn Top f
+                               (:: (cm e) Top (sel (sel (location 1) (cv b)) (ca X))))
+                          (rfn Top f
+                               (:: (cm e) Top (sel (location 0) (ca X))))))
+                 [(cm c) x x])) in
+  (val g = (snd c (cm c) f) in
+  (val r = (snd g (cm e) d) in
+  (sel r (cv l))))))))))
+
 (test-results)

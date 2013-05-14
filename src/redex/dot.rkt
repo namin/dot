@@ -597,11 +597,12 @@
             (single-step? s)))
       #t))
 
-(define (preservation-with s T)
-  (if (and (judgment-holds (typeok (() ()) ,s ,T)) (single-step? s))
+(define (preservation-with store s T)
+  (if (and (judgment-holds (typeok (() ,store) ,s ,T)) (single-step? s))
       (begin
         (printf "preservation: trying ~a\n" s)
-        (let loop ((s s) (store (term ())))
+        (let loop ((s s) (store store))
+          ;(printf "store ~a\n" store)
           (or (value? s)
               (match (steps-to store s)
                 [(list store_to s_to)
@@ -611,7 +612,10 @@
       #t))
 
 (define (preservation s)
-  (preservation-with s (term Top)))
+  (preservation-with (term ()) s (term Top)))
+
+(define (preservation-in store-s)
+  (preservation-with (car store-s) (cadr store-s) (term Top)))
 
 (define (typechecks s)
   (judgment-holds (typeok (() ()) ,s Top)))
