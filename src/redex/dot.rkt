@@ -22,9 +22,9 @@
   (La (ca variable-not-otherwise-mentioned))
   ((S T U V W) (sel p Lt) (rfn T z DLt ... Dl ... Dm ...) (T ∧ T) (T ∨ T) Top Bot)
   ((Sc Tc) (sel p Lc) (rfn Tc z DLt ... Dl ... Dm ...) (Tc ∧ Tc) Top)
-  (DLt (: Lt S U))
-  (Dl (: l T))
-  (Dm (: m S U))
+  (DLt (:: Lt S U))
+  (Dl (:: l T))
+  (Dm (:: m S U))
   (D DLt Dl Dm)
   (bool #t #f)
   (DLm DLt Dm)
@@ -174,11 +174,19 @@
 (define-judgment-form dot
   #:mode (wf-decl I I)
   #:contract (wf-decl env D)
-  [(wf-decl env (: l T))
+  [(wf-decl env (:: l T))
    (wf-type env T)]
-  [(wf-decl env (: Lm S U))
+  [(wf-decl env (:: Lm S U))
    (wf-type env S)
    (wf-type env U)])
+
+(define-judgment-form dot
+  #:mode (wf-decls I I)
+  #:contract (wf-decls env (D ...))
+  [(wf-decls env ())]
+  [(wf-decls env (D_1 D ...))
+   (wf-decl env D_1)
+   (wf-decls env (D ...))])
 
 (define-metafunction dot
   is_wfe-type : env T -> bool
@@ -196,7 +204,7 @@
   [(is_wf-type (Gamma store) (rfn T z D ...)) #t
    (side-condition (term (is_wf-type (Gamma store) T)))
    (where env_extended ((gamma-extend Gamma z (rfn T z D ...)) store))
-   (side-condition (andmap (lambda (d) (judgment-holds (wf-decl env_extended ,d))) (term (D ...))))]
+   (judgment-holds (wf-decls env_extended (D ...)))]
   [(is_wf-type env (sel p Lt)) #t
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))]
@@ -236,24 +244,24 @@
 
 (define-metafunction dot
   decl-intersection : (D ...) (D ...) -> (D ...)
-  [(decl-intersection ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))
-   ,(cons (term (: l (T_1 ∧ T_2)))
+  [(decl-intersection ((:: l T_1) Dl_1 ...) ((:: l T_2) Dl_2 ...))
+   ,(cons (term (:: l (T_1 ∧ T_2)))
           (term (decl-intersection (Dl_1 ...) (Dl_2 ...))))]
-  [(decl-intersection ((: l T_1) Dl_1 ...) (Dl_before ... (: l T_2) Dl_2 ...))
+  [(decl-intersection ((:: l T_1) Dl_1 ...) (Dl_before ... (:: l T_2) Dl_2 ...))
    ,(append (term (Dl_before ...))
-            (term (decl-intersection ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))))]
-  [(decl-intersection (Dl_before ... (: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))
+            (term (decl-intersection ((:: l T_1) Dl_1 ...) ((:: l T_2) Dl_2 ...))))]
+  [(decl-intersection (Dl_before ... (:: l T_1) Dl_1 ...) ((:: l T_2) Dl_2 ...))
    ,(append (term (Dl_before ...))
-            (term (decl-intersection ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))))]
-  [(decl-intersection ((: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))
-   ,(cons (term (: Lm (union S_1 S_2) (intersection U_1 U_2)))
+            (term (decl-intersection ((:: l T_1) Dl_1 ...) ((:: l T_2) Dl_2 ...))))]
+  [(decl-intersection ((:: Lm S_1 U_1) DLm_1 ...) ((:: Lm S_2 U_2) DLm_2 ...))
+   ,(cons (term (:: Lm (union S_1 S_2) (intersection U_1 U_2)))
           (term (decl-intersection (DLm_1 ...) (DLm_2 ...))))]
-  [(decl-intersection ((: Lm S_1 U_1) DLm_1 ...) (DLm_before ... (: Lm S_2 U_2) DLm_2 ...))
+  [(decl-intersection ((:: Lm S_1 U_1) DLm_1 ...) (DLm_before ... (:: Lm S_2 U_2) DLm_2 ...))
    ,(append (term (DLm_before ...))
-            (term (decl-intersection ((: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))))]
-  [(decl-intersection (DLm_before ... (: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))
+            (term (decl-intersection ((:: Lm S_1 U_1) DLm_1 ...) ((:: Lm S_2 U_2) DLm_2 ...))))]
+  [(decl-intersection (DLm_before ... (:: Lm S_1 U_1) DLm_1 ...) ((:: Lm S_2 U_2) DLm_2 ...))
    ,(append (term (DLm_before ...))
-            (term (decl-intersection ((: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))))]
+            (term (decl-intersection ((:: Lm S_1 U_1) DLm_1 ...) ((:: Lm S_2 U_2) DLm_2 ...))))]
   [(decl-intersection (Dl_1 ...) (Dl_2 ...))
    (Dl_1 ... Dl_2 ...)]
   [(decl-intersection (DLm_1 ...) (DLm_2 ...))
@@ -261,20 +269,20 @@
 
 (define-metafunction dot
   decl-union : (D ...) (D ...) -> (D ...)
-  [(decl-union ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))
-   ,(cons (term (: l (T_1 ∨ T_2)))
+  [(decl-union ((:: l T_1) Dl_1 ...) ((:: l T_2) Dl_2 ...))
+   ,(cons (term (:: l (T_1 ∨ T_2)))
           (term (decl-union (Dl_1 ...) (Dl_2 ...))))]
-  [(decl-union ((: l T_1) Dl_1 ...) (Dl_before ... (: l T_2) Dl_2 ...))
-   (decl-union ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))]
-  [(decl-union (Dl_before ... (: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))
-   (decl-union ((: l T_1) Dl_1 ...) ((: l T_2) Dl_2 ...))]
-  [(decl-union ((: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))
-   ,(cons (term (: Lm (intersection S_1 S_2) (union U_1 U_2)))
+  [(decl-union ((:: l T_1) Dl_1 ...) (Dl_before ... (:: l T_2) Dl_2 ...))
+   (decl-union ((:: l T_1) Dl_1 ...) ((:: l T_2) Dl_2 ...))]
+  [(decl-union (Dl_before ... (:: l T_1) Dl_1 ...) ((:: l T_2) Dl_2 ...))
+   (decl-union ((:: l T_1) Dl_1 ...) ((:: l T_2) Dl_2 ...))]
+  [(decl-union ((:: Lm S_1 U_1) DLm_1 ...) ((:: Lm S_2 U_2) DLm_2 ...))
+   ,(cons (term (:: Lm (intersection S_1 S_2) (union U_1 U_2)))
           (term (decl-union (DLm_1 ...) (DLm_2 ...))))]
-  [(decl-union ((: Lm S_1 U_1) DLm_1 ...) (DLm_before ... (: Lm S_2 U_2) DLm_2 ...))
-   (decl-union ((: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))]
-  [(decl-union (DLm_before ... (: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))
-   (decl-union ((: Lm S_1 U_1) DLm_1 ...) ((: Lm S_2 U_2) DLm_2 ...))]
+  [(decl-union ((:: Lm S_1 U_1) DLm_1 ...) (DLm_before ... (:: Lm S_2 U_2) DLm_2 ...))
+   (decl-union ((:: Lm S_1 U_1) DLm_1 ...) ((:: Lm S_2 U_2) DLm_2 ...))]
+  [(decl-union (DLm_before ... (:: Lm S_1 U_1) DLm_1 ...) ((:: Lm S_2 U_2) DLm_2 ...))
+   (decl-union ((:: Lm S_1 U_1) DLm_1 ...) ((:: Lm S_2 U_2) DLm_2 ...))]
   [(decl-union (Dl_1 ...) (Dl_2 ...))
    ()]
   [(decl-union (DLm_1 ...) (DLm_2 ...))
@@ -286,7 +294,7 @@
    (subst (S_1 U_1) z_1 p_1)
    (judgment-holds (typeof env_1 p_1 T_e))
    (where z_1 ,(variable-not-in (term (env_1 p_1 T_e)) 'z))
-   (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (: Lt_1 S_1 U_1) D_after ...) (Dl ...) (Dm ...))))]
+   (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (:: Lt_1 S_1 U_1) D_after ...) (Dl ...) (Dm ...))))]
   [(membership-type-lookup env_1 p_1 Lt_1)
    (Top Bot)
    (judgment-holds (typeof env_1 p_1 T_e))
@@ -300,7 +308,7 @@
    (subst T_1 z_1 p_1)
    (where z_1 ,(variable-not-in (term (env_1 p_1 T_e)) 'z))
    (judgment-holds (typeof env_1 p_1 T_e))
-   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (: l_1 T_1) D_after ...) (Dm ...))))]
+   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (:: l_1 T_1) D_after ...) (Dm ...))))]
   [(membership-value-lookup env_1 p_1 l_1)
    Bot
    (judgment-holds (typeof env_1 p_1 T_e))
@@ -314,7 +322,7 @@
    (subst (S_1 U_1) z_1 p_1)
    (where z_1 ,(variable-not-in (term (env_1 p_1 T_e)) 'z))
    (judgment-holds (typeof env_1 p_1 T_e))
-   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (Dl ...) (D_before ... (: m_1 S_1 U_1) D_after ...))))]
+   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (Dl ...) (D_before ... (:: m_1 S_1 U_1) D_after ...))))]
   [(membership-method-lookup env_1 p_1 m_1)
    (Top Bot)
    (judgment-holds (typeof env_1 p_1 T_e))
@@ -357,7 +365,7 @@
    (found any_bound #t)
    (where (S_p U_p) any_bound)
    (expansion-iter ((sel p_w Lt_w) (sel p_0 Lt_0) ...) env z U_p Ds_u)]
-  [(expansion-iter ((sel p Lt) ...) env z Bot (((: (ca kludge) Top Bot)) () ()))]) ;; kludge
+  [(expansion-iter ((sel p Lt) ...) env z Bot (((:: (ca kludge) Top Bot)) () ()))]) ;; kludge
 
 (define-judgment-form dot
   #:mode (expansion I I I O)
@@ -368,10 +376,10 @@
 (define-judgment-form dot
   #:mode (subdecl I I I)
   #:contract (subdecl env D D)
-  [(subdecl env (: Lm_1 S_1 T_1) (: Lm_1 S_2 T_2))
+  [(subdecl env (:: Lm_1 S_1 T_1) (:: Lm_1 S_2 T_2))
    (subtype env S_2 S_1)
    (subtype env T_1 T_2)]
-  [(subdecl env (: l_1 T_1) (: l_1 T_2))
+  [(subdecl env (:: l_1 T_1) (:: l_1 T_2))
    (subtype env T_1 T_2)])
 
 (define-judgment-form dot
@@ -546,11 +554,11 @@
    "TS-PATH"]
   [(typeok (Gamma store) (val x = (new (Tc (l vx) ... (m x_m s_m) ...)) in s) T)
    (wfe-type (Gamma store) Tc)
-   (expansion (Gamma store) x Tc (((: Lt S U) ...) (Dl ...) (Dm ...)))
+   (expansion (Gamma store) x Tc (((:: Lt S U) ...) (Dl ...) (Dm ...)))
    (where ((l_s vx_s) ...) (sorted-assigns ((l vx) ...)))
-   (where ((: l_s V_d) ...) (sorted-decls (Dl ...)))
+   (where ((:: l_s V_d) ...) (sorted-decls (Dl ...)))
    (where ((m_s y_ms s_ms) ...) (sorted-method-assigns ((m x_m s_m) ...)))
-   (where ((: m_s V_md W_md) ...) (sorted-decls (Dm ...)))
+   (where ((:: m_s V_md W_md) ...) (sorted-decls (Dm ...)))
    (where Gamma_Tc (gamma-extend Gamma x Tc))
    (wfe-type (Gamma_Tc store) V_md) ...
    (subtype (Gamma_Tc store) S U) ...

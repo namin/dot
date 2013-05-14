@@ -12,10 +12,10 @@
   (test-equal (not (not e)) #t))
 
 ;(trace-dot (term (val x = (new (Top)) in x)))
-;(trace-dot (term (val x = (new ((rfn Top x (: (cv l) Top)) ((cv l) x))) in (sel x (cv l)))))
-;(trace-dot (term (val x = (new ((rfn Top x (: (cm m) Top Top)) ((cm m) y y))) in (val r = (snd x (cm m) x) in r))))
+;(trace-dot (term (val x = (new ((rfn Top x (:: (cv l) Top)) ((cv l) x))) in (sel x (cv l)))))
+;(trace-dot (term (val x = (new ((rfn Top x (:: (cm m) Top Top)) ((cm m) y y))) in (val r = (snd x (cm m) x) in r))))
 
 (test-predicate preservation (term (val u = (new (Top)) in u)))
-(test-predicate preservation (term (val u = (new ((rfn Top u (: (cm l) Top Top)) [(cm l) x u])) in (val r = (snd u (cm l) u) in r))))
+(test-predicate preservation (term (val u = (new ((rfn Top u (:: (cm l) Top Top)) [(cm l) x u])) in (val r = (snd u (cm l) u) in r))))
 
 (test-results)
