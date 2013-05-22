@@ -428,13 +428,13 @@
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))
    (where (S_p U_p) any_bound)
-   (side-condition (term (is_subtype ((T_a T_b) ... (S_1 (sel p Lt))) env S_p U_p)))
+   ;(side-condition (term (is_subtype ((T_a T_b) ... (S_1 (sel p Lt))) env S_p U_p)))
    (side-condition (term (is_subtype ((T_a T_b) ... (S_1 (sel p Lt))) env S_1 S_p)))]
   [(is_subtype ((T_a T_b) ...) env (sel p Lt) U_1) #t
    (where any_bound (membership-type-lookup env p Lt))
    (judgment-holds (found any_bound #t))
    (where (S_p U_p) any_bound)
-   (side-condition (term (is_subtype ((T_a T_b) ... ((sel p Lt) U_1)) env S_p U_p)))
+   ;(side-condition (term (is_subtype ((T_a T_b) ... ((sel p Lt) U_1)) env S_p U_p)))
    (side-condition (term (is_subtype ((T_a T_b) ... ((sel p Lt) U_1)) env U_p U_1)))]
   [(is_subtype ((T_a T_b) ...) env T_o (T_1 ∧ T_2)) #t
    (side-condition (term (is_subtype ((T_a T_b) ... (T_o (T_1 ∧ T_2))) env T_o T_1)))
