@@ -359,8 +359,16 @@
    (expansion-iter ((sel p_0 Lt_0) ...) env z T_1 ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
    (expansion-iter ((sel p_0 Lt_0) ...) env z T_2 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
   [(expansion-iter ((sel p_0 Lt_0) ... (sel p_w Lt_w) (sel p_2 Lt_2) ...) env z (sel p_w Lt_w) (() () ()))]
+  [(expansion-iter ((sel p_0 Lt_0) ...) env z (sel p_w Lt_w) Ds_w)
+   (found (is_member (sel p_w Lt_w) ((sel p_0 Lt_0) ...)) #f)
+   (where (Gamma store) env)
+   (where T_w (resolve-type store (sel p_w Lt_w)))
+   (found T_w #t)
+   (expansion-iter ((sel p_0 Lt_0) ...) env z T_w Ds_w)]
   [(expansion-iter ((sel p_0 Lt_0) ...) env z (sel p_w Lt_w) Ds_u)
    (found (is_member (sel p_w Lt_w) ((sel p_0 Lt_0) ...)) #f)
+   (where (Gamma store) env)
+   (found (resolve-type store (sel p_w Lt_w)) #f)
    (where any_bound (membership-type-lookup env p_w Lt_w))
    (found any_bound #t)
    (where (S_p U_p) any_bound)
@@ -406,6 +414,14 @@
   is_subtype : ((T T) ...) env S T -> bool
   [(is_subtype ((T_a T_b) ...) env S T) #f
    (judgment-holds (found (is_member (S T) ((T_a T_b) ...)) #t))]
+  [(is_subtype ((T_a T_b) ...) env S T) (is_subtype ((S T) (T_a T_b) ...) env S_p T)
+   (where (Gamma store) env)
+   (where S_p (resolve-type store S))
+   (judgment-holds (found S_p #t))]
+  [(is_subtype ((T_a T_b) ...) env S T) (is_subtype ((S T) (T_a T_b) ...) env S T_p)
+   (where (Gamma store) env)
+   (where T_p (resolve-type store T))
+   (judgment-holds (found T_p #t))]
   [(is_subtype ((T_a T_b) ...) env T T) #t
    (judgment-holds (wfe-type env T))]
   [(is_subtype ((T_a T_b) ...) env T Top) #t
@@ -493,6 +509,27 @@
         ;(printf "trying ~a ~a ~a ~a\n" env s t u)
         (judgment-holds (subtype ,env ,s ,u)))
       #t))
+
+(define-metafunction dot
+  path-ev : store p -> loc or #f
+  [(path-ev store loc) loc]
+  [(path-ev store (sel p l)) v
+   (where loc (path-ev store p))
+   (judgment-holds (found loc #t))
+   (where (location i) loc)
+   (where c (store-lookup store i))
+   (judgment-holds (found c #t))
+   (where v (value-label-lookup c l))
+   (judgment-holds (found v #t))]
+  [(path-ev store p) #f])
+
+(define-metafunction dot
+  resolve-type : store T -> T or #f
+  [(resolve-type store (sel loc Lt)) #f]
+  [(resolve-type store (sel p Lt)) (sel loc Lt)
+   (where loc (path-ev store p))
+   (judgment-holds (found loc #t))]
+  [(resolve-type store T) #f])
 
 (define-judgment-form dot
   #:mode (red I I O O)
