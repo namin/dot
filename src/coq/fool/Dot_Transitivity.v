@@ -73,7 +73,7 @@ Admitted.
 Ltac crush_rfn_r := repeat (
   match goal with
     | [ _ : forall z, z `notin` ?L' -> forall_decls (ctx_bind ?E _ ?T_Mid) (?D_T_Mid ^ds^ _) (decls_fin ?DT_ ^ds^ _) sub_decl
-      |- ?E |= ?S ~<: tp_rfn ?T ?DT ] =>
+      |- ?E |= ?S ~<: tp_rfn ?T ?DT ] => 
     assert (E |= S ~<: T_Mid) as Htl; eauto 3;
     assert (E |= T_Mid ~<: tp_rfn T DT) as Htr; eauto 3;
     let D_S :=fresh "D_S" with Hexp_S := fresh "Hexp_S" in
@@ -93,9 +93,9 @@ Ltac crush_rfn_r := repeat (
   introv HSubL HSubR.
   gen T T'. gen_eq TMid as TMid' eq. gen TMid' eq.
   induction TMid; intros;
-    dependent induction HSubL; intros;
-      dependent induction HSubR; subst; auto; try solve [
-        eapply sub_tp_and_r; eauto 2 |
+    dependent induction HSubL; intros; 
+      dependent induction HSubR; subst; auto; try solve [ 
+        eapply sub_tp_and_r; eauto 2 | 
         eapply sub_tp_and_l1; try eapply IHHSubL; eauto 3 |
         eapply sub_tp_and_l2; try eapply IHHSubL; eauto 3 |
         eapply sub_tp_tsel_l; eauto 3 using sub_tp_rfn_r |
@@ -107,8 +107,8 @@ Ltac crush_rfn_r := repeat (
         crush_rfn_r |
         eauto 4].
 
-assert (E |= S' ~<: tp_sel p l) as Ht1; eauto 3.
-assert (E |= tp_sel p l ~<: U') as Ht2; eauto 3.
+assert (E |= S' ~<: tp_sel t l) as Ht1; eauto 3.
+assert (E |= tp_sel t l ~<: U') as Ht2; eauto 3.
 skip. (* TODO *)
 
 Qed.
