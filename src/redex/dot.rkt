@@ -192,7 +192,8 @@
   is_wfe-type : env T -> bool
   [(is_wfe-type env T) #t
    (side-condition (term (is_wf-type env T)))
-   (judgment-holds (expansion env z T ((DLt ...) (Dl ...) (Dm ...))))]
+   ;(judgment-holds (expansion env z T ((DLt ...) (Dl ...) (Dm ...))))
+  ]
   [(is_wfe-type env T) #f])
 
 (define-metafunction dot
