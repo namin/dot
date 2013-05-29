@@ -130,7 +130,7 @@ trait DotTyper extends StandardTyperMonad with DotTyperSyntax with DotNominalSyn
         etb <- Infer[Type]("bodyTp");
         _ <- assume(x, s)(ofT(b, etb));
         tb <- !etb;
-        _ <- sub(tb, u)) yield ()
+        _ <- assume(x, s)(sub(tb, u))) yield ()
     }
   }
 

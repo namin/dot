@@ -213,4 +213,17 @@ class TestDot extends FunSuite with DotParsing with DotTyper {
   test("TooRecursive") { expectResult("stuck in infinite derivation"){checkfail(
       "val x = new Top {x => l: x.L; L: Bot .. x.l.L} (l=x); x")
   }}
+
+  test("MethodInitScope") { expectResult(Top){check(
+    """
+      val w = new Top { y =>
+        f: Top{a => S: Bot..Top; l: a.S} -> Top
+        id: Top -> Top
+      } (
+        f(a) = a.l
+        id(x) = x
+      );
+      w.id(w)
+    """
+)}}
 }
