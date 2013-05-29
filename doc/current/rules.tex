@@ -289,6 +289,9 @@
 \newcommand{\approxtyp}{:_{<:}}
 % reduction
 \newcommand{\reduces}{\;\rightarrow\;}
+\newcommand{\resolves}{\Downarrow}
+\newcommand{\irresolves}{\Updownarrow}
+\newcommand{\optresolves}{\Updownarrow}
 % well-formedness
 \newcommand{\wf}{\;\mbox{\textbf{wf}}}
 \newcommand{\wfe}{\;\mbox{\textbf{wfe}}}
@@ -380,7 +383,7 @@ v ::=      & \lindent{\mbox{Value}} \\
 w ::=      & \lindent{\mbox{Syntactic Value}} \\
 \gap v     & \mbox{value} \\[0.2em]
 \gap x     & \mbox{variable} \\[0.2em]
-p ::= & \lindent \mbox{Path} \\
+p,q ::= & \lindent \mbox{Path} \\
 \gap w & \mbox{value} \\
 \gap p.l & \mbox{selection} \\
 t ::=      & \lindent{\mbox{Term}} \\
@@ -416,10 +419,12 @@ D ::= & \lindent\mbox{Declaration} \\
 \gap \mdecl m S U & \mbox{method declaration}
 \ea
 \ea$
-\medskip
+}
+\caption{The DOT Calculus : Syntax}\label{dot-syntax}
+\end{figure}
 
-\linesep
-
+\begin{figure}
+\figurebox{
 \pdfbookmark[0]{Reduction}{reduction}
 {\bf Reduction}\hfill\fbox{$\reduction t s {t'} {s'}$} \fbox{$\reduction p s {p'} s$}
 
@@ -446,8 +451,7 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 
 {\bf where} $e ::= [\,] ~|~ e.l ~|~ \anfmapp x e m p t ~|~ \anfmapp x v m e t ~|~ \anfmexe x v m e t \hspace{2cm}$
 }
-
-\caption{The DOT Calculus : Syntax and Reduction}\label{dot-one}
+\caption{The DOT Calculus : Reduction}\label{dot-red}
 \end{figure}
 
 \begin{figure}
@@ -512,7 +516,56 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 
 }
 
-\caption{The DOT Calculus : Typing}\label{dot-one-bis}
+\caption{The DOT Calculus : Typing}\label{dot-typing}
+\end{figure}
+
+\begin{figure}
+ \figurebox{
+\pdfbookmark[0]{Resolution}{resolution}
+
+      {\bf Path Resolution}\hfill{\fbox{$s \ts p \resolves o $}}
+
+      \infax[\textsc{loc-$\resolves$}]
+      {s \ts o \resolves o}
+
+      \infrule[\textsc{path-$\resolves$}]
+      {s \ts p \resolves o\\
+       o \mapsto T_c \ldefs{\seq{l = o}\;\seq{m(x)=t}} \in s}
+      {s \ts p.l_i \resolves o_i}
+
+\linesep
+
+      {\bf Path Irresolution}\hfill{\fbox{$s \ts p \irresolves p $}}
+
+      \infax[\textsc{var-$\irresolves$}]
+      {s \ts x \irresolves x}
+
+      \infrule[\textsc{path-$\irresolves$}]
+      {s \ts p \irresolves p}
+      {s \ts p.l \irresolves p.l}
+
+\linesep
+
+      {\bf Type Resolution}\hfill{\fbox{$s \ts p.L \resolves o.L $}}
+
+      \infrule[\textsc{tsel-$\resolves$}]
+      {s \ts p \resolves o}
+      {s \ts p.L \resolves o.L}
+
+\linesep
+
+      {\bf Optional Type Resolution}\hfill{\fbox{$s \ts p.L \optresolves p.L $}}
+
+      \infrule[\textsc{tsel-$\resolves$-$\optresolves$}]
+      {s \ts p \resolves o}
+      {s \ts p.L \optresolves o.L}
+
+      \infrule[\textsc{tsel-$\irresolves$-$\optresolves$}]
+      {s \ts p \irresolves p}
+      {s \ts p.L \optresolves p.L}
+
+}
+\caption{The DOT Calculus : Path and Type Resolution}\label{dot-patheq}
 \end{figure}
 
 \begin{figure}
@@ -545,7 +598,8 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
       {\Gamma;s \ts M/T \refine z {\seq D} \expand'_z \seq {D'} \tand \seq D}
 
       \infrule[\textsc{tsel-$\expand'_1$}]
-      {p.L \in M}
+      {{s \ts p.L \optresolves q.L}\\
+       {q.L \in M}}
       {\Gamma;s \ts M / p.L \expand'_z \{\}}
 
       \infax[\textsc{$\Bot$-$\expand'$}]
@@ -556,31 +610,18 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
       {\Gamma;s \ts M/T_1 \tor T_2 \expand'_z {\seq D_1 \tor \seq D_2}}
 
       \infrule[\textsc{tsel-$\expand'_2$}]
-      {{p.L \not\in M}\\
-       {\Gamma;s \ts p \ni \Ldecl L S U}\\
-       {\Gamma;s \ts M,p.L / U \expand'_z \seq D}}
+      {{s \ts p.L \optresolves q.L}\\
+       {q.L \not\in M}\\
+       {\Gamma;s \ts q \ni \Ldecl L S U}\\
+       {\Gamma;s \ts M,q.L / U \expand'_z \seq D}}
       {\Gamma;s \ts M / p.L \expand'_z \seq D}
     \end{multicols}
 }
-\caption{The DOT Calculus : Membership and Expansion}\label{dot-two}
+\caption{The DOT Calculus : Membership and Expansion}\label{dot-mem}
 \end{figure}
 
 \begin{figure}
   \figurebox{
-
-\pdfbookmark[0]{Path Reduction}{pathreduction}
-    \begin{multicols}{2}[\judgement{Path Reduction}{\fbox{$s \ts p \reduces p'$}}]
-
-      \infrule[\textsc{loc}]
-      {o \mapsto T_c \ldefs{\seq{l = o}\;\seq{m(x)=t}} \in s}
-      {s \ts o.l_i \reduces o_i}
-
-      \infrule[\textsc{rec}]
-      {s \ts p \reduces p'}
-      {s \ts p.l \reduces p'.l}
-    \end{multicols}
-
-    \linesep
 
 \pdfbookmark[0]{Subtyping}{subtyping}
     \begin{multicols}{2}[\judgement{Subtyping}{\fbox{$\Gamma;s \ts S \sub T$}}]
@@ -592,6 +633,11 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
       \infrule[\textsc{refl}]
       {\Gamma;s \ts T \wfe}
       {\Gamma;s \ts T \sub T}
+
+      \infrule[\textsc{refl-$\optresolves$}]
+      {\Gamma;s \ts p_1.L \wfe \spcomma p_2.L \wfe\\
+       s \ts p_1.L \optresolves q.L \spcomma p_2.L \optresolves q.L}
+      {\Gamma;s \ts p_1.L \sub p_2.L}
 
       \infrule[\textsc{$\sub$-rfn}]
       {\Gamma;s \ts {T \refine z {\seq D}} \wfe
@@ -612,23 +658,20 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
       {\Gamma;s \ts T \sub T_1 \tor T_2}
 
       \infrule[\textsc{$\sub$-tsel}]
-      {\Gamma;s \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma S' \sub S }
+      {\Gamma;s \ts p \ni \Ldecl L S U \spcomma S' \sub S }
       {\Gamma;s \ts S' \sub p.L}
 
-      \infrule[\textsc{$\sub$-tsel-pathred}]
-      {s \ts p_1 \reduces p_2\\
-      \Gamma;s \ts T \sub p_2.L}
-      {\Gamma;s \ts T \sub p_1.L}
-      
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       \infrule[\textsc{$\sub$-$\Top$}]
       {\Gamma;s \ts T \wfe}
       {\Gamma;s \ts T \sub \Top}
 
+
       \infrule[\textsc{$\Bot$-$\sub$}]
       {\Gamma;s \ts T \wfe}
       {\Gamma;s \ts \Bot \sub T}
+
 
       \infrule[\textsc{rfn-$\sub$}]
       {\Gamma;s \ts {T \refine z {\seq D}} \wfe
@@ -648,7 +691,7 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
       {\Gamma;s \ts T_1 \tand T_2 \sub T}
 
       \infrule[\textsc{tsel-$\sub$}]
-      {\Gamma;s \ts p \ni \Ldecl L S U \spcomma S \sub U \spcomma U \sub U'}
+      {\Gamma;s \ts p \ni \Ldecl L S U \spcomma U \sub U'}
       {\Gamma;s \ts p.L \sub U'}
 
       \end{multicols}
@@ -671,7 +714,7 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 
     \end{multicols}
   }
-\caption{The DOT Calculus : Path Reduction, Subtyping and Declaration Subsumption}\label{dot-sub}
+\caption{The DOT Calculus : Subtyping and Declaration Subsumption}\label{dot-sub}
 \end{figure}
 
 \begin{figure}
