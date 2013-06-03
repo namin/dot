@@ -828,11 +828,6 @@ predicate wf_type(n: nat, ctx: context, s: store, T: tp)
   case tp_top => true
   case tp_bot => true
 }
-predicate wfe_type(n: nat, ctx: context, s: store, T: tp)
-  decreases n;
-{
-  n>0 && wf_type(n-1, ctx, s, T) && exists Ds :: expansion(n-1, ctx, s, 0, T, Ds)
-}
 predicate membership(n: nat, ctx: context, s: store, p: pt, l: nat, d: decl)
   decreases n;
 {
@@ -947,17 +942,17 @@ predicate subtype(n: nat, ctx: context, s: store, S: tp, T: tp)
 {
   var self := fresh_in_context(ctx);
   n>0 && (
-  /* refl */    (S==T && wfe_type(n-1, ctx, s, T)) ||
+  /* refl */    (S==T && wf_type(n-1, ctx, s, T)) ||
   /* refl-res */(S.tp_sel? && T.tp_sel? && S.L==T.L &&
-                 wfe_type(n-1, ctx, s, S) && wfe_type(n-1, ctx, s, S) &&
+                 wf_type(n-1, ctx, s, S) && wf_type(n-1, ctx, s, S) &&
                  resolve_tp(s, S) == resolve_tp(s, T)) || 
-  /* <:-top */  (T.tp_top? && wfe_type(n-1, ctx, s, S)) ||
-  /* bot-<: */  (S.tp_bot? && wfe_type(n-1, ctx, s, T)) ||
-  /* <:-rfn */  (T.tp_rfn? && wfe_type(n-1, ctx, s, T) && subtype(n-1, ctx, s, S, T.base_tp) &&
+  /* <:-top */  (T.tp_top? && wf_type(n-1, ctx, s, S)) ||
+  /* bot-<: */  (S.tp_bot? && wf_type(n-1, ctx, s, T)) ||
+  /* <:-rfn */  (T.tp_rfn? && wf_type(n-1, ctx, s, T) && subtype(n-1, ctx, s, S, T.base_tp) &&
                  exists Ds' :: expansion(n-1, ctx, s, self, S, Ds') &&
                  exists rfn_decls :: rfn_decls==decl_seq_sort(lst2seq(decls_subst(T.self, pt_var(self), T.decls))) &&
                  decls_sub(n-1, context_extend(ctx, self, S), s, decls_fin(seq2lst(rfn_decls)), Ds')) ||
-  /* rfn-<: */  (S.tp_rfn? && wfe_type(n-1, ctx, s, S) && subtype(n-1, ctx, s, S.base_tp, T)) ||
+  /* rfn-<: */  (S.tp_rfn? && wf_type(n-1, ctx, s, S) && subtype(n-1, ctx, s, S.base_tp, T)) ||
   /* <:-sel */  (T.tp_sel? &&
                  exists S', U' :: type_membership(n-1, ctx, s, T.p, T.L, T.concrete, S', U') &&
                  subtype(n-1, ctx, s, S, S')) ||
@@ -965,10 +960,10 @@ predicate subtype(n: nat, ctx: context, s: store, S: tp, T: tp)
                  exists S', U' :: type_membership(n-1, ctx, s, S.p, S.L, S.concrete, S', U') &&
                  subtype(n-1, ctx, s, U', T)) ||
   /* <:-and */  (T.tp_and? && subtype(n-1, ctx, s, S, T.and1) && subtype(n-1, ctx, s, S, T.and2)) ||
-  /* and1-<: */ (S.tp_and? && wfe_type(n-1, ctx, s, S.and2) && subtype(n-1, ctx, s, S.and1, T)) ||
-  /* and2-<: */ (S.tp_and? && wfe_type(n-1, ctx, s, S.and1) && subtype(n-1, ctx, s, S.and2, T)) ||
-  /* <:-or1 */  (T.tp_or? && wfe_type(n-1, ctx, s, T.or2) && subtype(n-1, ctx, s, S, T.or1)) ||
-  /* <:-or2 */  (T.tp_or? && wfe_type(n-1, ctx, s, T.or1) && subtype(n-1, ctx, s, S, T.or2)) ||
+  /* and1-<: */ (S.tp_and? && wf_type(n-1, ctx, s, S.and2) && subtype(n-1, ctx, s, S.and1, T)) ||
+  /* and2-<: */ (S.tp_and? && wf_type(n-1, ctx, s, S.and1) && subtype(n-1, ctx, s, S.and2, T)) ||
+  /* <:-or1 */  (T.tp_or? && wf_type(n-1, ctx, s, T.or2) && subtype(n-1, ctx, s, S, T.or1)) ||
+  /* <:-or2 */  (T.tp_or? && wf_type(n-1, ctx, s, T.or1) && subtype(n-1, ctx, s, S, T.or2)) ||
   /* or-<: */   (S.tp_or? && subtype(n-1, ctx, s, S.or1, T) && subtype(n-1, ctx, s, S.or2, T)))
 }
 
@@ -976,9 +971,9 @@ predicate typing'(ctx: context, s: store, p: pt, T: tp)
 {
   exists n:nat :: typing(n, ctx, s, p, T)
 }
-predicate wfe_type'(ctx: context, s: store, T: tp)
+predicate wf_type'(ctx: context, s: store, T: tp)
 {
-  exists n:nat :: wfe_type(n, ctx, s, T)
+  exists n:nat :: wf_type(n, ctx, s, T)
 }
 predicate membership'(ctx: context, s: store, t: pt, l: nat, d: decl)
 {
@@ -1013,11 +1008,11 @@ function typing_n(ctx: context, s: store, t: pt, T: tp): nat
 {
   var n:nat :| typing(n, ctx, s, t, T); n
 }
-function wfe_type_n(ctx: context, s: store, T: tp): nat
-  requires wfe_type'(ctx, s, T);
-  ensures wfe_type(wfe_type_n(ctx, s, T), ctx, s, T);
+function wf_type_n(ctx: context, s: store, T: tp): nat
+  requires wf_type'(ctx, s, T);
+  ensures wf_type(wf_type_n(ctx, s, T), ctx, s, T);
 {
-  var n:nat :| wfe_type(n, ctx, s, T); n
+  var n:nat :| wf_type(n, ctx, s, T); n
 }
 function field_membership_n(ctx: context, s: store, t: pt, l: nat, T: tp): nat
   requires field_membership'(ctx, s, t, l, T);
@@ -1068,11 +1063,11 @@ ghost method lemma_typing_monotonic(n: nat, ctx: context, s: store, t: pt, T: tp
     }
   }
 }
-ghost method lemma_wfe_type_monotonic(n: nat, ctx: context, s: store, T: tp)
-  requires wfe_type(n, ctx, s, T);
-  ensures wfe_type(n+1, ctx, s, T);
+ghost method lemma_wf_type_monotonic(n: nat, ctx: context, s: store, T: tp)
+  requires wf_type(n, ctx, s, T);
+  ensures wf_type(n+1, ctx, s, T);
 {
-  assume wfe_type(n+1, ctx, s, T); // TODO
+  assume wf_type(n+1, ctx, s, T); // TODO
 }
 ghost method lemma_field_membership_monotonic(n: nat, ctx: context, s: store, t: pt, l: nat, T: tp)
   requires field_membership(n, ctx, s, t, l, T);
@@ -1176,7 +1171,7 @@ predicate typeok(n: nat, ctx: context, s: store, t: tm, T: tp)
         var t' := tm_subst(y_, pt_var(y), t'_);
         var init := defs_subst(y_, pt_var(y), init_);
         n>0 && is_concrete(Tc) &&
-        wfe_type(n-1, ctx, s, Tc) &&
+        wf_type(n-1, ctx, s, Tc) &&
         exists Ds:decls :: Ds.decls_fin? &&
         expansion(n-1, ctx, s, y, Tc, Ds) &&
         wf_init(n-1, false, context_extend(ctx, y, Tc), s, lst2seq(Ds.decls), lst2seq(init)) &&
@@ -1231,7 +1226,7 @@ predicate store_wf1(n: nat, s: store, loc: nat, y: nat, Tc: tp, init: seq<def>)
   n>0 &&
   is_concrete(Tc) &&
   exists Ds:decls :: Ds.decls_fin? &&
-  wfe_type(n-1, Context([]), s, Tc) &&
+  wf_type(n-1, Context([]), s, Tc) &&
   expansion(n-1, Context([]), s, y, Tc, Ds) && 
   wf_init(n-1, true, Context([]), s, lst2seq(decls_subst(y, pt_loc(loc), Ds.decls)), init) &&
   tp_closed(Tc) &&
@@ -1418,15 +1413,15 @@ ghost method lemma_store_invariance_method_membership(ctx: context, s: store, s'
   var nm'_:nat :| method_membership(nm'_, ctx, s', o, m, P, R);
   nm' := nm'_;
 }
-ghost method lemma_store_invariance_wfe_type(ctx: context, s: store, s': store, ns': nat, T: tp, nT: nat) returns (nT': nat)
+ghost method lemma_store_invariance_wf_type(ctx: context, s: store, s': store, ns': nat, T: tp, nT: nat) returns (nT': nat)
   requires store_extends(s', s);
   requires store_wf(ns', s');
-  requires wfe_type(nT, ctx, s, T);
-  ensures wfe_type(nT', ctx, s', T);
+  requires wf_type(nT, ctx, s, T);
+  ensures wf_type(nT', ctx, s', T);
 {
   // TODO!
-  assume exists nT':nat :: wfe_type(nT', ctx, s', T);
-  var nT'_:nat :| wfe_type(nT'_, ctx, s', T);
+  assume exists nT':nat :: wf_type(nT', ctx, s', T);
+  var nT'_:nat :| wf_type(nT'_, ctx, s', T);
   nT' := nT'_;
 }
 
@@ -1489,8 +1484,8 @@ ghost method theorem_preservation_new(s: store, ns: nat, t: tm, T: tp, nt: nat, 
   assert typeok(nt-1, context_extend(Context([]), y, t.b.Tc), s, t'_, T);
   var nt_ := lemma_store_invariance_typeok(context_extend(Context([]), y, t.b.Tc), s, s', ns', t'_, T, nt-1);
   assert typing(0, Context([]), s', pt_loc(|s.m|), t.b.Tc);
-  assert wfe_type(nt-1, Context([]), s, t.b.Tc);
-  var nTwf_ := lemma_store_invariance_wfe_type(Context([]), s, s', ns', t.b.Tc, nt-1);
+  assert wf_type(nt-1, Context([]), s, t.b.Tc);
+  var nTwf_ := lemma_store_invariance_wf_type(Context([]), s, s', ns', t.b.Tc, nt-1);
   assert subtype(nTwf_+1, Context([]), s', t.b.Tc, t.b.Tc);
   var nt'_ := lemma_subst(s', ns', t'_, T, nt_, y, t.b.Tc, tm_path(pt_loc(|s.m|)), nTwf_+2);
   assert typeok(nt'_, Context([]), s', tm_subst(y, pt_loc(|s.m|), t'_), T);
