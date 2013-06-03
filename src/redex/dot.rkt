@@ -189,14 +189,6 @@
    (wf-decls env (D ...))])
 
 (define-metafunction dot
-  is_wfe-type : env T -> bool
-  [(is_wfe-type env T) #t
-   (side-condition (term (is_wf-type env T)))
-   ;(judgment-holds (expansion env z T ((DLt ...) (Dl ...) (Dm ...))))
-  ]
-  [(is_wfe-type env T) #f])
-
-(define-metafunction dot
   is_wf-type : env T -> bool
   [(is_wf-type env Top) #t]
   [(is_wf-type env (-> T_1 T_2)) #t
@@ -217,11 +209,6 @@
    (side-condition (term (is_wf-type env T_2)))]
   [(is_wf-type env Bot) #t]
   [(is_wf-type env T) #f])
-
-(define-judgment-form dot
-  #:mode (wfe-type I I)
-  #:contract (wfe-type env T)
-  [(wfe-type env T) (found (is_wfe-type env T) #t)])
 
 (define-judgment-form dot
   #:mode (wf-type I I)
@@ -424,13 +411,13 @@
    (where T_p (resolve-type store T))
    (judgment-holds (found T_p #t))]
   [(is_subtype ((T_a T_b) ...) env T T) #t
-   (judgment-holds (wfe-type env T))]
+   (judgment-holds (wf-type env T))]
   [(is_subtype ((T_a T_b) ...) env T Top) #t
-   (judgment-holds (wfe-type env T))]
+   (judgment-holds (wf-type env T))]
   [(is_subtype ((T_a T_b) ...) env Bot T) #t
-   (judgment-holds (wfe-type env T))]
+   (judgment-holds (wf-type env T))]
   [(is_subtype ((T_a T_b) ...) env S (rfn T z DLt ... Dl ... Dm ...)) #t
-   (judgment-holds (wfe-type env (rfn T z DLt ... Dl ... Dm ...)))
+   (judgment-holds (wf-type env (rfn T z DLt ... Dl ... Dm ...)))
    (side-condition (term (is_subtype ((T_a T_b) ... (S (rfn T z DLt ... Dl ... Dm ...))) env S T)))
    (judgment-holds (expansion env z S ((DLt_s ...) (Dl_s ...) (Dm_s ...))))
    (where (Gamma store) env)
@@ -439,7 +426,7 @@
    (judgment-holds (subdecls (Gamma_z store) (sorted-decls (Dl_s ...)) (sorted-decls (Dl ...))))
    (judgment-holds (subdecls (Gamma_z store) (sorted-decls (Dm_s ...)) (sorted-decls (Dm ...))))]
   [(is_subtype ((T_a T_b) ...) env (rfn T_1 z DLt ... Dl ... Dm ...) T_2) #t
-   (judgment-holds (wfe-type env (rfn T_1 z DLt ... Dl ... Dm ...)))
+   (judgment-holds (wf-type env (rfn T_1 z DLt ... Dl ... Dm ...)))
    (side-condition (term (is_subtype ((T_a T_b) ... ((rfn T_1 z DLt ... Dl ... Dm ...) T_2)) env T_1 T_2)))]
   [(is_subtype ((T_a T_b) ...) env S_1 (sel p Lt)) #t
    (where any_bound (membership-type-lookup env p Lt))
@@ -457,27 +444,27 @@
    (side-condition (term (is_subtype ((T_a T_b) ... (T_o (T_1 ∧ T_2))) env T_o T_1)))
    (side-condition (term (is_subtype ((T_a T_b) ... (T_o (T_1 ∧ T_2))) env T_o T_2)))]
   [(is_subtype ((T_a T_b) ...) env (T_1 ∧ T_2) T_o) #t
-   (judgment-holds (wfe-type env T_2))
+   (judgment-holds (wf-type env T_2))
    (side-condition (term (is_subtype ((T_a T_b) ... ((T_1 ∧ T_2) T_o)) env T_1 T_o)))]
   [(is_subtype ((T_a T_b) ...) env (T_1 ∧ T_2) T_o) #t
-   (judgment-holds (wfe-type env T_1))
+   (judgment-holds (wf-type env T_1))
    (side-condition (term (is_subtype ((T_a T_b) ... ((T_1 ∧ T_2) T_o)) env T_2 T_o)))]
   [(is_subtype ((T_a T_b) ...) env (T_1 ∨ T_2) T_o) #t
    (side-condition (term (is_subtype ((T_a T_b) ... ((T_1 ∨ T_2) T_o)) env T_1 T_o)))
    (side-condition (term (is_subtype ((T_a T_b) ... ((T_1 ∨ T_2) T_o)) env T_2 T_o)))]
   [(is_subtype ((T_a T_b) ...) env T_o (T_1 ∨ T_2)) #t
-   (judgment-holds (wfe-type env T_2))
+   (judgment-holds (wf-type env T_2))
    (side-condition (term (is_subtype ((T_a T_b) ... (T_o (T_1 ∨ T_2))) env T_o T_1)))]
   [(is_subtype ((T_a T_b) ...) env T_o (T_1 ∨ T_2)) #t
-   (judgment-holds (wfe-type env T_1))
+   (judgment-holds (wf-type env T_1))
    (side-condition (term (is_subtype ((T_a T_b) ... (T_o (T_1 ∨ T_2))) env T_o T_2)))]
   [(is_subtype ((T_a T_b) ...) env T (sel p_1 Lt)) #t
    (judgment-holds (path-red env p_1 p_2))
-   (judgment-holds (wfe-type env (sel p_1 Lt)))
+   (judgment-holds (wf-type env (sel p_1 Lt)))
    (side-condition (term (is_subtype ((T_a T_b) ... (T (sel p_1 Lt))) env T (sel p_2 Lt))))]
   [(is_subtype ((T_a T_b) ...) env (sel p_1 Lt) T) #t
    (judgment-holds (path-red env p_1 p_2))
-   (judgment-holds (wfe-type env (sel p_1 Lt)))
+   (judgment-holds (wf-type env (sel p_1 Lt)))
    (side-condition (term (is_subtype ((T_a T_b) ... (T (sel p_1 Lt))) env (sel p_2 Lt) T)))]
   [(is_subtype ((T_a T_b) ...) env S T) #f])
 
@@ -504,7 +491,7 @@
    "TP-SEL"])
 
 (define (subtyping-transitive env s t u)
-  (if (and (judgment-holds (wfe-type ,env ,s)) (judgment-holds (wfe-type ,env ,t)) (judgment-holds (wfe-type ,env ,u))
+  (if (and (judgment-holds (wf-type ,env ,s)) (judgment-holds (wf-type ,env ,t)) (judgment-holds (wf-type ,env ,u))
            (judgment-holds (subtype ,env ,s ,t)) (judgment-holds (subtype ,env ,t ,u)))
       (begin
         ;(printf "trying ~a ~a ~a ~a\n" env s t u)
@@ -595,14 +582,14 @@
    (subtype env T_p T)
    "TS-PATH"]
   [(typeok (Gamma store) (val x = (new (Tc (l vx) ... (m x_m s_m) ...)) in s) T)
-   (wfe-type (Gamma store) Tc)
+   (wf-type (Gamma store) Tc)
    (expansion (Gamma store) x Tc (((:: Lt S U) ...) (Dl ...) (Dm ...)))
    (where ((l_s vx_s) ...) (sorted-assigns ((l vx) ...)))
    (where ((:: l_s V_d) ...) (sorted-decls (Dl ...)))
    (where ((m_s y_ms s_ms) ...) (sorted-method-assigns ((m x_m s_m) ...)))
    (where ((:: m_s V_md W_md) ...) (sorted-decls (Dm ...)))
    (where Gamma_Tc (gamma-extend Gamma x Tc))
-   (wfe-type (Gamma_Tc store) V_md) ...
+   (wf-type (Gamma_Tc store) V_md) ...
    (subtype (Gamma_Tc store) S U) ...
    (typeof (Gamma_Tc store) vx_s V_s) ...
    (subtype (Gamma_Tc store) V_s V_d) ...
