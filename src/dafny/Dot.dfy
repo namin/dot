@@ -835,7 +835,7 @@ predicate membership(n: nat, ctx: context, s: store, p: pt, l: nat, d: decl)
   decl_label(d)==l &&
   n>0 && exists T :: typing(n-1, ctx, s, p, T) &&
   exists Ds ::
-  expansion(n-1, ctx, s, z, T, Ds) &&
+  expansion(true, n-1, ctx, s, z, T, Ds) &&
   ((Ds.decls_fin? &&
     exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, p, d')) ||
    (Ds.decls_bot? && decl_bot(d)))
@@ -868,35 +868,36 @@ function lookup<K,V>(k: K, m: seq<pair<K,V>>): option<V>
   else None
 }
 
-predicate expansion(n: nat, ctx: context, s: store, z: nat, T: tp, Ds: decls)
+predicate expansion(loose: bool, n: nat, ctx: context, s: store, z: nat, T: tp, Ds: decls)
   decreases n;
 {
-  n>0 && expansion_iter(n-1, [], ctx, s, z, T, Ds)
+  n>0 && expansion_iter(loose, n-1, [], ctx, s, z, T, Ds)
 }
-predicate expansion_iter(n: nat, m: seq<tp>, ctx: context, s: store, z: nat, T: tp, Ds: decls)
+predicate expansion_iter(loose: bool, n: nat, m: seq<tp>, ctx: context, s: store, z: nat, T: tp, Ds: decls)
   decreases n;
 {
   match T
   case tp_rfn(T', z', Ds') =>
     n>0 &&
-    exists DsT' :: expansion_iter(n-1, m, ctx, s, z, T', DsT') &&
+    exists DsT' :: expansion_iter(loose, n-1, m, ctx, s, z, T', DsT') &&
     exists rfn_decls :: rfn_decls==decl_seq_sort(lst2seq(decls_subst(z', pt_var(z), Ds'))) &&
     Ds==decls_and(decls_fin(seq2lst(rfn_decls)), DsT')
   case tp_sel(p, L, concrete) =>
     var T' := resolve_tp(s, T);
     var p' := T'.p;
-    (T' in m && Ds==decls_fin(Nil)) || 
+    (T' in m && Ds==decls_fin(Nil)) ||
+    (loose && Ds==decls_fin(Nil)) ||
     (n>0 && T' !in m && exists S, U :: type_membership(n-1, ctx, s, p', L, concrete, S, U) &&
-    expansion_iter(n-1, [T']+m, ctx, s, z, U, Ds))
+    expansion_iter(loose, n-1, [T']+m, ctx, s, z, U, Ds))
   case tp_and(T1, T2) =>
     n>0 &&
-    exists Ds1, Ds2 :: expansion_iter(n-1, m, ctx, s, z, T1, Ds1) &&
-                       expansion_iter(n-1, m, ctx, s, z, T2, Ds2) &&
+    exists Ds1, Ds2 :: expansion_iter(loose, n-1, m, ctx, s, z, T1, Ds1) &&
+                       expansion_iter(loose, n-1, m, ctx, s, z, T2, Ds2) &&
     Ds==decls_and(Ds1, Ds2)
   case tp_or(T1, T2) =>
     n>0 &&
-    exists Ds1, Ds2 :: expansion_iter(n-1, m, ctx, s, z, T1, Ds1) &&
-                       expansion_iter(n-1, m, ctx, s, z, T2, Ds2) &&
+    exists Ds1, Ds2 :: expansion_iter(loose, n-1, m, ctx, s, z, T1, Ds1) &&
+                       expansion_iter(loose, n-1, m, ctx, s, z, T2, Ds2) &&
     Ds==decls_or(Ds1, Ds2)
   case tp_top => Ds==decls_fin(Nil)
   case tp_bot => Ds==decls_bot
@@ -949,7 +950,7 @@ predicate subtype(n: nat, ctx: context, s: store, S: tp, T: tp)
   /* <:-top */  (T.tp_top? && wf_type(n-1, ctx, s, S)) ||
   /* bot-<: */  (S.tp_bot? && wf_type(n-1, ctx, s, T)) ||
   /* <:-rfn */  (T.tp_rfn? && wf_type(n-1, ctx, s, T) && subtype(n-1, ctx, s, S, T.base_tp) &&
-                 exists Ds' :: expansion(n-1, ctx, s, self, S, Ds') &&
+                 exists Ds' :: expansion(true, n-1, ctx, s, self, S, Ds') &&
                  exists rfn_decls :: rfn_decls==decl_seq_sort(lst2seq(decls_subst(T.self, pt_var(self), T.decls))) &&
                  decls_sub(n-1, context_extend(ctx, self, S), s, decls_fin(seq2lst(rfn_decls)), Ds')) ||
   /* rfn-<: */  (S.tp_rfn? && wf_type(n-1, ctx, s, S) && subtype(n-1, ctx, s, S.base_tp, T)) ||
@@ -987,9 +988,9 @@ predicate method_membership'(ctx: context, s: store, t: pt, m: nat, P: tp, R: tp
 {
   exists n:nat :: method_membership(n, ctx, s, t, m, P, R)
 }
-predicate expansion'(ctx: context, s: store, z: nat, T: tp, Ds: decls)
+predicate expansion'(loose: bool, ctx: context, s: store, z: nat, T: tp, Ds: decls)
 {
-  exists n:nat :: expansion(n, ctx, s, z, T, Ds)
+  exists n:nat :: expansion(loose, n, ctx, s, z, T, Ds)
 }
 predicate decl_sub'(ctx: context, s: store, d1: decl, d2: decl)
   requires decl_eq(d1, d2);
@@ -1026,11 +1027,11 @@ function method_membership_n(ctx: context, s: store, t: pt, m: nat, P: tp, R: tp
 {
   var n:nat :| method_membership(n, ctx, s, t, m, P, R); n
 }
-function expansion_n(ctx: context, s: store, z: nat, T: tp, Ds: decls): nat
-  requires expansion'(ctx, s, z, T, Ds);
-  ensures expansion(expansion_n(ctx, s, z, T, Ds), ctx, s, z, T, Ds);
+function expansion_n(loose: bool, ctx: context, s: store, z: nat, T: tp, Ds: decls): nat
+  requires expansion'(loose, ctx, s, z, T, Ds);
+  ensures expansion(loose, expansion_n(loose, ctx, s, z, T, Ds), ctx, s, z, T, Ds);
 {
-  var n:nat :| expansion(n, ctx, s, z, T, Ds); n
+  var n:nat :| expansion(loose, n, ctx, s, z, T, Ds); n
 }
 function subtype_n(ctx: context, s: store, S: tp, T: tp): nat
   requires subtype'(ctx, s, S, T);
@@ -1093,23 +1094,23 @@ ghost method lemma_method_membership_monotonic_plus(m: nat, n: nat, ctx: context
     lemma_method_membership_monotonic_plus(m+1, n, ctx, s, t, md, P, R);
   }
 }
-ghost method lemma_expansion_monotonic_plus(m: nat, n: nat, ctx: context, s: store, z: nat, T: tp, Ds: decls)
+ghost method lemma_expansion_monotonic_plus(loose: bool, m: nat, n: nat, ctx: context, s: store, z: nat, T: tp, Ds: decls)
   requires m <= n;
-  requires expansion(m, ctx, s, z, T, Ds);
-  ensures expansion(n, ctx, s, z, T, Ds);
+  requires expansion(loose, m, ctx, s, z, T, Ds);
+  ensures expansion(loose, n, ctx, s, z, T, Ds);
   decreases n-m;
 {
  if (n==m) {}
   else {
-    lemma_expansion_monotonic(m, ctx, s, z, T, Ds);
-    lemma_expansion_monotonic_plus(m+1, n, ctx, s, z, T, Ds);
+    lemma_expansion_monotonic(loose, m, ctx, s, z, T, Ds);
+    lemma_expansion_monotonic_plus(loose, m+1, n, ctx, s, z, T, Ds);
   }
 }
-ghost method lemma_expansion_monotonic(n: nat, ctx: context, s: store, z: nat, T: tp, Ds: decls)
-  requires expansion(n, ctx, s, z, T, Ds);
-  ensures expansion(n+1, ctx, s, z, T, Ds);
+ghost method lemma_expansion_monotonic(loose: bool, n: nat, ctx: context, s: store, z: nat, T: tp, Ds: decls)
+  requires expansion(loose, n, ctx, s, z, T, Ds);
+  ensures expansion(loose, n+1, ctx, s, z, T, Ds);
 {
-  assume expansion(n+1, ctx, s, z, T, Ds); // TODO
+  assume expansion(loose, n+1, ctx, s, z, T, Ds); // TODO
 }
 ghost method lemma_subtype_monotonic_plus(m: nat, n: nat, ctx: context, s: store, S: tp, T: tp)
   requires m<=n;
@@ -1173,7 +1174,7 @@ predicate typeok(n: nat, ctx: context, s: store, t: tm, T: tp)
         n>0 && is_concrete(Tc) &&
         wf_type(n-1, ctx, s, Tc) &&
         exists Ds:decls :: Ds.decls_fin? &&
-        expansion(n-1, ctx, s, y, Tc, Ds) &&
+        expansion(false, n-1, ctx, s, y, Tc, Ds) &&
         wf_init(n-1, false, context_extend(ctx, y, Tc), s, lst2seq(Ds.decls), lst2seq(init)) &&
         typeok(n-1, context_extend(ctx, y, Tc), s, t', T)
       case bd_snd(o, m, a) =>
@@ -1227,7 +1228,7 @@ predicate store_wf1(n: nat, s: store, loc: nat, y: nat, Tc: tp, init: seq<def>)
   is_concrete(Tc) &&
   exists Ds:decls :: Ds.decls_fin? &&
   wf_type(n-1, Context([]), s, Tc) &&
-  expansion(n-1, Context([]), s, y, Tc, Ds) && 
+  expansion(false, n-1, Context([]), s, y, Tc, Ds) && 
   wf_init(n-1, true, Context([]), s, lst2seq(decls_subst(y, pt_loc(loc), Ds.decls)), init) &&
   tp_closed(Tc) &&
   forall d :: d in init ==> def_closed(d)
