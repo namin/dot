@@ -259,7 +259,8 @@
 \newcommand{\IF}{\mbox{\mathem if}}
 \newcommand{\OTHERWISE}{\mbox{\mathem otherwise}}
 \newcommand{\expand}{\prec}
-\newcommand{\weakexpand}{\prec^W}
+\newcommand{\weakexpand}{\prec:}
+\newcommand{\anyexpand}{\prec}
 \newcommand{\spcomma}{~,~}
 
 %\newcommand{\inst}{\mbox{\mathem inst}}
@@ -294,7 +295,6 @@
 \newcommand{\optresolves}{\Updownarrow}
 % well-formedness
 \newcommand{\wf}{\;\mbox{\textbf{wf}}}
-\newcommand{\wfe}{\;\mbox{\textbf{wfe}}}
 
 %% Operators
 % Type selection
@@ -470,7 +470,7 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 
 \infrule[\textsc{new}]
 {
-\Gamma;s \ts T_c \wfe \spcomma T_c \expand_y \seq{\Ldecl L S U}, \seq{D} \\
+\Gamma;s \ts T_c \wf \spcomma T_c \expand_y \seq{\Ldecl L S U}, \seq{D} \\
 \Gamma \envplus{y: T_c};s \ts \seq{S <: U} \spcomma \seq{d \approxtyp D} \spcomma {t'} \approxtyp {T'}}
 {\Gamma;s \ts \new y {T_c \ldefs{\seq{d}}} {t'} \approxtyp T'}
 
@@ -508,7 +508,7 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 {\Gamma;s \ts (l = w) \approxtyp (\ldecl l V)}
 
 \infrule[\textsc{mdecl}]
-{\Gamma;s \ts S \wfe\\
+{\Gamma;s \ts S \wf\\
  \Gamma;s \envplus{x : S} \ts t \approxtyp {T}}
 {\Gamma;s \ts (m(x) = t) \approxtyp (\mdecl m S T) }
 
@@ -574,47 +574,50 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
       {\bf Membership}\hfill{\fbox{$\Gamma;s \ts p \ni D$}}
 
       \infrule[\textsc{path-$\ni$}]
-      {\Gamma;s \ts p \typ T \spcomma T \expand_z \seq D}
+      {\Gamma;s \ts p \typ T \spcomma T \weakexpand_z \seq D}
       {\Gamma;s \ts p \ni \subst p z {D_i}}
 
    \linesep
 \pdfbookmark[0]{Expansion}{expansion}
-    \begin{multicols}{2}[\judgement{Expansion}{\fbox{$\Gamma;s \ts T \expand_z \seq D$}}]
-      \infrule[\textsc{any-$\expand$}]
-      {\Gamma;s \ts \emptyset / T \expand'_z \seq D}
-      {\Gamma;s \ts T \expand_z \seq D}
+    \begin{multicols}{2}[\judgement{Expansion}{\fbox{$\Gamma;s \ts T \anyexpand_z \seq D$}}]
+      \infrule[\textsc{any-$\anyexpand$}]
+      {\Gamma;s \ts \emptyset / T \anyexpand'_z \seq D}
+      {\Gamma;s \ts T \anyexpand_z \seq D}
     \end{multicols}
 
-    \begin{multicols}{2}[\judgement{Expansion'}{\fbox{$\Gamma;s \ts M / T \expand'_z \seq D$}}]  
+    \begin{multicols}{2}[\judgement{Expansion'}{\fbox{$\Gamma;s \ts M / T \anyexpand'_z \seq D$}}]
       \infax[\textsc{$\Top$-$\expand'$}]
-      {\Gamma;s \ts M/\Top \expand'_z \{\}}
+      {\Gamma;s \ts M/\Top \anyexpand'_z \{\}}
 
       \infrule[\textsc{$\tand$-$\expand'$}]
-      {\Gamma;s \ts M/T_1 \expand'_z {\seq D_1} \spcomma M/T_2 \expand'_z {\seq D_2}}
-      {\Gamma;s \ts M/T_1 \tand T_2 \expand'_z {\seq D_1 \tand \seq D_2}}
+      {\Gamma;s \ts M/T_1 \anyexpand'_z {\seq D_1} \spcomma M/T_2 \anyexpand'_z {\seq D_2}}
+      {\Gamma;s \ts M/T_1 \tand T_2 \anyexpand'_z {\seq D_1 \tand \seq D_2}}
 
       \infrule[\textsc{rfn-$\expand'$}]
-      {\Gamma;s \ts M/T \expand'_z {\seq {D'}}}
-      {\Gamma;s \ts M/T \refine z {\seq D} \expand'_z \seq {D'} \tand \seq D}
+      {\Gamma;s \ts M/T \anyexpand'_z {\seq {D'}}}
+      {\Gamma;s \ts M/T \refine z {\seq D} \anyexpand'_z \seq {D'} \tand \seq D}
 
       \infrule[\textsc{tsel-$\expand'_1$}]
       {{s \ts p.L \optresolves q.L}\\
        {q.L \in M}}
-      {\Gamma;s \ts M / p.L \expand'_z \{\}}
+      {\Gamma;s \ts M / p.L \weakexpand'_z \{\}}
 
       \infax[\textsc{$\Bot$-$\expand'$}]
-      {\Gamma;s \ts M/\Bot \expand'_z \seq{D_\Bot}}
+      {\Gamma;s \ts M/\Bot \anyexpand'_z \seq{D_\Bot}}
 
       \infrule[\textsc{$\tor$-$\expand'$}]
-      {\Gamma;s \ts M/T_1 \expand'_z {\seq D_1} \spcomma M/T_2 \expand'_z {\seq D_2}}
-      {\Gamma;s \ts M/T_1 \tor T_2 \expand'_z {\seq D_1 \tor \seq D_2}}
+      {\Gamma;s \ts M/T_1 \weakexpand'_z {\seq D_1} \spcomma M/T_2 \weakexpand'_z {\seq D_2}}
+      {\Gamma;s \ts M/T_1 \tor T_2 \weakexpand'_z {\seq D_1 \tor \seq D_2}}
 
       \infrule[\textsc{tsel-$\expand'_2$}]
       {{s \ts p.L \optresolves q.L}\\
        {q.L \not\in M}\\
        {\Gamma;s \ts q \ni \Ldecl L S U}\\
-       {\Gamma;s \ts M,q.L / U \expand'_z \seq D}}
-      {\Gamma;s \ts M / p.L \expand'_z \seq D}
+       {\Gamma;s \ts M,q.L / U \anyexpand'_z \seq D}}
+      {\Gamma;s \ts M / p.L \anyexpand'_z \seq D}
+
+      \infax[\textsc{any-$\weakexpand'$}]
+      {\Gamma;s \ts M/T \weakexpand'_z \{\}}
     \end{multicols}
 }
 \caption{The DOT Calculus : Membership and Expansion}\label{dot-mem}
@@ -631,17 +634,17 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
 %      {\Gamma \ts S \sub U}
 
       \infrule[\textsc{refl}]
-      {\Gamma;s \ts T \wfe}
+      {\Gamma;s \ts T \wf}
       {\Gamma;s \ts T \sub T}
 
       \infrule[\textsc{refl-$\optresolves$}]
-      {\Gamma;s \ts p_1.L \wfe \spcomma p_2.L \wfe\\
+      {\Gamma;s \ts p_1.L \wf \spcomma p_2.L \wf\\
        s \ts p_1.L \optresolves q.L \spcomma p_2.L \optresolves q.L}
       {\Gamma;s \ts p_1.L \sub p_2.L}
 
       \infrule[\textsc{$\sub$-rfn}]
-      {\Gamma;s \ts {T \refine z {\seq D}} \wfe
-       \spcomma S \sub T \spcomma S \expand_z \seq{D'} \\
+      {\Gamma;s \ts {T \refine z {\seq D}} \wf
+       \spcomma S \sub T \spcomma S \weakexpand_z \seq{D'} \\
        \Gamma \envplus{z: S};s \ts \seq{D' \sub D}}
       {\Gamma;s \ts S \sub T \refine z {\seq D}}
 
@@ -650,11 +653,11 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
       {\Gamma;s \ts T \sub T_1 \tand T_2}
 
       \infrule[\textsc{$\sub$-$\tor_1$}]
-      {\Gamma;s \ts T_2 \wfe \spcomma T \sub T_1}
+      {\Gamma;s \ts T_2 \wf \spcomma T \sub T_1}
       {\Gamma;s \ts T \sub T_1 \tor T_2}
 
       \infrule[\textsc{$\sub$-$\tor_2$}]
-      {\Gamma;s \ts T_1 \wfe \spcomma T \sub T_2}
+      {\Gamma;s \ts T_1 \wf \spcomma T \sub T_2}
       {\Gamma;s \ts T \sub T_1 \tor T_2}
 
       \infrule[\textsc{$\sub$-tsel}]
@@ -664,17 +667,17 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       \infrule[\textsc{$\sub$-$\Top$}]
-      {\Gamma;s \ts T \wfe}
+      {\Gamma;s \ts T \wf}
       {\Gamma;s \ts T \sub \Top}
 
 
       \infrule[\textsc{$\Bot$-$\sub$}]
-      {\Gamma;s \ts T \wfe}
+      {\Gamma;s \ts T \wf}
       {\Gamma;s \ts \Bot \sub T}
 
 
       \infrule[\textsc{rfn-$\sub$}]
-      {\Gamma;s \ts {T \refine z {\seq D}} \wfe
+      {\Gamma;s \ts {T \refine z {\seq D}} \wf
        \spcomma T \sub T'}
       {\Gamma;s \ts T \refine z {\seq D} \sub T'}
 
@@ -683,11 +686,11 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
       {\Gamma;s \ts T_1 \tor T_2 \sub T}
 
       \infrule[\textsc{$\tand_1$-$\sub$}]
-      {\Gamma;s \ts T_2 \wfe \spcomma T_1 \sub T}
+      {\Gamma;s \ts T_2 \wf \spcomma T_1 \sub T}
       {\Gamma;s \ts T_1 \tand T_2 \sub T}
 
       \infrule[\textsc{$\tand_2$-$\sub$}]
-      {\Gamma;s \ts T_1 \wfe \spcomma T_2 \sub T}
+      {\Gamma;s \ts T_1 \wf \spcomma T_2 \sub T}
       {\Gamma;s \ts T_1 \tand T_2 \sub T}
 
       \infrule[\textsc{tsel-$\sub$}]
@@ -764,14 +767,6 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
       {\Gamma;s \ts S \wf \spcomma U \wf}
       {\Gamma;s \ts \mdecl m S U \wf}
 
-    \end{multicols}
-
-    \linesep
-
-    \begin{multicols}{2}[\judgement{Well-formed and expanding types}{\fbox{$\Gamma;s \ts T \wfe$}}]
-      \infrule[\textsc{wfe}]
-      {\Gamma;s \ts T \wf \spcomma T \expand_z \seq{D}}
-      {\Gamma;s \ts T \wfe}
     \end{multicols}
   }
 
