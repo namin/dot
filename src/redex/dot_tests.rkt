@@ -93,9 +93,8 @@
   (val c = (new ((sel a (cc C)) [(cv f) c])) in
   a))))
 
-;; Infinite derivation during expansion :(
-'(judgment-holds
-  (expansion
+(check-true (judgment-holds
+  (expansion #t
    (((a (rfn Top a
              (:: (cc C) Bot (rfn Top c
                                  (:: (ca M) (sel (sel c (cv f)) (ca M)) (sel (sel c (cv f)) (ca M)))
@@ -104,6 +103,6 @@
     ())
    z
    (sel b (ca M))
-   any))
+   any)))
 
 (test-results)

@@ -282,7 +282,7 @@
    (subst (S_1 U_1) z_1 p_1)
    (judgment-holds (typeof env_1 p_1 T_e))
    (where z_1 ,(variable-not-in (term (env_1 p_1 T_e)) 'z))
-   (judgment-holds (expansion env_1 z_1 T_e ((D_before ... (:: Lt_1 S_1 U_1) D_after ...) (Dl ...) (Dm ...))))]
+   (judgment-holds (expansion #t env_1 z_1 T_e ((D_before ... (:: Lt_1 S_1 U_1) D_after ...) (Dl ...) (Dm ...))))]
   [(membership-type-lookup env_1 p_1 Lt_1)
    (Top Bot)
    (judgment-holds (typeof env_1 p_1 T_e))
@@ -296,7 +296,7 @@
    (subst T_1 z_1 p_1)
    (where z_1 ,(variable-not-in (term (env_1 p_1 T_e)) 'z))
    (judgment-holds (typeof env_1 p_1 T_e))
-   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (D_before ... (:: l_1 T_1) D_after ...) (Dm ...))))]
+   (judgment-holds (expansion #t env_1 z_1 T_e ((DLt ...) (D_before ... (:: l_1 T_1) D_after ...) (Dm ...))))]
   [(membership-value-lookup env_1 p_1 l_1)
    Bot
    (judgment-holds (typeof env_1 p_1 T_e))
@@ -310,7 +310,7 @@
    (subst (S_1 U_1) z_1 p_1)
    (where z_1 ,(variable-not-in (term (env_1 p_1 T_e)) 'z))
    (judgment-holds (typeof env_1 p_1 T_e))
-   (judgment-holds (expansion env_1 z_1 T_e ((DLt ...) (Dl ...) (D_before ... (:: m_1 S_1 U_1) D_after ...))))]
+   (judgment-holds (expansion #t env_1 z_1 T_e ((DLt ...) (Dl ...) (D_before ... (:: m_1 S_1 U_1) D_after ...))))]
   [(membership-method-lookup env_1 p_1 m_1)
    (Top Bot)
    (judgment-holds (typeof env_1 p_1 T_e))
@@ -326,48 +326,51 @@
   [(is_member any_1 (any_0 ...)) #f])
 
 (define-judgment-form dot
-  #:mode (expansion-iter I I I I O)
-  #:contract (expansion-iter ((sel p Lt) ...) env z T Ds)
-  [(expansion-iter ((sel p Lt) ...) env z Top (() () ()))]
-  [(expansion-iter ((sel p Lt) ...) env z_1 (rfn T_1 z_2 DLt_1 ... Dl_1 ... Dm_1 ...)
+  #:mode (expansion-iter I I I I I O)
+  #:contract (expansion-iter bool ((sel p Lt) ...) env z T Ds)
+  [(expansion-iter #t ((sel p Lt) ...) env z T (() () ()))
+   (side-condition ,(< max-iter (length (term ((sel p Lt) ...)))))]
+  [(expansion-iter bool_loose ((sel p Lt) ...) env z Top (() () ()))]
+  [(expansion-iter bool_loose ((sel p Lt) ...) env z_1 (rfn T_1 z_2 DLt_1 ... Dl_1 ... Dm_1 ...)
                    ((decl-intersection (sorted-decls (subst (DLt_1 ...) z_2 z_1)) (sorted-decls (DLt_2 ...)))
                     (decl-intersection (sorted-decls (subst (Dl_1 ...) z_2 z_1)) (sorted-decls (Dl_2 ...)))
                     (decl-intersection (sorted-decls (subst (Dm_1  ...) z_2 z_1)) (sorted-decls (Dm_2  ...)))))
-   (expansion-iter ((sel p Lt) ...) env z_1 T_1 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
-  [(expansion-iter ((sel p_0 Lt_0) ...) env z (T_1 ∧ T_2)
+   (expansion-iter bool_loose ((sel p Lt) ...) env z_1 T_1 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
+  [(expansion-iter bool_loose ((sel p_0 Lt_0) ...) env z (T_1 ∧ T_2)
                    ((decl-intersection (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
                     (decl-intersection (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))
                     (decl-intersection (sorted-decls (Dm_1  ...)) (sorted-decls (Dm_2  ...)))))
-   (expansion-iter ((sel p_0 Lt_0) ...) env z T_1 ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
-   (expansion-iter ((sel p_0 Lt_0) ...) env z T_2 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
-  [(expansion-iter ((sel p_0 Lt_0) ...) env z (T_1 ∨ T_2)
+   (expansion-iter bool_loose ((sel p_0 Lt_0) ...) env z T_1 ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
+   (expansion-iter bool_loose ((sel p_0 Lt_0) ...) env z T_2 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
+  [(expansion-iter bool_loose ((sel p_0 Lt_0) ...) env z (T_1 ∨ T_2)
                    ((decl-union (sorted-decls (DLt_1 ...)) (sorted-decls (DLt_2 ...)))
                     (decl-union (sorted-decls (Dl_1  ...)) (sorted-decls (Dl_2  ...)))
                     (decl-union (sorted-decls (Dm_1  ...)) (sorted-decls (Dm_2  ...)))))
-   (expansion-iter ((sel p_0 Lt_0) ...) env z T_1 ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
-   (expansion-iter ((sel p_0 Lt_0) ...) env z T_2 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
-  [(expansion-iter ((sel p_0 Lt_0) ... (sel p_w Lt_w) (sel p_2 Lt_2) ...) env z (sel p_w Lt_w) (() () ()))]
-  [(expansion-iter ((sel p_0 Lt_0) ...) env z (sel p_w Lt_w) Ds_w)
+   (expansion-iter bool_loose ((sel p_0 Lt_0) ...) env z T_1 ((DLt_1 ...) (Dl_1 ...) (Dm_1 ...)))
+   (expansion-iter bool_loose ((sel p_0 Lt_0) ...) env z T_2 ((DLt_2 ...) (Dl_2 ...) (Dm_2 ...)))]
+  [(expansion-iter bool_loose ((sel p_0 Lt_0) ... (sel p_w Lt_w) (sel p_2 Lt_2) ...) env z (sel p_w Lt_w) (() () ()))]
+  [(expansion-iter bool_loose ((sel p_0 Lt_0) ...) env z (sel p_w Lt_w) Ds_w)
    (found (is_member (sel p_w Lt_w) ((sel p_0 Lt_0) ...)) #f)
    (where (Gamma store) env)
    (where T_w (resolve-type store (sel p_w Lt_w)))
    (found T_w #t)
-   (expansion-iter ((sel p_0 Lt_0) ...) env z T_w Ds_w)]
-  [(expansion-iter ((sel p_0 Lt_0) ...) env z (sel p_w Lt_w) Ds_u)
+   (expansion-iter bool_loose ((sel p_0 Lt_0) ...) env z T_w Ds_w)]
+  [(expansion-iter bool_loose ((sel p_0 Lt_0) ...) env z (sel p_w Lt_w) Ds_u)
    (found (is_member (sel p_w Lt_w) ((sel p_0 Lt_0) ...)) #f)
    (where (Gamma store) env)
    (found (resolve-type store (sel p_w Lt_w)) #f)
    (where any_bound (membership-type-lookup env p_w Lt_w))
    (found any_bound #t)
    (where (S_p U_p) any_bound)
-   (expansion-iter ((sel p_w Lt_w) (sel p_0 Lt_0) ...) env z U_p Ds_u)]
-  [(expansion-iter ((sel p Lt) ...) env z Bot (((:: (ca kludge) Top Bot)) () ()))]) ;; kludge
+   (side-condition ,(>= max-iter (length (term ((sel p_0 Lt_0) ...)))))
+   (expansion-iter bool_loose ((sel p_w Lt_w) (sel p_0 Lt_0) ...) env z U_p Ds_u)]
+  [(expansion-iter bool_loose ((sel p Lt) ...) env z Bot (((:: (ca kludge) Top Bot)) () ()))]) ;; kludge
 
 (define-judgment-form dot
-  #:mode (expansion I I I O)
-  #:contract (expansion env z T Ds)
-  [(expansion env z T Ds)
-   (expansion-iter () env z T Ds)])
+  #:mode (expansion I I I I O)
+  #:contract (expansion bool env z T Ds)
+  [(expansion bool_loose env z T Ds)
+   (expansion-iter bool_loose () env z T Ds)])
 
 (define-judgment-form dot
   #:mode (subdecl I I I)
@@ -419,7 +422,7 @@
   [(is_subtype ((T_a T_b) ...) env S (rfn T z DLt ... Dl ... Dm ...)) #t
    (judgment-holds (wf-type env (rfn T z DLt ... Dl ... Dm ...)))
    (side-condition (term (is_subtype ((T_a T_b) ... (S (rfn T z DLt ... Dl ... Dm ...))) env S T)))
-   (judgment-holds (expansion env z S ((DLt_s ...) (Dl_s ...) (Dm_s ...))))
+   (judgment-holds (expansion #t env z S ((DLt_s ...) (Dl_s ...) (Dm_s ...))))
    (where (Gamma store) env)
    (where Gamma_z (gamma-extend Gamma z S))
    (judgment-holds (subdecls (Gamma_z store) (sorted-decls (DLt_s ...)) (sorted-decls (DLt ...))))
@@ -583,7 +586,7 @@
    "TS-PATH"]
   [(typeok (Gamma store) (val x = (new (Tc (l vx) ... (m x_m s_m) ...)) in s) T)
    (wf-type (Gamma store) Tc)
-   (expansion (Gamma store) x Tc (((:: Lt S U) ...) (Dl ...) (Dm ...)))
+   (expansion #f (Gamma store) x Tc (((:: Lt S U) ...) (Dl ...) (Dm ...)))
    (where ((l_s vx_s) ...) (sorted-assigns ((l vx) ...)))
    (where ((:: l_s V_d) ...) (sorted-decls (Dl ...)))
    (where ((m_s y_ms s_ms) ...) (sorted-method-assigns ((m x_m s_m) ...)))
