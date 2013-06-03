@@ -580,44 +580,32 @@ c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t
    \linesep
 \pdfbookmark[0]{Expansion}{expansion}
     \begin{multicols}{2}[\judgement{Expansion}{\fbox{$\Gamma;s \ts T \anyexpand_z \seq D$}}]
-      \infrule[\textsc{any-$\anyexpand$}]
-      {\Gamma;s \ts \emptyset / T \anyexpand'_z \seq D}
-      {\Gamma;s \ts T \anyexpand_z \seq D}
-    \end{multicols}
+      \infax[\textsc{$\Top$-$\expand$}]
+      {\Gamma;s \ts \Top \anyexpand_z \{\}}
 
-    \begin{multicols}{2}[\judgement{Expansion'}{\fbox{$\Gamma;s \ts M / T \anyexpand'_z \seq D$}}]
-      \infax[\textsc{$\Top$-$\expand'$}]
-      {\Gamma;s \ts M/\Top \anyexpand'_z \{\}}
+      \infrule[\textsc{$\tand$-$\expand$}]
+      {\Gamma;s \ts T_1 \anyexpand_z {\seq D_1} \spcomma M/T_2 \anyexpand_z {\seq D_2}}
+      {\Gamma;s \ts T_1 \tand T_2 \anyexpand_z {\seq D_1 \tand \seq D_2}}
 
-      \infrule[\textsc{$\tand$-$\expand'$}]
-      {\Gamma;s \ts M/T_1 \anyexpand'_z {\seq D_1} \spcomma M/T_2 \anyexpand'_z {\seq D_2}}
-      {\Gamma;s \ts M/T_1 \tand T_2 \anyexpand'_z {\seq D_1 \tand \seq D_2}}
+      \infrule[\textsc{rfn-$\expand$}]
+      {\Gamma;s \ts T \anyexpand_z {\seq {D}}}
+      {\Gamma;s \ts T \refine z {\seq D} \anyexpand_z \seq {D} \tand \seq D}
 
-      \infrule[\textsc{rfn-$\expand'$}]
-      {\Gamma;s \ts M/T \anyexpand'_z {\seq {D'}}}
-      {\Gamma;s \ts M/T \refine z {\seq D} \anyexpand'_z \seq {D'} \tand \seq D}
+      \infax[\textsc{$\Bot$-$\expand$}]
+      {\Gamma;s \ts \Bot \anyexpand_z \seq{D_\Bot}}
 
-      \infrule[\textsc{tsel-$\expand'_1$}]
+      \infax[\textsc{any-$\weakexpand$}]
+      {\Gamma;s \ts M/T \weakexpand_z \{\}}
+
+      \infrule[\textsc{$\tor$-$\weakexpand$}]
+      {\Gamma;s \ts T_1 \weakexpand_z {\seq D_1} \spcomma M/T_2 \weakexpand_z {\seq D_2}}
+      {\Gamma;s \ts T_1 \tor T_2 \weakexpand_z {\seq D_1 \tor \seq D_2}}
+
+      \infrule[\textsc{tsel-$\expand_2$}]
       {{s \ts p.L \optresolves q.L}\\
-       {q.L \in M}}
-      {\Gamma;s \ts M / p.L \weakexpand'_z \{\}}
-
-      \infax[\textsc{$\Bot$-$\expand'$}]
-      {\Gamma;s \ts M/\Bot \anyexpand'_z \seq{D_\Bot}}
-
-      \infrule[\textsc{$\tor$-$\expand'$}]
-      {\Gamma;s \ts M/T_1 \weakexpand'_z {\seq D_1} \spcomma M/T_2 \weakexpand'_z {\seq D_2}}
-      {\Gamma;s \ts M/T_1 \tor T_2 \weakexpand'_z {\seq D_1 \tor \seq D_2}}
-
-      \infrule[\textsc{tsel-$\expand'_2$}]
-      {{s \ts p.L \optresolves q.L}\\
-       {q.L \not\in M}\\
        {\Gamma;s \ts q \ni \Ldecl L S U}\\
-       {\Gamma;s \ts M,q.L / U \anyexpand'_z \seq D}}
-      {\Gamma;s \ts M / p.L \anyexpand'_z \seq D}
-
-      \infax[\textsc{any-$\weakexpand'$}]
-      {\Gamma;s \ts M/T \weakexpand'_z \{\}}
+       {\Gamma;s \ts U \anyexpand_z \seq D}}
+      {\Gamma;s \ts p.L \anyexpand_z \seq D}
     \end{multicols}
 }
 \caption{The DOT Calculus : Membership and Expansion}\label{dot-mem}
