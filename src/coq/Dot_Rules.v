@@ -54,6 +54,37 @@ Inductive red : store -> tm -> store -> tm -> Prop :=
      s |~   (new Tc ags t) ~~> t ^^ (ref a)   ~| ((a ~ ((Tc, ags ^args^ (ref a)))) ++ s)
 where "s |~ a ~~> b  ~| s'" := (red s a s' b).
 
+Inductive path_res : store -> pt -> loc -> Prop :=
+  | path_res_loc : forall s o,
+      path_res s (ref o) o
+  | path_res_sel : forall s p o li oi Tc ags,
+      path_res s p o ->
+      binds o (Tc, ags) s ->
+      lbl.binds li (path (ref oi)) ags ->
+      path_res s (sel p li) oi.
+
+Inductive path_irres : store -> pt -> pt -> Prop :=
+  | path_irres_fvar : forall s x,
+      path_irres s (fvar x) (fvar x)
+  | path_irres_bvar : forall s x,
+      path_irres s (bvar x) (bvar x)
+  | path_irres_sel : forall s p l,
+      path_irres s p p ->
+      path_irres s (sel p l) (sel p l).
+
+Inductive type_res : store -> tp -> tp -> Prop :=
+  | type_res_tsel : forall s p L o,
+      path_res s p o ->
+      type_res s (tp_sel p L) (tp_sel (ref o) L).
+
+Inductive type_optres : store -> tp -> tp -> Prop :=
+  | type_optres_res : forall s p L o,
+      path_res s p o ->
+      type_optres s (tp_sel p L) (tp_sel (ref o) L)
+  | type_optres_irres : forall s p L,
+      path_irres s p p ->
+      type_optres s (tp_sel p L) (tp_sel p L).
+
 Inductive typing : env -> pt -> tp -> Prop :=
   | typing_var : forall G P x T,
       lc_tp T ->
@@ -88,15 +119,17 @@ with expands_iter : list tp -> env -> tp -> decls -> Prop :=
       expands_iter M E T DSP ->
       and_decls DSP (decls_fin DS) DSM ->
       expands_iter M E (tp_rfn T DS) DSM
-  | expands_iter_tsel_cache : forall M E p L,
+  | expands_iter_tsel_cache : forall M E p q L,
       type_label L ->
-      In (tp_sel p L) M ->
+      type_optres (snd E) (tp_sel p L) (tp_sel q L) ->
+      In (tp_sel q L) M ->
       expands_iter M E (tp_sel p L) (decls_fin nil)
-  | expands_iter_tsel_fix : forall M E p L S U DS,
+  | expands_iter_tsel_fix : forall M E p q L S U DS,
       type_label L ->
-      ~(In (tp_sel p L) M) ->
-      E |= p ~mem~ L ~: (decl_tp S U) ->
-      expands_iter ((tp_sel p L)::M) E U DS ->
+      type_optres (snd E) (tp_sel p L) (tp_sel q L) ->
+      ~(In (tp_sel q L) M) ->
+      E |= q ~mem~ L ~: (decl_tp S U) ->
+      expands_iter ((tp_sel q L)::M) E U DS ->
       expands_iter M E (tp_sel p L) DS
   | expands_iter_and : forall M E T1 DS1 T2 DS2 DSM,
       expands_iter M E T1 DS1 ->
@@ -118,6 +151,12 @@ with sub_tp : env -> tp -> tp -> Prop :=
   | sub_tp_refl : forall E T,
       wfe_tp E T ->
       E |= T ~<: T
+  | sub_tp_refl_optres : forall E p1 p2 q L,
+      wfe_tp E (tp_sel p1 L) ->
+      wfe_tp E (tp_sel p2 L) ->
+      type_optres (snd E) (tp_sel p1 L) (tp_sel q L) ->
+      type_optres (snd E) (tp_sel p2 L) (tp_sel q L) ->
+      E |= (tp_sel p1 L) ~<: (tp_sel p2 L)
   | sub_tp_rfn_r : forall L E S T DS' DS,
       E |= S ~<: T ->
       E |= S ~< DS' ->
@@ -134,14 +173,12 @@ with sub_tp : env -> tp -> tp -> Prop :=
   | sub_tp_tsel_r : forall E p L S U S',
       type_label L ->
       E |= p ~mem~ L ~: (decl_tp S U) ->
-      E |= S ~<: U ->
       E |= S' ~<: S ->
       wfe_tp E (tp_sel p L) ->
       E |= S' ~<: (tp_sel p L)
   | sub_tp_tsel_l : forall E p L S U U',
       type_label L ->
       E |= p ~mem~ L ~: (decl_tp S U) ->
-      E |= S ~<: U ->
       E |= U ~<: U' ->
       wfe_tp E (tp_sel p L) ->
       E |= (tp_sel p L) ~<: U'
@@ -251,7 +288,7 @@ Ltac mutind_typing P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ P9_ :=
   (forall (e : env) (d : decl) (H : wf_decl e d), (P8_ e d H)) /\
   (forall (e : env) (t : tp) (H : wfe_tp e t), (P9_ e t H))); [tauto |
     apply (typing_mutind P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ P9_); try unfold P1_, P2_, P3_, P4_, P5_, P6_, P7_, P8_, P9_ in *; try clear P1_ P2_ P3_ P4_ P5_ P6_ P7_ P8_ P9_; [  (* only try unfolding and clearing in case the PN_ aren't just identifiers *)
-      Case "typing_var" | Case "typing_ref" | Case "typing_sel" | Case "mem_path" | Case "expands_any" | Case "expands_iter_rfn" | Case "expands_iter_tsel_cache" | Case "expands_iter_tsel_fix" | Case "expands_iter_and" | Case "expands_iter_or" | Case "expands_iter_top" | Case "expands_iter_bot" | Case "sub_tp_refl" | Case "sub_tp_rfn_r" | Case "sub_tp_rfn_l" | Case "sub_tp_tsel_r" | Case "sub_tp_tsel_l" | Case "sub_tp_and_r" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_tp_or_l" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "wf_rfn" | Case "wf_tsel" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" | Case "wfe_any" ];
+      Case "typing_var" | Case "typing_ref" | Case "typing_sel" | Case "mem_path" | Case "expands_any" | Case "expands_iter_rfn" | Case "expands_iter_tsel_cache" | Case "expands_iter_tsel_fix" | Case "expands_iter_and" | Case "expands_iter_or" | Case "expands_iter_top" | Case "expands_iter_bot" | Case "sub_tp_refl" | Case "sub_tp_refl_optres" | Case "sub_tp_rfn_r" | Case "sub_tp_rfn_l" | Case "sub_tp_tsel_r" | Case "sub_tp_tsel_l" | Case "sub_tp_and_r" | Case "sub_tp_and_l1" | Case "sub_tp_and_l2" | Case "sub_tp_or_r1" | Case "sub_tp_or_r2" | Case "sub_tp_or_l" | Case "sub_tp_top" | Case "sub_tp_bot" | Case "sub_decl_tp" | Case "sub_decl_tm" | Case "wf_rfn" | Case "wf_tsel" | Case "wf_and" | Case "wf_or" | Case "wf_bot" | Case "wf_top" | Case "wf_decl_tp" | Case "wf_decl_tm" | Case "wfe_any" ];
       introv; eauto ].
 
 Section TestMutInd.
