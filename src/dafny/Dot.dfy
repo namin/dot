@@ -770,6 +770,26 @@ function decls_or(Ds1: decls, Ds2: decls): decls
 
 // ### Typing-Related Judgments ###
 
+function resolve_pt(s: store, p: pt): option<int>
+  ensures resolve_pt(s, p).Some? ==> resolve_pt(s, p).get>=0;
+  decreases pt_size(p);
+{
+  if (p.pt_loc?)
+  then Some(p.loc)
+  else if (pt_step(p, s).Some? && pt_size(p) > pt_size(pt_step(p, s).get))
+  then resolve_pt(s, pt_step(p, s).get)
+  else None
+}
+ 
+function resolve_tp(s: store, T: tp): tp
+  ensures T.tp_sel? ==> resolve_tp(s, T).tp_sel? && T.L==resolve_tp(s, T).L && T.concrete==resolve_tp(s, T).concrete;
+  ensures !T.tp_sel? ==> resolve_tp(s, T)==T;
+{
+  if (T.tp_sel? && resolve_pt(s, T.p).Some?)
+  then tp_sel(pt_loc(resolve_pt(s, T.p).get), T.L, T.concrete)
+  else T
+}
+
 predicate typing(n: nat, ctx: context, s: store, p: pt, T: tp)
   decreases n;
 {
@@ -868,9 +888,11 @@ predicate expansion_iter(n: nat, m: seq<tp>, ctx: context, s: store, z: nat, T: 
     exists rfn_decls :: rfn_decls==decl_seq_sort(lst2seq(decls_subst(z', pt_var(z), Ds'))) &&
     Ds==decls_and(decls_fin(seq2lst(rfn_decls)), DsT')
   case tp_sel(p, L, concrete) =>
-    (T in m && Ds==decls_fin(Nil)) || 
-    (n>0 && T !in m && exists S, U :: type_membership(n-1, ctx, s, p, L, concrete, S, U) &&
-    expansion_iter(n-1, [T]+m, ctx, s, z, U, Ds))
+    var T' := resolve_tp(s, T);
+    var p' := T'.p;
+    (T' in m && Ds==decls_fin(Nil)) || 
+    (n>0 && T' !in m && exists S, U :: type_membership(n-1, ctx, s, p', L, concrete, S, U) &&
+    expansion_iter(n-1, [T']+m, ctx, s, z, U, Ds))
   case tp_and(T1, T2) =>
     n>0 &&
     exists Ds1, Ds2 :: expansion_iter(n-1, m, ctx, s, z, T1, Ds1) &&
@@ -926,6 +948,9 @@ predicate subtype(n: nat, ctx: context, s: store, S: tp, T: tp)
   var self := fresh_in_context(ctx);
   n>0 && (
   /* refl */    (S==T && wfe_type(n-1, ctx, s, T)) ||
+  /* refl-res */(S.tp_sel? && T.tp_sel? && S.L==T.L &&
+                 wfe_type(n-1, ctx, s, S) && wfe_type(n-1, ctx, s, S) &&
+                 resolve_tp(s, S) == resolve_tp(s, T)) || 
   /* <:-top */  (T.tp_top? && wfe_type(n-1, ctx, s, S)) ||
   /* bot-<: */  (S.tp_bot? && wfe_type(n-1, ctx, s, T)) ||
   /* <:-rfn */  (T.tp_rfn? && wfe_type(n-1, ctx, s, T) && subtype(n-1, ctx, s, S, T.base_tp) &&
@@ -935,18 +960,16 @@ predicate subtype(n: nat, ctx: context, s: store, S: tp, T: tp)
   /* rfn-<: */  (S.tp_rfn? && wfe_type(n-1, ctx, s, S) && subtype(n-1, ctx, s, S.base_tp, T)) ||
   /* <:-sel */  (T.tp_sel? &&
                  exists S', U' :: type_membership(n-1, ctx, s, T.p, T.L, T.concrete, S', U') &&
-                 subtype(n-1, ctx, s, S', U') && subtype(n-1, ctx, s, S, S')) ||
+                 subtype(n-1, ctx, s, S, S')) ||
   /* sel-<: */  (S.tp_sel? &&
                  exists S', U' :: type_membership(n-1, ctx, s, S.p, S.L, S.concrete, S', U') &&
-                 subtype(n-1, ctx, s, S', U') && subtype(n-1, ctx, s, U', T)) ||
+                 subtype(n-1, ctx, s, U', T)) ||
   /* <:-and */  (T.tp_and? && subtype(n-1, ctx, s, S, T.and1) && subtype(n-1, ctx, s, S, T.and2)) ||
   /* and1-<: */ (S.tp_and? && wfe_type(n-1, ctx, s, S.and2) && subtype(n-1, ctx, s, S.and1, T)) ||
   /* and2-<: */ (S.tp_and? && wfe_type(n-1, ctx, s, S.and1) && subtype(n-1, ctx, s, S.and2, T)) ||
   /* <:-or1 */  (T.tp_or? && wfe_type(n-1, ctx, s, T.or2) && subtype(n-1, ctx, s, S, T.or1)) ||
   /* <:-or2 */  (T.tp_or? && wfe_type(n-1, ctx, s, T.or1) && subtype(n-1, ctx, s, S, T.or2)) ||
-  /* or-<: */   (S.tp_or? && subtype(n-1, ctx, s, S.or1, T) && subtype(n-1, ctx, s, S.or2, T)) ||
-  /* pathred */ (T.tp_sel? && wfe_type(n-1, ctx, s, T) && exists p :: path_red(ctx, s, T.p, p) &&
-                 subtype(n-1, ctx, s, S, tp_sel(p, T.L, T.concrete))))
+  /* or-<: */   (S.tp_or? && subtype(n-1, ctx, s, S.or1, T) && subtype(n-1, ctx, s, S.or2, T)))
 }
 
 predicate typing'(ctx: context, s: store, p: pt, T: tp)
