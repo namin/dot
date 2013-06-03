@@ -56,10 +56,10 @@ Admitted.
 (* ********************************************************************** *)
 (** ** Expansion *)
 
-Lemma expansion_decls_ok : forall E T DS,
-  expands E T DS -> decls_ok DS.
+Lemma expansion_decls_ok : forall es E T DS,
+  expands es E T DS -> decls_ok DS.
 Proof.
-  introv H. induction H. induction H; try solve [
+  introv H. induction H; try solve [
     apply decls_ok_fin_nil |
     inversion H; assumption |
     inversion H0; assumption |
@@ -67,11 +67,11 @@ Proof.
 Qed.
 Hint Resolve expansion_decls_ok.
 
-Lemma expands_bot_inf_nil : forall E, E |= tp_bot ~< decls_inf nil.
+Lemma expands_bot_inf_nil : forall E, E |= tp_bot ~<! decls_inf nil.
 Proof.
   Hint Constructors bot_decl valid_label.
   intros E.
-  apply expands_any. apply expands_iter_bot; auto.
+  apply expands_bot; auto.
   Case "bot_decls (decls_inf nil)". unfold bot_decls. splits.
     SCase "decls_ok (decls_inf nil)". unfold decls_ok. splits.
       SSCase "decls_uniq (decls_inf nil)". unfold decls_uniq.
@@ -89,73 +89,39 @@ Qed.
 Hint Resolve expands_bot_inf_nil.
 
 Lemma expansion_exists : forall E T,
-  wfe_tp E T -> exists DS, E |= T ~< DS.
+  wf_tp E T -> exists DS, E |= T ~<? DS.
 Proof.
-  introv Hwfe. inversion Hwfe. subst. exists DT. assumption.
+  introv Hwf. exists (decls_fin nil). apply expands_loose.
 Qed.
 
 (* ********************************************************************** *)
 (** ** Well-formedness *)
 
-Lemma wfe_bot : forall E,  wfe_tp E tp_bot.
-Proof.
-  Hint Constructors bot_decl.
-  intros E. apply wfe_any with (DT:=decls_inf nil); auto using wf_bot.
-Qed.
-Hint Resolve wfe_bot.
-
-Lemma wfe_top : forall E, wfe_tp E tp_top.
-Proof.
-  intros E.
-  apply wfe_any with (DT:=decls_fin nil); auto using wf_top, expands_any, expands_iter_top.
-Qed.
-Hint Resolve wfe_top.
-
 (* ********************************************************************** *)
 (** ** Regularity *)
 
-Ltac add_expands_hyp E T DT HxT :=
-  let HxT_ := fresh "HxT_" in
-    assert (exists DT, E |= T ~< DT) as HxT_; try solve [apply expansion_exists; eauto 3];
-      inversion HxT_ as [DT HxT]; clear HxT_.
-
 Lemma sub_tp_regular : forall E S T,
   E |= S ~<: T ->
-  wfe_tp E S /\ wfe_tp E T.
+  wf_tp E S /\ wf_tp E T.
 Proof.
-
-Hint Extern 1 (wfe_tp ?E ?T) =>
-  match goal with
-  | IH: wfe_tp ?E ?T /\ _ |- _ => apply (proj1 IH)
-  | IH: _ /\ wfe_tp ?E ?T |- _ => apply (proj2 IH)
-  end.
-
-Ltac combine_decls E T1 T2 DSM cmb_decls decls_cmb_exists :=
-  let DT1 := fresh "DT1" with HxT1 := fresh "HxT1" with DT2 := fresh "DT2" with HxT2 := fresh "HxT2"
-    with Hdsm' := fresh "Hdsm'" with Hdsm := fresh "Hdsm" in
-      add_expands_hyp E T1 DT1 HxT1; add_expands_hyp E T2 DT2 HxT2;
-      inversion HxT1; inversion HxT2; subst;
-      assert (exists DSM, cmb_decls DT1 DT2 DSM) as Hdsm'; try solve [apply decls_cmb_exists; eauto 3];
-        inversion Hdsm' as [DSM Hdsm].
-
-Ltac wfe_by_combine_decls E T1 T2 cmb_decls decls_cmb_exists :=
-  let DSM := fresh "DSM" in combine_decls E T1 T2 DSM cmb_decls decls_cmb_exists;
-    apply wfe_any with (DT:=DSM); eauto 3.
-
-Hint Extern 2 (wfe_tp ?E (tp_and ?T1 ?T2)) => wfe_by_combine_decls E T1 T2 and_decls decls_and_exists.
-Hint Extern 2 (wfe_tp ?E (tp_or ?T1 ?T2)) => wfe_by_combine_decls E T1 T2 or_decls decls_or_exists.
-
-Hint Constructors wf_tp expands expands_iter.
 
 Hint Extern 1 (wf_tp ?E ?T) =>
   match goal with
-  | IH: wfe_tp ?E ?T |- _ => inversion IH; subst; assumption
-  | IH: wfe_tp ?E ?T /\ _ |- _ =>
-    let Hwfe := fresh "Hwfe" in (assert (wfe_tp E T) as Hwfe);
-      try apply (proj1 IH); inversion Hwfe; assumption
-  | IH: _ /\ wfe_tp ?E ?T |- _ =>
-    let Hwfe := fresh "Hwfe" in (assert (wfe_tp E T) as Hwfe);
-      try apply (proj2 IH); inversion Hwfe; assumption
+  | IH: wf_tp ?E ?T /\ _ |- _ => apply (proj1 IH)
+  | IH: _ /\ wf_tp ?E ?T |- _ => apply (proj2 IH)
+  end.
+
+Hint Constructors wf_tp expands.
+
+Hint Extern 1 (wf_tp ?E ?T) =>
+  match goal with
+  | IH: wf_tp ?E ?T |- _ => inversion IH; subst; assumption
+  | IH: wf_tp ?E ?T /\ _ |- _ =>
+    let Hwf := fresh "Hwf" in (assert (wf_tp E T) as Hwf);
+      try apply (proj1 IH); inversion Hwf; assumption
+  | IH: _ /\ wf_tp ?E ?T |- _ =>
+    let Hwf := fresh "Hwf" in (assert (wf_tp E T) as Hwf);
+      try apply (proj2 IH); inversion Hwf; assumption
   end.
 
   introv H. induction H; splits; eauto 3.
@@ -164,7 +130,7 @@ Qed.
 (* *********************************************************************** *)
 (** * #<a name="auto"></a># Automation *)
 
-Hint Extern 1 (wfe_tp ?E ?T) =>
+Hint Extern 1 (wf_tp ?E ?T) =>
   match goal with
   | H: sub_tp E T _ |- _ => apply (proj1 (sub_tp_regular H))
   | H: sub_tp E _ T |- _ => apply (proj2 (sub_tp_regular H))
