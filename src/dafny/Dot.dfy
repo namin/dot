@@ -1649,3 +1649,52 @@ ghost method theorem_preservation(s: store, ns: nat, t: tm, T: tp, nt: nat, t': 
     }
   }
 }
+
+ghost method helper_pt_exhaust(p: pt)
+ ensures p.pt_var? || p.pt_loc? || p.pt_sel?;
+{
+}
+
+ghost method theorem_progress_pt_sel(s: store, ns: nat, p: pt, T: tp, nt: nat)
+  requires p.pt_sel?;
+  requires store_wf(ns, s);
+  requires typing(nt, Context([]), s, p, T);
+  ensures pt_step(p, s).Some?;
+{
+  assert field_membership(nt-1, Context([]), s, p.p, p.l, T);
+  assert membership(nt-2, Context([]), s, p.p, p.l, decl_tm(p.l, T));
+  assert exists Tp :: typing(nt-3, Context([]), s, p.p, Tp);
+  var Tp :| typing(nt-3, Context([]), s, p.p, Tp);
+  helper_pt_exhaust(p.p);
+  assert p.p.pt_var? || p.p.pt_loc? || p.p.pt_sel?;
+  if (p.p.pt_var?) {
+    assert false;
+  } else if (p.p.pt_loc?) {
+    var locl, Tp', nt' := lemma_store_wf_field_ok(ns, s, p.p.loc, p.l, nt, T);
+  } else if (p.p.pt_sel?) {
+    theorem_progress_pt_sel(s, ns, p.p, Tp, nt-3);
+  } else {
+  }
+}
+
+ghost method theorem_progress(s: store, ns: nat, t: tm, T: tp, nt: nat)
+  requires store_wf(ns, s);
+  requires typeok(nt, Context([]), s, t, T);
+  ensures value(t) || step(t, s).Some?;
+{
+  if (t.tm_path? && t.p.pt_loc?) {
+    assert value(t);
+  } else if (t.tm_path? && t.p.pt_var?) {
+    assert false;
+  } else if (t.tm_path? && t.p.pt_sel?) {
+    var Tp :| typing(nt-1, Context([]), s, t.p, Tp) && subtype(nt-1, Context([]), s, Tp, T);
+    theorem_progress_pt_sel(s, ns, t.p, Tp, nt-1);
+    assert step(t, s).Some?;
+  } else if (t.tm_bind? && t.b.bd_new?) {
+    assert step(t, s).Some?;
+  } else if (t.tm_bind? && t.b.bd_snd?) {
+    assume step(t, s).Some?; // TODO
+  } else {
+    assume step(t, s).Some?; // TODO
+  }
+}
