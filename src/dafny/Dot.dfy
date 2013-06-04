@@ -1432,6 +1432,7 @@ ghost method lemma_store_invariance_wf_type(ctx: context, s: store, s': store, n
 
 ghost method lemma_store_wf_new(s: store, ns: nat, s': store, t: tm, T: tp, nt: nat, t': tm) returns (ns': nat)
   requires store_wf(ns, s);
+  requires typeok(nt, Context([]), s, t, T);
   requires t.tm_bind? && t.b.bd_new?;
   requires step(t, s) == Some(P(t', s'));
   ensures store_wf(ns', s');
