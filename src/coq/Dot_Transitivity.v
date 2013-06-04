@@ -19,34 +19,8 @@ Hint Unfold transitivity_on.
 
 Hint Constructors sub_tp mem expands.
 
-Lemma narrow_sub_decls: forall L E S T DS1 DS2,
-  E |= S ~<: T ->
-  (forall z, z `notin` L ->
-    forall_decls (ctx_bind E z T) (DS1 ^ds^ z) (DS2 ^ds^ z) sub_decl) ->
-  (forall z, z `notin` L ->
-    forall_decls (ctx_bind E z S) (DS1 ^ds^ z) (DS2 ^ds^ z) sub_decl).
-Proof.
-  (* TODO *)
-Admitted.
-Hint Resolve narrow_sub_decls.
-
 Theorem sub_tp_transitive : forall TMid, transitivity_on TMid.
 Proof.
-
-Lemma decls_sub_transitive : forall LST LTU LSU E S T DS DT DU,
-  E |= S ~<: T ->
-  (forall z, z `notin` LST -> forall_decls (ctx_bind E z S) (DS ^ds^ z) (DT ^ds^ z) sub_decl) ->
-  (forall z, z `notin` LTU -> forall_decls (ctx_bind E z T) (DT ^ds^ z) (DU ^ds^ z) sub_decl) ->
-  (forall z, z `notin` LSU -> forall_decls (ctx_bind E z S) (DS ^ds^ z) (DU ^ds^ z) sub_decl).
-Proof.
-  (* TODO *)
-Admitted.
-
-Lemma decls_dom_subset_transitive : forall DS DT DU : decls,
-  decls_dom_subset DU DT ->  decls_dom_subset DT DS -> decls_dom_subset DU DS.
-Proof.
-  (* TODO *)
-Admitted.
 
   introv HSubL HSubR.
   gen T T'. gen_eq TMid as TMid' eq. gen TMid' eq.
