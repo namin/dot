@@ -1752,11 +1752,33 @@ ghost method theorem_progress_bd_snd(s: store, ns: nat, t: tm, T: tp, nt: nat)
   }
 }
 
+ghost method helper_bd_exhaust(b: bd)
+ ensures b.bd_new? || b.bd_snd? || b.bd_exe?;
+{
+}
+
+ghost method helper_tm_exhaust(t: tm)
+ ensures (t.tm_path? && t.p.pt_var?) ||
+         (t.tm_path? && t.p.pt_loc?) ||
+         (t.tm_path? && t.p.pt_sel?) ||
+         (t.tm_bind? && t.b.bd_new?) ||
+         (t.tm_bind? && t.b.bd_snd?) ||
+         (t.tm_bind? && t.b.bd_exe?);
+{
+  if (t.tm_path?) {
+    helper_pt_exhaust(t.p);
+  } else if (t.tm_bind?) {
+    helper_bd_exhaust(t.b);
+  } else {
+  }
+}
+
 ghost method theorem_progress(s: store, ns: nat, t: tm, T: tp, nt: nat)
   requires store_wf(ns, s);
   requires typeok(nt, Context([]), s, t, T);
   ensures value(t) || step(t, s).Some?;
 {
+  helper_tm_exhaust(t);
   if (t.tm_path? && t.p.pt_loc?) {
     assert value(t);
   } else if (t.tm_path? && t.p.pt_var?) {
@@ -1770,7 +1792,17 @@ ghost method theorem_progress(s: store, ns: nat, t: tm, T: tp, nt: nat)
   } else if (t.tm_bind? && t.b.bd_snd?) {
     theorem_progress_bd_snd(s, ns, t, T, nt);
     assert step(t, s).Some?;
+  } else if (t.tm_bind? && t.b.bd_exe?) {
+    if (value(t.b.t')) {
+      assert step(t, s) == Some(P(tm_subst(t.y, t.b.t'.p, t.t'), s));
+    } else {
+      assert exists P_, R :: method_membership(nt-1, Context([]), s, pt_loc(t.b.ov), t.b.mv, P_, R) &&
+        typeok(nt-1, Context([]), s, t.b.t', R);
+      var P_, R :| method_membership(nt-1, Context([]), s, pt_loc(t.b.ov), t.b.mv, P_, R) &&
+        typeok(nt-1, Context([]), s, t.b.t', R);
+      theorem_progress(s, ns, t.b.t', R, nt-1);
+      assert step(t, s).Some?;
+    }
   } else {
-    assume step(t, s).Some?; // TODO
   }
 }
