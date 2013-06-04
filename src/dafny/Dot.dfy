@@ -1276,14 +1276,14 @@ ghost method lemma_store_wf_method_ok(n: nat, s: store, loc: nat, m: nat, nt: na
   assume !tp_fn(x, P_) && !tp_fn(x, R);
 }
 
-ghost method theorem_subtype_transitive(ctx: context, s: store, n12: nat, n23: nat, T1: tp, T2: tp, T3: tp) returns (n13: nat)
-  requires subtype(n12, ctx, s, T1, T2);
-  requires subtype(n23, ctx, s, T2, T3);
-  ensures subtype(n13, ctx, s, T1, T3);
+ghost method theorem_subtype_transitive(s: store, n12: nat, n23: nat, T1: tp, T2: tp, T3: tp) returns (n13: nat)
+  requires subtype(n12, Context([]), s, T1, T2);
+  requires subtype(n23, Context([]), s, T2, T3);
+  ensures subtype(n13, Context([]), s, T1, T3);
 {
   // TODO!
-  assume exists n13:nat :: subtype(n13, ctx, s, T1, T3);
-  var n13_:nat :| subtype(n13_, ctx, s, T1, T3);
+  assume exists n13:nat :: subtype(n13, Context([]), s, T1, T3);
+  var n13_:nat :| subtype(n13_, Context([]), s, T1, T3);
   n13 := n13_;
 }
 
@@ -1462,7 +1462,7 @@ ghost method theorem_preservation_path(s: store, ns: nat, t: tm, T: tp, nt: nat,
 {
   var Tp :| typing(nt-1, Context([]), s, t.p, Tp) && subtype(nt-1, Context([]), s, Tp, T);
   var Tp'_, np'_ := theorem_pt_preservation(s, ns, t.p, Tp, nt-1, t'.p);
-  var nt'_ := theorem_subtype_transitive(Context([]), s, np'_, nt-1, Tp'_, Tp, T);
+  var nt'_ := theorem_subtype_transitive(s, np'_, nt-1, Tp'_, Tp, T);
   nt' := nt'_+np'_+1;
   lemma_typing_monotonic_plus(np'_, nt'-1, Context([]), s, t'.p, Tp'_);
   lemma_subtype_monotonic_plus(nt'_, nt'-1, Context([]), s, Tp'_, T);
@@ -1583,7 +1583,7 @@ ghost method theorem_preservation_snd(s: store, ns: nat, t: tm, T: tp, nt: nat, 
     assert method_membership(nm', ctx, s, o', t.b.m, P', R');
     assert exists Ta :: typing(nt-2, ctx, s, t.b.a, Ta) && subtype(nt-2, ctx, s, Ta, P);
     var Ta :| typing(nt-2, ctx, s, t.b.a, Ta) && subtype(nt-2, ctx, s, Ta, P);
-    var na_ := theorem_subtype_transitive(ctx, s, nt-2, nm', Ta, P, P');
+    var na_ := theorem_subtype_transitive(s, nt-2, nm', Ta, P, P');
     var na := helper_typeok_path(nt-2, na_, ctx, s, t.b.a, Ta, P');
     assert typeok(na, ctx, s, tm_path(t.b.a), P');
     var nt'_ := lemma_subst_in_context(s, ns, t'_, T, nt-1, y, R, R', nm');
@@ -1593,7 +1593,7 @@ ghost method theorem_preservation_snd(s: store, ns: nat, t: tm, T: tp, nt: nat, 
     var Ta :| typing(nt-2, ctx, s, t.b.a, Ta) && subtype(nt-2, ctx, s, Ta, P);
     var a' := pt_step(t.b.a, s).get;
     var Ta', na' := theorem_pt_preservation(s, ns, t.b.a, Ta, nt-2, a');
-    var na_ := theorem_subtype_transitive(ctx, s, na', nt-2, Ta', Ta, P);
+    var na_ := theorem_subtype_transitive(s, na', nt-2, Ta', Ta, P);
     var na := helper_typeok_path(na', na_, ctx, s, a', Ta', P);
     nt' := helper_typeok_snd(t', nt-1, na, nt-1, ctx, s, y, t.b.o, t.b.m, a', t'_, T, P, R);
   } else {
