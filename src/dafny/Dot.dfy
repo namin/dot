@@ -1288,51 +1288,54 @@ ghost method theorem_subtype_transitive(ns: nat, s: store, n12: nat, n23: nat, T
   n13 := n13_;
 }
 
-ghost method lemma_subtype_inversion(ctx: context, s: store, np: nat, p: pt, Tp: tp, np': nat, p': pt, Tp': tp, ns: nat, nm: nat, l: nat, d: decl) returns (d': decl, nm': nat)
+ghost method lemma_subtype_inversion(nst: nat, s: store, np: nat, p: pt, Tp: tp, np': nat, p': pt, Tp': tp, ns: nat, nm: nat, l: nat, d: decl) returns (d': decl, nm': nat)
+  requires store_wf(nst, s);
   requires pt_step(p, s).Some? && pt_step(p, s).get==p';
-  requires typing(np, ctx, s, p, Tp);
-  requires typing(np', ctx, s, p', Tp');
-  requires subtype(ns, ctx, s, Tp', Tp);
-  requires membership(nm, ctx, s, p, l, d);
-  ensures decl_eq(d', d) && membership(nm', ctx, s, p', l, d') && decl_sub(nm', ctx, s, d', d);
+  requires typing(np, Context([]), s, p, Tp);
+  requires typing(np', Context([]), s, p', Tp');
+  requires subtype(ns, Context([]), s, Tp', Tp);
+  requires membership(nm, Context([]), s, p, l, d);
+  ensures decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
 {
   // TODO!
-  assume exists d', nm':nat :: decl_eq(d', d) && membership(nm', ctx, s, p', l, d') && decl_sub(nm', ctx, s, d', d);
-  var d'_, nm'_:nat :| decl_eq(d'_, d) && membership(nm'_, ctx, s, p', l, d'_) && decl_sub(nm'_, ctx, s, d'_, d);
+  assume exists d', nm':nat :: decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
+  var d'_, nm'_:nat :| decl_eq(d'_, d) && membership(nm'_, Context([]), s, p', l, d'_) && decl_sub(nm'_, Context([]), s, d'_, d);
   d' := d'_;
   nm' := nm'_;
 }
 
-ghost method lemma_subtype_inversion_field(ctx: context, s: store, np: nat, p: pt, Tp: tp, np': nat, p': pt, Tp': tp, ns: nat, nm: nat, l: nat, T: tp) returns (T': tp, nm': nat)
+ghost method lemma_subtype_inversion_field(nst: nat, s: store, np: nat, p: pt, Tp: tp, np': nat, p': pt, Tp': tp, ns: nat, nm: nat, l: nat, T: tp) returns (T': tp, nm': nat)
+  requires store_wf(nst, s);
   requires pt_step(p, s).Some? && pt_step(p, s).get==p';
-  requires typing(np, ctx, s, p, Tp);
-  requires typing(np', ctx, s, p', Tp');
-  requires subtype(ns, ctx, s, Tp', Tp);
-  requires field_membership(nm, ctx, s, p, l, T);
-  ensures field_membership(nm', ctx, s, p', l, T') && subtype(nm', ctx, s, T', T);
+  requires typing(np, Context([]), s, p, Tp);
+  requires typing(np', Context([]), s, p', Tp');
+  requires subtype(ns, Context([]), s, Tp', Tp);
+  requires field_membership(nm, Context([]), s, p, l, T);
+  ensures field_membership(nm', Context([]), s, p', l, T') && subtype(nm', Context([]), s, T', T);
 {
-  assert membership(nm-1, ctx, s, p, l, decl_tm(l, T));
-  var d', nd' := lemma_subtype_inversion(ctx, s, np, p, Tp, np', p', Tp', ns, nm-1, l, decl_tm(l, T));
+  assert membership(nm-1, Context([]), s, p, l, decl_tm(l, T));
+  var d', nd' := lemma_subtype_inversion(nst, s, np, p, Tp, np', p', Tp', ns, nm-1, l, decl_tm(l, T));
   T' := d'.T;
   nm' := nd'+1;
-  lemma_subtype_monotonic_plus(nd'-1, nm', ctx, s, T', T);
+  lemma_subtype_monotonic_plus(nd'-1, nm', Context([]), s, T', T);
 }
 
-ghost method lemma_subtype_inversion_method(ctx: context, s: store, np: nat, p: pt, Tp: tp, np': nat, p': pt, Tp': tp, ns: nat, nm: nat, m: nat, P: tp, R: tp) returns (P': tp, R': tp, nm': nat)
+ghost method lemma_subtype_inversion_method(nst: nat, s: store, np: nat, p: pt, Tp: tp, np': nat, p': pt, Tp': tp, ns: nat, nm: nat, m: nat, P: tp, R: tp) returns (P': tp, R': tp, nm': nat)
+  requires store_wf(nst, s);
   requires pt_step(p, s).Some? && pt_step(p, s).get==p';
-  requires typing(np, ctx, s, p, Tp);
-  requires typing(np', ctx, s, p', Tp');
-  requires subtype(ns, ctx, s, Tp', Tp);
-  requires method_membership(nm, ctx, s, p, m, P, R);
-  ensures method_membership(nm', ctx, s, p', m, P', R') && subtype(nm', ctx, s, P, P') && subtype(nm', ctx, s, R', R);
+  requires typing(np, Context([]), s, p, Tp);
+  requires typing(np', Context([]), s, p', Tp');
+  requires subtype(ns, Context([]), s, Tp', Tp);
+  requires method_membership(nm, Context([]), s, p, m, P, R);
+  ensures method_membership(nm', Context([]), s, p', m, P', R') && subtype(nm', Context([]), s, P, P') && subtype(nm', Context([]), s, R', R);
 {
-  assert membership(nm-1, ctx, s, p, m, decl_mt(m, P, R));
-  var d', nd' := lemma_subtype_inversion(ctx, s, np, p, Tp, np', p', Tp', ns, nm-1, m, decl_mt(m, P, R));
+  assert membership(nm-1, Context([]), s, p, m, decl_mt(m, P, R));
+  var d', nd' := lemma_subtype_inversion(nst, s, np, p, Tp, np', p', Tp', ns, nm-1, m, decl_mt(m, P, R));
   P' := d'.P;
   R' := d'.R;
   nm' := nd'+1;
-  lemma_subtype_monotonic_plus(nd'-1, nm', ctx, s, P, P');
-  lemma_subtype_monotonic_plus(nd'-1, nm', ctx, s, R', R);
+  lemma_subtype_monotonic_plus(nd'-1, nm', Context([]), s, P, P');
+  lemma_subtype_monotonic_plus(nd'-1, nm', Context([]), s, R', R);
 }
 
 ghost method theorem_pt_preservation(s: store, ns: nat, p: pt, T: tp, np: nat, p': pt) returns (T': tp, np': nat)
@@ -1352,7 +1355,7 @@ ghost method theorem_pt_preservation(s: store, ns: nat, p: pt, T: tp, np: nat, p
     var Tp1 :| typing(np-3, Context([]), s, p1, Tp1);
     var Tp1', np1' := theorem_pt_preservation(s, ns, p1, Tp1, np-3, p1');
     assert typing(np1', Context([]), s, p1', Tp1') && subtype(np1', Context([]), s, Tp1', Tp1);
-    var T'_, np'_ := lemma_subtype_inversion_field(Context([]), s, np-3, p1, Tp1, np1', p1', Tp1', np1', np-1, l, T);
+    var T'_, np'_ := lemma_subtype_inversion_field(ns, s, np-3, p1, Tp1, np1', p1', Tp1', np1', np-1, l, T);
     T' := T'_;
     np' := np'_+1;
     lemma_subtype_monotonic_plus(np'_, np', Context([]), s, T', T);
@@ -1580,7 +1583,7 @@ ghost method theorem_preservation_snd(s: store, ns: nat, t: tm, T: tp, nt: nat, 
     var To :| typing(nt-3, ctx, s, t.b.o, To);
     var o' := pt_step(t.b.o, s).get;
     var To', no' := theorem_pt_preservation(s, ns, t.b.o, To, nt-3, o');
-    var P', R', nm' := lemma_subtype_inversion_method(ctx, s, nt-3, t.b.o, To, no', o', To', no', nt-1, t.b.m, P, R);
+    var P', R', nm' := lemma_subtype_inversion_method(ns, s, nt-3, t.b.o, To, no', o', To', no', nt-1, t.b.m, P, R);
     assert method_membership(nm', ctx, s, o', t.b.m, P', R');
     assert exists Ta :: typing(nt-2, ctx, s, t.b.a, Ta) && subtype(nt-2, ctx, s, Ta, P);
     var Ta :| typing(nt-2, ctx, s, t.b.a, Ta) && subtype(nt-2, ctx, s, Ta, P);
