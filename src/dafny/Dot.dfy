@@ -1655,6 +1655,11 @@ ghost method helper_pt_exhaust(p: pt)
 {
 }
 
+ghost method helper_pt_loc_exhaust(o: pt, a: pt)
+ ensures (o.pt_loc? && a.pt_loc?) || !o.pt_loc? || !a.pt_loc?;
+{
+}
+
 ghost method theorem_progress_pt_sel(s: store, ns: nat, p: pt, T: tp, nt: nat)
   requires p.pt_sel?;
   requires store_wf(ns, s);
@@ -1677,6 +1682,76 @@ ghost method theorem_progress_pt_sel(s: store, ns: nat, p: pt, T: tp, nt: nat)
   }
 }
 
+ghost method helper_snd_to_exe(s: store, ns: nat, t: tm, T: tp, nt: nat)
+  requires t.tm_bind? && t.b.bd_snd? && t.b.o.pt_loc? && value(tm_path(t.b.a)) && t.b.o.loc < |s.m| &&
+     def_method_lookup(t.b.m, store_lookup(t.b.o.loc, s)).Some?;
+  ensures step(t, s) == Some(P(tm_bind(t.y,
+                      bd_exe(t.b.o.loc, t.b.m,
+                             tm_subst(def_method_lookup(t.b.m, store_lookup(t.b.o.loc, s)).get.fst,
+                                      t.b.a,
+                                      def_method_lookup(t.b.m, store_lookup(t.b.o.loc, s)).get.snd)),
+                      t.t'),
+              s));
+{
+}
+
+ghost method helper_snd_o_steps(s: store, ns: nat, t: tm, T: tp, nt: nat)
+  requires t.tm_bind? && t.b.bd_snd? && pt_step(t.b.o, s).Some?;
+  ensures step(t, s) == Some(P(tm_bind(t.y, bd_snd(pt_step(t.b.o, s).get, t.b.m, t.b.a), t.t'), s));
+{
+}
+
+ghost method helper_snd_a_steps(s: store, ns: nat, t: tm, T: tp, nt: nat)
+  requires t.tm_bind? && t.b.bd_snd? && value(tm_path(t.b.o)) && pt_step(t.b.a, s).Some?;
+  ensures step(t, s) ==  Some(P(tm_bind(t.y, bd_snd(t.b.o, t.b.m, pt_step(t.b.a, s).get), t.t'), s));
+{
+}
+
+ghost method helper_typeable_empty__not_var(s: store, t: pt, T: tp, nt: nat)
+  requires typing(nt, Context([]), s, t, T);
+  ensures !t.pt_var?;
+{
+}
+
+ghost method theorem_progress_bd_snd(s: store, ns: nat, t: tm, T: tp, nt: nat)
+  requires t.tm_bind? && t.b.bd_snd?;
+  requires store_wf(ns, s);
+  requires typeok(nt, Context([]), s, t, T);
+  ensures step(t, s).Some?;
+{
+  helper_pt_exhaust(t.b.o);
+  helper_pt_exhaust(t.b.a);
+  helper_pt_loc_exhaust(t.b.o, t.b.a);
+
+  assert exists P_, R :: method_membership(nt-1, Context([]), s, t.b.o, t.b.m, P_, R) &&
+      typeok(nt-1, Context([]), s, tm_path(t.b.a), P_);
+  var P_, R :| method_membership(nt-1, Context([]), s, t.b.o, t.b.m, P_, R) &&
+      typeok(nt-1, Context([]), s, tm_path(t.b.a), P_);
+  assert exists To :: typing(nt-3, Context([]), s, t.b.o, To);
+  var To :| typing(nt-3, Context([]), s, t.b.o, To);
+  assert typeok(nt-1, Context([]), s, tm_path(t.b.a), P_);
+  assert exists Ta :: typing(nt-2, Context([]), s, t.b.a, Ta);
+  var Ta :| typing(nt-2, Context([]), s, t.b.a, Ta);
+  if (t.b.o.pt_loc? && t.b.a.pt_loc?) {
+    var x, body, nbody := lemma_store_wf_method_ok(ns, s, t.b.o.loc, t.b.m, nt-1, P_, R);
+    helper_snd_to_exe(s, ns, t, T, nt);
+    assert step(t, s).Some?;
+  } else if (!t.b.o.pt_loc?) {
+    helper_typeable_empty__not_var(s, t.b.o, To, nt-3);
+    assert t.b.o.pt_sel?;
+    theorem_progress_pt_sel(s, ns, t.b.o, To, nt-3);
+    helper_snd_o_steps(s, ns, t, T, nt);
+    assert step(t, s).Some?;
+  } else if (!t.b.a.pt_loc?) {
+    helper_typeable_empty__not_var(s, t.b.a, Ta, nt-2);
+    assert t.b.a.pt_sel?;
+    theorem_progress_pt_sel(s, ns, t.b.a, Ta, nt-2);
+    helper_snd_a_steps(s, ns, t, T, nt);
+    assert step(t, s).Some?;
+  } else {
+  }
+}
+
 ghost method theorem_progress(s: store, ns: nat, t: tm, T: tp, nt: nat)
   requires store_wf(ns, s);
   requires typeok(nt, Context([]), s, t, T);
@@ -1693,7 +1768,8 @@ ghost method theorem_progress(s: store, ns: nat, t: tm, T: tp, nt: nat)
   } else if (t.tm_bind? && t.b.bd_new?) {
     assert step(t, s).Some?;
   } else if (t.tm_bind? && t.b.bd_snd?) {
-    assume step(t, s).Some?; // TODO
+    theorem_progress_bd_snd(s, ns, t, T, nt);
+    assert step(t, s).Some?;
   } else {
     assume step(t, s).Some?; // TODO
   }
