@@ -277,6 +277,7 @@ function decl_subst(x: nat, v: pt, d: decl): decl
   decreases decl_size(d), d;
   ensures v.pt_var? ==> decl_size(d)==decl_size(decl_subst(x, v, d));
   ensures !decl_fn(x, d) ==> decl_subst(x, v, d)==d;
+  ensures decl_eq(d, decl_subst(x, v, d));
 {
   match d
   case decl_tp(L, S, U, concrete) => decl_tp(L, tp_subst(x, v, S), tp_subst(x, v, U), concrete)
@@ -1302,21 +1303,173 @@ predicate membership_of(n: nat, ctx: context, s: store, p: pt, l: nat, d: decl, 
    (Ds.decls_bot? && decl_bot(d)))
 }
 
-ghost method lemma_subtype_inversion(nst: nat, s: store, np: nat, p: pt, Tp: tp, np': nat, p': pt, Tp': tp, ns: nat, nm: nat, l: nat, d: decl) returns (d': decl, nm': nat)
+ghost method membership_of__membership(n: nat, ctx: context, s: store, p: pt, l: nat, d: decl, np: nat, Tp: tp) returns (n': nat)
+  requires typing(np, ctx, s, p, Tp);
+  requires membership_of(n, ctx, s, p, l, d, np, Tp);
+  ensures membership(n', ctx, s, p, l, d);
+{
+  n' := n+np;
+  var z:nat := fresh_in_context(ctx);
+  var Ds :|
+  expansion(true, n-1, ctx, s, z, Tp, Ds) &&
+  ((Ds.decls_fin? &&
+    exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, p, d')) ||
+   (Ds.decls_bot? && decl_bot(d)));
+  lemma_typing_monotonic_plus(np, n'-1, ctx, s, p, Tp);
+  lemma_expansion_monotonic_plus(true, n-1, n'-1, ctx, s, z, Tp, Ds);
+}
+
+ghost method helper_membership_of(n: nat, ctx: context, s: store, p: pt, l: nat, d: decl, np: nat, Tp: tp, z: nat, Ds: decls, d': decl)
+  requires z==fresh_in_context(ctx);
+  requires decl_label(d)==l;
+  requires n>0;
+  requires expansion(true, n-1, ctx, s, z, Tp, Ds);
+  requires Ds.decls_fin?;
+  requires d' in lst2seq(Ds.decls);
+  requires d==decl_subst(z, p, d');
+  requires typing(np, ctx, s, p, Tp);
+  ensures membership_of(n, ctx, s, p, l, d, np, Tp);
+{
+  assert decl_label(d)==l &&
+  n>0 &&
+  exists Ds ::
+  expansion(true, n-1, ctx, s, z, Tp, Ds) &&
+  ((Ds.decls_fin? &&
+    exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, p, d')) ||
+   (Ds.decls_bot? && decl_bot(d)));
+  assert membership_of(n, ctx, s, p, l, d, np, Tp);
+}
+
+ghost method lemma_subtype_inversion(nst: nat, s: store, np: nat, p: pt, T: tp, np': nat, p': pt, S: tp, n: nat, nm: nat, l: nat, d: decl) returns (d': decl, nm': nat)
   requires store_wf(nst, s);
   requires pt_step(p, s).Some? && pt_step(p, s).get==p';
-  requires typing(np, Context([]), s, p, Tp);
-  requires typing(np', Context([]), s, p', Tp');
-  requires subtype(ns, Context([]), s, Tp', Tp);
+  requires typing(np, Context([]), s, p, T);
+  requires typing(np', Context([]), s, p', S);
+  requires subtype(n, Context([]), s, S, T);
   requires membership(nm, Context([]), s, p, l, d);
-  requires membership_of(nm, Context([]), s, p, l, d, np, Tp);
+  requires membership_of(nm, Context([]), s, p, l, d, np, T);
   ensures decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
 {
-  // TODO!
-  assume exists d', nm':nat :: decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
-  var d'_, nm'_:nat :| decl_eq(d'_, d) && membership(nm'_, Context([]), s, p', l, d'_) && decl_sub(nm'_, Context([]), s, d'_, d);
-  d' := d'_;
-  nm' := nm'_;
+  var self:nat := fresh_in_context(Context([]));
+  assert decl_label(d)==l;
+  assert exists Ds ::
+  expansion(true, nm-1, Context([]), s, self, T, Ds) &&
+  ((Ds.decls_fin? &&
+    exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(self, p, d')) ||
+   (Ds.decls_bot? && decl_bot(d)));
+  var Ds :|
+  expansion(true, nm-1, Context([]), s, self, T, Ds) &&
+  ((Ds.decls_fin? &&
+    exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(self, p, d')) ||
+   (Ds.decls_bot? && decl_bot(d)));
+  var ctx := Context([]);
+         if /* refl */    (S==T && wf_type(n-1, ctx, s, T)) {
+    if (Ds.decls_fin?) {
+      var d_ :| d_ in lst2seq(Ds.decls) && d==decl_subst(self, p, d_);
+      d' := decl_subst(self, p', d_);
+      assert decl_label(d')==l;
+      assert expansion(true, nm-1, Context([]), s, self, S, Ds);
+      assert d_ in lst2seq(Ds.decls);
+      assert d'==decl_subst(self, p', d_);
+      helper_membership_of(nm, Context([]), s, p', l, d', np', S, self, Ds, d_);
+      assert membership_of(nm, Context([]), s, p', l, d', np', S);
+      var nm'_ := membership_of__membership(nm, Context([]), s, p', l, d', np', S);
+      nm' := nm'_;
+      // TODO
+      assume decl_sub(nm', Context([]), s, d', d);
+    } else {
+      assert Ds.decls_bot?;
+      d' := d;
+      assert membership_of(nm, Context([]), s, p', l, d', np', S);
+      var nm'_ := membership_of__membership(nm, Context([]), s, p', l, d', np', S);
+      nm' := nm'_;
+    }
+/*
+  } else if /* refl-res */(S.tp_sel? && T.tp_sel? && S.L==T.L &&
+                 wf_type(n-1, ctx, s, S) && wf_type(n-1, ctx, s, S) &&
+                 resolve_tp(s, S) == resolve_tp(s, T)) {
+  } else if /* <:-top */  (T.tp_top? && wf_type(n-1, ctx, s, S)) {
+    // TODO!
+    assume exists d', nm':nat :: decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
+    var d'_, nm'_:nat :| decl_eq(d'_, d) && membership(nm'_, Context([]), s, p', l, d'_) && decl_sub(nm'_, Context([]), s, d'_, d);
+    d' := d'_;
+    nm' := nm'_;
+  } else if /* bot-<: */  (S.tp_bot? && wf_type(n-1, ctx, s, T)) {
+    // TODO!
+    assume exists d', nm':nat :: decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
+    var d'_, nm'_:nat :| decl_eq(d'_, d) && membership(nm'_, Context([]), s, p', l, d'_) && decl_sub(nm'_, Context([]), s, d'_, d);
+    d' := d'_;
+    nm' := nm'_;
+  } else if /* <:-rfn */  (T.tp_rfn? && wf_type(n-1, ctx, s, T) && subtype(n-1, ctx, s, S, T.base_tp) &&
+                 exists Ds' :: expansion(true, n-1, ctx, s, self, S, Ds') &&
+                 exists rfn_decls :: rfn_decls==decl_seq_sort(lst2seq(decls_subst(T.self, pt_var(self), T.decls))) &&
+                 decls_sub(n-1, context_extend(ctx, self, S), s, decls_fin(seq2lst(rfn_decls)), Ds')) {
+  } else if /* rfn-<: */  (S.tp_rfn? && wf_type(n-1, ctx, s, S) && subtype(n-1, ctx, s, S.base_tp, T)) {
+    // TODO!
+    assume exists d', nm':nat :: decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
+    var d'_, nm'_:nat :| decl_eq(d'_, d) && membership(nm'_, Context([]), s, p', l, d'_) && decl_sub(nm'_, Context([]), s, d'_, d);
+    d' := d'_;
+    nm' := nm'_;
+  } else if /* <:-sel */  (T.tp_sel? &&
+                 exists S', U' :: type_membership(n-1, ctx, s, T.p, T.L, T.concrete, S', U') &&
+                 subtype(n-1, ctx, s, S, S')) {
+    // TODO!
+    assume exists d', nm':nat :: decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
+    var d'_, nm'_:nat :| decl_eq(d'_, d) && membership(nm'_, Context([]), s, p', l, d'_) && decl_sub(nm'_, Context([]), s, d'_, d);
+    d' := d'_;
+    nm' := nm'_;
+  } else if /* sel-<: */  (S.tp_sel? &&
+                 exists S', U' :: type_membership(n-1, ctx, s, S.p, S.L, S.concrete, S', U') &&
+                 subtype(n-1, ctx, s, U', T)) {
+    // TODO!
+    assume exists d', nm':nat :: decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
+    var d'_, nm'_:nat :| decl_eq(d'_, d) && membership(nm'_, Context([]), s, p', l, d'_) && decl_sub(nm'_, Context([]), s, d'_, d);
+    d' := d'_;
+    nm' := nm'_;
+  } else if /* <:-and */  (T.tp_and? && subtype(n-1, ctx, s, S, T.and1) && subtype(n-1, ctx, s, S, T.and2)) {
+    // TODO!
+    assume exists d', nm':nat :: decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
+    var d'_, nm'_:nat :| decl_eq(d'_, d) && membership(nm'_, Context([]), s, p', l, d'_) && decl_sub(nm'_, Context([]), s, d'_, d);
+    d' := d'_;
+    nm' := nm'_;
+  } else if /* and1-<: */ (S.tp_and? && wf_type(n-1, ctx, s, S.and2) && subtype(n-1, ctx, s, S.and1, T)) {
+    // TODO!
+    assume exists d', nm':nat :: decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
+    var d'_, nm'_:nat :| decl_eq(d'_, d) && membership(nm'_, Context([]), s, p', l, d'_) && decl_sub(nm'_, Context([]), s, d'_, d);
+    d' := d'_;
+    nm' := nm'_;
+  } else if /* and2-<: */ (S.tp_and? && wf_type(n-1, ctx, s, S.and1) && subtype(n-1, ctx, s, S.and2, T)) {
+    // TODO!
+    assume exists d', nm':nat :: decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
+    var d'_, nm'_:nat :| decl_eq(d'_, d) && membership(nm'_, Context([]), s, p', l, d'_) && decl_sub(nm'_, Context([]), s, d'_, d);
+    d' := d'_;
+    nm' := nm'_;
+  } else if /* <:-or1 */  (T.tp_or? && wf_type(n-1, ctx, s, T.or2) && subtype(n-1, ctx, s, S, T.or1)) {
+    // TODO!
+    assume exists d', nm':nat :: decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
+    var d'_, nm'_:nat :| decl_eq(d'_, d) && membership(nm'_, Context([]), s, p', l, d'_) && decl_sub(nm'_, Context([]), s, d'_, d);
+    d' := d'_;
+    nm' := nm'_;
+  } else if /* <:-or2 */  (T.tp_or? && wf_type(n-1, ctx, s, T.or1) && subtype(n-1, ctx, s, S, T.or2)) {
+    // TODO!
+    assume exists d', nm':nat :: decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
+    var d'_, nm'_:nat :| decl_eq(d'_, d) && membership(nm'_, Context([]), s, p', l, d'_) && decl_sub(nm'_, Context([]), s, d'_, d);
+    d' := d'_;
+    nm' := nm'_;
+  } else if /* or-<: */   (S.tp_or? && subtype(n-1, ctx, s, S.or1, T) && subtype(n-1, ctx, s, S.or2, T)) {
+    // TODO!
+    assume exists d', nm':nat :: decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
+    var d'_, nm'_:nat :| decl_eq(d'_, d) && membership(nm'_, Context([]), s, p', l, d'_) && decl_sub(nm'_, Context([]), s, d'_, d);
+    d' := d'_;
+    nm' := nm'_;
+*/
+  } else {
+    // TODO!
+    assume exists d', nm':nat :: decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
+    var d'_, nm'_:nat :| decl_eq(d'_, d) && membership(nm'_, Context([]), s, p', l, d'_) && decl_sub(nm'_, Context([]), s, d'_, d);
+    d' := d'_;
+    nm' := nm'_;
+  }
 }
 
 ghost method lemma_subtype_inversion_field(nst: nat, s: store, np: nat, p: pt, Tp: tp, np': nat, p': pt, Tp': tp, ns: nat, nm: nat, l: nat, T: tp) returns (T': tp, nm': nat)
