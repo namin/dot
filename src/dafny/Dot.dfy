@@ -1288,6 +1288,20 @@ ghost method theorem_subtype_transitive(ns: nat, s: store, n12: nat, n23: nat, T
   n13 := n13_;
 }
 
+predicate membership_of(n: nat, ctx: context, s: store, p: pt, l: nat, d: decl, np: nat, Tp: tp)
+  requires typing(np, ctx, s, p, Tp);
+  decreases n;
+{
+  var z:nat := fresh_in_context(ctx);
+  decl_label(d)==l &&
+  n>0 &&
+  exists Ds ::
+  expansion(true, n-1, ctx, s, z, Tp, Ds) &&
+  ((Ds.decls_fin? &&
+    exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, p, d')) ||
+   (Ds.decls_bot? && decl_bot(d)))
+}
+
 ghost method lemma_subtype_inversion(nst: nat, s: store, np: nat, p: pt, Tp: tp, np': nat, p': pt, Tp': tp, ns: nat, nm: nat, l: nat, d: decl) returns (d': decl, nm': nat)
   requires store_wf(nst, s);
   requires pt_step(p, s).Some? && pt_step(p, s).get==p';
@@ -1295,6 +1309,7 @@ ghost method lemma_subtype_inversion(nst: nat, s: store, np: nat, p: pt, Tp: tp,
   requires typing(np', Context([]), s, p', Tp');
   requires subtype(ns, Context([]), s, Tp', Tp);
   requires membership(nm, Context([]), s, p, l, d);
+  requires membership_of(nm, Context([]), s, p, l, d, np, Tp);
   ensures decl_eq(d', d) && membership(nm', Context([]), s, p', l, d') && decl_sub(nm', Context([]), s, d', d);
 {
   // TODO!
@@ -1311,6 +1326,7 @@ ghost method lemma_subtype_inversion_field(nst: nat, s: store, np: nat, p: pt, T
   requires typing(np', Context([]), s, p', Tp');
   requires subtype(ns, Context([]), s, Tp', Tp);
   requires field_membership(nm, Context([]), s, p, l, T);
+  requires membership_of(nm-1, Context([]), s, p, l, decl_tm(l, T), np, Tp);
   ensures field_membership(nm', Context([]), s, p', l, T') && subtype(nm', Context([]), s, T', T);
 {
   assert membership(nm-1, Context([]), s, p, l, decl_tm(l, T));
@@ -1327,6 +1343,7 @@ ghost method lemma_subtype_inversion_method(nst: nat, s: store, np: nat, p: pt, 
   requires typing(np', Context([]), s, p', Tp');
   requires subtype(ns, Context([]), s, Tp', Tp);
   requires method_membership(nm, Context([]), s, p, m, P, R);
+  requires membership_of(nm-1, Context([]), s, p, m, decl_mt(m, P, R), np, Tp);
   ensures method_membership(nm', Context([]), s, p', m, P', R') && subtype(nm', Context([]), s, P, P') && subtype(nm', Context([]), s, R', R);
 {
   assert membership(nm-1, Context([]), s, p, m, decl_mt(m, P, R));
@@ -1351,8 +1368,8 @@ ghost method theorem_pt_preservation(s: store, ns: nat, p: pt, T: tp, np: nat, p
     assert p' == pt_sel(p1', l);
     assert field_membership(np-1, Context([]), s, p1, l, T);
     assert membership(np-2, Context([]), s, p1, l, decl_tm(l, T));
-    assert exists Tp1 :: typing(np-3, Context([]), s, p1, Tp1);
-    var Tp1 :| typing(np-3, Context([]), s, p1, Tp1);
+    assert exists Tp1 :: typing(np-3, Context([]), s, p1, Tp1) && membership_of(np-2, Context([]), s, p1, l, decl_tm(l, T), np-3, Tp1);
+    var Tp1 :| typing(np-3, Context([]), s, p1, Tp1) && membership_of(np-2, Context([]), s, p1, l, decl_tm(l, T), np-3, Tp1);
     var Tp1', np1' := theorem_pt_preservation(s, ns, p1, Tp1, np-3, p1');
     assert typing(np1', Context([]), s, p1', Tp1') && subtype(np1', Context([]), s, Tp1', Tp1);
     var T'_, np'_ := lemma_subtype_inversion_field(ns, s, np-3, p1, Tp1, np1', p1', Tp1', np1', np-1, l, T);
@@ -1580,8 +1597,8 @@ ghost method theorem_preservation_snd(s: store, ns: nat, t: tm, T: tp, nt: nat, 
     typeok(nt-1, context_extend(ctx, y, R), s, t'_, T);
   if (pt_step(t.b.o, s).Some?) {
     assert membership(nt-2, ctx, s, t.b.o, t.b.m, decl_mt(t.b.m, P, R));
-    assert exists To :: typing(nt-3, ctx, s, t.b.o, To);
-    var To :| typing(nt-3, ctx, s, t.b.o, To);
+    assert exists To :: typing(nt-3, ctx, s, t.b.o, To) && membership_of(nt-2, ctx, s, t.b.o, t.b.m, decl_mt(t.b.m, P, R), nt-3, To);
+    var To :| typing(nt-3, ctx, s, t.b.o, To) && membership_of(nt-2, ctx, s, t.b.o, t.b.m, decl_mt(t.b.m, P, R), nt-3, To);
     var o' := pt_step(t.b.o, s).get;
     var To', no' := theorem_pt_preservation(s, ns, t.b.o, To, nt-3, o');
     var P', R', nm' := lemma_subtype_inversion_method(ns, s, nt-3, t.b.o, To, no', o', To', no', nt-1, t.b.m, P, R);
