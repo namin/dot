@@ -1071,6 +1071,24 @@ ghost method lemma_wf_type_monotonic(n: nat, ctx: context, s: store, T: tp)
 {
   assume wf_type(n+1, ctx, s, T); // TODO
 }
+ghost method lemma_membership_monotonic(n: nat, ctx: context, s: store, t: pt, l: nat, d: decl)
+  requires membership(n, ctx, s, t, l, d);
+  ensures membership(n+1, ctx, s, t, l, d);
+{
+  assume membership(n+1, ctx, s, t, l, d); // TODO
+}
+ghost method lemma_membership_monotonic_plus(m: nat, n: nat, ctx: context, s: store, t: pt, l: nat, d: decl)
+  requires m<=n;
+  requires membership(m, ctx, s, t, l, d);
+  ensures membership(n, ctx, s, t, l, d);
+  decreases n-m;
+{
+  if (n==m) {}
+  else {
+    lemma_membership_monotonic(m, ctx, s, t, l, d);
+    lemma_membership_monotonic_plus(m+1, n, ctx, s, t, l, d);
+  }
+}
 ghost method lemma_field_membership_monotonic(n: nat, ctx: context, s: store, t: pt, l: nat, T: tp)
   requires field_membership(n, ctx, s, t, l, T);
   ensures field_membership(n+1, ctx, s, t, l, T);
@@ -1131,7 +1149,26 @@ ghost method lemma_subtype_monotonic(n: nat, ctx: context, s: store, S: tp, T: t
 {
   assume subtype(n+1, ctx, s, S, T); // TODO
 }
-
+ghost method lemma_decl_sub_monotonic_plus(m: nat, n: nat, ctx: context, s: store, d': decl, d: decl)
+  requires m<=n;
+  requires decl_eq(d', d);
+  requires decl_sub(m, ctx, s, d', d);
+  ensures decl_sub(n, ctx, s, d', d);
+  decreases n-m;
+{
+  if (n==m) {}
+  else {
+    lemma_decl_sub_monotonic(m, ctx, s, d', d);
+    lemma_decl_sub_monotonic_plus(m+1, n, ctx, s, d', d);
+  }
+}
+ghost method lemma_decl_sub_monotonic(n: nat, ctx: context, s: store, d': decl, d: decl)
+  requires decl_eq(d', d);
+  requires decl_sub(n, ctx, s, d', d);
+  ensures decl_sub(n+1, ctx, s, d', d);
+{
+  assume decl_sub(n+1, ctx, s, d', d); // TODO
+}
 // ----------
 // Properties
 // ----------
@@ -1340,6 +1377,42 @@ ghost method helper_membership_of(n: nat, ctx: context, s: store, p: pt, l: nat,
   assert membership_of(n, ctx, s, p, l, d, np, Tp);
 }
 
+ghost method lemma_wf_mem__wf(nst: nat, s: store, nw: nat, np: nat, nm: nat, p: pt, T: tp, l: nat, d: decl) returns (nw': nat)
+  requires store_wf(nst, s);
+  requires typing(np, Context([]), s, p, T);
+  requires membership_of(nm, Context([]), s, p, l, d, np, T);
+  requires wf_type(nw, Context([]), s, T);
+  ensures wf_decl(nw', Context([]), s, d);
+{
+  // TODO
+  assume exists nw'_:nat :: wf_decl(nw'_, Context([]), s, d);
+  var nw'_:nat :| wf_decl(nw'_, Context([]), s, d);
+  nw' := nw'_;
+}
+
+ghost method helper_wf_decl__refl(s: store, d: decl, wd: nat)
+  requires wf_decl(wd, Context([]), s, d);
+  ensures decl_sub(wd+1, Context([]), s, d, d);
+{
+  if (d.decl_tm?) {
+    assert wf_type(wd-1, Context([]), s, d.T);
+    assert subtype(wd, Context([]), s, d.T, d.T);
+    assert decl_sub(wd+1, Context([]), s, d, d);
+  } else if (d.decl_tp?) {
+    assert wf_type(wd-1, Context([]), s, d.U);
+    assert subtype(wd, Context([]), s, d.U, d.U);
+    assert wf_type(wd-1, Context([]), s, d.S);
+    assert subtype(wd, Context([]), s, d.S, d.S);
+    assert decl_sub(wd+1, Context([]), s, d, d);
+  } else if (d.decl_mt?) {
+    assert wf_type(wd-1, Context([]), s, d.R);
+    assert subtype(wd, Context([]), s, d.R, d.R);
+    assert wf_type(wd-1, Context([]), s, d.P);
+    assert subtype(wd, Context([]), s, d.P, d.P);
+    assert decl_sub(wd+1, Context([]), s, d, d);
+  }
+}
+
 ghost method lemma_subtype_inversion(nst: nat, s: store, np: nat, p: pt, T: tp, np': nat, p': pt, S: tp, n: nat, nm: nat, l: nat, d: decl) returns (d': decl, nm': nat)
   requires store_wf(nst, s);
   requires pt_step(p, s).Some? && pt_step(p, s).get==p';
@@ -1374,10 +1447,19 @@ ghost method lemma_subtype_inversion(nst: nat, s: store, np: nat, p: pt, T: tp, 
       helper_membership_of(nm, Context([]), s, p', l, d', np', S, self, Ds, d_);
       assert membership_of(nm, Context([]), s, p', l, d', np', S);
       var nm'_ := membership_of__membership(nm, Context([]), s, p', l, d', np', S);
-      nm' := nm'_;
-      // TODO
-      assume decl_sub(nm', Context([]), s, d', d);
-    } else {
+      if (d' == d) {
+        var wd := lemma_wf_mem__wf(nst, s, n-1, np, nm, p, T, l, d);
+        helper_wf_decl__refl(s, d, wd);
+        assert decl_sub(wd+1, Context([]), s, d', d);
+        nm' := nm'_+wd+1;
+        lemma_membership_monotonic_plus(nm'_, nm', Context([]), s, p', l, d');
+        lemma_decl_sub_monotonic_plus(wd+1, nm', Context([]), s, d', d);
+      } else {
+        nm' := nm'_;
+        // TODO
+        assume decl_sub(nm', Context([]), s, d', d);        
+      }
+   } else {
       assert Ds.decls_bot?;
       d' := d;
       assert membership_of(nm, Context([]), s, p', l, d', np', S);
