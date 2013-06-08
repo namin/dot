@@ -105,4 +105,35 @@
    (sel b (ca M))
    any)))
 
+;;; Examples from
+;;;   On Decidability of Nominal Subtyping with Variance
+;;;   http://research.microsoft.com/en-us/um/people/akenn/generics/FOOL2007.pdf
+;;;
+;;; N<-Z> <::
+;;; C <:: NNC
+;;;
+;;; 1. C <: NC
+;;;
+;;; class N<Z> { }
+;;; class C extends N<N<? super C>> {
+;;;   N<? super C> cast(C c) { return c; }
+;;; }
+;;;
+;;; hangs!
+(test-predicate
+ preservation
+ (term
+  (val r = (new ((rfn Top r
+                      (:: (cc N) Bot (rfn Top n (:: (ca Z) Bot Top)))
+                      (:: (cc C) Bot (rfn (sel r (cc N)) c
+                                          (:: (ca Z)
+                                              (rfn (sel r (cc N)) n (:: (ca Z) (sel r (cc C)) Top))
+                                              (rfn (sel r (cc N)) n (:: (ca Z) (sel r (cc C)) Top)))
+                                          (:: (cm cast)
+                                              (sel r (cc C))
+                                              (rfn (sel r (cc N)) n (:: (ca Z) (sel r (cc C)) Top)))))))) in
+  (val c = (new ((sel r (cc C))
+                 [(cm cast) c c])) in
+  c))))
+
 (test-results)
