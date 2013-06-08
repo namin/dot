@@ -135,4 +135,34 @@
                  [(cm cast) x x])) in
   c))))
 
+;;; 2. CX <:: NNCCX
+;;;
+;;; class T { }
+;;; class N<Z> { }
+;;; class C<X> extends N<N<? super C<C<X>>>> {
+;;;   N<? super C<T>> cast(C<T> c) { return c; }
+;;; }
+;;;
+;;; expansively hangs
+'(test-predicate
+ preservation
+ (term
+  (val r = (new ((rfn Top r
+                      (:: (cc T) Bot Top)
+                      (:: (cc N) Bot (rfn Top n (:: (ca Z) Bot Top)))
+                      (:: (cc C) Bot (rfn (sel r (cc N)) c0
+                                          (:= (ca Z) (rfn (sel r (cc N)) n
+                                                               (:: (ca Z)
+                                                                   (rfn (sel r (cc C)) c
+                                                                        (:= (ca X) (rfn (sel r (cc C)) c
+                                                                                        (:= (ca X) (sel c0 (ca X))))))
+                                                                   Top)))
+                                          (:: (ca X) Bot Top)
+                                          (:: (cm cast)
+                                              (rfn (sel r (cc C)) c (:= (ca X) (sel r (cc T))))
+                                              (rfn (sel r (cc N)) n (:: (ca Z) (rfn (sel r (cc C)) c (:= (ca X) (sel r (cc T)))) Top)))))))) in
+  (val c = (new ((sel r (cc C))
+                 [(cm cast) x x])) in
+  c))))
+
 (test-results)

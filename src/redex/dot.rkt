@@ -629,3 +629,7 @@
 
 (define (typechecks s)
   (judgment-holds (typeok (() ()) ,s Top)))
+
+(define-metafunction dot
+  := : Lt T -> DLt
+  [(:= Lt T) (:: Lt T T)])
