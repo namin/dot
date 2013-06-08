@@ -191,9 +191,6 @@
 (define-metafunction dot
   is_wf-type : env T -> bool
   [(is_wf-type env Top) #t]
-  [(is_wf-type env (-> T_1 T_2)) #t
-   (side-condition (term (is_wf-type env T_1)))
-   (side-condition (term (is_wf-type env T_2)))]
   [(is_wf-type (Gamma store) (rfn T z D ...)) #t
    (side-condition (term (is_wf-type (Gamma store) T)))
    (where env_extended ((gamma-extend Gamma z (rfn T z D ...)) store))
@@ -282,7 +279,8 @@
    (subst (S_1 U_1) z_1 p_1)
    (judgment-holds (typeof env_1 p_1 T_e))
    (where z_1 ,(variable-not-in (term (env_1 p_1 T_e)) 'z))
-   (judgment-holds (expansion #t env_1 z_1 T_e ((D_before ... (:: Lt_1 S_1 U_1) D_after ...) (Dl ...) (Dm ...))))]
+   (judgment-holds (expansion #t env_1 z_1 T_e ((DLt ...) (Dl ...) (Dm ...))))
+   (where (D_before ... (:: Lt_1 S_1 U_1) D_after ...) (DLt ...))]
   [(membership-type-lookup env_1 p_1 Lt_1)
    (Top Bot)
    (judgment-holds (typeof env_1 p_1 T_e))
@@ -296,7 +294,8 @@
    (subst T_1 z_1 p_1)
    (where z_1 ,(variable-not-in (term (env_1 p_1 T_e)) 'z))
    (judgment-holds (typeof env_1 p_1 T_e))
-   (judgment-holds (expansion #t env_1 z_1 T_e ((DLt ...) (D_before ... (:: l_1 T_1) D_after ...) (Dm ...))))]
+   (judgment-holds (expansion #t env_1 z_1 T_e ((DLt ...) (Dl ...) (Dm ...))))
+   (where (D_before ... (:: l_1 T_1) D_after ...) (Dl ...))]
   [(membership-value-lookup env_1 p_1 l_1)
    Bot
    (judgment-holds (typeof env_1 p_1 T_e))
@@ -310,7 +309,8 @@
    (subst (S_1 U_1) z_1 p_1)
    (where z_1 ,(variable-not-in (term (env_1 p_1 T_e)) 'z))
    (judgment-holds (typeof env_1 p_1 T_e))
-   (judgment-holds (expansion #t env_1 z_1 T_e ((DLt ...) (Dl ...) (D_before ... (:: m_1 S_1 U_1) D_after ...))))]
+   (judgment-holds (expansion #t env_1 z_1 T_e ((DLt ...) (Dl ...) (Dm ...))))
+   (where (D_before ... (:: m_1 S_1 U_1) D_after ...) (Dm ...))]
   [(membership-method-lookup env_1 p_1 m_1)
    (Top Bot)
    (judgment-holds (typeof env_1 p_1 T_e))
@@ -321,7 +321,7 @@
 (define max-iter 100)
 
 (define-metafunction dot
-  is_member : any (any ...) -> #t or #f
+  is_member : any (any ...) -> bool
   [(is_member any_1 (any_0 ... any_1 any_2 ...)) #t]
   [(is_member any_1 (any_0 ...)) #f])
 
@@ -391,16 +391,6 @@
   [(subdecls env (D_1 D_rest1 ...) (D_2 D_rest2 ...))
    (subdecls env (D_rest1 ...) (D_2 D_rest2 ...))])
 
-(define-judgment-form dot
-  #:mode (path-red I I O)
-  #:contract (path-red env p p)
-  [(path-red (Gamma store) (sel (location i_1) l) (location i_2))
-   (where c (store-lookup store i_1))
-   (found c #t)
-   (where (location i_2) (value-label-lookup c l))]
-  [(path-red env (sel p_1 l) (sel p_2 l))
-   (path-red env p_1 p_2)])
-
 (define-metafunction dot
   is_subtype : ((T T) ...) env S T -> bool
   [(is_subtype ((T_a T_b) ...) env S T) #f
@@ -461,14 +451,6 @@
   [(is_subtype ((T_a T_b) ...) env T_o (T_1 ∨ T_2)) #t
    (judgment-holds (wf-type env T_1))
    (side-condition (term (is_subtype ((T_a T_b) ... (T_o (T_1 ∨ T_2))) env T_o T_2)))]
-  [(is_subtype ((T_a T_b) ...) env T (sel p_1 Lt)) #t
-   (judgment-holds (path-red env p_1 p_2))
-   (judgment-holds (wf-type env (sel p_1 Lt)))
-   (side-condition (term (is_subtype ((T_a T_b) ... (T (sel p_1 Lt))) env T (sel p_2 Lt))))]
-  [(is_subtype ((T_a T_b) ...) env (sel p_1 Lt) T) #t
-   (judgment-holds (path-red env p_1 p_2))
-   (judgment-holds (wf-type env (sel p_1 Lt)))
-   (side-condition (term (is_subtype ((T_a T_b) ... (T (sel p_1 Lt))) env (sel p_2 Lt) T)))]
   [(is_subtype ((T_a T_b) ...) env S T) #f])
 
 (define-judgment-form dot

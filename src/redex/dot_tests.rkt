@@ -120,7 +120,7 @@
 ;;; }
 ;;;
 ;;; hangs!
-(test-predicate
+'(test-predicate
  preservation
  (term
   (val r = (new ((rfn Top r
@@ -133,7 +133,7 @@
                                               (sel r (cc C))
                                               (rfn (sel r (cc N)) n (:: (ca Z) (sel r (cc C)) Top)))))))) in
   (val c = (new ((sel r (cc C))
-                 [(cm cast) c c])) in
+                 [(cm cast) x x])) in
   c))))
 
 (test-results)
