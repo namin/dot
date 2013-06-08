@@ -373,23 +373,23 @@
    (expansion-iter bool_loose () env z T Ds)])
 
 (define-judgment-form dot
-  #:mode (subdecl I I I)
-  #:contract (subdecl env D D)
-  [(subdecl env (:: Lm_1 S_1 T_1) (:: Lm_1 S_2 T_2))
-   (subtype env S_2 S_1)
-   (subtype env T_1 T_2)]
-  [(subdecl env (:: l_1 T_1) (:: l_1 T_2))
-   (subtype env T_1 T_2)])
+  #:mode (subdecl I I I I)
+  #:contract (subdecl ((T T) ...) env D D)
+  [(subdecl ((T_a T_b) ...) env (:: Lm_1 S_1 T_1) (:: Lm_1 S_2 T_2))
+   (where #t (is_subtype ((T_a T_b) ...) env S_2 S_1))
+   (where #t (is_subtype ((T_a T_b) ...) env T_1 T_2))]
+  [(subdecl ((T_a T_b) ...) env (:: l_1 T_1) (:: l_1 T_2))
+   (where #t (is_subtype ((T_a T_b) ...) env T_1 T_2))])
 
 (define-judgment-form dot
-  #:mode (subdecls I I I)
-  #:contract (subdecls env (D ...) (D ...))
-  [(subdecls env (D ...) ())]
-  [(subdecls env (D_1 D_rest1 ...) (D_2 D_rest2 ...))
-   (subdecl env D_1 D_2)
-   (subdecls env (D_rest1 ...) (D_rest2 ...))]
-  [(subdecls env (D_1 D_rest1 ...) (D_2 D_rest2 ...))
-   (subdecls env (D_rest1 ...) (D_2 D_rest2 ...))])
+  #:mode (subdecls I I I I)
+  #:contract (subdecls ((T T) ...) env (D ...) (D ...))
+  [(subdecls ((T_a T_b) ...) env (D ...) ())]
+  [(subdecls ((T_a T_b) ...) env (D_1 D_rest1 ...) (D_2 D_rest2 ...))
+   (subdecl ((T_a T_b) ...) env D_1 D_2)
+   (subdecls ((T_a T_b) ...) env (D_rest1 ...) (D_rest2 ...))]
+  [(subdecls ((T_a T_b) ...) env (D_1 D_rest1 ...) (D_2 D_rest2 ...))
+   (subdecls ((T_a T_b) ...) env (D_rest1 ...) (D_2 D_rest2 ...))])
 
 (define-metafunction dot
   is_subtype : ((T T) ...) env S T -> bool
@@ -415,9 +415,9 @@
    (judgment-holds (expansion #t env z S ((DLt_s ...) (Dl_s ...) (Dm_s ...))))
    (where (Gamma store) env)
    (where Gamma_z (gamma-extend Gamma z S))
-   (judgment-holds (subdecls (Gamma_z store) (sorted-decls (DLt_s ...)) (sorted-decls (DLt ...))))
-   (judgment-holds (subdecls (Gamma_z store) (sorted-decls (Dl_s ...)) (sorted-decls (Dl ...))))
-   (judgment-holds (subdecls (Gamma_z store) (sorted-decls (Dm_s ...)) (sorted-decls (Dm ...))))]
+   (judgment-holds (subdecls ((S (rfn T z DLt ... Dl ... Dm ...)) (T_a T_b) ...) (Gamma_z store) (sorted-decls (DLt_s ...)) (sorted-decls (DLt ...))))
+   (judgment-holds (subdecls ((S (rfn T z DLt ... Dl ... Dm ...)) (T_a T_b) ...) (Gamma_z store) (sorted-decls (Dl_s ...)) (sorted-decls (Dl ...))))
+   (judgment-holds (subdecls ((S (rfn T z DLt ... Dl ... Dm ...)) (T_a T_b) ...) (Gamma_z store) (sorted-decls (Dm_s ...)) (sorted-decls (Dm ...))))]
   [(is_subtype ((T_a T_b) ...) env (rfn T_1 z DLt ... Dl ... Dm ...) T_2) #t
    (judgment-holds (wf-type env (rfn T_1 z DLt ... Dl ... Dm ...)))
    (side-condition (term (is_subtype ((T_a T_b) ... ((rfn T_1 z DLt ... Dl ... Dm ...) T_2)) env T_1 T_2)))]

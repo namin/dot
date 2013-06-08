@@ -119,8 +119,7 @@
 ;;;   N<? super C> cast(C c) { return c; }
 ;;; }
 ;;;
-;;; hangs!
-'(test-predicate
+(test-predicate
  preservation
  (term
   (val r = (new ((rfn Top r
