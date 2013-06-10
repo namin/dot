@@ -165,4 +165,24 @@
                  [(cm cast) x x])) in
   c))))
 
+(check-false ;; why concrete types must be declared only once --
+             ;; their expansion needs to be static
+(preservation
+ (term
+  (val a = (new ((rfn Top a
+                      (:: (cc C) Bot (rfn Top c (:: (cv l) Top)))
+                      (:: (cm go) (sel a (cc C)) Top)
+                      (:: (cm cast)
+                          (rfn Top a
+                               (:: (cc C) Bot (rfn Top c (:: (cv l) Top)))
+                               (:: (cm go) (sel a (cc C)) Top))
+                          (rfn Top a
+                               (:: (cc C) Bot Top)
+                               (:: (cm go) (sel a (cc C)) Top))))
+                 [(cm go) c (sel c (cv l))] [(cm cast) x x])) in
+  (val b = (snd a (cm cast) a) in
+  (val c = (new ((sel b (cc C)))) in
+  (val x = (snd b (cm go) c) in
+  x)))))))
+
 (test-results)
