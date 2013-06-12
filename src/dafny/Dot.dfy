@@ -1455,6 +1455,8 @@ ghost method lemma_subtype_inversion(nst: nat, s: store, np: nat, p: pt, T: tp, 
         lemma_membership_monotonic_plus(nm'_, nm', Context([]), s, p', l, d');
         lemma_decl_sub_monotonic_plus(wd+1, nm', Context([]), s, d', d);
       } else {
+        assert d == decl_subst(self, p, d_);
+        assert d' == decl_subst(self, p', d_);
         nm' := nm'_;
         // TODO
         assume decl_sub(nm', Context([]), s, d', d);        
