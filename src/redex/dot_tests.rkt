@@ -185,4 +185,13 @@
   (val x = (snd b (cm go) c) in
   x)))))))
 
+;;; An essential use of path-dependent types, which should but does not typecheck.
+(typechecks
+(term
+(val cell = (new ((rfn Top c (:: (ca V) Bot Top)))) in
+(val copy = (new ((rfn Top f (:: (cm apply) (rfn Top c (:= (ca V) (sel cell (ca V)))) Top))
+                  [(cm apply) x x])) in
+(val r = (snd copy (cm apply) cell) in
+ cell)))))
+
 (test-results)
