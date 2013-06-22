@@ -1904,16 +1904,6 @@ ghost method theorem_preservation(s: store, ns: nat, t: tm, T: tp, nt: nat, t': 
   }
 }
 
-ghost method helper_pt_exhaust(p: pt)
- ensures p.pt_var? || p.pt_loc? || p.pt_sel?;
-{
-}
-
-ghost method helper_pt_loc_exhaust(o: pt, a: pt)
- ensures (o.pt_loc? && a.pt_loc?) || !o.pt_loc? || !a.pt_loc?;
-{
-}
-
 ghost method theorem_progress_pt_sel(s: store, ns: nat, p: pt, T: tp, nt: nat)
   requires p.pt_sel?;
   requires store_wf(ns, s);
@@ -1924,8 +1914,6 @@ ghost method theorem_progress_pt_sel(s: store, ns: nat, p: pt, T: tp, nt: nat)
   assert membership(nt-2, Context([]), s, p.p, p.l, decl_tm(p.l, T));
   assert exists Tp :: typing(nt-3, Context([]), s, p.p, Tp);
   var Tp :| typing(nt-3, Context([]), s, p.p, Tp);
-  helper_pt_exhaust(p.p);
-  assert p.p.pt_var? || p.p.pt_loc? || p.p.pt_sel?;
   if (p.p.pt_var?) {
     assert false;
   } else if (p.p.pt_loc?) {
@@ -1973,10 +1961,6 @@ ghost method theorem_progress_bd_snd(s: store, ns: nat, t: tm, T: tp, nt: nat)
   requires typeok(nt, Context([]), s, t, T);
   ensures step(t, s).Some?;
 {
-  helper_pt_exhaust(t.b.o);
-  helper_pt_exhaust(t.b.a);
-  helper_pt_loc_exhaust(t.b.o, t.b.a);
-
   assert exists P_, R :: method_membership(nt-1, Context([]), s, t.b.o, t.b.m, P_, R) &&
       typeok(nt-1, Context([]), s, tm_path(t.b.a), P_);
   var P_, R :| method_membership(nt-1, Context([]), s, t.b.o, t.b.m, P_, R) &&
@@ -2006,33 +1990,11 @@ ghost method theorem_progress_bd_snd(s: store, ns: nat, t: tm, T: tp, nt: nat)
   }
 }
 
-ghost method helper_bd_exhaust(b: bd)
- ensures b.bd_new? || b.bd_snd? || b.bd_exe?;
-{
-}
-
-ghost method helper_tm_exhaust(t: tm)
- ensures (t.tm_path? && t.p.pt_var?) ||
-         (t.tm_path? && t.p.pt_loc?) ||
-         (t.tm_path? && t.p.pt_sel?) ||
-         (t.tm_bind? && t.b.bd_new?) ||
-         (t.tm_bind? && t.b.bd_snd?) ||
-         (t.tm_bind? && t.b.bd_exe?);
-{
-  if (t.tm_path?) {
-    helper_pt_exhaust(t.p);
-  } else if (t.tm_bind?) {
-    helper_bd_exhaust(t.b);
-  } else {
-  }
-}
-
 ghost method theorem_progress(s: store, ns: nat, t: tm, T: tp, nt: nat)
   requires store_wf(ns, s);
   requires typeok(nt, Context([]), s, t, T);
   ensures value(t) || step(t, s).Some?;
 {
-  helper_tm_exhaust(t);
   if (t.tm_path? && t.p.pt_loc?) {
     assert value(t);
   } else if (t.tm_path? && t.p.pt_var?) {
