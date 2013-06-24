@@ -1367,14 +1367,6 @@ ghost method helper_membership_of(n: nat, ctx: context, s: store, p: pt, l: nat,
   requires typing(np, ctx, s, p, Tp);
   ensures membership_of(n, ctx, s, p, l, d, np, Tp);
 {
-  assert decl_label(d)==l &&
-  n>0 &&
-  exists Ds ::
-  expansion(true, n-1, ctx, s, z, Tp, Ds) &&
-  ((Ds.decls_fin? &&
-    exists d' :: d' in lst2seq(Ds.decls) && d==decl_subst(z, p, d')) ||
-   (Ds.decls_bot? && decl_bot(d)));
-  assert membership_of(n, ctx, s, p, l, d, np, Tp);
 }
 
 ghost method lemma_wf_mem__wf(nst: nat, s: store, nw: nat, np: nat, nm: nat, p: pt, T: tp, l: nat, d: decl) returns (nw': nat)
