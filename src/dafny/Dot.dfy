@@ -1924,25 +1924,6 @@ ghost method theorem_progress_pt_sel(s: store, ns: nat, p: pt, T: tp, nt: nat)
   }
 }
 
-ghost method helper_snd_to_exe(s: store, ns: nat, t: tm, T: tp, nt: nat)
-  requires t.tm_bind? && t.b.bd_snd? && t.b.o.pt_loc? && value(tm_path(t.b.a)) && t.b.o.loc < |s.m| &&
-     def_method_lookup(t.b.m, store_lookup(t.b.o.loc, s)).Some?;
-  ensures step(t, s) == Some(P(tm_bind(t.y,
-                      bd_exe(t.b.o.loc, t.b.m,
-                             tm_subst(def_method_lookup(t.b.m, store_lookup(t.b.o.loc, s)).get.fst,
-                                      t.b.a,
-                                      def_method_lookup(t.b.m, store_lookup(t.b.o.loc, s)).get.snd)),
-                      t.t'),
-              s));
-{
-}
-
-ghost method helper_snd_o_steps(s: store, ns: nat, t: tm, T: tp, nt: nat)
-  requires t.tm_bind? && t.b.bd_snd? && pt_step(t.b.o, s).Some?;
-  ensures step(t, s) == Some(P(tm_bind(t.y, bd_snd(pt_step(t.b.o, s).get, t.b.m, t.b.a), t.t'), s));
-{
-}
-
 ghost method helper_snd_a_steps(s: store, ns: nat, t: tm, T: tp, nt: nat)
   requires t.tm_bind? && t.b.bd_snd? && value(tm_path(t.b.o)) && pt_step(t.b.a, s).Some?;
   ensures step(t, s) ==  Some(P(tm_bind(t.y, bd_snd(t.b.o, t.b.m, pt_step(t.b.a, s).get), t.t'), s));
@@ -1972,13 +1953,11 @@ ghost method theorem_progress_bd_snd(s: store, ns: nat, t: tm, T: tp, nt: nat)
   var Ta :| typing(nt-2, Context([]), s, t.b.a, Ta);
   if (t.b.o.pt_loc? && t.b.a.pt_loc?) {
     var x, body, nbody := lemma_store_wf_method_ok(ns, s, t.b.o.loc, t.b.m, nt-1, P_, R);
-    helper_snd_to_exe(s, ns, t, T, nt);
     assert step(t, s).Some?;
   } else if (!t.b.o.pt_loc?) {
     helper_typeable_empty__not_var(s, t.b.o, To, nt-3);
     assert t.b.o.pt_sel?;
     theorem_progress_pt_sel(s, ns, t.b.o, To, nt-3);
-    helper_snd_o_steps(s, ns, t, T, nt);
     assert step(t, s).Some?;
   } else if (!t.b.a.pt_loc?) {
     helper_typeable_empty__not_var(s, t.b.a, Ta, nt-2);
