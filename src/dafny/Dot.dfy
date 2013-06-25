@@ -1628,6 +1628,25 @@ ghost method lemma_subst(s: store, ns: nat, t: tm, T: tp, nt: nat, y: nat, S: tp
   nt' := nt'_;
 }
 
+ghost method lemma_pt_subst_in_context(s: store, ns: nat, p: pt, Tp: tp, T: tp, np: nat, npsub: nat, y: nat, S: tp, S': tp, nsub: nat) returns (np': nat, Tp': tp)
+  requires store_wf(ns, s);
+  requires !tp_fn(y, T);
+  requires typing(np, context_extend(Context([]), y, S), s, p, Tp);
+  requires subtype(npsub, context_extend(Context([]), y, S), s, Tp, T);
+  requires subtype(nsub, Context([]), s, S', S);
+  ensures typing(np', context_extend(Context([]), y, S'), s, p, Tp') &&
+          subtype(np', context_extend(Context([]), y, S'), s, Tp', T);
+{
+  // TODO
+  assume exists np':nat :: 
+    typing(np', context_extend(Context([]), y, S'), s, p, Tp') &&
+    subtype(np', context_extend(Context([]), y, S'), s, Tp', T);
+  var np'_:nat :| 
+    typing(np'_, context_extend(Context([]), y, S'), s, p, Tp') &&
+    subtype(np'_, context_extend(Context([]), y, S'), s, Tp', T);
+  np' := np'_;
+}
+
 ghost method lemma_subst_in_context(s: store, ns: nat, t: tm, T: tp, nt: nat, y: nat, S: tp, S': tp, nsub: nat) returns (nt': nat)
   requires store_wf(ns, s);
   requires !tp_fn(y, T);
@@ -1635,10 +1654,21 @@ ghost method lemma_subst_in_context(s: store, ns: nat, t: tm, T: tp, nt: nat, y:
   requires subtype(nsub, Context([]), s, S', S);
   ensures typeok(nt', context_extend(Context([]), y, S'), s, t, T);
 {
-  // TODO!
-  assume exists nt':nat :: typeok(nt', context_extend(Context([]), y, S'), s, t, T);
-  var nt'_:nat :| typeok(nt'_, context_extend(Context([]), y, S'), s, t, T);
-  nt' := nt'_;
+  if (t.tm_path?) {
+    assert nt>0 &&
+      exists Tp :: typing(nt-1, context_extend(Context([]), y, S), s, t.p, Tp) &&
+	  subtype(nt-1, context_extend(Context([]), y, S), s, Tp, T);
+	var Tp :| typing(nt-1, context_extend(Context([]), y, S), s, t.p, Tp) &&
+	  subtype(nt-1, context_extend(Context([]), y, S), s, Tp, T);
+    var np', Tp' := lemma_pt_subst_in_context(s, ns, t.p, Tp, T, nt-1, nt-1, y, S, S', nsub); 
+	assert typeok(np'+1, context_extend(Context([]), y, S'), s, t, T);
+	nt' := np'+1;
+  } else if (t.tm_bind?) {
+    // TODO!
+    assume exists nt':nat :: typeok(nt', context_extend(Context([]), y, S'), s, t, T);
+    var nt'_:nat :| typeok(nt'_, context_extend(Context([]), y, S'), s, t, T);
+    nt' := nt'_;
+  }
 }
 
 ghost method lemma_store_invariance_typeok(ctx: context, s: store, s': store, ns': nat, t: tm, T: tp, nt: nat) returns (nt': nat)
