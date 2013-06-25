@@ -1628,28 +1628,76 @@ ghost method lemma_subst(s: store, ns: nat, t: tm, T: tp, nt: nat, y: nat, S: tp
   nt' := nt'_;
 }
 
-ghost method lemma_pt_subst_in_context(s: store, ns: nat, p: pt, Tp: tp, T: tp, np: nat, npsub: nat, y: nat, S: tp, S': tp, nsub: nat) returns (np': nat, Tp': tp)
+ghost method lemma_subtype_shrink_context(s: store, ns: nat, np: nat, y: nat, S: tp, Tp: tp, T: tp)
   requires store_wf(ns, s);
   requires !tp_fn(y, T);
+  requires !tp_fn(y, Tp);
+  requires !tp_fn(y, S);
+  requires subtype(np, context_extend(Context([]), y, S), s, Tp, T);
+  ensures subtype(np, Context([]), s, Tp, T);
+{
+  assume subtype(np, Context([]), s, Tp, T); // TODO
+}
+
+ghost method lemma_subtype_grow_context(s: store, ns: nat, np: nat, y: nat, S: tp, Tp: tp, T: tp)
+  requires store_wf(ns, s);
+  requires !tp_fn(y, T);
+  requires !tp_fn(y, Tp);
+  requires !tp_fn(y, S);
+  requires subtype(np, Context([]), s, Tp, T);
+  ensures subtype(np, context_extend(Context([]), y, S), s, Tp, T);
+{
+  assume subtype(np, context_extend(Context([]), y, S), s, Tp, T); // TODO
+}
+
+ghost method lemma_pt_subst_in_context(s: store, ns: nat, p: pt, Tp: tp, T: tp, np: nat, y: nat, S: tp, S': tp, nsub: nat) returns (np': nat, Tp': tp)
+  requires store_wf(ns, s);
+  requires !tp_fn(y, T);
+  requires !tp_fn(y, S);
+  requires !tp_fn(y, S');
   requires typing(np, context_extend(Context([]), y, S), s, p, Tp);
-  requires subtype(npsub, context_extend(Context([]), y, S), s, Tp, T);
+  requires subtype(np, context_extend(Context([]), y, S), s, Tp, T);
   requires subtype(nsub, Context([]), s, S', S);
   ensures typing(np', context_extend(Context([]), y, S'), s, p, Tp') &&
           subtype(np', context_extend(Context([]), y, S'), s, Tp', T);
 {
-  // TODO
-  assume exists np':nat :: 
-    typing(np', context_extend(Context([]), y, S'), s, p, Tp') &&
-    subtype(np', context_extend(Context([]), y, S'), s, Tp', T);
-  var np'_:nat :| 
-    typing(np'_, context_extend(Context([]), y, S'), s, p, Tp') &&
-    subtype(np'_, context_extend(Context([]), y, S'), s, Tp', T);
-  np' := np'_;
+  if (p.pt_var?) {
+    if (p.x==y) {
+	  assert Tp==S;
+	  Tp' := S';
+	  lemma_subtype_shrink_context(s, ns, np, y, S, S, T);
+	  var ntrans := theorem_subtype_transitive(ns, s, nsub, np, S', S, T);
+      assert typing(ntrans, context_extend(Context([]), y, S'), s, p, S');
+	  assert subtype(ntrans, Context([]), s, S', T);
+	  lemma_subtype_grow_context(s, ns, ntrans, y, S', S', T);
+	  np' := ntrans;
+	} else {
+	  assert context_lookup(context_extend(Context([]), y, S), p.x).Some?;
+	  assert context_lookup(context_extend(Context([]), y, S), p.x).None?;
+	  assert false;
+	}
+  } else if (p.pt_sel?) {
+    assert np>0 && field_membership(np-1, context_extend(Context([]), y, S), s, p.p, p.l, Tp);
+	// TODO
+	assume exists np':nat, Tp' :: typing(np', context_extend(Context([]), y, S'), s, p, Tp') &&
+          subtype(np', context_extend(Context([]), y, S'), s, Tp', T);
+    var np'_:nat, Tp'_ :| typing(np'_, context_extend(Context([]), y, S'), s, p, Tp'_) &&
+          subtype(np'_, context_extend(Context([]), y, S'), s, Tp'_, T);
+    np' := np'_;
+	Tp' := Tp'_;
+  } else if (p.pt_loc?) {
+    np' := np;
+    Tp' := Tp;
+	lemma_subtype_shrink_context(s, ns, np, y, S, Tp, T);
+	lemma_subtype_grow_context(s, ns, np, y, S', Tp, T);
+  }
 }
 
 ghost method lemma_subst_in_context(s: store, ns: nat, t: tm, T: tp, nt: nat, y: nat, S: tp, S': tp, nsub: nat) returns (nt': nat)
   requires store_wf(ns, s);
   requires !tp_fn(y, T);
+  requires !tp_fn(y, S);
+  requires !tp_fn(y, S');
   requires typeok(nt, context_extend(Context([]), y, S), s, t, T);
   requires subtype(nsub, Context([]), s, S', S);
   ensures typeok(nt', context_extend(Context([]), y, S'), s, t, T);
@@ -1660,7 +1708,7 @@ ghost method lemma_subst_in_context(s: store, ns: nat, t: tm, T: tp, nt: nat, y:
 	  subtype(nt-1, context_extend(Context([]), y, S), s, Tp, T);
 	var Tp :| typing(nt-1, context_extend(Context([]), y, S), s, t.p, Tp) &&
 	  subtype(nt-1, context_extend(Context([]), y, S), s, Tp, T);
-    var np', Tp' := lemma_pt_subst_in_context(s, ns, t.p, Tp, T, nt-1, nt-1, y, S, S', nsub); 
+    var np', Tp' := lemma_pt_subst_in_context(s, ns, t.p, Tp, T, nt-1, y, S, S', nsub); 
 	assert typeok(np'+1, context_extend(Context([]), y, S'), s, t, T);
 	nt' := np'+1;
   } else if (t.tm_bind?) {
@@ -1867,6 +1915,7 @@ ghost method theorem_preservation_snd(s: store, ns: nat, t: tm, T: tp, nt: nat, 
     var na_ := theorem_subtype_transitive(ns, s, nt-2, nm', Ta, P, P');
     var na := helper_typeok_path(nt-2, na_, ctx, s, t.b.a, Ta, P');
     assert typeok(na, ctx, s, tm_path(t.b.a), P');
+	assume !tp_fn(y, R) && !tp_fn(y, R'); // TODO
     var nt'_ := lemma_subst_in_context(s, ns, t'_, T, nt-1, y, R, R', nm');
     assert typeok(nt'_, context_extend(ctx, y, R'), s, t'_, T);
     nt' := helper_typeok_snd(t', nm', na, nt'_, ctx, s, y, o', t.b.m, t.b.a, t'_, T, P', R');
