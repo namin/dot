@@ -83,6 +83,34 @@
                            r)))])) in
   f)))))))
 
+;; preservation counterexample
+(test-predicate
+ preservation
+ (term
+  (val b = (new ((rfn Top b
+                      (:: (cm m) Bot (rfn Top z
+                                          (:: (ca X) Top Bot)
+                                          (:: (cv l) Top))))
+                 [(cm m) bot bot])) in
+  (val a = (new ((rfn Top a
+                      (:: (cv b) (rfn Top b
+                                      (:: (cm m) Bot (rfn Top z
+                                                          (:: (ca X) Top Bot)
+                                                          (:: (cv l) (sel z (ca X))))))))
+                 [(cv b) b])) in
+  (val r = (new ((rfn Top r
+                      (:: (cm err) Top Bot)
+                      (:: (cm ab) Top (rfn Top b
+                                           (:: (cm m) Bot (rfn Top z
+                                                               (:: (ca X) Top Bot)
+                                                               (:: (cv l) (sel z (ca X))))))))
+                 [(cm err) d (val e = (snd r (cm err) d) in e)]
+                 [(cm ab) d (sel a (cv b))])) in
+  (val w = (snd r (cm ab) r) in
+  (val c = (snd r (cm err) r) in
+  (val x = (snd w (cm m) c) in
+  (sel (sel x (cv l)) (cv whatever))))))))))
+
 (test-predicate
  typechecks
  (term
