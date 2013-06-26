@@ -1678,6 +1678,10 @@ ghost method lemma_pt_subst_in_context(s: store, ns: nat, p: pt, Tp: tp, T: tp, 
 	}
   } else if (p.pt_sel?) {
     assert np>0 && field_membership(np-1, context_extend(Context([]), y, S), s, p.p, p.l, Tp);
+	assert np-1>0 && membership(np-2, context_extend(Context([]), y, S), s, p.p, p.l, decl_tm(p.l, Tp));
+    assert exists Tpp :: typing(np-3, context_extend(Context([]), y, S), s, p.p, Tpp) &&
+	       membership_of(np-2, context_extend(Context([]), y, S), s, p.p, p.l, decl_tm(p.l, Tp), np-3, Tpp);
+
 	// TODO
 	assume exists np':nat, Tp' :: typing(np', context_extend(Context([]), y, S'), s, p, Tp') &&
           subtype(np', context_extend(Context([]), y, S'), s, Tp', T);
