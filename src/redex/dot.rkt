@@ -612,6 +612,7 @@
       (begin
         (printf "preservation: trying ~a\n" s)
         (let loop ((s s) (store store))
+          ;(printf ";;statement\n~a\n\n\n" s)
           ;(printf "store ~a\n" store)
           (or (value? s)
               (match (steps-to store s)
