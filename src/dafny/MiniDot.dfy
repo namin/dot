@@ -44,15 +44,20 @@ function vl_lookup(k: int, L: heap): result<vl>
 datatype vl = Clos(H: heap, mx: int, mf: tm, field: option<vl>) // Clos H { def apply(x)=t; val get=v } (object/closure)
 
 predicate sub(n: nat, G1: context, T1: ty, G2: context, T2: ty)
-  decreases n, T1;
+{
+  sub_rec(n, G1, T1, G2, T2, true)
+}
+
+predicate sub_rec(n: nat, G1: context, T1: ty, G2: context, T2: ty, p: bool)
+  decreases n, if (p) then T1 else T2;
 {
      (T2.Top?)
   || (T2.Bot?)
-  || (n>0 && T1.TArrow? && T2.TArrow? && sub(n-1, G2, T2.T1, G1, T1.T1) && sub(n-1, G1, T1.T2, G2, T2.T2))
-  || (T1.TVal? && T2.TVal? && sub(n, G1, T1.Tv, G2, T2.Tv))
-  || (T1.TTyp? && T2.TTyp? && sub(n, G1, T1.T, G2, T2.T))
-  || (n>0 && T1.TSel? && ty_lookup(T1.x, G1).Result? && sub(n-1, G1, ty_lookup(T1.x, G1).get, G2, T2))
-  || (n>0 && T2.TSel? && ty_lookup(T2.x, G2).Result? && sub(n-1, G1, T1, G2, ty_lookup(T2.x, G2).get))
+  || (T1.TArrow? && T2.TArrow? && sub_rec(n, G2, T2.T1, G1, T1.T1, !p) && sub_rec(n, G1, T1.T2, G2, T2.T2, p))
+  || (T1.TVal? && T2.TVal? && sub_rec(n, G1, T1.Tv, G2, T2.Tv, p))
+  || (T1.TTyp? && T2.TTyp? && sub_rec(n, G1, T1.T, G2, T2.T, p))
+  || (n>0 && T1.TSel? && ty_lookup(T1.x, G1).Result? && sub_rec(n-1, G1, ty_lookup(T1.x, G1).get, G2, T2, p))
+  || (n>0 && T2.TSel? && ty_lookup(T2.x, G2).Result? && sub_rec(n-1, G1, T1, G2, ty_lookup(T2.x, G2).get, p))
 }
 
 datatype result<A> = Result(get: A) | Stuck | TimeOut;
@@ -118,4 +123,67 @@ predicate vtyp_rec(n: nat, G: context, v: vl, T: ty)
      (T.TArrow? && typ(n, context.Extend(v.mx, T.T1, G), v.mf, T.T2))
   || (T.TVal? && v.field.Some? && vtyp(n, v.field.get, T.Tv))
   || (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && vtyp_rec(n-1, G, v, T1))
+}
+
+predicate wf(n: nat, G: context, T: ty)
+  decreases n, T;
+{
+     T.Top? || T.Bot?
+  || (T.TArrow? && wf(n, G, T.T1) && wf(n, G, T.T2))
+  || (T.TVal? && wf(n, G, T.Tv))
+  || (T.TTyp? && wf(n, G, T.T))
+  || (n>0 && T.TSel? && ty_lookup(T.x, G).Result? && wf(n-1, G, ty_lookup(T.x, G).get))
+}
+
+//
+// Machinery
+//
+ghost method help_sub_rec_monotonic(n: nat, G1: context, T1: ty, G2: context, T2: ty, p: bool)
+  requires sub_rec(n, G1, T1, G2, T2, p);
+  ensures sub_rec(n+1, G1, T1, G2, T2, p);
+  decreases n, if (p) then T1 else T2;
+{
+  if (n>0 && T1.TSel? && ty_lookup(T1.x, G1).Result? && sub_rec(n-1, G1, ty_lookup(T1.x, G1).get, G2, T2, p)) {
+    help_sub_rec_monotonic(n-1, G1, ty_lookup(T1.x, G1).get, G2, T2, p);
+  }
+}
+ghost method help_sub_rec_monotonic_plus(m: nat, n: nat, G1: context, T1: ty, G2: context, T2: ty, p: bool)
+  requires sub_rec(m, G1, T1, G2, T2, p);
+  requires m<=n;
+  ensures sub_rec(n, G1, T1, G2, T2, p);
+  decreases n-m;
+{
+  if (m<n) {
+    help_sub_rec_monotonic(m, G1, T1, G2, T2, p);
+    help_sub_rec_monotonic_plus(m+1, n, G1, T1, G2, T2, p);
+  }
+}
+
+//
+// Properties
+//
+ghost method lemma_sub_rec_refl(n: nat, G: context, T: ty, p: bool) returns (ns: nat)
+  requires wf(n, G, T);
+  ensures sub_rec(ns, G, T, G, T, p);
+  decreases n, T;
+{
+  match T {
+    case Top => ns := 0;
+    case Bot => ns := 0;
+    case TArrow(T1, T2) =>
+      var ns1 := lemma_sub_rec_refl(n, G, T1, !p);
+      var ns2 := lemma_sub_rec_refl(n, G, T2, p);
+      ns := ns1+ns2;
+      help_sub_rec_monotonic_plus(ns1, ns, G, T1, G, T1, !p);
+      help_sub_rec_monotonic_plus(ns2, ns, G, T2, G, T2, p);
+    case TVal(Tv) =>
+      var nsv := lemma_sub_rec_refl(n, G, Tv, p);
+      ns := nsv;
+    case TTyp(Tt) =>
+      var nst := lemma_sub_rec_refl(n, G, Tt, p);
+      ns := nst;
+    case TSel(x) =>
+      var n1 := lemma_sub_rec_refl(n-1, G, ty_lookup(x, G).get, p);
+      ns := n1+2;
+  }
 }
