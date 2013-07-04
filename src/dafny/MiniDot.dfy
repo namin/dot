@@ -138,6 +138,8 @@ predicate wf(n: nat, G: context, T: ty)
 //
 // Machinery
 //
+
+// Boilerplate monotonicity helpers.
 ghost method help_sub_rec_monotonic(n: nat, G1: context, T1: ty, G2: context, T2: ty, p: bool)
   requires sub_rec(n, G1, T1, G2, T2, p);
   ensures sub_rec(n+1, G1, T1, G2, T2, p);
@@ -145,6 +147,60 @@ ghost method help_sub_rec_monotonic(n: nat, G1: context, T1: ty, G2: context, T2
 {
   if (n>0 && T1.TSel? && ty_lookup(T1.x, G1).Result? && sub_rec(n-1, G1, ty_lookup(T1.x, G1).get, G2, T2, p)) {
     help_sub_rec_monotonic(n-1, G1, ty_lookup(T1.x, G1).get, G2, T2, p);
+  }
+}
+ghost method help_typ_monotonic(n: nat, G: context, t: tm, T: ty)
+  requires typ(n, G, t, T);
+  ensures typ(n+1, G, t, T);
+  decreases n, t;
+{
+  if (t.tvar? && ty_lookup(t.x, G)==Result(T)) {}
+  else if (t.tnew? && T.TArrow? && typ(n, context.Extend(t.mx, T.T1, G), t.mf, T.T2)) {}
+  else if (t.tnew? && T.TVal? && t.field.Some? && typ(n, G, t.field.get, T.Tv)) {
+    help_typ_monotonic(n, G, t.field.get, T.Tv);
+  }
+  else if (t.tnew? && T.TTyp? && t.T==T) {}
+  else if (t.tapp? && exists T1 :: typ(n, G, t.a, T1) && typ(n, G, t.f, TArrow(T1, T))) {}
+  else if (t.tget? && typ(n, G, t.o, TVal(T))) {}
+  else if (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && typ(n-1, G, t, T1)) {
+    var T1 :| sub(n-1, G, T1, G, T) && typ(n-1, G, t, T1);
+    help_sub_rec_monotonic(n-1, G, T1, G, T, true);
+  } else {}
+}
+ghost method help_wfenv_monotonic(n: nat, H: heap, G: context)
+  requires wfenv(n, H, G);
+  ensures wfenv(n+1, H, G);
+  decreases H, n, 0;
+{
+  forall (x | vl_lookup(x, H).Result?)
+  ensures ty_lookup(x, G).Result? && vtyp_rec(n+1, G, vl_lookup(x, H).get, ty_lookup(x, G).get);
+  {
+    help_vtyp_rec_monotonic(n, G, vl_lookup(x, H).get, ty_lookup(x, G).get);
+  }
+}
+ghost method help_vtyp_monotonic(n: nat, v: vl, T: ty)
+  requires vtyp(n, v, T);
+  ensures vtyp(n+1, v, T);
+  decreases v, n, 2;
+{
+  var G :| wfenv(n, v.H, G) && vtyp_rec(n, G, v, T);
+  help_wfenv_monotonic(n, v.H, G);
+  help_vtyp_rec_monotonic(n, G, v, T);
+}
+ghost method help_vtyp_rec_monotonic(n: nat, G: context, v: vl, T: ty)
+  requires vtyp_rec(n, G, v, T);
+  ensures vtyp_rec(n+1, G, v, T);
+  decreases v, n, 1;
+{
+  if (T.TArrow? && typ(n, context.Extend(v.mx, T.T1, G), v.mf, T.T2)) {
+    help_typ_monotonic(n, context.Extend(v.mx, T.T1, G), v.mf, T.T2);
+  }
+  else if (T.TVal? && v.field.Some? && vtyp(n, v.field.get, T.Tv)) {
+     help_vtyp_monotonic(n, v.field.get, T.Tv);
+  }
+  else if (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && vtyp_rec(n-1, G, v, T1)) {
+    var T1 :| sub(n-1, G, T1, G, T) && vtyp_rec(n-1, G, v, T1);
+    help_sub_rec_monotonic(n-1, G, T1, G, T, true);
   }
 }
 ghost method help_sub_rec_monotonic_plus(m: nat, n: nat, G1: context, T1: ty, G2: context, T2: ty, p: bool)
@@ -158,11 +214,56 @@ ghost method help_sub_rec_monotonic_plus(m: nat, n: nat, G1: context, T1: ty, G2
     help_sub_rec_monotonic_plus(m+1, n, G1, T1, G2, T2, p);
   }
 }
+ghost method help_typ_monotonic_plus(m: nat, n: nat, G: context, t: tm, T: ty)
+  requires typ(m, G, t, T);
+  requires m<=n;
+  ensures typ(n, G, t, T);
+  decreases n-m;
+{
+  if (m<n) {
+    help_typ_monotonic(m, G, t, T);
+    help_typ_monotonic_plus(m+1, n, G, t, T);
+  }
+}
+ghost method help_wfenv_monotonic_plus(m: nat, n: nat, H: heap, G: context)
+  requires wfenv(m, H, G);
+  requires m<=n;
+  ensures wfenv(n, H, G);
+  decreases n-m;
+{
+  if (m<n) {
+    help_wfenv_monotonic(m, H, G);
+    help_wfenv_monotonic_plus(m+1, n, H, G);
+  }
+}
+ghost method help_vtyp_monotonic_plus(m: nat, n: nat, v: vl, T: ty)
+  requires vtyp(m, v, T);
+  requires m<=n;
+  ensures vtyp(n, v, T);
+  decreases n-m;
+{
+  if (m<n) {
+    help_vtyp_monotonic(m, v, T);
+    help_vtyp_monotonic_plus(m+1, n, v, T);
+  }
+}
+ghost method help_vtyp_rec_monotonic_plus(m: nat, n: nat, G: context, v: vl, T: ty)
+  requires vtyp_rec(m, G, v, T);
+  requires m<=n;
+  ensures vtyp_rec(n, G, v, T);
+  decreases n-m;
+{
+  if (m<n) {
+    help_vtyp_rec_monotonic(m, G, v, T);
+    help_vtyp_rec_monotonic_plus(m+1, n, G, v, T);
+  }
+}
 
 //
 // Properties
 //
 
+// Subtyping properties
 ghost method lemma_sub_rec_refl(n: nat, G: context, T: ty, p: bool) returns (ns: nat)
   requires wf(n, G, T);
   ensures sub_rec(ns, G, T, G, T, p);
@@ -239,6 +340,7 @@ ghost method lemma_sub_rec_trans(n12: nat, n23: nat, G1: context, T1: ty, G2: co
   }
 }
 
+// Type-safety properties
 ghost method lemma_lookup_safe(n: nat, H: heap, G: context, x: int)
   requires wfenv(n, H, G);
   requires ty_lookup(x, G).Result?;
