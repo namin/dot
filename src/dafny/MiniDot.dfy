@@ -52,7 +52,7 @@ predicate sub_rec(n: nat, G1: context, T1: ty, G2: context, T2: ty, p: bool)
   decreases n, if (p) then T1 else T2;
 {
      (T2.Top?)
-  || (T2.Bot?)
+  || (T1.Bot?)
   || (T1.TArrow? && T2.TArrow? && sub_rec(n, G2, T2.T1, G1, T1.T1, !p) && sub_rec(n, G1, T1.T2, G2, T2.T2, p))
   || (T1.TVal? && T2.TVal? && sub_rec(n, G1, T1.Tv, G2, T2.Tv, p))
   || (T1.TTyp? && T2.TTyp? && sub_rec(n, G1, T1.T, G2, T2.T, p))
@@ -162,6 +162,7 @@ ghost method help_sub_rec_monotonic_plus(m: nat, n: nat, G1: context, T1: ty, G2
 //
 // Properties
 //
+
 ghost method lemma_sub_rec_refl(n: nat, G: context, T: ty, p: bool) returns (ns: nat)
   requires wf(n, G, T);
   ensures sub_rec(ns, G, T, G, T, p);
@@ -185,5 +186,55 @@ ghost method lemma_sub_rec_refl(n: nat, G: context, T: ty, p: bool) returns (ns:
     case TSel(x) =>
       var n1 := lemma_sub_rec_refl(n-1, G, ty_lookup(x, G).get, p);
       ns := n1+2;
+  }
+}
+
+ghost method lemma_sub_rec_trans(n12: nat, n23: nat, G1: context, T1: ty, G2: context, T2: ty, G3: context, T3: ty, p: bool) returns (n13: nat)
+  requires sub_rec(n12, G1, T1, G2, T2, p);
+  requires sub_rec(n23, G2, T2, G3, T3, p);
+  ensures sub_rec(n13, G1, T1, G3, T3, p);
+  decreases if p then n12 else n23, if p then n23 else n12, if p then T1 else T3, T2, if p then T3 else T1;
+{
+  n13 := 0;
+  if (T2.Top? && T3.TSel?) {
+    var nr := lemma_sub_rec_trans(n12, n23-1, G1, T1, G2, T2, G3, ty_lookup(T3.x, G3).get, p);
+    n13 := nr+1;
+  }
+  else if (T1.TArrow? && T2.TArrow? && T3.TArrow?) {
+    var ns1 := lemma_sub_rec_trans(n23, n12, G3, T3.T1, G2, T2.T1, G1, T1.T1, !p);
+    var ns2 := lemma_sub_rec_trans(n12, n23, G1, T1.T2, G2, T2.T2, G3, T3.T2, p);
+    n13 := ns1+ns2;
+    help_sub_rec_monotonic_plus(ns1, n13, G3, T3.T1, G1, T1.T1, !p);
+    help_sub_rec_monotonic_plus(ns2, n13, G1, T1.T2, G3, T3.T2, p);
+  }
+  else if (T1.TVal? && T2.TVal? && T3.TVal?) {
+    var nr := lemma_sub_rec_trans(n12, n23, G1, T1.Tv, G2, T2.Tv, G3, T3.Tv, p);
+    n13 := nr;
+  }
+  else if (T1.TTyp? && T2.TTyp? && T3.TTyp?) {
+    var nr := lemma_sub_rec_trans(n12, n23, G1, T1.T, G2, T2.T, G3, T3.T, p);
+    n13 := nr;
+  }
+  else if (n12>0 && T1.TSel? && ty_lookup(T1.x, G1).Result? && sub_rec(n12-1, G1, ty_lookup(T1.x, G1).get, G2, T2, p)) {
+    var nr := lemma_sub_rec_trans(n12-1, n23, G1, ty_lookup(T1.x, G1).get, G2, T2, G3, T3, p);
+    n13 := nr+1;
+  }
+  else if (n12>0 && T2.TSel? && ty_lookup(T2.x, G2).Result? && sub_rec(n12-1, G1, T1, G2, ty_lookup(T2.x, G2).get, p)) {
+    if (n23>0 && sub_rec(n23-1, G2, ty_lookup(T2.x, G2).get, G3, T3, p)) {
+      var nr := lemma_sub_rec_trans(n12-1, n23-1, G1, T1, G2, ty_lookup(T2.x, G2).get, G3, T3, p);
+      n13 := nr;
+    }
+    else if (n23>0 && T3.TSel? && ty_lookup(T3.x, G3).Result? && sub_rec(n23-1, G2, T2, G3, ty_lookup(T3.x, G3).get, p)) {
+      var nr := lemma_sub_rec_trans(n12, n23-1, G1, T1, G2, T2, G3, ty_lookup(T3.x, G3).get, p);
+      n13 := nr+1;
+    }
+  }
+  else if (n23>0 && T2.TSel? && ty_lookup(T2.x, G2).Result? && sub_rec(n23-1, G2, ty_lookup(T2.x, G2).get, G3, T3, p)) {
+    var nr := lemma_sub_rec_trans(n12, n23-1, G1, T1, G2, ty_lookup(T2.x, G2).get, G3, T3, p);
+    n13 := nr+1;
+  }
+  else if (n23>0 && T3.TSel? && ty_lookup(T3.x, G3).Result? && sub_rec(n23-1, G2, T2, G3, ty_lookup(T3.x, G3).get, p)) {
+    var nr := lemma_sub_rec_trans(n12, n23-1, G1, T1, G2, T2, G3, ty_lookup(T3.x, G3).get, p);
+    n13 := nr+1;
   }
 }
