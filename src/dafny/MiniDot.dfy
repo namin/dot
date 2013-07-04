@@ -41,7 +41,7 @@ function vl_lookup(k: int, L: heap): result<vl>
   case Extend(k', v', L') => if (k'==k) then Result(v') else vl_lookup(k, L')
 }
 
-datatype vl = Clos(H: heap, mx: int, mf: tm, field: option<vl>) // Clos H { def apply(x)=t; val get=v } (object/closure)
+datatype vl = Clos(H: heap, mx: int, mf: tm, field: option<vl>, T: ty) // Clos H { def apply(x)=t; val get=v } (object/closure)
 
 predicate sub(n: nat, G1: context, T1: ty, G2: context, T2: ty)
 {
@@ -79,8 +79,8 @@ function eval(n: nat, H: heap, t: tm): result<vl>
     if (t.Some?) then
       var v := eval(n, H, t.get);
       if !v.Result? then v else
-      Result(Clos(H, mx, mf, Some(v.get)))
-    else Result(Clos(H, mx, mf, None))
+      Result(Clos(H, mx, mf, Some(v.get), T))
+    else Result(Clos(H, mx, mf, None, T))
   case tapp(o, a) =>
     var vo := eval(n, H, o);
     var va := eval(n, H, a);
@@ -100,7 +100,7 @@ predicate typ(n: nat, G: context, t: tm, T: ty)
      (t.tvar? && ty_lookup(t.x, G)==Result(T))
   || (t.tnew? && T.TArrow? && typ(n, context.Extend(t.mx, T.T1, G), t.mf, T.T2))
   || (t.tnew? && T.TVal? && t.field.Some? && typ(n, G, t.field.get, T.Tv))
-  || (t.tnew? && T.TTyp? && t.T==T)
+  || (t.tnew? && T.TTyp? && t.T==T.T)
   || (t.tapp? && exists T1 :: typ(n, G, t.a, T1) && typ(n, G, t.f, TArrow(T1, T)))
   || (t.tget? && typ(n, G, t.o, TVal(T)))
   || (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && typ(n-1, G, t, T1))
@@ -122,6 +122,7 @@ predicate vtyp_rec(n: nat, G: context, v: vl, T: ty)
 {
      (T.TArrow? && typ(n, context.Extend(v.mx, T.T1, G), v.mf, T.T2))
   || (T.TVal? && v.field.Some? && vtyp(n, v.field.get, T.Tv))
+  || (T.TTyp? && v.T==T.T)
   || (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && vtyp_rec(n-1, G, v, T1))
 }
 
@@ -159,7 +160,7 @@ ghost method help_typ_monotonic(n: nat, G: context, t: tm, T: ty)
   else if (t.tnew? && T.TVal? && t.field.Some? && typ(n, G, t.field.get, T.Tv)) {
     help_typ_monotonic(n, G, t.field.get, T.Tv);
   }
-  else if (t.tnew? && T.TTyp? && t.T==T) {}
+  else if (t.tnew? && T.TTyp? && t.T==T.T) {}
   else if (t.tapp? && exists T1 :: typ(n, G, t.a, T1) && typ(n, G, t.f, TArrow(T1, T))) {}
   else if (t.tget? && typ(n, G, t.o, TVal(T))) {}
   else if (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && typ(n-1, G, t, T1)) {
@@ -202,6 +203,11 @@ ghost method help_vtyp_rec_monotonic(n: nat, G: context, v: vl, T: ty)
     var T1 :| sub(n-1, G, T1, G, T) && vtyp_rec(n-1, G, v, T1);
     help_sub_rec_monotonic(n-1, G, T1, G, T, true);
   }
+}
+ghost method help_wf_monotonic(n: nat, G: context, T: ty)
+  requires wf(n, G, T);
+  ensures wf(n+1, G, T);
+{
 }
 ghost method help_sub_rec_monotonic_plus(m: nat, n: nat, G1: context, T1: ty, G2: context, T2: ty, p: bool)
   requires sub_rec(m, G1, T1, G2, T2, p);
@@ -360,12 +366,12 @@ ghost method hint_vtyp_rec_wfenv(n: nat, H: heap, G: context, x: int)
   ensures ty_lookup(x, G).Result? && vtyp_rec(n, G, vl_lookup(x, H).get, ty_lookup(x, G).get);
 {
 }
-
 ghost method lemma_eval_safe(ntyp: nat, nev: nat, nenv: nat, H: heap, G: context, t: tm, T: ty) returns (nv: nat)
   requires typ(ntyp, G, t, T);
   requires wfenv(nenv, H, G);
   requires eval(nev, H, t).Result?;
   ensures vtyp_rec(nv, G, eval(nev, H, t).get, T);
+  decreases ntyp, nev, nenv, t, T;
 {
   var v := eval(nev, H, t).get;
   nv := ntyp;
@@ -383,16 +389,21 @@ ghost method lemma_eval_safe(ntyp: nat, nev: nat, nenv: nat, H: heap, G: context
       nv := nenv;
     }
     else if (t.tnew?) {
-      if (T.TArrow? && typ(ntyp, context.Extend(t.mx, T.T1, G), t.mf, T.T2)) {}
-      else if (T.TVal? && t.field.Some? && typ(ntyp, G, t.field.get, T.Tv)) {
-        assume vtyp_rec(nv, G, v, T);
-      }
-      else if (T.TTyp? && t.T==T) {
+      if (t.field.Some?) {
         assume vtyp_rec(nv, G, v, T);
       }
     }
     else if (t.tapp?) {
-      assume vtyp_rec(nv, G, v, T);
+      var vo := eval(nev, H, t.f);
+      var va := eval(nev, H, t.a);
+      if (vo.Result? && va.Result?) {
+        var T1 :| typ(ntyp, G, t.a, T1) && typ(ntyp, G, t.f, TArrow(T1, T));
+        var na := lemma_eval_safe(ntyp, nev, nenv, H, G, t.a, T1);
+        var nf := lemma_eval_safe(ntyp, nev, nenv, H, G, t.f, TArrow(T1, T));
+        assert v==eval(nev-1, heap.Extend(vo.get.mx, va.get, H), vo.get.mf).get;
+        // TODO
+        assume vtyp_rec(nv, G, v, T);
+      }
     }
     else if (t.tget?) {
       assume vtyp_rec(nv, G, v, T);
