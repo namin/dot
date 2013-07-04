@@ -238,3 +238,11 @@ ghost method lemma_sub_rec_trans(n12: nat, n23: nat, G1: context, T1: ty, G2: co
     n13 := nr+1;
   }
 }
+
+ghost method lemma_lookup_safe(n: nat, H: heap, G: context, x: int)
+  requires wfenv(n, H, G);
+  requires ty_lookup(x, G).Result?;
+  requires vl_lookup(x, H).Result?;
+  ensures vtyp_rec(n, G, vl_lookup(x, H).get, ty_lookup(x, G).get);
+{
+}
