@@ -97,13 +97,14 @@ function eval(n: nat, H: heap, t: tm): result<vl>
 predicate typ(n: nat, G: context, t: tm, T: ty)
   decreases n, t;
 {
+  wf(n, G, T) && (
      (t.tvar? && ty_lookup(t.x, G)==Result(T))
   || (t.tnew? && T.TArrow? && typ(n, context.Extend(t.mx, T.T1, G), t.mf, T.T2))
   || (t.tnew? && T.TVal? && t.field.Some? && typ(n, G, t.field.get, T.Tv))
   || (t.tnew? && T.TTyp? && t.T==T.T)
   || (t.tapp? && exists T1 :: typ(n, G, t.a, T1) && typ(n, G, t.f, TArrow(T1, T)))
   || (t.tget? && typ(n, G, t.o, TVal(T)))
-  || (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && typ(n-1, G, t, T1))
+  || (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && typ(n-1, G, t, T1)))
 }
 
 predicate wfenv(n: nat, H: heap, G: context)
@@ -155,6 +156,7 @@ ghost method help_typ_monotonic(n: nat, G: context, t: tm, T: ty)
   ensures typ(n+1, G, t, T);
   decreases n, t;
 {
+  help_wf_monotonic(n, G, T);
   if (t.tvar? && ty_lookup(t.x, G)==Result(T)) {}
   else if (t.tnew? && T.TArrow? && typ(n, context.Extend(t.mx, T.T1, G), t.mf, T.T2)) {}
   else if (t.tnew? && T.TVal? && t.field.Some? && typ(n, G, t.field.get, T.Tv)) {
@@ -346,6 +348,66 @@ ghost method lemma_sub_rec_trans(n12: nat, n23: nat, G1: context, T1: ty, G2: co
   }
 }
 
+// Hints
+ghost method hint_vtyp_rec_sub(ns: nat, nt: nat, G: context, v: vl, T1: ty, T: ty) returns (nv: nat)
+  requires sub(ns, G, T1, G, T);
+  requires vtyp_rec(nt, G, v, T1);
+  ensures vtyp_rec(nv, G, v, T);
+{
+  var nr := ns+nt;
+  help_sub_rec_monotonic_plus(ns, nr, G, T1, G, T, true);
+  help_vtyp_rec_monotonic_plus(nt, nr, G, v, T1);
+  nv := nr+1;
+}
+
+// Inversions
+
+ghost method inv_typ_var(n: nat, G: context, x: int, T: ty) returns (nv: nat)
+  requires typ(n, G, tvar(x), T);
+  ensures ty_lookup(x, G).Result?;
+  ensures sub(nv, G, ty_lookup(x, G).get, G, T);
+{
+  if (ty_lookup(x, G)==Result(T)) {
+    var nr := lemma_sub_rec_refl(n, G, T, true);
+    nv := nr;
+  }
+  else if (n>0 && exists T' :: sub(n-1, G, T', G, T) && typ(n-1, G, tvar(x), T')) {
+    var T' :| sub(n-1, G, T', G, T) && typ(n-1, G, tvar(x), T');
+    var nr := inv_typ_var(n-1, G, x, T');
+    var ns := lemma_sub_rec_trans(nr, n-1, G, ty_lookup(x, G).get, G, T', G, T, true);
+    nv := ns;
+  }
+}
+
+ghost method inv_typ_app(n: nat, G: context, f: tm, a: tm, T: ty) returns (nv: nat, T1: ty, T2: ty)
+  requires typ(n, G, tapp(f, a), T);
+  ensures typ(nv, G, f, TArrow(T1, T2));
+  ensures typ(nv, G, a, T1);
+  ensures sub(nv, G, T2, G, T);
+{
+  if (exists T1 :: typ(n, G, a, T1) && typ(n, G, f, TArrow(T1, T))) {
+    var T1_ :| typ(n, G, a, T1_) && typ(n, G, f, TArrow(T1_, T));
+    T1 := T1_;
+    T2 := T;
+    assert wf(n, G, T);
+    var ns := lemma_sub_rec_refl(n, G, T, true);
+    nv := ns+n;
+    help_sub_rec_monotonic_plus(ns, nv, G, T, G, T, true);
+    help_typ_monotonic_plus(n, nv, G, a, T1_);
+    help_typ_monotonic_plus(n, nv, G, f, TArrow(T1_, T));
+  } else if (n>0 && exists T_ :: sub(n-1, G, T_, G, T) && typ(n-1, G, tapp(f, a), T_)) {
+    var T_ :| sub(n-1, G, T_, G, T) && typ(n-1, G, tapp(f, a), T_);
+    var n_, T1_, T2_ := inv_typ_app(n-1, G, f, a, T_);
+    T1 := T1_;
+    T2 := T2_;
+    var nt := lemma_sub_rec_trans(n_, n-1, G, T2, G, T_, G, T, true);
+    nv := nt+n_;
+    help_sub_rec_monotonic_plus(nt, nv, G, T2, G, T, true);
+    help_typ_monotonic_plus(n_, nv, G, a, T1);
+    help_typ_monotonic_plus(n_, nv, G, f, TArrow(T1, T2));
+  }
+}
+
 // Type-safety properties
 ghost method lemma_lookup_safe(n: nat, H: heap, G: context, x: int)
   requires wfenv(n, H, G);
@@ -355,58 +417,33 @@ ghost method lemma_lookup_safe(n: nat, H: heap, G: context, x: int)
 {
 }
 
-ghost method hint_vtyp_rec_subsumption(n: nat, G: context, v: vl, T: ty, T1: ty)
-  requires sub(n, G, T1, G, T) && vtyp_rec(n, G, v, T1);
-  ensures vtyp_rec(n+1, G, v, T);
-{
-}
-ghost method hint_vtyp_rec_wfenv(n: nat, H: heap, G: context, x: int)
-  requires wfenv(n, H, G);
-  requires vl_lookup(x, H).Result?;
-  ensures ty_lookup(x, G).Result? && vtyp_rec(n, G, vl_lookup(x, H).get, ty_lookup(x, G).get);
-{
-}
 ghost method lemma_eval_safe(ntyp: nat, nev: nat, nenv: nat, H: heap, G: context, t: tm, T: ty) returns (nv: nat)
   requires typ(ntyp, G, t, T);
   requires wfenv(nenv, H, G);
   requires eval(nev, H, t).Result?;
   ensures vtyp_rec(nv, G, eval(nev, H, t).get, T);
-  decreases ntyp, nev, nenv, t, T;
+  decreases t;
 {
   var v := eval(nev, H, t).get;
-  nv := ntyp;
-  if (ntyp>0 && exists T1 :: sub(ntyp-1, G, T1, G, T) && typ(ntyp-1, G, t, T1)) {
-    var T1 :| sub(ntyp-1, G, T1, G, T) && typ(ntyp-1, G, t, T1);
-    var nr := lemma_eval_safe(ntyp-1, nev, nenv, H, G, t, T1);
-    var ns := nr+ntyp;
-    help_vtyp_rec_monotonic_plus(nr, ns, G, v, T1);
-    help_sub_rec_monotonic_plus(ntyp-1, ns, G, T1, G, T, true);
-    hint_vtyp_rec_subsumption(ns, G, v, T, T1);
-    nv := ns+1;
-  } else {
-    if (t.tvar?) {
-      hint_vtyp_rec_wfenv(nenv, H, G, t.x);
-      nv := nenv;
-    }
-    else if (t.tnew?) {
-      if (t.field.Some?) {
-        assume vtyp_rec(nv, G, v, T);
-      }
-    }
-    else if (t.tapp?) {
-      var vo := eval(nev, H, t.f);
-      var va := eval(nev, H, t.a);
-      if (vo.Result? && va.Result?) {
-        var T1 :| typ(ntyp, G, t.a, T1) && typ(ntyp, G, t.f, TArrow(T1, T));
-        var na := lemma_eval_safe(ntyp, nev, nenv, H, G, t.a, T1);
-        var nf := lemma_eval_safe(ntyp, nev, nenv, H, G, t.f, TArrow(T1, T));
-        assert v==eval(nev-1, heap.Extend(vo.get.mx, va.get, H), vo.get.mf).get;
-        // TODO
-        assume vtyp_rec(nv, G, v, T);
-      }
-    }
-    else if (t.tget?) {
-      assume vtyp_rec(nv, G, v, T);
-    }
+  match t {
+  case tvar(x) =>
+    var ni := inv_typ_var(ntyp, G, x, T);
+    lemma_lookup_safe(nenv, H, G, x);
+    assert vtyp_rec(nenv, G, vl_lookup(x, H).get, ty_lookup(x, G).get);
+    assert sub(ni, G, ty_lookup(x, G).get, G, T) && vtyp_rec(nenv, G, v, ty_lookup(x, G).get);
+    nv := hint_vtyp_rec_sub(ni, nenv, G, v, ty_lookup(x, G).get, T);
+  case tapp(f, a) =>
+    var ni, T1, T2 := inv_typ_app(ntyp, G, f, a, T);
+    var nf := lemma_eval_safe(ni, nev, nenv, H, G, f, TArrow(T1, T2));
+    var na := lemma_eval_safe(ni, nev, nenv, H, G, a, T1);
+    var vf := eval(nev, H, f).get;
+    var va := eval(nev, H, a).get;
+    assert vtyp_rec(nf, G, vf, TArrow(T1, T2));
+    assert vtyp_rec(na, G, va, T1);    
+    assume vtyp_rec(nv, G, eval(nev, H, t).get, T);
+  case tnew(mx, mf, tv, Tt) =>
+    assume vtyp_rec(nv, G, eval(nev, H, t).get, T);
+  case tget(o) =>
+    assume vtyp_rec(nv, G, eval(nev, H, t).get, T);
   }
 }
