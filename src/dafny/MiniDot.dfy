@@ -41,7 +41,7 @@ function vl_lookup(k: int, L: heap): result<vl>
   case Extend(k', v', L') => if (k'==k) then Result(v') else vl_lookup(k, L')
 }
 
-datatype vl = Clos(H: heap, mx: int, mf: tm, field: option<vl>, T: ty) // Clos H { def apply(x)=t; val get=v } (object/closure)
+datatype vl = Clos(H: heap, mx: int, mf: tm, field: option<vl>) // Clos H { def apply(x)=t; val get=v } (object/closure)
 
 predicate sub(n: nat, G1: context, T1: ty, G2: context, T2: ty)
 {
@@ -79,8 +79,8 @@ function eval(n: nat, H: heap, t: tm): result<vl>
     if (t.Some?) then
       var v := eval(n, H, t.get);
       if !v.Result? then v else
-      Result(Clos(H, mx, mf, Some(v.get), T))
-    else Result(Clos(H, mx, mf, None, T))
+      Result(Clos(H, mx, mf, Some(v.get)))
+    else Result(Clos(H, mx, mf, None))
   case tapp(o, a) =>
     var vo := eval(n, H, o);
     var va := eval(n, H, a);
@@ -123,7 +123,6 @@ predicate vtyp_rec(n: nat, G: context, v: vl, T: ty)
 {
      (T.TArrow? && typ(n, context.Extend(v.mx, T.T1, G), v.mf, T.T2))
   || (T.TVal? && v.field.Some? && vtyp(n, v.field.get, T.Tv))
-  || (T.TTyp? && v.T==T.T)
   || (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && vtyp_rec(n-1, G, v, T1))
 }
 
