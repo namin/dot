@@ -374,6 +374,16 @@ ghost method hint_vtyp_rec_sub(ns: nat, nt: nat, nw: nat, G: context, v: vl, T1:
   help_wf_monotonic_plus(nw, nr+1, G, T);
   nv := nr+1;
 }
+ghost method hint_vtyp_rec_arrow(n: nat, nw: nat, G: context, v: vl, T: ty) returns (nv: nat)
+  requires wf(nw, G, T);
+  requires T.TArrow?;
+  requires typ(n, context.Extend(v.mx, T.T1, G), v.mf, T.T2);
+  ensures vtyp_rec(nv, G, v, T);
+{
+  nv := nw+n;
+  help_wf_monotonic_plus(nw, nv, G, T);
+  help_typ_monotonic_plus(n, nv, context.Extend(v.mx, T.T1, G), v.mf, T.T2);
+}
 
 // Inversions
 
@@ -423,26 +433,37 @@ ghost method inv_typ_app(n: nat, G: context, f: tm, a: tm, T: ty) returns (nv: n
   }
 }
 
-ghost method inv_sub_arrow(n: nat, ns: nat, G: context, v: vl, T1: ty, T2: ty, T: ty) returns (nv: nat, T1': ty, T2': ty)
+ghost method inv_wf_arrow(n: nat, nw: nat, G: context, v: vl, T1: ty, T2: ty) returns (nv: nat, T1': ty, T2': ty)
+  requires wf(nw, G, TArrow(T1, T2));
+  requires vtyp_rec(n, G, v, TArrow(T1, T2));
+  ensures typ(nv, context.Extend(v.mx, T1', G), v.mf, T2');
+  ensures sub(nv, G, TArrow(T1', T2'), G, TArrow(T1, T2));
+  ensures wf(nv, G, TArrow(T1', T2'));
+{
+  var T := TArrow(T1, T2);
+  var ns := lemma_sub_rec_refl(nw, G, T, true);
+  nv, T1', T2' := inv_sub_arrow(n, ns, nw, G, v, T1, T2, T);
+}
+
+ghost method inv_sub_arrow(n: nat, ns: nat, nw: nat, G: context, v: vl, T1: ty, T2: ty, T: ty) returns (nv: nat, T1': ty, T2': ty)
   requires sub(ns, G, T, G, TArrow(T1, T2));
   requires vtyp_rec(n, G, v, T);
   ensures typ(nv, context.Extend(v.mx, T1', G), v.mf, T2');
   ensures sub(nv, G, TArrow(T1', T2'), G, TArrow(T1, T2));
+  ensures wf(nv, G, TArrow(T1', T2'));
 {
   if (T.TArrow? && typ(n, context.Extend(v.mx, T.T1, G), v.mf, T.T2)) {
     T1' := T.T1;
     T2' := T.T2;
     nv := ns+n;
+    help_wf_monotonic_plus(n, nv, G, T);
     help_sub_rec_monotonic_plus(ns, nv, G, TArrow(T1', T2'), G, TArrow(T1, T2), true);
     help_typ_monotonic_plus(n, nv, context.Extend(v.mx, T1', G), v.mf, T2');
   }
   else if (n>0 && exists T' :: sub(n-1, G, T', G, T) && vtyp_rec(n-1, G, v, T')) {
     var T' :| sub(n-1, G, T', G, T) && vtyp_rec(n-1, G, v, T');
     var ns' := lemma_sub_rec_trans(n-1, ns, G, T', G, T, G, TArrow(T1, T2), true);
-    var nr, T1'_, T2'_ := inv_sub_arrow(n-1, ns', G, v, T1, T2, T');
-
-    assume typ(nv, context.Extend(v.mx, T1', G), v.mf, T2');
-    assume sub(nv, G, TArrow(T1', T2'), G, TArrow(T1, T2));  
+    nv, T1', T2' := inv_sub_arrow(n-1, ns', nw, G, v, T1, T2, T');
   }
 }
 
@@ -460,7 +481,7 @@ ghost method lemma_eval_safe(ntyp: nat, nev: nat, nenv: nat, H: heap, G: context
   requires wfenv(nenv, H, G);
   requires eval(nev, H, t).Result?;
   ensures vtyp_rec(nv, G, eval(nev, H, t).get, T);
-  decreases t;
+  decreases nev, t;
 {
   var v := eval(nev, H, t).get;
   match t {
@@ -476,9 +497,14 @@ ghost method lemma_eval_safe(ntyp: nat, nev: nat, nenv: nat, H: heap, G: context
     var na := lemma_eval_safe(ni, nev, nenv, H, G, a, T1);
     var vf := eval(nev, H, f).get;
     var va := eval(nev, H, a).get;
-    assert vtyp_rec(nf, G, vf, TArrow(T1, T2));
-    assert vtyp_rec(na, G, va, T1);    
-    assume vtyp_rec(nv, G, eval(nev, H, t).get, T);
+    var nfi, T1', T2' := inv_wf_arrow(nf, nf, G, vf, T1, T2);
+    var G' := context.Extend(vf.mx, T1', G);
+    var H' := heap.Extend(vf.mx, va, H);
+    assume wfenv(nenv, H', G'); // TODO
+    var nr := lemma_eval_safe(nfi, nev-1, nenv, H', G', vf.mf, T2');
+    assume vtyp_rec(nr, G, eval(nev, H, t).get, T2'); // TODO
+    var nt := lemma_sub_rec_trans(nfi, ni, G, T2', G, T2, G, T, true);
+    nv := hint_vtyp_rec_sub(nt, nr, ntyp, G, v, T2', T);
   case tnew(mx, mf, tv, Tt) =>
     assume vtyp_rec(nv, G, eval(nev, H, t).get, T);
   case tget(o) =>
