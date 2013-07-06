@@ -481,7 +481,7 @@ ghost method lemma_eval_safe(ntyp: nat, nev: nat, nenv: nat, H: heap, G: context
   requires wfenv(nenv, H, G);
   requires eval(nev, H, t).Result?;
   ensures vtyp_rec(nv, G, eval(nev, H, t).get, T);
-  decreases nev, t;
+  decreases nev, t, ntyp;
 {
   var v := eval(nev, H, t).get;
   match t {
@@ -506,7 +506,21 @@ ghost method lemma_eval_safe(ntyp: nat, nev: nat, nenv: nat, H: heap, G: context
     var nt := lemma_sub_rec_trans(nfi, ni, G, T2', G, T2, G, T, true);
     nv := hint_vtyp_rec_sub(nt, nr, ntyp, G, v, T2', T);
   case tnew(mx, mf, tv, Tt) =>
-    assume vtyp_rec(nv, G, eval(nev, H, t).get, T);
+    if (T.TArrow? && typ(ntyp, context.Extend(t.mx, T.T1, G), t.mf, T.T2)) {
+      nv := hint_vtyp_rec_arrow(ntyp, ntyp, G, v, T);
+    }
+    else if (T.TVal? && t.field.Some? && typ(ntyp, G, t.field.get, T.Tv)) {
+      assume vtyp_rec(nv, G, eval(nev, H, t).get, T);
+    }
+    else if (T.TTyp? && t.T==T.T) {
+      assume vtyp_rec(nv, G, eval(nev, H, t).get, T);
+    }
+    else if (ntyp>0 && exists T1 :: sub(ntyp-1, G, T1, G, T) && typ(ntyp-1, G, t, T1)) {
+      var T1 :| sub(ntyp-1, G, T1, G, T) && typ(ntyp-1, G, t, T1);
+      var nr := lemma_eval_safe(ntyp-1, nev, nenv, H, G, t, T1);
+      nv := hint_vtyp_rec_sub(ntyp-1, nr, ntyp, G, v, T1, T);
+    }
+    else {}
   case tget(o) =>
     assume vtyp_rec(nv, G, eval(nev, H, t).get, T);
   }
