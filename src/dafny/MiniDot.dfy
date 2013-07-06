@@ -101,7 +101,6 @@ predicate typ(n: nat, G: context, t: tm, T: ty)
      (t.tvar? && ty_lookup(t.x, G)==Result(T))
   || (t.tnew? && T.TArrow? && typ(n, context.Extend(t.mx, T.T1, G), t.mf, T.T2))
   || (t.tnew? && T.TVal? && t.field.Some? && typ(n, G, t.field.get, T.Tv))
-  || (t.tnew? && T.TTyp? && t.T==T.T)
   || (t.tapp? && exists T1 :: typ(n, G, t.a, T1) && typ(n, G, t.f, TArrow(T1, T)))
   || (t.tget? && typ(n, G, t.o, TVal(T)))
   || (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && typ(n-1, G, t, T1)))
@@ -123,7 +122,7 @@ predicate vtyp_rec(n: nat, G: context, v: vl, T: ty)
 {
   wf(n, G, T) && (
      (T.TArrow? && typ(n, context.Extend(v.mx, T.T1, G), v.mf, T.T2))
-  || (T.TVal? && v.field.Some? && vtyp(n, v.field.get, T.Tv))
+  || (T.TVal? && v.field.Some? && vtyp_rec(n, G, v.field.get, T.Tv))
   || (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && vtyp_rec(n-1, G, v, T1)))
 }
 
@@ -162,7 +161,6 @@ ghost method help_typ_monotonic(n: nat, G: context, t: tm, T: ty)
   else if (t.tnew? && T.TVal? && t.field.Some? && typ(n, G, t.field.get, T.Tv)) {
     help_typ_monotonic(n, G, t.field.get, T.Tv);
   }
-  else if (t.tnew? && T.TTyp? && t.T==T.T) {}
   else if (t.tapp? && exists T1 :: typ(n, G, t.a, T1) && typ(n, G, t.f, TArrow(T1, T))) {}
   else if (t.tget? && typ(n, G, t.o, TVal(T))) {}
   else if (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && typ(n-1, G, t, T1)) {
@@ -199,8 +197,8 @@ ghost method help_vtyp_rec_monotonic(n: nat, G: context, v: vl, T: ty)
   if (T.TArrow? && typ(n, context.Extend(v.mx, T.T1, G), v.mf, T.T2)) {
     help_typ_monotonic(n, context.Extend(v.mx, T.T1, G), v.mf, T.T2);
   }
-  else if (T.TVal? && v.field.Some? && vtyp(n, v.field.get, T.Tv)) {
-     help_vtyp_monotonic(n, v.field.get, T.Tv);
+  else if (T.TVal? && v.field.Some? && vtyp_rec(n, G, v.field.get, T.Tv)) {
+     help_vtyp_rec_monotonic(n, G, v.field.get, T.Tv);
   }
   else if (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && vtyp_rec(n-1, G, v, T1)) {
     var T1 :| sub(n-1, G, T1, G, T) && vtyp_rec(n-1, G, v, T1);
@@ -510,10 +508,7 @@ ghost method lemma_eval_safe(ntyp: nat, nev: nat, nenv: nat, H: heap, G: context
       nv := hint_vtyp_rec_arrow(ntyp, ntyp, G, v, T);
     }
     else if (T.TVal? && t.field.Some? && typ(ntyp, G, t.field.get, T.Tv)) {
-      assume vtyp_rec(nv, G, eval(nev, H, t).get, T);
-    }
-    else if (T.TTyp? && t.T==T.T) {
-      assume vtyp_rec(nv, G, eval(nev, H, t).get, T);
+      nv := lemma_eval_safe(ntyp, nev, nenv, H, G, t.field.get, T.Tv);
     }
     else if (ntyp>0 && exists T1 :: sub(ntyp-1, G, T1, G, T) && typ(ntyp-1, G, t, T1)) {
       var T1 :| sub(ntyp-1, G, T1, G, T) && typ(ntyp-1, G, t, T1);
