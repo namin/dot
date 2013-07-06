@@ -534,6 +534,8 @@ ghost method lemma_lookup_safe(n: nat, H: heap, G: context, x: int)
 ghost method lemma_eval_safe(ntyp: nat, nev: nat, nenv: nat, H: heap, G: context, t: tm, T: ty) returns (nv: nat)
   requires typ(ntyp, G, t, T);
   requires wfenv(nenv, H, G);
+  // TODO(namin): We should ensure that if a term is well-typed, then it doesn't get stuck!
+  //              It is not enough to check that if it's a result, it has the correct type...
   requires eval(nev, H, t).Result?;
   ensures vtyp_rec(nv, G, eval(nev, H, t).get, T);
   decreases nev, t, ntyp;
@@ -555,9 +557,10 @@ ghost method lemma_eval_safe(ntyp: nat, nev: nat, nenv: nat, H: heap, G: context
     var nfi, T1', T2' := inv_wf_arrow(nf, nf, G, vf, T1, T2);
     var G' := context.Extend(vf.mx, T1', G);
     var H' := heap.Extend(vf.mx, va, H);
-    assume wfenv(nenv, H', G'); // TODO
+    assume wfenv(nenv, H', G'); // TODO(namin): This one should be a formality.
     var nr := lemma_eval_safe(nfi, nev-1, nenv, H', G', vf.mf, T2');
-    assume vtyp_rec(nr, G, eval(nev, H, t).get, T2'); // TODO
+    assert vtyp_rec(nr, G', eval(nev, H, t).get, T2');
+    assume vtyp_rec(nr, G, eval(nev, H, t).get, T2'); // TODO(namin): I am not sure about this. The heap does grow with the computation.
     var nt := lemma_sub_rec_trans(nfi, ni, G, T2', G, T2, G, T, true);
     nv := hint_vtyp_rec_sub(nt, nr, ntyp, G, v, T2', T);
   case tnew(mx, mf, tv, Tt) =>
