@@ -97,9 +97,9 @@ predicate sub(n: nat, G1: seq<ty>, T1: ty, G2: seq<ty>, T2: ty)
 predicate sub_rec(n: nat, G1: seq<ty>, T1: ty, G2: seq<ty>, T2: ty, p: bool)
   decreases n, if (p) then T1 else T2;
 {
-     (T2.Top?)
-  || (T1.Bot?)
-  || (T1.TInt? && T2.TInt?)
+     (T1.TInt? && T2.TInt?)
+  || (T2.Top? && wf(n, G1, T1))
+  || (T1.Bot? && wf(n, G2, T2))
   || (T1.TArrow? && T2.TArrow? && sub_rec(n, G2, T2.T1, G1, T1.T1, !p) && sub_rec(n, G1, T1.T2, G2, T2.T2, p))
   || (T1.TVal? && T2.TVal? && sub_rec(n, G1, T1.Tv, G2, T2.Tv, p))
   || (T1.TTyp? && T2.TTyp? && sub_rec(n, G1, T1.T, G2, T2.T, p))
@@ -188,7 +188,11 @@ ghost method monotonic_sub_rec(n: nat, G1: seq<ty>, T1: ty, G2: seq<ty>, T2: ty,
   ensures sub_rec(n+1, G1, T1, G2, T2, p);
   decreases n, if (p) then T1 else T2;
 {
-  if (T1.TArrow? && T2.TArrow?) {
+  if (T2.Top? && wf(n, G1, T1)) {
+    monotonic_wf(n, G1, T1);
+  } else if (T1.Bot? && wf(n, G2, T2)) {
+    monotonic_wf(n, G2, T2);
+  } else if (T1.TArrow? && T2.TArrow?) {
     monotonic_sub_rec(n, G2, T2.T1, G1, T1.T1, !p);
     monotonic_sub_rec(n, G1, T1.T2, G2, T2.T2, p);
   } else if (n>0 && T1.TSel? && exists T1x :: path_eval(n, G1, T1.x, T1x) && sub_rec(n-1, G1, T1x, G2, T2, p)) {
@@ -373,6 +377,57 @@ ghost method monotonic_plus_vtyp(m: nat, n: nat, G: seq<ty>, v: vl, T: ty)
 //
 
 // Subtyping properties
+
+// Regularity
+ghost method lemma_sub_rec_reg(n: nat, G1: seq<ty>, T1: ty, G2: seq<ty>, T2: ty, p: bool) returns (nw: nat)
+  requires sub_rec(n, G1, T1, G2, T2, p);
+  ensures wf(nw, G1, T1);
+  ensures wf(nw, G2, T2);
+  decreases n, if (p) then T1 else T2;
+{
+  if (T1.TInt? && T2.TInt?) {
+    nw := 0;
+  }
+  else if (T2.Top? && wf(n, G1, T1)) {
+    nw := n;
+  }
+  else if (T1.Bot? && wf(n, G2, T2)) {
+    nw := n;
+  }
+  else if (T1.TArrow? && T2.TArrow? && sub_rec(n, G2, T2.T1, G1, T1.T1, !p) && sub_rec(n, G1, T1.T2, G2, T2.T2, p)) {
+    var nw1 := lemma_sub_rec_reg(n, G2, T2.T1, G1, T1.T1, !p);
+    var nw2 := lemma_sub_rec_reg(n, G1, T1.T2, G2, T2.T2, p);
+    nw := nw1+nw2;
+    monotonic_plus_wf(nw1, nw, G1, T1.T1);
+    monotonic_plus_wf(nw2, nw, G1, T1.T2);
+    monotonic_plus_wf(nw1, nw, G2, T2.T1);
+    monotonic_plus_wf(nw2, nw, G2, T2.T2);
+  }
+  else if (T1.TVal? && T2.TVal? && sub_rec(n, G1, T1.Tv, G2, T2.Tv, p)) {
+    var nwv := lemma_sub_rec_reg(n, G1, T1.Tv, G2, T2.Tv, p);
+    nw := nwv;
+  }
+  else if (T1.TTyp? && T2.TTyp? && sub_rec(n, G1, T1.T, G2, T2.T, p)) {
+    var nwt := lemma_sub_rec_reg(n, G1, T1.T, G2, T2.T, p);
+    nw := nwt;
+  }
+  else if (n>0 && T1.TSel? && exists T1x :: path_eval(n, G1, T1.x, T1x) && sub_rec(n-1, G1, T1x, G2, T2, p)) {
+    var T1x :| path_eval(n, G1, T1.x, T1x) && sub_rec(n-1, G1, T1x, G2, T2, p);
+    var nwr := lemma_sub_rec_reg(n-1, G1, T1x, G2, T2, p);
+    nw := n+nwr+1;
+    monotonic_plus_path_eval(n, nw-1, G1, T1.x, T1x);
+    monotonic_plus_wf(nwr, nw, G2, T2);
+  }
+  else if (n>0 && T2.TSel? && exists T2x :: path_eval(n, G2, T2.x, T2x) && sub_rec(n-1, G1, T1, G2, T2x, p)) {
+    var T2x :| path_eval(n, G2, T2.x, T2x) && sub_rec(n-1, G1, T1, G2, T2x, p);
+    var nwr := lemma_sub_rec_reg(n-1, G1, T1, G2, T2x, p);
+    nw := n+nwr+1;
+    monotonic_plus_path_eval(n, nw-1, G2, T2.x, T2x);
+    monotonic_plus_wf(nwr, nw, G1, T1);
+  }
+}
+
+// Reflexivity
 ghost method lemma_sub_rec_refl(n: nat, G: seq<ty>, T: ty, p: bool) returns (ns: nat)
   requires wf(n, G, T);
   ensures sub_rec(ns, G, T, G, T, p);
@@ -406,14 +461,23 @@ ghost method lemma_sub_rec_refl(n: nat, G: seq<ty>, T: ty, p: bool) returns (ns:
   }
 }
 
-ghost method {:timeLimit 50} lemma_sub_rec_trans(n12: nat, n23: nat, G1: seq<ty>, T1: ty, G2: seq<ty>, T2: ty, G3: seq<ty>, T3: ty, p: bool) returns (n13: nat)
+// Transitivity
+ghost method {:timeLimit 60} lemma_sub_rec_trans(n12: nat, n23: nat, G1: seq<ty>, T1: ty, G2: seq<ty>, T2: ty, G3: seq<ty>, T3: ty, p: bool) returns (n13: nat)
   requires sub_rec(n12, G1, T1, G2, T2, p);
   requires sub_rec(n23, G2, T2, G3, T3, p);
   ensures sub_rec(n13, G1, T1, G3, T3, p);
   decreases if p then n12 else n23, if p then n23 else n12, if p then T1 else T3, T2, if p then T3 else T1;
 {
   n13 := 0;
-  if (T1.TArrow? && T2.TArrow? && T3.TArrow?) {
+  if (T3.Top? && wf(n23, G2, T2)) {
+    var nw1 := lemma_sub_rec_reg(n12, G1, T1, G2, T2, p);
+    n13 := nw1;
+  }
+  else if (T1.Bot? && wf(n12, G2, T2)) {
+    var nw3 := lemma_sub_rec_reg(n23, G2, T2, G3, T3, p);
+    n13 := nw3;
+  }
+  else if (T1.TArrow? && T2.TArrow? && T3.TArrow?) {
     var ns1 := lemma_sub_rec_trans(n23, n12, G3, T3.T1, G2, T2.T1, G1, T1.T1, !p);
     var ns2 := lemma_sub_rec_trans(n12, n23, G1, T1.T2, G2, T2.T2, G3, T3.T2, p);
     n13 := ns1+ns2;
@@ -483,8 +547,14 @@ ghost method wkn_sub_rec(Tz: ty, n: nat, G1: seq<ty>, T1: ty, G2: seq<ty>, T2: t
   ensures sub_rec(n, extend(Tz, G1), T1, G2, T2, p);
   ensures sub_rec(n, G1, T1, extend(Tz, G2), T2, p);
   decreases n, if (p) then T1 else T2;
-{
-  if (n>0 && T1.TSel? && exists T1x :: path_eval(n, G1, T1.x, T1x) && sub_rec(n-1, G1, T1x, G2, T2, p)) {
+{ 
+  if (T2.Top? && wf(n, G1, T1)) {
+    wkn_wf(Tz, n, G1, T1);
+  }
+  else if (T1.Bot? && wf(n, G2, T2)) {
+    wkn_wf(Tz, n, G2, T2);
+  }
+  else if (n>0 && T1.TSel? && exists T1x :: path_eval(n, G1, T1.x, T1x) && sub_rec(n-1, G1, T1x, G2, T2, p)) {
     var T1x :| path_eval(n, G1, T1.x, T1x);
     wkn_path_eval(Tz, n, G1, T1.x, T1x);
     wkn_sub_rec(Tz, n-1, G1, T1x, G2, T2, p);
