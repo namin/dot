@@ -33,10 +33,13 @@ datatype ty = Top | Bot | TInt
 // G (type  env)
 // H (value env)
 function lookup<A>(k: nat, s: seq<A>): result<A>
+  ensures lookup(k, s).Result? ==> k<|s| && lookup(k, s).get==s[k];
+  ensures k<|s| ==> lookup(k, s).Result? && lookup(k, s).get==s[k];
 {
   if (k<|s|) then Result(s[k]) else Stuck
 }
 function extend<A>(v: A, s: seq<A>): seq<A>
+  ensures |extend(v, s)|==|s|+1;
 {
   s+[v]
 }
@@ -125,7 +128,8 @@ predicate typ(n: nat, G: seq<ty>, t: tm, T: ty)
 predicate wfenv(n: nat, H: seq<vl>, G: seq<ty>)
   decreases n, H, 0;
 {
-  |H|==|G| && (|H|==0 || (vtyp(n, G, H[|H|-1], G[|H|-1]) && wfenv(n, H[..|H|-1], G[..|G|-1])))
+  |H|==|G| && (
+    forall x :: 0 <= x < |H| ==> vtyp(n, G[..x+1], H[x], G[x]))
 }
 
 predicate vtyp(n: nat, G: seq<ty>, v: vl, T: ty)
@@ -248,9 +252,10 @@ ghost method monotonic_wfenv(n: nat, H: seq<vl>, G: seq<ty>)
   ensures wfenv(n+1, H, G);
   decreases n, H, 0;
 {
-  if (|H|>0) {
-    monotonic_vtyp(n, G, H[|H|-1], G[|H|-1]);
-    monotonic_wfenv(n, H[..|H|-1], G[..|G|-1]);
+  forall (x | 0 <= x < |H|)
+  ensures vtyp(n+1, G[..x+1], H[x], G[x]);
+  {
+    monotonic_vtyp(n, G[..x+1], H[x], G[x]);
   }
 }
 ghost method monotonic_vtyp(n: nat, G: seq<ty>, v: vl, T: ty)
@@ -445,6 +450,116 @@ ghost method {:timeLimit 50} lemma_sub_rec_trans(n12: nat, n23: nat, G1: seq<ty>
     n13 := nr;
   }
 }
+
+/// Context weakening
+ghost method wkn_path_eval(Tz: ty, n: nat, G: seq<ty>, x: nat, T: ty)
+  requires path_eval(n, G, x, T);
+  ensures path_eval(n, extend(Tz, G), x, T);
+{
+  assert n>0 && lookup(x, G).Result? && lookup(x, G).get==T && wf(n-1, G, T);
+  assert lookup(x, extend(Tz, G)).Result?;
+  wkn_wf(Tz, n-1, G, T);
+}
+ghost method wkn_wf(Tz: ty, n: nat, G: seq<ty>, T: ty)
+  requires wf(n, G, T);
+  ensures wf(n, extend(Tz, G), T);
+{
+  if (n>0 && T.TSel? && exists Tx :: path_eval(n-1, G, T.x, Tx)) {
+    var Tx :| path_eval(n-1, G, T.x, Tx);
+    wkn_path_eval(Tz, n-1, G, T.x, Tx);
+  }
+}
+ghost method wkn_sub(Tz: ty, n: nat, G1: seq<ty>, T1: ty, G2: seq<ty>, T2: ty)
+  requires sub(n, G1, T1, G2, T2);
+  ensures sub(n, extend(Tz, G1), T1, extend(Tz, G2), T2);
+  ensures sub(n, extend(Tz, G1), T1, G2, T2);
+  ensures sub(n, G1, T1, extend(Tz, G2), T2);
+{
+  wkn_sub_rec(Tz, n, G1, T1, G2, T2, true);
+}
+ghost method wkn_sub_rec(Tz: ty, n: nat, G1: seq<ty>, T1: ty, G2: seq<ty>, T2: ty, p: bool)
+  requires sub_rec(n, G1, T1, G2, T2, p);
+  ensures sub_rec(n, extend(Tz, G1), T1, extend(Tz, G2), T2, p);
+  ensures sub_rec(n, extend(Tz, G1), T1, G2, T2, p);
+  ensures sub_rec(n, G1, T1, extend(Tz, G2), T2, p);
+  decreases n, if (p) then T1 else T2;
+{
+  if (n>0 && T1.TSel? && exists T1x :: path_eval(n, G1, T1.x, T1x) && sub_rec(n-1, G1, T1x, G2, T2, p)) {
+    var T1x :| path_eval(n, G1, T1.x, T1x);
+    wkn_path_eval(Tz, n, G1, T1.x, T1x);
+    wkn_sub_rec(Tz, n-1, G1, T1x, G2, T2, p);
+  }
+  else if (T2.TSel? && exists T2x :: path_eval(n, G2, T2.x, T2x) && sub_rec(n-1, G1, T1, G2, T2x, p)) {
+    var T2x :| path_eval(n, G2, T2.x, T2x);
+    wkn_path_eval(Tz, n, G2, T2.x, T2x);
+    wkn_sub_rec(Tz, n-1, G1, T1, G2, T2x, p);
+  }
+}
+ghost method wkn_vtyp(Tz: ty, n: nat, G: seq<ty>, v: vl, T: ty)
+  requires vtyp(n, G, v, T);
+  ensures vtyp(n, extend(Tz, G), v, T);
+{
+  if (T.TArrow? && v.Clos? && wf(n, G, T) && exists Gc :: wfenv(n, v.H, Gc) && typ(n, extend(T.T1, Gc), v.mf, T.T2) && sub(n, Gc, T, G, T)) {
+    wkn_wf(Tz, n, G, T);
+    var Gc :| wfenv(n, v.H, Gc) && typ(n, extend(T.T1, Gc), v.mf, T.T2) && sub(n, Gc, T, G, T);
+    wkn_sub(Tz, n, Gc, T, G, T);
+  }
+  else if (T.TTyp? && v.Clos? && wf(n, G, T.T)) {
+    wkn_wf(Tz, n, G, T.T);
+  }
+  else if (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && vtyp(n-1, G, v, T1)) {
+    var T1 :| sub(n-1, G, T1, G, T) && vtyp(n-1, G, v, T1);
+    wkn_sub(Tz, n-1, G, T1, G, T);
+    wkn_vtyp(Tz, n-1, G, v, T1);
+  }
+}
+ghost method wkn_plus_vtyp(Ts: seq<ty>, n: nat, G: seq<ty>, v: vl, T: ty)
+  requires vtyp(n, G, v, T);
+  ensures vtyp(n, G+Ts, v, T);
+{
+  if (Ts==[]) {
+    assert G+Ts==G;
+  }
+  else {
+    wkn_vtyp(Ts[0], n, G, v, T);
+    wkn_plus_vtyp(Ts[1..], n, extend(Ts[0], G), v, T);
+    assert extend(Ts[0], G)+Ts[1..]==G+Ts;
+  }
+}
+
+// Inversions
+
+ghost method inv_typ_var(n: nat, G: seq<ty>, x: nat, T: ty) returns (nv: nat)
+  requires typ(n, G, tvar(x), T);
+  ensures lookup(x, G).Result?;
+  ensures sub(nv, G, lookup(x, G).get, G, T);
+{
+  if (lookup(x, G)==Result(T) && wf(n, G, T)) {
+    var nr := lemma_sub_rec_refl(n, G, T, true);
+    nv := nr;
+  }
+  else if (n>0 && exists T' :: sub(n-1, G, T', G, T) && typ(n-1, G, tvar(x), T')) {
+    var T' :| sub(n-1, G, T', G, T) && typ(n-1, G, tvar(x), T');
+    var nr := inv_typ_var(n-1, G, x, T');
+    var ns := lemma_sub_rec_trans(nr, n-1, G, lookup(x, G).get, G, T', G, T, true);
+    nv := ns;
+  }
+}
+
+// Safety properties
+ghost method theorem_lookup_safe(nw: nat, H: seq<vl>, G: seq<ty>, x: nat)
+  requires wfenv(nw, H, G);
+  requires lookup(x, H).Result?;
+  requires lookup(x, G).Result?;
+  ensures vtyp(nw, G[..x+1], lookup(x, H).get, lookup(x, G).get);
+  ensures vtyp(nw, G, lookup(x, H).get, lookup(x, G).get);
+{
+  assert lookup(x, H).get==H[x];
+  assert lookup(x, G).get==G[x];
+  wkn_plus_vtyp(G[x+1..], nw, G[..x+1], lookup(x, H).get, lookup(x, G).get);
+  assert G[..x+1]+G[x+1..]==G;
+}
+
 
 /*
 // Hints
