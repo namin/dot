@@ -3,17 +3,27 @@
 //
 
 datatype option<A> = None | Some(get: A);
+datatype result<A> = Result(get: A) | Stuck | TimeOut;
+
+function chain(r1: result, r2: result): result
+{
+  match r1
+  case Stuck => Stuck
+  case TimeOut => TimeOut
+  case Result(v) => r2
+}
 
 //
 // Syntax
 //
-datatype tm = tvar(x: int)                                 // x                                            (variable)
-            | tnew(mx: int, mf: tm, field: option<tm>, T: ty)// new { def apply(x)=t1; val get=t2; type T }  (object/function creation)
+datatype tm = tnum(n: int)                                 // n                                            (constant number) 
+            | tvar(x: int)                                 // x                                            (variable)
+            | tnew(mx: int, mf: tm, field: tm, T: ty)      // new { def apply(x)=t1; val get=t2; type T }  (object/function creation)
             | tapp(f: tm, a: tm)                           // t.apply(t)                                   (method call)
             | tget(o: tm)                                  // t.get                                        (field selection)
             ;
 
-datatype ty = Top | Bot
+datatype ty = Top | Bot | TInt
             | TArrow(T1: ty, T2: ty)                       // { T1 => T2 }                                 (method)
             | TVal(Tv: ty)                                 // { val T }                                    (field member)
             | TTyp(T: ty)                                  // { type T }                                   (type member)
@@ -41,7 +51,50 @@ function vl_lookup(k: int, L: heap): result<vl>
   case Extend(k', v', L') => if (k'==k) then Result(v') else vl_lookup(k, L')
 }
 
-datatype vl = Clos(H: heap, mx: int, mf: tm, field: option<vl>) // Clos H { def apply(x)=t; val get=v } (object/closure)
+datatype vl = Num(n: int)                               // n                                    (constant number)
+            | Clos(H: heap, mx: int, mf: tm, field: vl) // Clos H { def apply(x)=t; val get=v } (object/closure)
+
+// Dynamic Semantics            
+function eval(n: nat, H: heap, t: tm): result<vl>
+  decreases n, t;
+{
+  match t
+  case tnum(n) => Result(Num(n))
+  case tvar(x) => vl_lookup(x, H)
+  case tnew(mx, mf, t, T) =>
+    var v := eval(n, H, t);
+    if !v.Result? then v else
+    Result(Clos(H, mx, mf, v.get))
+  case tapp(o, a) =>
+    var vo := eval(n, H, o);
+    var va := eval(n, H, a);
+    if !vo.Result? || !va.Result? then chain(vo, va) else
+    if n==0 then TimeOut else
+    if !vo.get.Clos? then Stuck else
+    eval(n-1, heap.Extend(vo.get.mx, va.get, vo.get.H), vo.get.mf)
+  case tget(o) =>
+    var vo := eval(n, H, o);
+    if !vo.Result? then vo else
+    if !vo.get.Clos? then Stuck else
+    Result(vo.get.field)
+}
+
+// Static Semantics
+predicate path_eval(n: nat, G: context, x: int, T: ty)
+{
+  n>0 && ty_lookup(x, G).Result? && ty_lookup(x, G).get==T && wf(n-1, G, T)
+}
+
+predicate wf(n: nat, G: context, T: ty)
+{
+     (T.Top?)
+  || (T.Bot?)
+  || (T.TInt?)
+  || (T.TArrow? && wf(n, G, T.T1) && wf(n, G, T.T2))
+  || (T.TVal? && wf(n, G, T.Tv))
+  || (T.TTyp? && wf(n, G, T.T))
+  || (n>0 && T.TSel? && exists Tx :: path_eval(n-1, G, T.x, Tx))
+}
 
 predicate sub(n: nat, G1: context, T1: ty, G2: context, T2: ty)
 {
@@ -53,87 +106,46 @@ predicate sub_rec(n: nat, G1: context, T1: ty, G2: context, T2: ty, p: bool)
 {
      (T2.Top?)
   || (T1.Bot?)
+  || (T1.TInt? && T2.TInt?)
   || (T1.TArrow? && T2.TArrow? && sub_rec(n, G2, T2.T1, G1, T1.T1, !p) && sub_rec(n, G1, T1.T2, G2, T2.T2, p))
   || (T1.TVal? && T2.TVal? && sub_rec(n, G1, T1.Tv, G2, T2.Tv, p))
   || (T1.TTyp? && T2.TTyp? && sub_rec(n, G1, T1.T, G2, T2.T, p))
-  || (n>0 && T1.TSel? && ty_lookup(T1.x, G1).Result? && sub_rec(n-1, G1, ty_lookup(T1.x, G1).get, G2, T2, p))
-  || (n>0 && T2.TSel? && ty_lookup(T2.x, G2).Result? && sub_rec(n-1, G1, T1, G2, ty_lookup(T2.x, G2).get, p))
-}
-
-datatype result<A> = Result(get: A) | Stuck | TimeOut;
-
-function chain(r1: result, r2: result): result
-{
-  match r1
-  case Stuck => Stuck
-  case TimeOut => TimeOut
-  case Result(v) => r2
-}
-
-function eval(n: nat, H: heap, t: tm): result<vl>
-  decreases n, t;
-{
-  match t
-  case tvar(x) => vl_lookup(x, H)
-  case tnew(mx, mf, t, T) =>
-    if (t.Some?) then
-      var v := eval(n, H, t.get);
-      if !v.Result? then v else
-      Result(Clos(H, mx, mf, Some(v.get)))
-    else Result(Clos(H, mx, mf, None))
-  case tapp(o, a) =>
-    var vo := eval(n, H, o);
-    var va := eval(n, H, a);
-    if !vo.Result? || !va.Result? then chain(vo, va) else
-    if n==0 then TimeOut else
-    eval(n-1, heap.Extend(vo.get.mx, va.get, H), vo.get.mf)
-  case tget(o) =>
-    var vo := eval(n, H, o);
-    if !vo.Result? then vo else
-    if vo.get.field.None? then Stuck else
-    Result(vo.get.field.get)
+  || (n>0 && T1.TSel? && exists T1x :: path_eval(n, G1, T1.x, T1x) && sub_rec(n-1, G1, T1x, G2, T2, p))
+  || (n>0 && T2.TSel? && exists T2x :: path_eval(n, G2, T2.x, T2x) && sub_rec(n-1, G1, T1, G2, T2x, p))
 }
 
 predicate typ(n: nat, G: context, t: tm, T: ty)
   decreases n, t;
 {
-  wf(n, G, T) && (
-     (t.tvar? && ty_lookup(t.x, G)==Result(T))
-  || (t.tnew? && T.TArrow? && typ(n, context.Extend(t.mx, T.T1, G), t.mf, T.T2))
-  || (t.tnew? && T.TVal? && t.field.Some? && typ(n, G, t.field.get, T.Tv))
+     (t.tnum? && T.TInt?)
+  || (t.tvar? && ty_lookup(t.x, G)==Result(T) && wf(n, G, T))
+  || (t.tnew? &&
+      exists TA1, TA2, Tv ::
+      typ(n, context.Extend(t.mx, TA1, G), t.mf, TA2) && typ(n, G, t.field, Tv) &&
+      wf(n, G, t.T) &&
+      wf(n, G, TArrow(TA1, TA2)) &&
+      ((T.TArrow? && T.T1==TA1 && T.T2==TA2) ||
+       (T.TVal? && T.Tv==Tv) ||
+       (T.TTyp? && T.T==t.T)))
   || (t.tapp? && exists T1 :: typ(n, G, t.a, T1) && typ(n, G, t.f, TArrow(T1, T)))
   || (t.tget? && typ(n, G, t.o, TVal(T)))
-  || (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && typ(n-1, G, t, T1)))
+  || (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && typ(n-1, G, t, T1))
 }
 
 predicate wfenv(n: nat, H: heap, G: context)
-  decreases H, n, 0;
+  decreases n, H, 0;
 {
-  forall x :: vl_lookup(x, H).Result? ==> ty_lookup(x, G).Result? && vtyp_rec(n, G, vl_lookup(x, H).get, ty_lookup(x, G).get)
+  forall x :: vl_lookup(x, H).Result? ==> ty_lookup(x, G).Result? && vtyp(n, G, vl_lookup(x, H).get, ty_lookup(x, G).get)
 }
 
-predicate vtyp(n: nat, v: vl, T: ty)
-  decreases v, n, 2;
+predicate vtyp(n: nat, G: context, v: vl, T: ty)
+  decreases n, v;
 {
-  exists G :: wfenv(n, v.H, G) && vtyp_rec(n, G, v, T)
-}
-predicate vtyp_rec(n: nat, G: context, v: vl, T: ty)
-  decreases v, n, 1;
-{
-  wf(n, G, T) && (
-     (T.TArrow? && typ(n, context.Extend(v.mx, T.T1, G), v.mf, T.T2))
-  || (T.TVal? && v.field.Some? && vtyp_rec(n, G, v.field.get, T.Tv))
-  || (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && vtyp_rec(n-1, G, v, T1)))
-}
-
-predicate wf(n: nat, G: context, T: ty)
-  decreases n, T;
-{
-     T.Top? || T.Bot?
-  || (T.TArrow? && wf(n, G, T.T1) && wf(n, G, T.T2))
-  || (T.TVal? && wf(n, G, T.Tv))
-  || (T.TTyp? && wf(n, G, T.T))
-  || (n>0 && T.TSel? && ty_lookup(T.x, G).Result? && wf(n-1, G, ty_lookup(T.x, G).get))
+     (T.TInt? && v.Num?)
+  || (T.TArrow? && v.Clos? && wf(n, G, T) && exists Gc :: wfenv(n, v.H, Gc) && typ(n, context.Extend(v.mx, T.T1, Gc), v.mf, T.T2) && sub(n, Gc, T, G, T))
+  || (T.TVal? && v.Clos? && vtyp(n, G, v.field, T.Tv))
+  || (T.TTyp? && v.Clos? && wf(n, G, T.T))
+  || (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && vtyp(n-1, G, v, T1))
 }
 
 //
@@ -141,139 +153,224 @@ predicate wf(n: nat, G: context, T: ty)
 //
 
 // Boilerplate monotonicity helpers.
-ghost method help_sub_rec_monotonic(n: nat, G1: context, T1: ty, G2: context, T2: ty, p: bool)
+ghost method monotonic_eval(n: nat, H: heap, t: tm)
+  requires eval(n, H, t).Result?;
+  ensures eval(n+1, H, t).Result? && eval(n+1, H, t).get==eval(n, H, t).get;
+{
+  if (t.tapp?) {
+    var o := t.f;
+    var a := t.a;
+    monotonic_eval(n, H, o);
+    monotonic_eval(n, H, a);
+    var vo := eval(n+1, H, o);
+    var va := eval(n+1, H, a);
+    assert vo.get.Clos?;
+    monotonic_eval(n-1, heap.Extend(vo.get.mx, va.get, vo.get.H), vo.get.mf);
+  }
+}
+ghost method monotonic_path_eval(n: nat, G: context, x: int, T: ty)
+  requires path_eval(n, G, x, T);
+  ensures path_eval(n+1, G, x, T);
+{
+  monotonic_wf(n-1, G, T);
+}
+ghost method monotonic_wf(n: nat, G: context, T: ty)
+  requires wf(n, G, T);
+  ensures wf(n+1, G, T);
+{
+  if (T.TSel?) {
+    var Tx :| path_eval(n-1, G, T.x, Tx);
+    monotonic_path_eval(n-1, G, T.x, Tx);
+  }
+}
+ghost method monotonic_sub(n: nat, G1: context, T1: ty, G2: context, T2: ty)
+  requires sub(n, G1, T1, G2, T2);
+  ensures sub(n+1, G1, T1, G2, T2);
+{
+  monotonic_sub_rec(n, G1, T1, G2, T2, true);
+}
+ghost method monotonic_sub_rec(n: nat, G1: context, T1: ty, G2: context, T2: ty, p: bool)
   requires sub_rec(n, G1, T1, G2, T2, p);
   ensures sub_rec(n+1, G1, T1, G2, T2, p);
   decreases n, if (p) then T1 else T2;
 {
-  if (n>0 && T1.TSel? && ty_lookup(T1.x, G1).Result? && sub_rec(n-1, G1, ty_lookup(T1.x, G1).get, G2, T2, p)) {
-    help_sub_rec_monotonic(n-1, G1, ty_lookup(T1.x, G1).get, G2, T2, p);
+  if (T1.TArrow? && T2.TArrow?) {
+    monotonic_sub_rec(n, G2, T2.T1, G1, T1.T1, !p);
+    monotonic_sub_rec(n, G1, T1.T2, G2, T2.T2, p);
+  } else if (n>0 && T1.TSel? && exists T1x :: path_eval(n, G1, T1.x, T1x) && sub_rec(n-1, G1, T1x, G2, T2, p)) {
+    var T1x :| path_eval(n, G1, T1.x, T1x) && sub_rec(n-1, G1, T1x, G2, T2, p);
+    monotonic_path_eval(n, G1, T1.x, T1x);
+    monotonic_sub_rec(n-1, G1, T1x, G2, T2, p);
+  } else if (n>0 && T2.TSel? && exists T2x :: path_eval(n, G2, T2.x, T2x) && sub_rec(n-1, G1, T1, G2, T2x, p)) {
+    var T2x :| path_eval(n, G2, T2.x, T2x) && sub_rec(n-1, G1, T1, G2, T2x, p);
+    monotonic_path_eval(n, G2, T2.x, T2x);
+    monotonic_sub_rec(n-1, G1, T1, G2, T2x, p);
   }
 }
-ghost method help_typ_monotonic(n: nat, G: context, t: tm, T: ty)
+ghost method help_typ_tnew(n: nat, G: context, t: tm, T: ty, TA1: ty, TA2: ty, Tv: ty)
+  requires t.tnew? &&
+      typ(n, context.Extend(t.mx, TA1, G), t.mf, TA2) && typ(n, G, t.field, Tv) &&
+      wf(n, G, t.T) &&
+      wf(n, G, TArrow(TA1, TA2)) &&
+      ((T.TArrow? && T.T1==TA1 && T.T2==TA2) ||
+       (T.TVal? && T.Tv==Tv) ||
+       (T.TTyp? && T.T==t.T));
+  ensures typ(n, G, t, T);
+{
+}
+ghost method monotonic_typ(n: nat, G: context, t: tm, T: ty)
   requires typ(n, G, t, T);
   ensures typ(n+1, G, t, T);
   decreases n, t;
 {
-  help_wf_monotonic(n, G, T);
-  if (t.tvar? && ty_lookup(t.x, G)==Result(T)) {}
-  else if (t.tnew? && T.TArrow? && typ(n, context.Extend(t.mx, T.T1, G), t.mf, T.T2)) {}
-  else if (t.tnew? && T.TVal? && t.field.Some? && typ(n, G, t.field.get, T.Tv)) {
-    help_typ_monotonic(n, G, t.field.get, T.Tv);
+  if (t.tvar? && ty_lookup(t.x, G)==Result(T) && wf(n, G, T)) {
+    monotonic_wf(n, G, T);
   }
-  else if (t.tapp? && exists T1 :: typ(n, G, t.a, T1) && typ(n, G, t.f, TArrow(T1, T))) {}
-  else if (t.tget? && typ(n, G, t.o, TVal(T))) {}
+  else if (t.tnew? &&
+    exists TA1, TA2, Tv ::
+      typ(n, context.Extend(t.mx, TA1, G), t.mf, TA2) && typ(n, G, t.field, Tv) &&
+      wf(n, G, t.T) &&
+      wf(n, G, TArrow(TA1, TA2)) &&
+      ((T.TArrow? && T.T1==TA1 && T.T2==TA2) ||
+       (T.TVal? && T.Tv==Tv) ||
+       (T.TTyp? && T.T==t.T))) {
+    var TA1, TA2, Tv :|
+      typ(n, context.Extend(t.mx, TA1, G), t.mf, TA2) && typ(n, G, t.field, Tv) &&
+      wf(n, G, t.T) &&
+      wf(n, G, TArrow(TA1, TA2)) &&
+      ((T.TArrow? && T.T1==TA1 && T.T2==TA2) ||
+       (T.TVal? && T.Tv==Tv) ||
+       (T.TTyp? && T.T==t.T));
+    monotonic_typ(n, context.Extend(t.mx, TA1, G), t.mf, TA2);
+    monotonic_typ(n, G, t.field, Tv);
+    monotonic_wf(n, G, t.T);
+    monotonic_wf(n, G, TArrow(TA1, TA2));
+    help_typ_tnew(n+1, G, t, T, TA1, TA2, Tv);
+  }
   else if (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && typ(n-1, G, t, T1)) {
     var T1 :| sub(n-1, G, T1, G, T) && typ(n-1, G, t, T1);
-    help_sub_rec_monotonic(n-1, G, T1, G, T, true);
-  } else {}
+    monotonic_sub(n-1, G, T1, G, T);
+    monotonic_typ(n-1, G, t, T1);
+  }
 }
-ghost method help_wfenv_monotonic(n: nat, H: heap, G: context)
+ghost method monotonic_wfenv(n: nat, H: heap, G: context)
   requires wfenv(n, H, G);
   ensures wfenv(n+1, H, G);
-  decreases H, n, 0;
+  decreases n, H, 0;
 {
   forall (x | vl_lookup(x, H).Result?)
-  ensures ty_lookup(x, G).Result? && vtyp_rec(n+1, G, vl_lookup(x, H).get, ty_lookup(x, G).get);
+  ensures ty_lookup(x, G).Result? && vtyp(n+1, G, vl_lookup(x, H).get, ty_lookup(x, G).get);
   {
-    help_vtyp_rec_monotonic(n, G, vl_lookup(x, H).get, ty_lookup(x, G).get);
+    monotonic_vtyp(n, G, vl_lookup(x, H).get, ty_lookup(x, G).get);
   }
 }
-ghost method help_vtyp_monotonic(n: nat, v: vl, T: ty)
-  requires vtyp(n, v, T);
-  ensures vtyp(n+1, v, T);
-  decreases v, n, 2;
+ghost method monotonic_vtyp(n: nat, G: context, v: vl, T: ty)
+  requires vtyp(n, G, v, T);
+  ensures vtyp(n+1, G, v, T);
+  decreases n, v;
 {
-  var G :| wfenv(n, v.H, G) && vtyp_rec(n, G, v, T);
-  help_wfenv_monotonic(n, v.H, G);
-  help_vtyp_rec_monotonic(n, G, v, T);
-}
-ghost method help_vtyp_rec_monotonic(n: nat, G: context, v: vl, T: ty)
-  requires vtyp_rec(n, G, v, T);
-  ensures vtyp_rec(n+1, G, v, T);
-  decreases v, n, 1;
-{
-  help_wf_monotonic(n, G, T);
-  if (T.TArrow? && typ(n, context.Extend(v.mx, T.T1, G), v.mf, T.T2)) {
-    help_typ_monotonic(n, context.Extend(v.mx, T.T1, G), v.mf, T.T2);
+  if (T.TArrow? && v.Clos? && wf(n, G, T) && exists Gc :: wfenv(n, v.H, Gc) && typ(n, context.Extend(v.mx, T.T1, Gc), v.mf, T.T2) && sub(n, Gc, T, G, T)) {
+    monotonic_wf(n, G, T);
+    var Gc :| wfenv(n, v.H, Gc) && typ(n, context.Extend(v.mx, T.T1, Gc), v.mf, T.T2) && sub(n, Gc, T, G, T);
+    monotonic_wfenv(n, v.H, Gc);
+    monotonic_typ(n, context.Extend(v.mx, T.T1, Gc), v.mf, T.T2);
+    monotonic_sub(n, Gc, T, G, T);
   }
-  else if (T.TVal? && v.field.Some? && vtyp_rec(n, G, v.field.get, T.Tv)) {
-     help_vtyp_rec_monotonic(n, G, v.field.get, T.Tv);
+  else if (T.TTyp? && v.Clos? && wf(n, G, T.T)) {
+    monotonic_wf(n, G, T.T);
   }
-  else if (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && vtyp_rec(n-1, G, v, T1)) {
-    var T1 :| sub(n-1, G, T1, G, T) && vtyp_rec(n-1, G, v, T1);
-    help_sub_rec_monotonic(n-1, G, T1, G, T, true);
+  else if (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && vtyp(n-1, G, v, T1)) {
+    var T1 :| sub(n-1, G, T1, G, T) && vtyp(n-1, G, v, T1);
+    monotonic_sub(n-1, G, T1, G, T);
+    monotonic_vtyp(n-1, G, v, T1);
   }
 }
-ghost method help_wf_monotonic(n: nat, G: context, T: ty)
-  requires wf(n, G, T);
-  ensures wf(n+1, G, T);
-{
-}
-ghost method help_sub_rec_monotonic_plus(m: nat, n: nat, G1: context, T1: ty, G2: context, T2: ty, p: bool)
-  requires sub_rec(m, G1, T1, G2, T2, p);
+ghost method monotonic_plus_eval(m: nat, n: nat, H: heap, t: tm)
   requires m<=n;
-  ensures sub_rec(n, G1, T1, G2, T2, p);
+  requires eval(m, H, t).Result?;
+  ensures eval(n, H, t).Result? && eval(n, H, t).get==eval(m, H, t).get;
   decreases n-m;
 {
   if (m<n) {
-    help_sub_rec_monotonic(m, G1, T1, G2, T2, p);
-    help_sub_rec_monotonic_plus(m+1, n, G1, T1, G2, T2, p);
+    monotonic_eval(m, H, t);
+    monotonic_plus_eval(m+1, n, H, t);
   }
 }
-ghost method help_typ_monotonic_plus(m: nat, n: nat, G: context, t: tm, T: ty)
-  requires typ(m, G, t, T);
+ghost method monotonic_plus_path_eval(m: nat, n: nat, G: context, x: int, T: ty)
   requires m<=n;
-  ensures typ(n, G, t, T);
+  requires path_eval(m, G, x, T);
+  ensures path_eval(n, G, x, T);
   decreases n-m;
 {
   if (m<n) {
-    help_typ_monotonic(m, G, t, T);
-    help_typ_monotonic_plus(m+1, n, G, t, T);
+    monotonic_path_eval(m, G, x, T);
+    monotonic_plus_path_eval(m+1, n, G, x, T);
   }
 }
-ghost method help_wfenv_monotonic_plus(m: nat, n: nat, H: heap, G: context)
-  requires wfenv(m, H, G);
+ghost method monotonic_plus_wf(m: nat, n: nat, G: context, T: ty)
   requires m<=n;
-  ensures wfenv(n, H, G);
-  decreases n-m;
-{
-  if (m<n) {
-    help_wfenv_monotonic(m, H, G);
-    help_wfenv_monotonic_plus(m+1, n, H, G);
-  }
-}
-ghost method help_vtyp_monotonic_plus(m: nat, n: nat, v: vl, T: ty)
-  requires vtyp(m, v, T);
-  requires m<=n;
-  ensures vtyp(n, v, T);
-  decreases n-m;
-{
-  if (m<n) {
-    help_vtyp_monotonic(m, v, T);
-    help_vtyp_monotonic_plus(m+1, n, v, T);
-  }
-}
-ghost method help_vtyp_rec_monotonic_plus(m: nat, n: nat, G: context, v: vl, T: ty)
-  requires vtyp_rec(m, G, v, T);
-  requires m<=n;
-  ensures vtyp_rec(n, G, v, T);
-  decreases n-m;
-{
-  if (m<n) {
-    help_vtyp_rec_monotonic(m, G, v, T);
-    help_vtyp_rec_monotonic_plus(m+1, n, G, v, T);
-  }
-}
-ghost method help_wf_monotonic_plus(m: nat, n: nat, G: context, T: ty)
   requires wf(m, G, T);
-  requires m<=n;
   ensures wf(n, G, T);
   decreases n-m;
 {
   if (m<n) {
-    help_wf_monotonic(m, G, T);
-    help_wf_monotonic_plus(m+1, n, G, T);
+    monotonic_wf(m, G, T);
+    monotonic_plus_wf(m+1, n, G, T);
+  }
+}
+ghost method monotonic_plus_sub(m: nat, n: nat, G1: context, T1: ty, G2: context, T2: ty)
+  requires m<=n;
+  requires sub(m, G1, T1, G2, T2);
+  ensures sub(n, G1, T1, G2, T2);
+  decreases n-m;
+{
+  if (m<n) {
+    monotonic_sub(m, G1, T1, G2, T2);
+    monotonic_plus_sub(m+1, n, G1, T1, G2, T2);
+  }
+}
+ghost method monotonic_plus_sub_rec(m: nat, n: nat, G1: context, T1: ty, G2: context, T2: ty, p: bool)
+  requires m<=n;
+  requires sub_rec(m, G1, T1, G2, T2, p);
+  ensures sub_rec(n, G1, T1, G2, T2, p);
+  decreases n-m;
+{
+  if (m<n) {
+    monotonic_sub_rec(m, G1, T1, G2, T2, p);
+    monotonic_plus_sub_rec(m+1, n, G1, T1, G2, T2, p);
+  }
+}
+ghost method monotonic_plus_typ(m: nat, n: nat, G: context, t: tm, T: ty)
+  requires m<=n;
+  requires typ(m, G, t, T);
+  ensures typ(n, G, t, T);
+  decreases n-m;
+{
+  if (m<n) {
+    monotonic_typ(m, G, t, T);
+    monotonic_plus_typ(m+1, n, G, t, T);
+  }
+}
+ghost method monotonic_plus_wfenv(m: nat, n: nat, H: heap, G: context)
+  requires m<=n;
+  requires wfenv(m, H, G);
+  ensures wfenv(n, H, G);
+  decreases n-m;
+{
+  if (m<n) {
+    monotonic_wfenv(m, H, G);
+    monotonic_plus_wfenv(m+1, n, H, G);
+  }
+}
+ghost method monotonic_plus_vtyp(m: nat, n: nat, G: context, v: vl, T: ty)
+  requires m<=n;
+  requires vtyp(m, G, v, T);
+  ensures vtyp(n, G, v, T);
+  decreases n-m;
+{
+  if (m<n) {
+    monotonic_vtyp(m, G, v, T);
+    monotonic_plus_vtyp(m+1, n, G, v, T);
   }
 }
 
@@ -288,14 +385,15 @@ ghost method lemma_sub_rec_refl(n: nat, G: context, T: ty, p: bool) returns (ns:
   decreases n, T;
 {
   match T {
-    case Top => ns := 0;
-    case Bot => ns := 0;
+    case TInt => ns := 0;
+    case Top  => ns := 0;
+    case Bot  => ns := 0;
     case TArrow(T1, T2) =>
       var ns1 := lemma_sub_rec_refl(n, G, T1, !p);
       var ns2 := lemma_sub_rec_refl(n, G, T2, p);
       ns := ns1+ns2;
-      help_sub_rec_monotonic_plus(ns1, ns, G, T1, G, T1, !p);
-      help_sub_rec_monotonic_plus(ns2, ns, G, T2, G, T2, p);
+      monotonic_plus_sub_rec(ns1, ns, G, T1, G, T1, !p);
+      monotonic_plus_sub_rec(ns2, ns, G, T2, G, T2, p);
     case TVal(Tv) =>
       var nsv := lemma_sub_rec_refl(n, G, Tv, p);
       ns := nsv;
@@ -303,28 +401,30 @@ ghost method lemma_sub_rec_refl(n: nat, G: context, T: ty, p: bool) returns (ns:
       var nst := lemma_sub_rec_refl(n, G, Tt, p);
       ns := nst;
     case TSel(x) =>
-      var n1 := lemma_sub_rec_refl(n-1, G, ty_lookup(x, G).get, p);
-      ns := n1+2;
+      var Tx :| path_eval(n-1, G, x, Tx);
+      monotonic_path_eval(n-1, G, x, Tx);
+      var nx := lemma_sub_rec_refl(n-1, G, Tx, p);
+      ns := n+nx;
+      monotonic_plus_sub_rec(nx, ns, G, Tx, G, Tx, p);
+      monotonic_plus_path_eval(n, ns+1, G, x, Tx);
+      monotonic_path_eval(ns+1, G, x, Tx);
+      ns := ns+2;
   }
 }
 
-ghost method lemma_sub_rec_trans(n12: nat, n23: nat, G1: context, T1: ty, G2: context, T2: ty, G3: context, T3: ty, p: bool) returns (n13: nat)
+ghost method {:timeLimit 50} lemma_sub_rec_trans(n12: nat, n23: nat, G1: context, T1: ty, G2: context, T2: ty, G3: context, T3: ty, p: bool) returns (n13: nat)
   requires sub_rec(n12, G1, T1, G2, T2, p);
   requires sub_rec(n23, G2, T2, G3, T3, p);
   ensures sub_rec(n13, G1, T1, G3, T3, p);
   decreases if p then n12 else n23, if p then n23 else n12, if p then T1 else T3, T2, if p then T3 else T1;
 {
   n13 := 0;
-  if (T2.Top? && T3.TSel?) {
-    var nr := lemma_sub_rec_trans(n12, n23-1, G1, T1, G2, T2, G3, ty_lookup(T3.x, G3).get, p);
-    n13 := nr+1;
-  }
-  else if (T1.TArrow? && T2.TArrow? && T3.TArrow?) {
+  if (T1.TArrow? && T2.TArrow? && T3.TArrow?) {
     var ns1 := lemma_sub_rec_trans(n23, n12, G3, T3.T1, G2, T2.T1, G1, T1.T1, !p);
     var ns2 := lemma_sub_rec_trans(n12, n23, G1, T1.T2, G2, T2.T2, G3, T3.T2, p);
     n13 := ns1+ns2;
-    help_sub_rec_monotonic_plus(ns1, n13, G3, T3.T1, G1, T1.T1, !p);
-    help_sub_rec_monotonic_plus(ns2, n13, G1, T1.T2, G3, T3.T2, p);
+    monotonic_plus_sub_rec(ns1, n13, G3, T3.T1, G1, T1.T1, !p);
+    monotonic_plus_sub_rec(ns2, n13, G1, T1.T2, G3, T3.T2, p);
   }
   else if (T1.TVal? && T2.TVal? && T3.TVal?) {
     var nr := lemma_sub_rec_trans(n12, n23, G1, T1.Tv, G2, T2.Tv, G3, T3.Tv, p);
@@ -334,30 +434,30 @@ ghost method lemma_sub_rec_trans(n12: nat, n23: nat, G1: context, T1: ty, G2: co
     var nr := lemma_sub_rec_trans(n12, n23, G1, T1.T, G2, T2.T, G3, T3.T, p);
     n13 := nr;
   }
-  else if (n12>0 && T1.TSel? && ty_lookup(T1.x, G1).Result? && sub_rec(n12-1, G1, ty_lookup(T1.x, G1).get, G2, T2, p)) {
-    var nr := lemma_sub_rec_trans(n12-1, n23, G1, ty_lookup(T1.x, G1).get, G2, T2, G3, T3, p);
-    n13 := nr+1;
+  else if (n12>0 && T1.TSel? && exists T1x :: path_eval(n12, G1, T1.x, T1x) && sub_rec(n12-1, G1, T1x, G2, T2, p)) {
+    var T1x :| path_eval(n12, G1, T1.x, T1x);
+    var nr := lemma_sub_rec_trans(n12-1, n23, G1, T1x, G2, T2, G3, T3, p);
+    n13 := n12+nr;
+    monotonic_plus_path_eval(n12, n13+1, G1, T1.x, T1x);
+    monotonic_plus_sub_rec(nr, n13, G1, T1x, G3, T3, p);
+    n13 := n13+1;
   }
-  else if (n12>0 && T2.TSel? && ty_lookup(T2.x, G2).Result? && sub_rec(n12-1, G1, T1, G2, ty_lookup(T2.x, G2).get, p)) {
-    if (n23>0 && sub_rec(n23-1, G2, ty_lookup(T2.x, G2).get, G3, T3, p)) {
-      var nr := lemma_sub_rec_trans(n12-1, n23-1, G1, T1, G2, ty_lookup(T2.x, G2).get, G3, T3, p);
-      n13 := nr;
-    }
-    else if (n23>0 && T3.TSel? && ty_lookup(T3.x, G3).Result? && sub_rec(n23-1, G2, T2, G3, ty_lookup(T3.x, G3).get, p)) {
-      var nr := lemma_sub_rec_trans(n12, n23-1, G1, T1, G2, T2, G3, ty_lookup(T3.x, G3).get, p);
-      n13 := nr+1;
-    }
+  else if (n23>0 && T3.TSel? && exists T3x :: path_eval(n23, G3, T3.x, T3x) && sub_rec(n23-1, G2, T2, G3, T3x, p)) {
+    var T3x :| path_eval(n23, G3, T3.x, T3x);
+    var nr := lemma_sub_rec_trans(n12, n23-1, G1, T1, G2, T2, G3, T3x, p);
+    n13 := n23+nr;
+    monotonic_plus_path_eval(n23, n13+1, G3, T3.x, T3x);
+    monotonic_plus_sub_rec(nr, n13, G1, T1, G3, T3x, p);
+    n13 := n13+1;
   }
-  else if (n23>0 && T2.TSel? && ty_lookup(T2.x, G2).Result? && sub_rec(n23-1, G2, ty_lookup(T2.x, G2).get, G3, T3, p)) {
-    var nr := lemma_sub_rec_trans(n12, n23-1, G1, T1, G2, ty_lookup(T2.x, G2).get, G3, T3, p);
-    n13 := nr+1;
-  }
-  else if (n23>0 && T3.TSel? && ty_lookup(T3.x, G3).Result? && sub_rec(n23-1, G2, T2, G3, ty_lookup(T3.x, G3).get, p)) {
-    var nr := lemma_sub_rec_trans(n12, n23-1, G1, T1, G2, T2, G3, ty_lookup(T3.x, G3).get, p);
-    n13 := nr+1;
+  else if (n12>0 && n23>0 && T2.TSel? && exists T2x :: path_eval(n12, G2, T2.x, T2x) && sub_rec(n12-1, G1, T1, G2, T2x, p) && sub_rec(n23-1, G2, T2x, G3, T3, p)) {
+    var T2x :| path_eval(n12, G2, T2.x, T2x);
+    var nr := lemma_sub_rec_trans(n12-1, n23-1, G1, T1, G2, T2x, G3, T3, p);
+    n13 := nr;
   }
 }
 
+/*
 // Hints
 ghost method hint_vtyp_rec_sub(ns: nat, nt: nat, nw: nat, G: context, v: vl, T1: ty, T: ty) returns (nv: nat)
   requires wf(nw, G, T);
@@ -585,3 +685,4 @@ ghost method lemma_eval_safe(ntyp: nat, nev: nat, nenv: nat, H: heap, G: context
     nv := hint_vtyp_rec_sub(nt, nvi, ntyp, G, v, Tv, T);
   }
 }
+*/
