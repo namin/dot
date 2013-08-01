@@ -599,20 +599,34 @@ ghost method wkn_plus_vtyp(Ts: seq<ty>, n: nat, G: seq<ty>, v: vl, T: ty)
 
 // Inversions
 
-ghost method inv_typ_var(n: nat, G: seq<ty>, x: nat, T: ty) returns (nv: nat)
+ghost method inv_typ_var(n: nat, G: seq<ty>, x: nat, T: ty) returns (ni: nat)
   requires typ(n, G, tvar(x), T);
   ensures lookup(x, G).Result?;
-  ensures sub(nv, G, lookup(x, G).get, G, T);
+  ensures sub(ni, G, lookup(x, G).get, G, T);
 {
   if (lookup(x, G)==Result(T) && wf(n, G, T)) {
     var nr := lemma_sub_rec_refl(n, G, T, true);
-    nv := nr;
+    ni := nr;
   }
   else if (n>0 && exists T' :: sub(n-1, G, T', G, T) && typ(n-1, G, tvar(x), T')) {
     var T' :| sub(n-1, G, T', G, T) && typ(n-1, G, tvar(x), T');
     var nr := inv_typ_var(n-1, G, x, T');
     var ns := lemma_sub_rec_trans(nr, n-1, G, lookup(x, G).get, G, T', G, T, true);
-    nv := ns;
+    ni := ns;
+  }
+}
+
+ghost method inv_typ_num(n: nat, G: seq<ty>, i: int, T: ty) returns (ni: nat)
+  requires typ(n, G, tnum(i), T);
+  ensures typ(ni, G, tnum(i), TInt);
+  ensures sub(ni, G, TInt, G, T);
+{
+  ni := 0;
+  if (n>0 && exists T' :: sub(n-1, G, T', G, T) && typ(n-1, G, tnum(i), T')) {
+    var T' :| sub(n-1, G, T', G, T) && typ(n-1, G, tnum(i), T');
+    var nr := inv_typ_num(n-1, G, i, T');
+    var ns := lemma_sub_rec_trans(nr, n-1, G, TInt, G, T', G, T, true);
+    ni := ns;
   }
 }
 
@@ -630,6 +644,34 @@ ghost method theorem_lookup_safe(nw: nat, H: seq<vl>, G: seq<ty>, x: nat)
   assert G[..x+1]+G[x+1..]==G;
 }
 
+ghost method theorem_eval_safe(nw: nat, H: seq<vl>, G: seq<ty>, nt: nat, t: tm, T: ty, ne: nat) returns (nv: nat)
+  requires wfenv(nw, H, G);
+  requires typ(nt, G, t, T);
+  requires eval(ne, H, t).Result?;
+  ensures vtyp(nv, G, eval(ne, H, t).get, T);
+{
+  match t {
+  case tnum(n) =>
+    var ni := inv_typ_num(nt, G, n, T);
+    nv := ni+1;
+  case tvar(x) =>
+    theorem_lookup_safe(nw, H, G, x);
+    var ni := inv_typ_var(nt, G, x, T);
+    nv := nw+ni;
+    monotonic_plus_vtyp(nw, nv, G, lookup(x, H).get, lookup(x, G).get);
+    monotonic_plus_sub(ni, nv, G, lookup(x, G).get, G, T);
+    nv := nv+1;
+  case tnew(mf, ff, Tt) =>
+    // TODO
+    assume vtyp(nv, G, eval(ne, H, t).get, T);
+  case tapp(o, a) =>
+    // TODO
+    assume vtyp(nv, G, eval(ne, H, t).get, T);
+  case tget(o) =>
+    // TODO
+    assume vtyp(nv, G, eval(ne, H, t).get, T);
+  }
+}
 
 /*
 // Hints
