@@ -990,37 +990,37 @@ ghost method {:timeLimit 50} theorem_eval_safe(nw: nat, H: seq<vl>, G: seq<ty>, 
     if (vff.Result?) {
       assert vo.Result?;
       var v := vo.get; 
-    var T1 := T;
-    if sub(ni, G, TArrow(Tm1, Tm2), G, T) {
-      T1 := TArrow(Tm1, Tm2);
-      assert wf(ni, G, TArrow(Tm1, Tm2));
-      assert wfenv(nw, v.H, G);
-      assert typ(ni, extend(Tm1, G), v.mf, Tm2);
-      var nr := lemma_sub_rec_refl(ni, G, TArrow(Tm1, Tm2), true);
-      assert sub(nr, G, TArrow(Tm1, Tm2), G, TArrow(Tm1, Tm2));
-      nv := ni+nw+nr;
-      monotonic_plus_wf(ni, nv, G, TArrow(Tm1, Tm2));
-      monotonic_plus_wfenv(nw, nv, v.H, G);
-      monotonic_plus_typ(ni, nv, extend(Tm1, G), v.mf, Tm2);
-      monotonic_plus_sub(nr, nv, G, TArrow(Tm1, Tm2), G, TArrow(Tm1, Tm2));
-      monotonic_plus_sub(ni, nv, G, TArrow(Tm1, Tm2), G, T);
-      nv := nv+1;
-    }
-    else if sub(ni, G, TVal(Tf), G, T) {
-      T1 := TVal(Tf);
-      nv := ni+nr;
-      monotonic_plus_vtyp(nr, nv, G, v, TVal(Tf));
-      monotonic_plus_sub(ni, nv, G, TVal(Tf), G, T);
-      nv := nv+1;
-    }
-    else if sub(ni, G, TTyp(Tx), G, T) {
-      T1 := TTyp(Tx);
-      nv := ni+1;
-    }
-    else {
-      assert false;
-    }
-    help_vtyp_sub(nv, G, eval(ne, H, t).get, T, G, T1);
+      var T1 := T;
+      if sub(ni, G, TArrow(Tm1, Tm2), G, T) {
+        T1 := TArrow(Tm1, Tm2);
+        assert wf(ni, G, TArrow(Tm1, Tm2));
+        assert wfenv(nw, v.H, G);
+        assert typ(ni, extend(Tm1, G), v.mf, Tm2);
+        var nr := lemma_sub_rec_refl(ni, G, TArrow(Tm1, Tm2), true);
+        assert sub(nr, G, TArrow(Tm1, Tm2), G, TArrow(Tm1, Tm2));
+        nv := ni+nw+nr;
+        monotonic_plus_wf(ni, nv, G, TArrow(Tm1, Tm2));
+        monotonic_plus_wfenv(nw, nv, v.H, G);
+        monotonic_plus_typ(ni, nv, extend(Tm1, G), v.mf, Tm2);
+        monotonic_plus_sub(nr, nv, G, TArrow(Tm1, Tm2), G, TArrow(Tm1, Tm2));
+        monotonic_plus_sub(ni, nv, G, TArrow(Tm1, Tm2), G, T);
+        nv := nv+1;
+      }
+      else if sub(ni, G, TVal(Tf), G, T) {
+        T1 := TVal(Tf);
+        nv := ni+nr;
+        monotonic_plus_vtyp(nr, nv, G, v, TVal(Tf));
+        monotonic_plus_sub(ni, nv, G, TVal(Tf), G, T);
+        nv := nv+1;
+      }
+      else if sub(ni, G, TTyp(Tx), G, T) {
+        T1 := TTyp(Tx);
+        nv := ni+1;
+      }
+      else {
+        assert false;
+      }
+      help_vtyp_sub(nv, G, eval(ne, H, t).get, T, G, T1);
     }
   case tapp(f, a) =>
     var ni, T1, T2 := inv_typ_app(nt, G, f, a, T);
@@ -1031,42 +1031,42 @@ ghost method {:timeLimit 50} theorem_eval_safe(nw: nat, H: seq<vl>, G: seq<ty>, 
     var vo := eval(ne, H, t);
     assert !vfo.Stuck? && !vao.Stuck?;
     if (vfo.Result? && vao.Result?) {
-    if (ne==0) {
-      
-    } else {
-      var vf := vfo.get;
-      var va := vao.get;
-      
-    var nif, Gf, T1f, T2f := inv_vtyp_fun(nf, G, vf, T1, T2);
-    invariant_p_sub_rec(nif, G, T1, Gf, T1f, false);
-    var nwef := help_wfenv_extend(nif, na, vf.H, Gf, T1f, G, T1, va);
-    var nr := theorem_eval_safe(nwef, extend(va, vf.H), extend(T1f, Gf), nif, vf.mf, T2f, ne-1);
-    assert vo==eval(ne-1, extend(va, vf.H), vf.mf);
-    assert !vo.Stuck?;
-    if (vo.Result?) {
-    var v := vo.get;
-    assert vtyp(nr, extend(T1f, Gf), v, T2f);
-    var ns := lemma_sub_rec_trans(nif, ni, Gf, T2f, G, T2, G, T, true);
-    wkn_sub(T1f, ns, Gf, T2f, G, T);
-    nv := nr + ns;
-    monotonic_plus_vtyp(nr, nv, extend(T1f, Gf), v, T2f);
-    monotonic_plus_sub(ns, nv, extend(T1f, Gf), T2f, G, T);
-    help_vtyp_sub(nv+1, G, eval(ne, H, t).get, T, extend(T1f, Gf), T2f);
-    nv := nv+1;
-    }}}
+      if (ne==0) {
+      } else {
+        var vf := vfo.get;
+        var va := vao.get;
+        var nif, Gf, T1f, T2f := inv_vtyp_fun(nf, G, vf, T1, T2);
+        invariant_p_sub_rec(nif, G, T1, Gf, T1f, false);
+        var nwef := help_wfenv_extend(nif, na, vf.H, Gf, T1f, G, T1, va);
+        var nr := theorem_eval_safe(nwef, extend(va, vf.H), extend(T1f, Gf), nif, vf.mf, T2f, ne-1);
+        assert vo==eval(ne-1, extend(va, vf.H), vf.mf);
+        assert !vo.Stuck?;
+        if (vo.Result?) {
+          var v := vo.get;
+          assert vtyp(nr, extend(T1f, Gf), v, T2f);
+          var ns := lemma_sub_rec_trans(nif, ni, Gf, T2f, G, T2, G, T, true);
+          wkn_sub(T1f, ns, Gf, T2f, G, T);
+          nv := nr + ns;
+          monotonic_plus_vtyp(nr, nv, extend(T1f, Gf), v, T2f);
+          monotonic_plus_sub(ns, nv, extend(T1f, Gf), T2f, G, T);
+          help_vtyp_sub(nv+1, G, eval(ne, H, t).get, T, extend(T1f, Gf), T2f);
+          nv := nv+1;
+        }
+      }
+    }
   case tget(o) =>
     var ni, T1 := inv_typ_get(nt, G, o, T);
     var nr := theorem_eval_safe(nw, H, G, ni, o, TVal(T1), ne);
     if (eval(ne, H, o).Result?) {
-    var niv, G1v, T1v := inv_vtyp_val(nr, G, eval(ne, H, o).get, T1);
-    assert vtyp(niv, G1v, eval(ne, H, t).get, T1v);
-    assert sub(niv, G1v, TVal(T1v), G, TVal(T1));
-    help_vtyp_sub(niv+1, G, eval(ne, H, t).get, T1, G1v, T1v);
-    nv := niv+1+ni;
-    monotonic_plus_vtyp(niv+1, nv, G, eval(ne, H, t).get, T1);
-    monotonic_plus_sub(ni, nv, G, T1, G, T);
-    help_vtyp_sub(nv+1, G, eval(ne, H, t).get, T, G, T1);
-    nv := nv+1;
+      var niv, G1v, T1v := inv_vtyp_val(nr, G, eval(ne, H, o).get, T1);
+      assert vtyp(niv, G1v, eval(ne, H, t).get, T1v);
+      assert sub(niv, G1v, TVal(T1v), G, TVal(T1));
+      help_vtyp_sub(niv+1, G, eval(ne, H, t).get, T1, G1v, T1v);
+      nv := niv+1+ni;
+      monotonic_plus_vtyp(niv+1, nv, G, eval(ne, H, t).get, T1);
+      monotonic_plus_sub(ni, nv, G, T1, G, T);
+      help_vtyp_sub(nv+1, G, eval(ne, H, t).get, T, G, T1);
+      nv := nv+1;
     }
   }
 }
