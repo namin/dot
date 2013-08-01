@@ -376,9 +376,48 @@ ghost method monotonic_plus_vtyp(m: nat, n: nat, G: seq<ty>, v: vl, T: ty)
 // Properties
 //
 
-// Subtyping properties
-
 // Regularity
+ghost method lemma_typ_reg(n: nat, G: seq<ty>, t: tm, T: ty) returns (nw: nat)
+  requires typ(n, G, t, T);
+  ensures wf(nw, G, T);
+{
+  nw := n;
+  if (t.tnew? &&
+      exists TA1, TA2, Tv ::
+      typ(n, extend(TA1, G), t.mf, TA2) && typ(n, G, t.field, Tv) &&
+      wf(n, G, t.T) &&
+      wf(n, G, TArrow(TA1, TA2)) &&
+      ((T.TArrow? && T.T1==TA1 && T.T2==TA2) ||
+       (T.TVal? && T.Tv==Tv) ||
+       (T.TTyp? && T.T==t.T))) {
+    var TA1, TA2, Tv :|
+      typ(n, extend(TA1, G), t.mf, TA2) && typ(n, G, t.field, Tv) &&
+      wf(n, G, t.T) &&
+      wf(n, G, TArrow(TA1, TA2)) &&
+      ((T.TArrow? && T.T1==TA1 && T.T2==TA2) ||
+       (T.TVal? && T.Tv==Tv) ||
+       (T.TTyp? && T.T==t.T));
+    if (T.TVal? && T.Tv==Tv) {
+      var nr := lemma_typ_reg(n, G, t.field, Tv);
+      nw := nr;
+    }    
+  }
+  else if (t.tapp? && exists T1 :: typ(n, G, t.a, T1) && typ(n, G, t.f, TArrow(T1, T))) {
+    var T1 :| typ(n, G, t.a, T1) && typ(n, G, t.f, TArrow(T1, T));
+    var nf := lemma_typ_reg(n, G, t.f, TArrow(T1, T));
+    nw := nf;
+  }
+  else if (t.tget? && typ(n, G, t.o, TVal(T))) {
+    var nr := lemma_typ_reg(n, G, t.o, TVal(T));
+    nw := nr;
+  }
+  else if (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && typ(n-1, G, t, T1)) {
+    var T1 :| sub(n-1, G, T1, G, T) && typ(n-1, G, t, T1);
+    var ns := lemma_sub_rec_reg(n-1, G, T1, G, T, true);
+    nw := ns;
+  }
+}
+
 ghost method lemma_sub_rec_reg(n: nat, G1: seq<ty>, T1: ty, G2: seq<ty>, T2: ty, p: bool) returns (nw: nat)
   requires sub_rec(n, G1, T1, G2, T2, p);
   ensures wf(nw, G1, T1);
@@ -630,6 +669,83 @@ ghost method inv_typ_num(n: nat, G: seq<ty>, i: int, T: ty) returns (ni: nat)
   }
 }
 
+ghost method help_sub_cases(n: nat, G: seq<ty>, Tm1: ty, Tm2: ty, Tf: ty, Tx: ty, T: ty)
+  requires (T.TArrow? && T.T1==Tm1 && T.T2==Tm2)
+        || (T.TVal? && T.Tv==Tf)
+        || (T.TTyp? && T.T==Tx);
+  requires sub(n, G, T, G, T);
+  ensures sub(n, G, TArrow(Tm1, Tm2), G, T)
+       || sub(n, G, TVal(Tf), G, T)
+       || sub(n, G, TTyp(Tx), G, T);
+{
+}
+
+ghost method inv_typ_new(n: nat, G: seq<ty>, mf: tm, ff: tm, Tx: ty, T: ty) returns (ni: nat, Tm1: ty, Tm2: ty, Tf: ty)
+  requires typ(n, G, tnew(mf, ff, Tx), T);
+  ensures typ(ni, extend(Tm1, G), mf, Tm2);
+  ensures typ(ni, G, ff, Tf);
+  ensures wf(ni, G, TArrow(Tm1, Tm2));
+  ensures wf(ni, G, Tx);
+  ensures sub(ni, G, TArrow(Tm1, Tm2), G, T)
+       || sub(ni, G, TVal(Tf), G, T)
+       || sub(ni, G, TTyp(Tx), G, T);
+{
+  if (exists TA1, TA2, Tv ::
+      typ(n, extend(TA1, G), mf, TA2) && typ(n, G, ff, Tv) &&
+      wf(n, G, Tx) &&
+      wf(n, G, TArrow(TA1, TA2)) &&
+      ((T.TArrow? && T.T1==TA1 && T.T2==TA2) ||
+       (T.TVal? && T.Tv==Tv) ||
+       (T.TTyp? && T.T==Tx))) {
+    var TA1, TA2, Tv :|
+        typ(n, extend(TA1, G), mf, TA2) && typ(n, G, ff, Tv) &&
+        wf(n, G, Tx) &&
+        wf(n, G, TArrow(TA1, TA2)) &&
+        ((T.TArrow? && T.T1==TA1 && T.T2==TA2) ||
+         (T.TVal? && T.Tv==Tv) ||
+         (T.TTyp? && T.T==Tx));
+    Tm1 := TA1;
+    Tm2 := TA2;
+    Tf := Tv;
+    var nw := lemma_typ_reg(n, G, tnew(mf, ff, Tx), T);
+    var ns := lemma_sub_rec_refl(nw, G, T, true);
+    ni := ns+n;
+    monotonic_plus_sub(ns, ni, G, T, G, T);
+    monotonic_plus_typ(n, ni, extend(Tm1, G), mf, Tm2);
+    monotonic_plus_typ(n, ni, G, ff, Tf);
+    monotonic_plus_wf(n, ni, G, TArrow(Tm1, Tm2));
+    monotonic_plus_wf(n, ni, G, Tx);
+    help_sub_cases(ni, G, Tm1, Tm2, Tf, Tx, T);
+  }
+  else if (n>0 && exists T1 :: sub(n-1, G, T1, G, T) && typ(n-1, G, tnew(mf, ff, Tx), T1)) {
+    var T1 :| sub(n-1, G, T1, G, T) && typ(n-1, G, tnew(mf, ff, Tx), T1);
+    var ni', Tm1', Tm2', Tf' := inv_typ_new(n-1, G, mf, ff, Tx, T1);
+    Tm1 := Tm1';
+    Tm2 := Tm2';
+    Tf := Tf';
+    var Ts := T;
+    if (sub(ni', G, TArrow(Tm1, Tm2), G, T1)) {
+      Ts := TArrow(Tm1, Tm2);  
+    }
+    else if (sub(ni', G, TVal(Tf), G, T1)) {
+      Ts := TVal(Tf);
+    }
+    else if (sub(ni', G, TTyp(Tx), G, T1)) {
+      Ts := TTyp(Tx);
+    }
+    else {
+      assert false;
+    }
+    var ns := lemma_sub_rec_trans(ni', n-1, G, Ts, G, T1, G, T, true);
+    ni := ni'+ns;
+    monotonic_plus_typ(ni', ni, extend(Tm1, G), mf, Tm2);
+    monotonic_plus_typ(ni', ni, G, ff, Tf);
+    monotonic_plus_wf(ni', ni, G, TArrow(Tm1, Tm2));
+    monotonic_plus_wf(ni', ni, G, Tx);
+    monotonic_plus_sub(ns, ni, G, Ts, G, T);
+  }
+}
+
 // Safety properties
 ghost method theorem_lookup_safe(nw: nat, H: seq<vl>, G: seq<ty>, x: nat)
   requires wfenv(nw, H, G);
@@ -649,6 +765,7 @@ ghost method theorem_eval_safe(nw: nat, H: seq<vl>, G: seq<ty>, nt: nat, t: tm, 
   requires typ(nt, G, t, T);
   requires eval(ne, H, t).Result?;
   ensures vtyp(nv, G, eval(ne, H, t).get, T);
+  decreases ne, t;
 {
   match t {
   case tnum(n) =>
@@ -661,9 +778,40 @@ ghost method theorem_eval_safe(nw: nat, H: seq<vl>, G: seq<ty>, nt: nat, t: tm, 
     monotonic_plus_vtyp(nw, nv, G, lookup(x, H).get, lookup(x, G).get);
     monotonic_plus_sub(ni, nv, G, lookup(x, G).get, G, T);
     nv := nv+1;
-  case tnew(mf, ff, Tt) =>
-    // TODO
-    assume vtyp(nv, G, eval(ne, H, t).get, T);
+  case tnew(mf, ff, Tx) =>
+    var ni, Tm1, Tm2, Tf := inv_typ_new(nt, G, mf, ff, Tx, T);
+    var v := eval(ne, H, t).get;
+    assert v.Clos?;
+    if sub(ni, G, TArrow(Tm1, Tm2), G, T) {
+      assert wf(ni, G, TArrow(Tm1, Tm2));
+      assert wfenv(nw, v.H, G);
+      assert typ(ni, extend(Tm1, G), v.mf, Tm2);
+      var nr := lemma_sub_rec_refl(ni, G, TArrow(Tm1, Tm2), true);
+      assert sub(nr, G, TArrow(Tm1, Tm2), G, TArrow(Tm1, Tm2));
+      nv := ni+nw+nr;
+      monotonic_plus_wf(ni, nv, G, TArrow(Tm1, Tm2));
+      monotonic_plus_wfenv(nw, nv, v.H, G);
+      monotonic_plus_typ(ni, nv, extend(Tm1, G), v.mf, Tm2);
+      monotonic_plus_sub(nr, nv, G, TArrow(Tm1, Tm2), G, TArrow(Tm1, Tm2));
+      monotonic_plus_sub(ni, nv, G, TArrow(Tm1, Tm2), G, T);
+      nv := nv+1;
+    }
+    else if sub(ni, G, TVal(Tf), G, T) {
+      var nr := theorem_eval_safe(nw, H, G, ni, ff, Tf, ne);
+      nv := ni+nr;
+      monotonic_plus_vtyp(nr, nv, G, v, TVal(Tf));
+      monotonic_plus_sub(ni, nv, G, TVal(Tf), G, T);
+      nv := nv+1;
+    }
+    else if sub(ni, G, TTyp(Tx), G, T) {
+      nv := ni+1;
+      assert vtyp(ni, G, v, TTyp(Tx));
+      assert sub(ni, G, TTyp(Tx), G, T);
+      assert vtyp(nv, G, v, T);
+    }
+    else {
+      assert false;
+    }
   case tapp(o, a) =>
     // TODO
     assume vtyp(nv, G, eval(ne, H, t).get, T);
