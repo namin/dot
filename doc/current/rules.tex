@@ -443,7 +443,7 @@ D ::= & \lindent\mbox{Declaration} \\
 {o \notin \dom(s)\\
 c = T_c \ldefs{\seq{d}}\ c' = T_c \ldefs{\subst o x \seq{d}}\ t' = {\subst o x t}
 }
-{\reduction {\new x c t} s t' {s \envplus{o \mapsto c'}}}
+{\reduction {\new x c t} s {t'} {s \envplus{o \mapsto c'}}}
 
 \infrule[\textsc{context}]
 {\reduction t s {t'} {s'}}
