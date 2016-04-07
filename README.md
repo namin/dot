@@ -10,4 +10,4 @@ Historical development:
 - WadlerFest'16 ([PDF](http://infoscience.epfl.ch/record/215280/files/paper_1.pdf), [code](http://wadlerfest.namin.net))
 - _From F to DOT_ ([PDF](http://arxiv.org/pdf/1510.05216.pdf), [**code**](http://github.com/TiarkRompf/minidot))
 - OOPSLA'14 ([PDF](http://lampwww.epfl.ch/~amin/dot/fpdt_post.pdf), [code](http://oopsla14.namin.net))
-- FOOL'12 ([PDF](http://lampwww.epfl.ch/~amin/dot/fool.pdf), [code](http://https://github.com/namin/dot/tree/fool))
+- FOOL'12 ([PDF](http://lampwww.epfl.ch/~amin/dot/fool.pdf), [code](https://github.com/namin/dot/tree/fool))
