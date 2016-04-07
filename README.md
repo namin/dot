@@ -1,19 +1,13 @@
 Dependent Object Types (DOT)
 ============================
 
-The DOT calculus proposes a new foundation for Scala's type system.
+The DOT calculus proposes a new type-theoretic foundation for languages like Scala.
+The latest rules ([PDF](http://lampwww.epfl.ch/~amin/dot/current_rules.pdf)) are for a small-step variant
+with full subtyping lattice, recursive types including their subtyping and dependent method types.
+Here is the corresponding [mechanized soundness proof](https://github.com/TiarkRompf/minidot/blob/master/dev2016/dot.v).
 
-DOT has been presented at the FOOL 2012 workshop
-([PDF](http://lampwww.epfl.ch/~amin/dot/fool.pdf)). The FOOL model has
-been implemented in
-[Coq](https://github.com/namin/dot/tree/master/src/coq),
-[PLT Redex](https://github.com/namin/dot/tree/master/src/redex), and
-[Scala](https://github.com/namin/dot/tree/master/src/scala).
-
-Since the FOOL presentation, we've been revising the formal model
-([PDF](http://lampwww.epfl.ch/~amin/dot/current_rules.pdf)), in
-preparation for a mechanized type safety proof. The current model
-has been implemented in
-[Coq](https://github.com/namin/dot/tree/master/src/coq),
-[Dafny](https://github.com/namin/dot/tree/master/src/dafny) and
-[PLT Redex](https://github.com/namin/dot/tree/master/src/redex).
+Historical development:
+- WadlerFest'16 ([PDF](http://infoscience.epfl.ch/record/215280/files/paper_1.pdf), [code](http://wadlerfest.namin.net))
+- _From F to DOT_ ([PDF](http://arxiv.org/pdf/1510.05216.pdf), [**code**](http://github.com/TiarkRompf/minidot))
+- OOPSLA'14 ([PDF](http://lampwww.epfl.ch/~amin/dot/fpdt_post.pdf), [code](http://oopsla14.namin.net))
+- FOOL'12 ([PDF](http://lampwww.epfl.ch/~amin/dot/fool.pdf), [code](http://https://github.com/namin/dot/tree/fool))
