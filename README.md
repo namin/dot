@@ -1,7 +1,11 @@
 Dependent Object Types (DOT)
 ============================
 
-The DOT calculus proposes a new foundation for Scala's type system.
+The DOT calculus proposes a new type-theoretic foundation for languages like Scala.
+See [the master branch for current developments on DOT](https://github.com/namin/dot).
+
+FOOL'12 Archive on DOT
+----------------------
 
 DOT has been presented at the FOOL 2012 workshop
 ([PDF](http://lampwww.epfl.ch/~amin/dot/fool.pdf)). The FOOL model has
