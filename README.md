@@ -3,7 +3,7 @@ Dependent Object Types (DOT)
 
 The DOT calculus proposes a new type-theoretic foundation for languages like Scala.
 The latest rules ([PDF](http://lampwww.epfl.ch/~amin/dot/current_rules.pdf)) are for a small-step variant
-with full subtyping lattice, recursive types including their subtyping and dependent method types.
+with full subtyping lattice, recursive types including their subtyping, and dependent method types.
 Here is the corresponding [mechanized soundness proof](https://github.com/TiarkRompf/minidot/blob/master/dev2016/dot_storeless_tidy.v).
 
 Historical development:
