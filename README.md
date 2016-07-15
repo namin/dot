@@ -6,6 +6,12 @@ The latest rules ([PDF](http://lampwww.epfl.ch/~amin/dot/current_rules.pdf)) are
 with full subtyping lattice, recursive types including their subtyping, and dependent method types.
 Here is the corresponding [mechanized soundness proof](https://github.com/TiarkRompf/minidot/blob/master/dev2016/dot_storeless_tidy.v).
 
+From F to DOT in Small-Step:
+- F<sub>&lt;:</sub> ([code](https://github.com/samuelgruetter/dot-calculus/blob/master/stable/Fsub.v))
+- F<sub>&lt;:&gt;</sub> ([code](https://github.com/samuelgruetter/dot-calculus/blob/master/stable/FsubL_alt.v))
+- D<sub>&lt;:&gt;</sub> ([code](https://github.com/samuelgruetter/dot-calculus/blob/master/stable/Dsub.v))
+- DOT ([code](https://github.com/TiarkRompf/minidot/blob/master/dev2016/dot_storeless_tidy.v))
+
 Historical development:
 - OOPSLA'16 (_forthcoming_, [code](http://oopsla16.namin.net))
 - WadlerFest'16 ([PDF](http://infoscience.epfl.ch/record/215280/files/paper_1.pdf), [code](http://wadlerfest.namin.net))
