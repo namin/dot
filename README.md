@@ -10,6 +10,8 @@ From F to DOT in Small-Step:
 - [F<sub>&lt;:</sub>](https://github.com/samuelgruetter/dot-calculus/blob/master/stable/Fsub.v)
 - [F<sub>&lt;:&gt;</sub>](https://github.com/samuelgruetter/dot-calculus/blob/master/stable/FsubL_alt.v)
 - [D<sub>&lt;:</sub>](https://github.com/samuelgruetter/dot-calculus/blob/master/stable/Dsub.v)
+- [D<sub>&lt;:&gt;</sub>](https://github.com/samuelgruetter/dot-calculus/blob/master/stable/Dsubsup.v)
+- [D<sub>&lt;&gt;</sub>](https://github.com/samuelgruetter/dot-calculus/blob/master/stable/Ddia.v)
 - [DOT](https://github.com/TiarkRompf/minidot/blob/master/dev2016/dot_storeless_tidy.v)
 
 Historical development:
